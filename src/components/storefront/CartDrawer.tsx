@@ -195,7 +195,7 @@ export function CartDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetAll(); }}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 bg-muted/30 p-0 sm:max-w-md">
+      <SheetContent side="right" className="flex w-full flex-col gap-0 bg-card p-0 sm:max-w-md">
         {/* CART */}
         {step === "cart" && (
           <>
