@@ -36,8 +36,10 @@ function ConfirmedPage() {
 
   const message = buildWhatsAppMessage({
     ...order,
-    items: order.items.map((it: never) => ({ product: { name: (it as { name: string }).name }, ...(it as object) })),
-  } as never);
+    items: order.items.map((it: { name: string; qty: number; addons: { id: string; name: string; price: number }[]; note?: string }) => ({
+      uid: "", product: { name: it.name } as never, qty: it.qty, addons: it.addons, note: it.note,
+    })),
+  });
 
   return (
     <div className="min-h-screen bg-background">
