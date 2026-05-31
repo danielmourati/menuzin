@@ -17,6 +17,7 @@ import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
+import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
@@ -60,6 +61,11 @@ const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
   path: '/admin/categorias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
+  id: '/admin/aparencia',
+  path: '/admin/aparencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaSlugPedidoConfirmadoRoute =
   LojaSlugPedidoConfirmadoRouteImport.update({
     id: '/pedido-confirmado',
@@ -75,6 +81,7 @@ const LojaSlugAcompanharOrderIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -100,6 +108,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin/aparencia'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/dashboard'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin/aparencia'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/dashboard'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin/aparencia'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/dashboard'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/aparencia': {
+      id: '/admin/aparencia'
+      path: '/admin/aparencia'
+      fullPath: '/admin/aparencia'
+      preLoaderRoute: typeof AdminAparenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/$slug/pedido-confirmado': {
       id: '/loja/$slug/pedido-confirmado'
       path: '/pedido-confirmado'
@@ -251,6 +271,7 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminAparenciaRoute: AdminAparenciaRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminDashboardRoute: AdminDashboardRoute,
