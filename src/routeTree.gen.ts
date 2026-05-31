@@ -10,33 +10,206 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
+import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
+import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
+import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
+import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
+import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
+import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformLojasRoute = PlatformLojasRouteImport.update({
+  id: '/platform/lojas',
+  path: '/platform/lojas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
+  id: '/platform/dashboard',
+  path: '/platform/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LojaSlugRoute = LojaSlugRouteImport.update({
+  id: '/loja/$slug',
+  path: '/loja/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminProdutosRoute = AdminProdutosRouteImport.update({
+  id: '/admin/produtos',
+  path: '/admin/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/admin/pedidos',
+  path: '/admin/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/admin/configuracoes',
+  path: '/admin/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
+  id: '/admin/categorias',
+  path: '/admin/categorias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
+  id: '/admin/aparencia',
+  path: '/admin/aparencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LojaSlugPedidoConfirmadoRoute =
+  LojaSlugPedidoConfirmadoRouteImport.update({
+    id: '/pedido-confirmado',
+    path: '/pedido-confirmado',
+    getParentRoute: () => LojaSlugRoute,
+  } as any)
+const LojaSlugAcompanharOrderIdRoute =
+  LojaSlugAcompanharOrderIdRouteImport.update({
+    id: '/acompanhar/$orderId',
+    path: '/acompanhar/$orderId',
+    getParentRoute: () => LojaSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtos': typeof AdminProdutosRoute
+  '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/lojas': typeof PlatformLojasRoute
+  '/admin/': typeof AdminIndexRoute
+  '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtos': typeof AdminProdutosRoute
+  '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/lojas': typeof PlatformLojasRoute
+  '/admin': typeof AdminIndexRoute
+  '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtos': typeof AdminProdutosRoute
+  '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/lojas': typeof PlatformLojasRoute
+  '/admin/': typeof AdminIndexRoute
+  '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin/aparencia'
+    | '/admin/categorias'
+    | '/admin/configuracoes'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/pedidos'
+    | '/admin/produtos'
+    | '/loja/$slug'
+    | '/platform/dashboard'
+    | '/platform/lojas'
+    | '/admin/'
+    | '/loja/$slug/pedido-confirmado'
+    | '/loja/$slug/acompanhar/$orderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin/aparencia'
+    | '/admin/categorias'
+    | '/admin/configuracoes'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/pedidos'
+    | '/admin/produtos'
+    | '/loja/$slug'
+    | '/platform/dashboard'
+    | '/platform/lojas'
+    | '/admin'
+    | '/loja/$slug/pedido-confirmado'
+    | '/loja/$slug/acompanhar/$orderId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/aparencia'
+    | '/admin/categorias'
+    | '/admin/configuracoes'
+    | '/admin/dashboard'
+    | '/admin/login'
+    | '/admin/pedidos'
+    | '/admin/produtos'
+    | '/loja/$slug'
+    | '/platform/dashboard'
+    | '/platform/lojas'
+    | '/admin/'
+    | '/loja/$slug/pedido-confirmado'
+    | '/loja/$slug/acompanhar/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminAparenciaRoute: typeof AdminAparenciaRoute
+  AdminCategoriasRoute: typeof AdminCategoriasRoute
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminProdutosRoute: typeof AdminProdutosRoute
+  LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  PlatformDashboardRoute: typeof PlatformDashboardRoute
+  PlatformLojasRoute: typeof PlatformLojasRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +221,128 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/lojas': {
+      id: '/platform/lojas'
+      path: '/platform/lojas'
+      fullPath: '/platform/lojas'
+      preLoaderRoute: typeof PlatformLojasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/dashboard': {
+      id: '/platform/dashboard'
+      path: '/platform/dashboard'
+      fullPath: '/platform/dashboard'
+      preLoaderRoute: typeof PlatformDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja/$slug': {
+      id: '/loja/$slug'
+      path: '/loja/$slug'
+      fullPath: '/loja/$slug'
+      preLoaderRoute: typeof LojaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/produtos': {
+      id: '/admin/produtos'
+      path: '/admin/produtos'
+      fullPath: '/admin/produtos'
+      preLoaderRoute: typeof AdminProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/admin/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/admin/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/categorias': {
+      id: '/admin/categorias'
+      path: '/admin/categorias'
+      fullPath: '/admin/categorias'
+      preLoaderRoute: typeof AdminCategoriasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/aparencia': {
+      id: '/admin/aparencia'
+      path: '/admin/aparencia'
+      fullPath: '/admin/aparencia'
+      preLoaderRoute: typeof AdminAparenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja/$slug/pedido-confirmado': {
+      id: '/loja/$slug/pedido-confirmado'
+      path: '/pedido-confirmado'
+      fullPath: '/loja/$slug/pedido-confirmado'
+      preLoaderRoute: typeof LojaSlugPedidoConfirmadoRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/acompanhar/$orderId': {
+      id: '/loja/$slug/acompanhar/$orderId'
+      path: '/acompanhar/$orderId'
+      fullPath: '/loja/$slug/acompanhar/$orderId'
+      preLoaderRoute: typeof LojaSlugAcompanharOrderIdRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
   }
 }
 
+interface LojaSlugRouteChildren {
+  LojaSlugPedidoConfirmadoRoute: typeof LojaSlugPedidoConfirmadoRoute
+  LojaSlugAcompanharOrderIdRoute: typeof LojaSlugAcompanharOrderIdRoute
+}
+
+const LojaSlugRouteChildren: LojaSlugRouteChildren = {
+  LojaSlugPedidoConfirmadoRoute: LojaSlugPedidoConfirmadoRoute,
+  LojaSlugAcompanharOrderIdRoute: LojaSlugAcompanharOrderIdRoute,
+}
+
+const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
+  LojaSlugRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminAparenciaRoute: AdminAparenciaRoute,
+  AdminCategoriasRoute: AdminCategoriasRoute,
+  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminPedidosRoute: AdminPedidosRoute,
+  AdminProdutosRoute: AdminProdutosRoute,
+  LojaSlugRoute: LojaSlugRouteWithChildren,
+  PlatformDashboardRoute: PlatformDashboardRoute,
+  PlatformLojasRoute: PlatformLojasRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
