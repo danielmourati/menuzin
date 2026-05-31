@@ -125,7 +125,7 @@ export const products: Product[] = [
     description: "Blend 180g, bacon crocante, cheddar duplo e cebola caramelizada.",
     price: 32.9,
     promoPrice: 28.9,
-    image: img("1572802419224-296b0aeee0d9"),
+    image: img("1553979459-d2229ba7433b"),
     available: true,
     featured: true,
     addons: baseAddons,
@@ -136,7 +136,7 @@ export const products: Product[] = [
     category: "Hambúrgueres",
     description: "Dois blends 120g, cheddar cremoso, picles e maionese da casa.",
     price: 34.9,
-    image: img("1550317138-10000687a72b"),
+    image: img("1551782450-a2132b4ba21d"),
     available: true,
     featured: false,
     addons: baseAddons,
@@ -168,7 +168,7 @@ export const products: Product[] = [
     category: "Combos",
     description: "4 hambúrgueres, 2 batatas grandes e 2 refrigerantes 1L.",
     price: 119.9,
-    image: img("1561758033-d89a9ad46330"),
+    image: img("1586816001966-79b736744398"),
     available: true,
     featured: false,
   },
@@ -178,7 +178,7 @@ export const products: Product[] = [
     category: "Combos",
     description: "Porção generosa de batata frita crocante com sal e ervas.",
     price: 18.9,
-    image: img("1573080496219-bb080dd4f877"),
+    image: img("1576107232684-1279f390859f"),
     available: true,
     featured: false,
   },
@@ -208,7 +208,7 @@ export const products: Product[] = [
     category: "Sobremesas",
     description: "Milkshake cremoso de chocolate com calda e chantilly.",
     price: 16.9,
-    image: img("1568901346375-23c9450c58cd"),
+    image: img("1572490122747-3968b75cc699"),
     available: true,
     featured: true,
   },
@@ -234,6 +234,7 @@ export const products: Product[] = [
     featured: true,
   },
 ];
+
 
 export const orders: Order[] = [
   {
