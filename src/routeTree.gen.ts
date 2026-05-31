@@ -10,6 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
+import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
@@ -24,6 +27,21 @@ import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$sl
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformLojasRoute = PlatformLojasRouteImport.update({
+  id: '/platform/lojas',
+  path: '/platform/lojas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
+  id: '/platform/dashboard',
+  path: '/platform/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaSlugRoute = LojaSlugRouteImport.update({
@@ -89,6 +107,9 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/lojas': typeof PlatformLojasRoute
+  '/admin/': typeof AdminIndexRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
@@ -102,6 +123,9 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/lojas': typeof PlatformLojasRoute
+  '/admin': typeof AdminIndexRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
@@ -116,6 +140,9 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/lojas': typeof PlatformLojasRoute
+  '/admin/': typeof AdminIndexRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
@@ -131,6 +158,9 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/loja/$slug'
+    | '/platform/dashboard'
+    | '/platform/lojas'
+    | '/admin/'
     | '/loja/$slug/pedido-confirmado'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -144,6 +174,9 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/loja/$slug'
+    | '/platform/dashboard'
+    | '/platform/lojas'
+    | '/admin'
     | '/loja/$slug/pedido-confirmado'
     | '/loja/$slug/acompanhar/$orderId'
   id:
@@ -157,6 +190,9 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/loja/$slug'
+    | '/platform/dashboard'
+    | '/platform/lojas'
+    | '/admin/'
     | '/loja/$slug/pedido-confirmado'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesById: FileRoutesById
@@ -171,6 +207,9 @@ export interface RootRouteChildren {
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  PlatformDashboardRoute: typeof PlatformDashboardRoute
+  PlatformLojasRoute: typeof PlatformLojasRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -180,6 +219,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/lojas': {
+      id: '/platform/lojas'
+      path: '/platform/lojas'
+      fullPath: '/platform/lojas'
+      preLoaderRoute: typeof PlatformLojasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/dashboard': {
+      id: '/platform/dashboard'
+      path: '/platform/dashboard'
+      fullPath: '/platform/dashboard'
+      preLoaderRoute: typeof PlatformDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja/$slug': {
@@ -279,6 +339,9 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  PlatformDashboardRoute: PlatformDashboardRoute,
+  PlatformLojasRoute: PlatformLojasRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
