@@ -59,8 +59,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "FoodCatálogo — Catálogo digital para o seu negócio food" },
+      { title: "Menuzin — Catálogo digital para o seu negócio food" },
       { name: "description", content: "Crie a vitrine digital do seu restaurante, receba pedidos pelo WhatsApp e gerencie tudo em um só lugar." },
+      { property: "og:title", content: "Menuzin — Catálogo digital para o seu negócio food" },
+      { name: "twitter:title", content: "Menuzin — Catálogo digital para o seu negócio food" },
+      { property: "og:description", content: "Crie a vitrine digital do seu restaurante, receba pedidos pelo WhatsApp e gerencie tudo em um só lugar." },
+      { name: "twitter:description", content: "Crie a vitrine digital do seu restaurante, receba pedidos pelo WhatsApp e gerencie tudo em um só lugar." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f6a98ec5-9127-4d74-a1bf-b4b42e74cd00/id-preview-f50bc79c--ebe8f6a8-8539-4c14-8c82-92d380093cab.lovable.app-1780261392658.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f6a98ec5-9127-4d74-a1bf-b4b42e74cd00/id-preview-f50bc79c--ebe8f6a8-8539-4c14-8c82-92d380093cab.lovable.app-1780261392658.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
