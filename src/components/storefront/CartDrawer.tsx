@@ -195,7 +195,7 @@ export function CartDrawer({
 
   return (
     <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetAll(); }}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 bg-muted/30 p-0 sm:max-w-md">
+      <SheetContent side="right" className="flex w-full flex-col gap-0 bg-card p-0 sm:max-w-md">
         {/* CART */}
         {step === "cart" && (
           <>
@@ -388,7 +388,7 @@ export function CartDrawer({
                 </Button>
               }
             />
-            <div className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-4">
+            <div className="flex-1 space-y-3 overflow-y-auto bg-card p-4">
               {/* Customer */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-center gap-2 font-semibold"><User className="h-4 w-4" /> {name}</div>
