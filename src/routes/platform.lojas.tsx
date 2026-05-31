@@ -18,7 +18,14 @@ const statusTone: Record<string, string> = {
 function PlatformStores() {
   return (
     <PlatformLayout title="Lojas">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">{platformStores.length} estabelecimentos cadastrados</p>
+        <Button asChild>
+          <Link to="/platform/tenants/novo">+ Novo estabelecimento</Link>
+        </Button>
+      </div>
       <div className="grid gap-3">
+
         {platformStores.map((s) => (
           <Card key={s.id}><CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">

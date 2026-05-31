@@ -16,7 +16,7 @@ const palette = ["#FF4F1F", "#FFB020", "#16A34A", "#2563EB", "#9333EA", "#DC2626
 function AppearancePage() {
   const [color, setColor] = useState(palette[0]);
   const [dark, setDark] = useState(false);
-  const [bannerText, setBannerText] = useState(store.banner);
+  const [bannerText, setBannerText] = useState("Combo especial da semana — Burger + Refri por R$ 29,90");
 
   return (
     <AdminLayout title="Aparência" action={<Button onClick={() => toast.success("Aparência salva")}>Salvar</Button>}>
