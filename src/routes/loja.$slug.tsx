@@ -142,20 +142,21 @@ function StorePage() {
         </div>
       </div>
 
-      {/* Floating cart button */}
+      {/* Floating cart bar */}
       {count > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-40 w-[calc(100%-2rem)] max-w-md -translate-x-1/2">
-          <Button
-            onClick={() => setCartOpen(true)}
-            className="flex h-14 w-full items-center justify-between rounded-2xl px-5 text-base shadow-[var(--shadow-pop)]"
-          >
-            <span className="flex items-center gap-2">
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-white/20 text-sm font-bold">{count}</span>
-              <ShoppingBag className="h-4 w-4" /> Ver carrinho
-            </span>
-            <span className="font-bold">{brl(subtotal)}</span>
-          </Button>
-        </div>
+        <button
+          onClick={() => setCartOpen(true)}
+          className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between bg-primary px-5 py-3.5 text-primary-foreground shadow-[var(--shadow-pop)]"
+        >
+          <div className="text-left">
+            <p className="text-xs opacity-90">Subtotal</p>
+            <p className="text-lg font-bold">{brl(subtotal)}</p>
+          </div>
+          <span className="flex items-center gap-2 text-base font-semibold">
+            <span className="grid h-7 w-7 place-items-center rounded-full bg-white/20 text-sm font-bold">{count}</span>
+            <ShoppingBag className="h-4 w-4" /> Carrinho
+          </span>
+        </button>
       )}
 
       <ProductModal product={selectedProduct} open={modalOpen} onOpenChange={setModalOpen} />

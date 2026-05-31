@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, ArrowLeft } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product, ProductAddon } from "@/lib/mock-data";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export function ProductModal({
   product, open, onOpenChange,
@@ -31,72 +32,93 @@ export function ProductModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto p-0 sm:max-w-lg">
-        <div className="relative h-56 w-full overflow-hidden bg-muted">
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-        </div>
-        <div className="p-5">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">{product.name}</DialogTitle>
-          </DialogHeader>
-          <p className="mt-2 text-sm text-muted-foreground">{product.description}</p>
-          <div className="mt-3 flex items-baseline gap-2">
-            {product.promoPrice ? (
-              <>
-                <span className="text-xl font-bold text-primary">{brl(product.promoPrice)}</span>
-                <span className="text-sm text-muted-foreground line-through">{brl(product.price)}</span>
-              </>
-            ) : (
-              <span className="text-xl font-bold">{brl(product.price)}</span>
-            )}
+      <DialogContent
+        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-muted/30 p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
+      >
+        <VisuallyHidden><DialogTitle>{product.name}</DialogTitle></VisuallyHidden>
+
+        {/* Image area with floating back */}
+        <div className="relative shrink-0 bg-card pt-4">
+          <Button
+            size="icon"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+            className="absolute left-3 top-3 z-10 h-10 w-10 rounded-xl bg-card text-primary shadow-md hover:bg-card"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="mx-auto aspect-[4/3] w-full max-w-md overflow-hidden">
+            <img src={product.image} alt={product.name} className="h-full w-full object-contain" />
           </div>
+        </div>
+
+        {/* Content scroll */}
+        <div className="flex-1 overflow-y-auto bg-muted/30 px-5 pt-5">
+          <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
+          <p className="mt-1 text-base">
+            <span className="font-bold">{brl(base)}</span>
+            <span className="text-sm text-muted-foreground">/UN</span>
+            {product.promoPrice && (
+              <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
+            )}
+          </p>
+          {product.description && (
+            <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
+          )}
 
           {product.addons && product.addons.length > 0 && (
-            <div className="mt-5">
-              <h4 className="text-sm font-semibold">Adicionais</h4>
+            <div className="mt-6">
+              <h4 className="text-base font-bold">Adicionais</h4>
               <div className="mt-2 space-y-2">
                 {product.addons.map((a) => (
-                  <label key={a.id} className="flex cursor-pointer items-center justify-between rounded-xl border p-3 transition hover:border-primary/40">
+                  <label key={a.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
                       <Checkbox checked={!!selected.find((x) => x.id === a.id)} onCheckedChange={() => toggle(a)} />
                       <span className="text-sm">{a.name}</span>
                     </div>
-                    <span className="text-sm font-medium text-primary">+ {brl(a.price)}</span>
+                    <span className="text-sm font-semibold text-primary">+ {brl(a.price)}</span>
                   </label>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="mt-5">
-            <h4 className="text-sm font-semibold">Observação</h4>
+          <div className="mt-6 pb-6">
+            <h4 className="text-base font-bold">Observações</h4>
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Ex: sem cebola, ponto da carne, etc."
-              className="mt-2"
+              placeholder="Digite alguma observação"
+              className="mt-2 min-h-[110px] resize-none rounded-xl bg-card"
             />
           </div>
+        </div>
 
-          <div className="mt-6 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 rounded-full border p-1">
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+        {/* Sticky footer */}
+        <div className="shrink-0 border-t bg-card px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 rounded-lg bg-muted px-2 py-1">
+              <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground" onClick={() => setQty((q) => Math.max(1, q - 1))}>
                 <Minus className="h-4 w-4" />
               </Button>
               <span className="w-6 text-center font-semibold">{qty}</span>
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full" onClick={() => setQty((q) => q + 1)}>
+              <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => setQty((q) => q + 1)}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-base font-bold">{brl(total)}</p>
+            </div>
             <Button
-              className="flex-1 h-12 text-base"
+              className="h-12 min-w-[140px] rounded-xl text-base font-semibold"
               onClick={() => {
                 add({ product, qty, addons: selected, note: note || undefined });
                 toast.success("Adicionado ao carrinho", { description: `${qty}x ${product.name}` });
                 onOpenChange(false);
               }}
             >
-              Adicionar · {brl(total)}
+              Adicionar
             </Button>
           </div>
         </div>
