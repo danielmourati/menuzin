@@ -354,6 +354,109 @@ export const topProducts = [
   { name: "Promo Burger + Refri", vendas: 64 },
 ];
 
+// ============= Multi-tenant ============================================
+// Cada tenant possui seus próprios dados de vitrine. Os produtos/categorias
+// continuam compartilhados no mock para fins de demonstração, mas a estrutura
+// já está pronta para isolar por tenant_id quando integrarmos um banco real.
+
+export const tenants: Tenant[] = [
+  {
+    id: "t1",
+    slug: "burger-prime",
+    name: "Burger Prime",
+    description:
+      "Hambúrgueres artesanais, combos e sobremesas feitos com ingredientes selecionados.",
+    whatsapp: "5586999999999",
+    city: "Parnaíba",
+    state: "PI",
+    address: "Av. Beira Rio, 123 — Centro",
+    open: true,
+    prepTime: "35 a 45 min",
+    minOrder: 20,
+    deliveryFee: 5,
+    hours: "Seg–Dom · 18h às 23h",
+    logoLetter: "B",
+    themeFrom: "#FF6A1F",
+    themeTo: "#FF9A3C",
+    active: true,
+    social: { instagram: "@burgerprime" },
+  },
+  {
+    id: "t2",
+    slug: "pizzaria-napoli",
+    name: "Pizzaria Napoli",
+    description: "Pizzas artesanais de forno a lenha, massa de fermentação natural.",
+    whatsapp: "5586988887777",
+    city: "Teresina",
+    state: "PI",
+    address: "Rua das Oliveiras, 45 — Jóquei",
+    open: true,
+    prepTime: "40 a 55 min",
+    minOrder: 30,
+    deliveryFee: 7,
+    hours: "Ter–Dom · 18h às 23h30",
+    logoLetter: "N",
+    themeFrom: "#C0392B",
+    themeTo: "#E67E22",
+    active: true,
+    social: { instagram: "@pizzarianapoli" },
+  },
+  {
+    id: "t3",
+    slug: "acai-tropical",
+    name: "Açaí Tropical",
+    description: "Açaí cremoso, bowls, sucos naturais e sobremesas geladas.",
+    whatsapp: "5586977776666",
+    city: "Luís Correia",
+    state: "PI",
+    address: "Av. da Praia, 880 — Atalaia",
+    open: true,
+    prepTime: "20 a 30 min",
+    minOrder: 15,
+    deliveryFee: 4,
+    hours: "Todos os dias · 14h às 22h",
+    logoLetter: "A",
+    themeFrom: "#5B2A86",
+    themeTo: "#9B59B6",
+    active: true,
+  },
+  {
+    id: "t4",
+    slug: "cafe-aurora",
+    name: "Café Aurora",
+    description: "Cafés especiais, brunch e confeitaria artesanal.",
+    whatsapp: "5585966665555",
+    city: "Fortaleza",
+    state: "CE",
+    address: "Rua Barbosa de Freitas, 200",
+    open: false,
+    prepTime: "15 a 25 min",
+    minOrder: 18,
+    deliveryFee: 6,
+    hours: "Seg–Sáb · 07h às 19h",
+    logoLetter: "A",
+    themeFrom: "#6B4226",
+    themeTo: "#C28B5C",
+    active: true,
+  },
+];
+
+export const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
+export const getTenantBySlug = (slug: string): Tenant | undefined =>
+  tenants.find((t) => t.slug === slug && t.active);
+
+export const isSlugAvailable = (slug: string, ignoreId?: string) =>
+  !tenants.some((t) => t.slug === slug && t.id !== ignoreId);
+
+
+
 export const platformStores = [
   { id: "s1", name: "Burger Prime", slug: "burger-prime", city: "Parnaíba/PI", status: "ativa", plan: "Pro", ordersMonth: 412, revenue: 18420, createdAt: "2024-11-10" },
   { id: "s2", name: "Pizzaria Forno Real", slug: "forno-real", city: "Teresina/PI", status: "ativa", plan: "Plus", ordersMonth: 638, revenue: 32140, createdAt: "2024-09-02" },
