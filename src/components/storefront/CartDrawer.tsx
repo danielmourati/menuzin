@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
+import {
+  Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ChevronRight,
+  Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
+  User, Mail, Phone, MapPin, Pencil, Home, Map,
+} from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { store } from "@/lib/mock-data";
 import { toast } from "sonner";
 
-type Step = "cart" | "customer" | "mode" | "payment";
+type Step =
+  | "cart"
+  | "mode"
+  | "mode-address"
+  | "mode-table"
+  | "payment-when"
+  | "payment-method"
+  | "payment-pix"
+  | "customer"
+  | "review";
+
+type Mode = "entrega" | "retirada" | "consumo_local";
 
 export function CartDrawer({
   open, onOpenChange,
@@ -20,210 +34,437 @@ export function CartDrawer({
   const navigate = useNavigate();
   const { items, update, remove, subtotal, clear } = useCart();
   const [step, setStep] = useState<Step>("cart");
+  const [history, setHistory] = useState<Step[]>([]);
 
+  // customer
   const [name, setName] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [generalNote, setGeneralNote] = useState("");
-  const [mode, setMode] = useState<"entrega" | "retirada" | "consumo_local">("entrega");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [doc, setDoc] = useState("");
 
+  // mode
+  const [mode, setMode] = useState<Mode | null>(null);
   const [cep, setCep] = useState("");
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
-  const [pickupTime, setPickupTime] = useState("");
   const [table, setTable] = useState("");
 
-  const [payment, setPayment] = useState("Pix");
-  const [changeFor, setChangeFor] = useState("");
+  // payment
+  const [paymentWhen, setPaymentWhen] = useState<"agora" | "na_retirada" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string>("PIX");
+  const [generalNote, setGeneralNote] = useState("");
 
   const deliveryFee = mode === "entrega" ? store.deliveryFee : 0;
   const total = subtotal + deliveryFee;
 
-  const reset = () => { setStep("cart"); };
-
-  const goNext = () => {
-    if (step === "cart") setStep("customer");
-    else if (step === "customer") {
-      if (!name || !whatsapp) return toast.error("Informe nome e WhatsApp");
-      setStep("mode");
-    } else if (step === "mode") {
-      if (mode === "entrega" && (!street || !number || !neighborhood))
-        return toast.error("Preencha o endereço");
-      if (mode === "consumo_local" && !table) return toast.error("Informe a mesa/comanda");
-      setStep("payment");
-    } else if (step === "payment") {
-      const order = {
-        number: 1000 + Math.floor(Math.random() * 9000),
-        customerName: name,
-        whatsapp,
-        mode,
-        payment,
-        changeFor: payment === "Dinheiro" && changeFor ? Number(changeFor) : undefined,
-        items: items.map((i) => ({
-          name: i.product.name,
-          qty: i.qty,
-          unitPrice: i.product.promoPrice ?? i.product.price,
-          addons: i.addons,
-          note: i.note,
-        })),
-        subtotal, deliveryFee, total,
-        address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
-        table: mode === "consumo_local" ? table : undefined,
-        pickupTime: mode === "retirada" ? pickupTime : undefined,
-        note: generalNote,
-      };
-      try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
-      clear();
-      onOpenChange(false);
-      reset();
-      navigate({ to: "/loja/$slug/pedido-confirmado", params: { slug: store.slug }, search: { n: order.number } as never });
-    }
+  const goTo = (next: Step) => {
+    setHistory((h) => [...h, step]);
+    setStep(next);
   };
-
   const goBack = () => {
-    if (step === "customer") setStep("cart");
-    else if (step === "mode") setStep("customer");
-    else if (step === "payment") setStep("mode");
+    setHistory((h) => {
+      const prev = h[h.length - 1];
+      if (!prev) return h;
+      setStep(prev);
+      return h.slice(0, -1);
+    });
   };
+  const resetAll = () => {
+    setStep("cart"); setHistory([]);
+  };
+
+  const modeLabelMap: Record<Mode, string> = {
+    entrega: "Entrega", retirada: "Retirada no local", consumo_local: "Consumo no local",
+  };
+  const paymentWhenLabel = paymentWhen === "agora" ? "Pagar agora" : paymentWhen === "na_retirada" ? "Pagar na retirada" : "";
+
+  const selectMode = (m: Mode) => {
+    setMode(m);
+    if (m === "entrega") goTo("mode-address");
+    else if (m === "consumo_local") goTo("mode-table");
+    else goTo("payment-when"); // retirada → segue direto
+  };
+
+  const confirmAddress = () => {
+    if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
+    goTo("payment-when");
+  };
+  const confirmTable = () => {
+    if (!table) return toast.error("Informe a mesa/comanda");
+    goTo("payment-when");
+  };
+
+  const selectPaymentWhen = (w: "agora" | "na_retirada") => {
+    setPaymentWhen(w);
+    goTo("payment-method");
+  };
+  const selectMethod = (m: string) => {
+    setPaymentMethod(m);
+    if (m === "PIX") goTo("payment-pix");
+    else goTo("customer");
+  };
+
+  const confirmCustomer = () => {
+    if (!name || !phone) return toast.error("Informe nome e telefone");
+    goTo("review");
+  };
+
+  const finalize = () => {
+    const order = {
+      number: 1000 + Math.floor(Math.random() * 9000),
+      customerName: name,
+      whatsapp: phone.replace(/\D/g, ""),
+      email,
+      doc,
+      mode: mode!,
+      payment: `${paymentWhenLabel} · ${paymentMethod}`,
+      items: items.map((i) => ({
+        name: i.product.name,
+        qty: i.qty,
+        unitPrice: i.product.promoPrice ?? i.product.price,
+        addons: i.addons,
+        note: i.note,
+      })),
+      subtotal, deliveryFee, total,
+      address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
+      table: mode === "consumo_local" ? table : undefined,
+      note: generalNote,
+    };
+    try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
+    clear();
+    onOpenChange(false);
+    resetAll();
+    navigate({
+      to: "/loja/$slug/pedido-confirmado",
+      params: { slug: store.slug },
+      search: { n: order.number } as never,
+    });
+  };
+
+  // ----- UI building blocks -----
+  const Header = ({ title, right }: { title: string; right?: ReactNode }) => (
+    <div className="flex items-center justify-between border-b bg-card px-4 py-3.5">
+      <div className="flex items-center gap-2">
+        <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => (history.length ? goBack() : onOpenChange(false))}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      </div>
+      {right}
+    </div>
+  );
+
+  const StickySubtotal = ({ cta, onCta, disabled }: { cta?: string; onCta?: () => void; disabled?: boolean }) => (
+    <div className="border-t bg-card px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Subtotal</p>
+          <p className="text-lg font-bold">{brl(total)}</p>
+        </div>
+        {cta && (
+          <Button onClick={onCta} disabled={disabled} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
+            {cta}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
+  const OptionRow = ({
+    icon, title, subtitle, onClick, active, muted,
+  }: { icon: ReactNode; title: string; subtitle?: string; onClick: () => void; active?: boolean; muted?: boolean }) => (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/40 ${
+        active ? "border-primary/60" : ""
+      }`}
+    >
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
+        active ? "bg-primary/15 text-primary" : muted ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+      }`}>{icon}</span>
+      <div className="flex-1">
+        <p className={`font-semibold ${muted ? "text-muted-foreground" : ""}`}>{title}</p>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+      </div>
+      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+    </button>
+  );
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) reset(); }}>
-      <SheetContent className="flex w-full flex-col p-0 sm:max-w-md">
-        <SheetHeader className="border-b px-5 py-4">
-          <SheetTitle className="flex items-center gap-2">
-            {step !== "cart" && (
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={goBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            )}
-            {step === "cart" && "Seu carrinho"}
-            {step === "customer" && "Seus dados"}
-            {step === "mode" && "Como deseja receber?"}
-            {step === "payment" && "Forma de pagamento"}
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4">
-          {step === "cart" && (
-            items.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
-                <ShoppingBag className="h-12 w-12" />
-                <p className="mt-3">Seu carrinho está vazio</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((i) => {
-                  const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
-                  return (
-                    <div key={i.uid} className="flex gap-3 rounded-xl border p-3">
-                      <img src={i.product.image} alt="" className="h-16 w-16 rounded-lg object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold">{i.product.name}</p>
-                        {i.addons.length > 0 && (
-                          <p className="text-xs text-muted-foreground">+ {i.addons.map(a => a.name).join(", ")}</p>
-                        )}
-                        {i.note && <p className="mt-1 text-xs italic text-muted-foreground">"{i.note}"</p>}
-                        <div className="mt-2 flex items-center justify-between">
-                          <div className="flex items-center gap-1 rounded-full border p-0.5">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => update(i.uid, i.qty - 1)}><Minus className="h-3 w-3" /></Button>
-                            <span className="w-5 text-center text-sm font-semibold">{i.qty}</span>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full" onClick={() => update(i.uid, i.qty + 1)}><Plus className="h-3 w-3" /></Button>
+    <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetAll(); }}>
+      <SheetContent side="right" className="flex w-full flex-col gap-0 bg-muted/30 p-0 sm:max-w-md">
+        {/* CART */}
+        {step === "cart" && (
+          <>
+            <Header
+              title="Carrinho"
+              right={items.length > 0 && (
+                <button onClick={() => { clear(); toast.success("Carrinho esvaziado"); }} className="text-sm font-semibold text-primary">Limpar</button>
+              )}
+            />
+            <div className="flex-1 overflow-y-auto">
+              {items.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center px-6 text-center text-muted-foreground">
+                  <ShoppingBag className="h-12 w-12" />
+                  <p className="mt-3">Seu carrinho está vazio</p>
+                </div>
+              ) : (
+                <div className="divide-y bg-card">
+                  {items.map((i) => {
+                    const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
+                    return (
+                      <div key={i.uid} className="px-4 py-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold leading-tight">{i.product.name}</p>
+                            {i.addons.length > 0 && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">+ {i.addons.map(a => a.name).join(", ")}</p>
+                            )}
+                            <p className="mt-2 font-bold">{brl(unit * i.qty)}</p>
                           </div>
-                          <span className="font-semibold">{brl(unit * i.qty)}</span>
+                          <button className="text-sm font-semibold text-primary" onClick={() => onOpenChange(false)}>Alterar</button>
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <div className="flex items-center gap-2 rounded-lg bg-muted px-2 py-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => i.qty === 1 ? remove(i.uid) : update(i.uid, i.qty - 1)}>
+                              {i.qty === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                            </Button>
+                            <span className="w-6 text-center text-sm font-semibold">{i.qty}</span>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => update(i.uid, i.qty + 1)}>
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground" onClick={() => remove(i.uid)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                  <div className="px-4 py-6 text-center">
+                    <button onClick={() => onOpenChange(false)} className="text-sm font-bold text-primary">
+                      Adicionar mais itens
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {items.length > 0 && <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />}
+          </>
+        )}
+
+        {/* MODE */}
+        {step === "mode" && (
+          <>
+            <Header title="Opções de entrega" />
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              <OptionRow icon={<Truck className="h-5 w-5" />} title="Entrega" subtitle="Receba em seu endereço" onClick={() => selectMode("entrega")} active={mode === "entrega"} />
+              <OptionRow icon={<StoreIcon className="h-5 w-5" />} title="Retirada" subtitle="Retire no estabelecimento" onClick={() => selectMode("retirada")} active={mode === "retirada"} />
+              <OptionRow icon={<Utensils className="h-5 w-5" />} title="Consumo no local" subtitle="Consuma no estabelecimento" onClick={() => selectMode("consumo_local")} active={mode === "consumo_local"} />
+            </div>
+            <StickySubtotal />
+          </>
+        )}
+
+        {/* MODE - ADDRESS */}
+        {step === "mode-address" && (
+          <>
+            <Header title="Endereço de entrega" />
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2"><Label>CEP</Label><Input value={cep} onChange={(e) => setCep(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div><Label>Bairro *</Label><Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div className="col-span-2"><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div className="col-span-2"><Label>Ponto de referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1.5 h-11" /></div>
               </div>
-            )
-          )}
-
-          {step === "customer" && (
-            <div className="space-y-4">
-              <div><Label>Nome*</Label><Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1.5" /></div>
-              <div><Label>WhatsApp*</Label><Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(00) 00000-0000" className="mt-1.5" /></div>
-              <div><Label>Observação geral</Label><Textarea value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} className="mt-1.5" /></div>
             </div>
-          )}
+            <StickySubtotal cta="Confirmar endereço" onCta={confirmAddress} />
+          </>
+        )}
 
-          {step === "mode" && (
-            <div className="space-y-5">
-              <RadioGroup value={mode} onValueChange={(v) => setMode(v as never)} className="grid gap-2">
-                {[
-                  { v: "entrega", l: "Entrega", d: `Taxa ${brl(store.deliveryFee)}` },
-                  { v: "retirada", l: "Retirada no local", d: "Sem taxa" },
-                  { v: "consumo_local", l: "Consumo no local", d: "Atendimento na mesa" },
-                ].map((o) => (
-                  <label key={o.v} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition ${mode === o.v ? "border-primary bg-primary/5" : ""}`}>
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value={o.v} />
-                      <div><p className="font-medium">{o.l}</p><p className="text-xs text-muted-foreground">{o.d}</p></div>
+        {/* MODE - TABLE */}
+        {step === "mode-table" && (
+          <>
+            <Header title="Mesa / Comanda" />
+            <div className="flex-1 overflow-y-auto p-4">
+              <Label>Mesa ou número da comanda *</Label>
+              <Input value={table} onChange={(e) => setTable(e.target.value)} placeholder="Ex: Mesa 7" className="mt-1.5 h-11" />
+            </div>
+            <StickySubtotal cta="Confirmar" onCta={confirmTable} />
+          </>
+        )}
+
+        {/* PAYMENT - WHEN */}
+        {step === "payment-when" && (
+          <>
+            <Header title="Opções de pagamento" />
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              <OptionRow icon={<Smartphone className="h-5 w-5" />} title="Pagar agora" subtitle="Pague agora pelo aplicativo" onClick={() => selectPaymentWhen("agora")} />
+              <OptionRow icon={<DollarSign className="h-5 w-5" />} title={mode === "entrega" ? "Pagar na entrega" : "Pagar na retirada"} subtitle={mode === "entrega" ? "Pague no momento da entrega" : "Pague no momento da retirada"} onClick={() => selectPaymentWhen("na_retirada")} />
+            </div>
+            <StickySubtotal />
+          </>
+        )}
+
+        {/* PAYMENT - METHOD */}
+        {step === "payment-method" && (
+          <>
+            <Header title="Método de pagamento" />
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              {paymentWhen === "agora" ? (
+                <OptionRow icon={<span className="text-base font-bold">⬥</span>} title="PIX" onClick={() => selectMethod("PIX")} />
+              ) : (
+                <>
+                  <OptionRow icon={<DollarSign className="h-5 w-5" />} title="Dinheiro" onClick={() => selectMethod("Dinheiro")} />
+                  <OptionRow icon={<Smartphone className="h-5 w-5" />} title="Cartão de crédito" onClick={() => selectMethod("Cartão de crédito")} />
+                  <OptionRow icon={<Smartphone className="h-5 w-5" />} title="Cartão de débito" onClick={() => selectMethod("Cartão de débito")} />
+                  <OptionRow icon={<span className="text-base font-bold">⬥</span>} title="PIX" onClick={() => selectMethod("PIX")} />
+                </>
+              )}
+            </div>
+            <StickySubtotal />
+          </>
+        )}
+
+        {/* PAYMENT - PIX */}
+        {step === "payment-pix" && (
+          <>
+            <Header title="Pagamento com PIX" />
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="rounded-2xl border bg-card p-5">
+                <p className="text-sm text-muted-foreground">Chave PIX</p>
+                <p className="mt-1 font-mono text-primary">pix@burgerprime.com.br</p>
+                <p className="mt-3 text-xs text-muted-foreground">Recebedor: Burger Prime LTDA</p>
+                <p className="mt-3 text-xs">Envie o comprovante pelo WhatsApp após finalizar o pedido.</p>
+              </div>
+            </div>
+            <StickySubtotal cta="Continuar" onCta={() => goTo("customer")} />
+          </>
+        )}
+
+        {/* CUSTOMER */}
+        {step === "customer" && (
+          <>
+            <Header title="Insira seus dados" />
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              <div>
+                <Label>Nome <span className="text-primary">*</span></Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Insira seu nome" className="mt-1.5 h-11" />
+              </div>
+              <div>
+                <Label>Telefone <span className="text-primary">*</span></Label>
+                <div className="mt-1.5 flex gap-2">
+                  <div className="flex h-11 items-center gap-1 rounded-md border bg-card px-3 text-sm">🇧🇷 +55</div>
+                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" className="h-11 flex-1" />
+                </div>
+              </div>
+              <div>
+                <Label>E-mail</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Insira seu e-mail" className="mt-1.5 h-11" />
+              </div>
+              <div>
+                <Label>CPF/CNPJ</Label>
+                <Input value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="Insira seu CPF ou CNPJ" className="mt-1.5 h-11" />
+              </div>
+              <div>
+                <Label>Observação geral</Label>
+                <Textarea value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} placeholder="Alguma observação para o pedido?" className="mt-1.5" />
+              </div>
+              <Button className="h-12 w-full text-base font-semibold" onClick={confirmCustomer}>Confirmar</Button>
+            </div>
+          </>
+        )}
+
+        {/* REVIEW */}
+        {step === "review" && (
+          <>
+            <Header
+              title="Revisar pedido"
+              right={
+                <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => { onOpenChange(false); resetAll(); }}>
+                  <Home className="h-5 w-5" />
+                </Button>
+              }
+            />
+            <div className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-4">
+              {/* Customer */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="flex items-center gap-2 font-semibold"><User className="h-4 w-4" /> {name}</div>
+                {email && <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Mail className="h-4 w-4" /> {email}</div>}
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" /> +55 {phone}</div>
+              </div>
+
+              {/* Mode */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 font-semibold">
+                    {mode === "entrega" ? <Truck className="h-5 w-5" /> : mode === "retirada" ? <StoreIcon className="h-5 w-5" /> : <Utensils className="h-5 w-5" />}
+                    {mode && modeLabelMap[mode]}
+                  </div>
+                  <button onClick={() => setStep("mode")} className="text-sm font-semibold text-primary">Alterar</button>
+                </div>
+                {mode === "entrega" && (
+                  <div className="mt-3 text-sm">
+                    <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
+                    <p className="mt-1">{street}, {number}</p>
+                    <p>{neighborhood}{complement ? ` — ${complement}` : ""}</p>
+                  </div>
+                )}
+                {mode === "retirada" && (
+                  <div className="mt-3 text-sm">
+                    <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
+                    <p className="mt-1">{store.address}</p>
+                    <button className="mt-2 flex items-center gap-1 text-sm font-semibold text-primary"><Map className="h-4 w-4" /> Ver no mapa</button>
+                  </div>
+                )}
+                {mode === "consumo_local" && (
+                  <p className="mt-2 text-sm">Mesa: <span className="font-semibold">{table}</span></p>
+                )}
+              </div>
+
+              {/* Payment */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2 font-semibold"><Smartphone className="h-5 w-5" /> {paymentWhenLabel}</div>
+                  <button onClick={() => setStep("payment-when")} className="text-sm font-semibold text-primary">Alterar</button>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="text-sm">
+                    <p className="font-medium">Pagamento com {paymentMethod}</p>
+                    <p className="text-xs text-muted-foreground">{paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com {paymentMethod}</p>
+                  </div>
+                  <button onClick={() => setStep("payment-method")} className="text-primary"><Pencil className="h-4 w-4" /></button>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold">Itens do pedido <span className="text-muted-foreground">| {items.reduce((s, i) => s + i.qty, 0)} Itens</span></p>
+                  <button onClick={() => setStep("cart")} className="text-sm font-semibold text-primary">Alterar itens</button>
+                </div>
+                <div className="mt-3 space-y-2 text-sm">
+                  {items.map((i) => {
+                    const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
+                    return (
+                      <div key={i.uid} className="flex justify-between gap-3">
+                        <span><span className="font-semibold">{i.qty}x</span> {i.product.name}</span>
+                        <span className="font-semibold">{brl(unit * i.qty)}</span>
+                      </div>
+                    );
+                  })}
+                  {deliveryFee > 0 && (
+                    <div className="flex justify-between border-t pt-2 text-muted-foreground">
+                      <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
                     </div>
-                  </label>
-                ))}
-              </RadioGroup>
-
-              {mode === "entrega" && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2"><Label>CEP</Label><Input value={cep} onChange={(e) => setCep(e.target.value)} className="mt-1.5" /></div>
-                  <div className="col-span-2"><Label>Rua*</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5" /></div>
-                  <div><Label>Número*</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5" /></div>
-                  <div><Label>Bairro*</Label><Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5" /></div>
-                  <div className="col-span-2"><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} className="mt-1.5" /></div>
-                  <div className="col-span-2"><Label>Ponto de referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1.5" /></div>
+                  )}
                 </div>
-              )}
-              {mode === "retirada" && (
-                <div><Label>Horário desejado (opcional)</Label><Input value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} placeholder="Ex: 20h00" className="mt-1.5" /></div>
-              )}
-              {mode === "consumo_local" && (
-                <div><Label>Mesa / Comanda*</Label><Input value={table} onChange={(e) => setTable(e.target.value)} placeholder="Ex: Mesa 7" className="mt-1.5" /></div>
-              )}
+              </div>
             </div>
-          )}
-
-          {step === "payment" && (
-            <div className="space-y-4">
-              <RadioGroup value={payment} onValueChange={setPayment} className="grid gap-2">
-                {["Dinheiro", "Pix", "Cartão de crédito na entrega", "Cartão de débito na entrega"].map((p) => (
-                  <label key={p} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 ${payment === p ? "border-primary bg-primary/5" : ""}`}>
-                    <RadioGroupItem value={p} />
-                    <span className="text-sm font-medium">{p}</span>
-                  </label>
-                ))}
-              </RadioGroup>
-              {payment === "Dinheiro" && (
-                <div><Label>Troco para quanto?</Label><Input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} placeholder="Ex: 50" className="mt-1.5" /></div>
-              )}
-              {payment === "Pix" && (
-                <div className="rounded-xl border bg-muted/40 p-4 text-sm">
-                  <p className="font-semibold">Chave Pix</p>
-                  <p className="font-mono text-primary">pix@burgerprime.com.br</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Recebedor: Burger Prime LTDA</p>
-                  <p className="mt-2 text-xs">Envie o comprovante pelo WhatsApp após finalizar.</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {items.length > 0 && (
-          <div className="border-t bg-card p-5">
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(subtotal)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Taxa de entrega</span><span>{deliveryFee ? brl(deliveryFee) : "—"}</span></div>
-              <div className="flex justify-between text-base font-bold"><span>Total</span><span>{brl(total)}</span></div>
-            </div>
-            <Button className="mt-4 h-12 w-full text-base" onClick={goNext}>
-              {step === "payment" ? "Finalizar pedido" : "Continuar"}
-            </Button>
-          </div>
+            <StickySubtotal cta="Fazer pedido" onCta={finalize} />
+          </>
         )}
       </SheetContent>
     </Sheet>
