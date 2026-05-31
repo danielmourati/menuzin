@@ -8,7 +8,7 @@ import { brl } from "@/lib/format";
 import type { Product, ProductAddon } from "@/lib/mock-data";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+
 
 export function ProductModal({
   product, open, onOpenChange,
@@ -35,7 +35,7 @@ export function ProductModal({
       <DialogContent
         className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-muted/30 p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
       >
-        <VisuallyHidden><DialogTitle>{product.name}</DialogTitle></VisuallyHidden>
+        <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
         {/* Image area with floating back */}
         <div className="relative shrink-0 bg-card pt-4">
