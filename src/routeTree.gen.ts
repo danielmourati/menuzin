@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
+import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,29 +30,51 @@ const LojaSlugPedidoConfirmadoRoute =
     path: '/pedido-confirmado',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const LojaSlugAcompanharOrderIdRoute =
+  LojaSlugAcompanharOrderIdRouteImport.update({
+    id: '/acompanhar/$orderId',
+    path: '/acompanhar/$orderId',
+    getParentRoute: () => LojaSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/loja/$slug' | '/loja/$slug/pedido-confirmado'
+  fullPaths:
+    | '/'
+    | '/loja/$slug'
+    | '/loja/$slug/pedido-confirmado'
+    | '/loja/$slug/acompanhar/$orderId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/loja/$slug' | '/loja/$slug/pedido-confirmado'
-  id: '__root__' | '/' | '/loja/$slug' | '/loja/$slug/pedido-confirmado'
+  to:
+    | '/'
+    | '/loja/$slug'
+    | '/loja/$slug/pedido-confirmado'
+    | '/loja/$slug/acompanhar/$orderId'
+  id:
+    | '__root__'
+    | '/'
+    | '/loja/$slug'
+    | '/loja/$slug/pedido-confirmado'
+    | '/loja/$slug/acompanhar/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -82,15 +105,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugPedidoConfirmadoRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/acompanhar/$orderId': {
+      id: '/loja/$slug/acompanhar/$orderId'
+      path: '/acompanhar/$orderId'
+      fullPath: '/loja/$slug/acompanhar/$orderId'
+      preLoaderRoute: typeof LojaSlugAcompanharOrderIdRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
   }
 }
 
 interface LojaSlugRouteChildren {
   LojaSlugPedidoConfirmadoRoute: typeof LojaSlugPedidoConfirmadoRoute
+  LojaSlugAcompanharOrderIdRoute: typeof LojaSlugAcompanharOrderIdRoute
 }
 
 const LojaSlugRouteChildren: LojaSlugRouteChildren = {
   LojaSlugPedidoConfirmadoRoute: LojaSlugPedidoConfirmadoRoute,
+  LojaSlugAcompanharOrderIdRoute: LojaSlugAcompanharOrderIdRoute,
 }
 
 const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
@@ -104,3 +136,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
