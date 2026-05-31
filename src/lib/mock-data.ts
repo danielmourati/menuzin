@@ -1,3 +1,5 @@
+import primeBurguerLogo from "@/assets/prime-burguer-logo.png";
+
 export type ProductAddon = { id: string; name: string; price: number };
 export type Product = {
   id: string;
@@ -376,6 +378,7 @@ export const tenants: Tenant[] = [
     deliveryFee: 5,
     hours: "Seg–Dom · 18h às 23h",
     logoLetter: "B",
+    logoUrl: primeBurguerLogo,
     themeFrom: "#FF6A1F",
     themeTo: "#FF9A3C",
     active: true,
