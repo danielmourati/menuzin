@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 import { Search, MessageCircle, ShoppingBag, Clock, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,18 @@ export const Route = createFileRoute("/loja/$slug")({
       { property: "og:description", content: store.description },
     ],
   }),
-  component: StorePage,
+  component: StoreRoute,
 });
+
+function StoreRoute() {
+  const { slug } = Route.useParams();
+  const isStorefront = useRouterState({
+    select: (state) => state.location.pathname === `/loja/${slug}`,
+  });
+
+  if (!isStorefront) return <Outlet />;
+  return <StorePage />;
+}
 
 function StorePage() {
   const [search, setSearch] = useState("");
