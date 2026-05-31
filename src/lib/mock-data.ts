@@ -68,6 +68,28 @@ export type Order = {
   createdAt: string;
 };
 
+export type Tenant = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  whatsapp: string;
+  city: string;
+  state: string;
+  address: string;
+  open: boolean;
+  prepTime: string;
+  minOrder: number;
+  deliveryFee: number;
+  hours: string;
+  logoLetter: string;
+  logoUrl?: string;
+  themeFrom: string; // CSS color (oklch / hex)
+  themeTo: string;
+  active: boolean;
+  social?: { instagram?: string; facebook?: string };
+};
+
 export const store = {
   name: "Burger Prime",
   slug: "burger-prime",
@@ -82,9 +104,9 @@ export const store = {
   minOrder: 20,
   deliveryFee: 5,
   hours: "Seg–Dom · 18h às 23h",
-  banner: "Combo especial da semana — Burger + Refri por R$ 29,90",
   logoLetter: "B",
 };
+
 
 export const categories: Category[] = [
   { id: "c1", name: "Hambúrgueres", order: 1, active: true },
