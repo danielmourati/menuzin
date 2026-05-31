@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
-import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin } from "lucide-react";
+import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { store, categories, products, type Product } from "@/lib/mock-data";
+import { categories, products, getTenantBySlug, type Product, type Tenant } from "@/lib/mock-data";
 import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { ProductCard } from "@/components/storefront/ProductCard";
@@ -13,14 +13,19 @@ import { CartDrawer } from "@/components/storefront/CartDrawer";
 import { whatsappLink } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/loja/$slug")({
-  head: () => ({
-    meta: [
-      { title: `${store.name} — Cardápio online` },
-      { name: "description", content: store.description },
-      { property: "og:title", content: store.name },
-      { property: "og:description", content: store.description },
-    ],
-  }),
+  head: ({ params }) => {
+    const t = getTenantBySlug(params.slug);
+    const title = t ? `${t.name} — Cardápio online` : "Loja não encontrada";
+    const desc = t?.description ?? "Esta loja não está disponível.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: desc },
+        { property: "og:title", content: title },
+        { property: "og:description", content: desc },
+      ],
+    };
+  },
   component: StoreRoute,
 });
 
@@ -31,10 +36,31 @@ function StoreRoute() {
   });
 
   if (!isStorefront) return <Outlet />;
-  return <StorePage />;
+
+  const tenant = getTenantBySlug(slug);
+  if (!tenant) return <StoreNotFound slug={slug} />;
+  return <StorePage tenant={tenant} />;
 }
 
-function StorePage() {
+function StoreNotFound({ slug }: { slug: string }) {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background px-4">
+      <div className="max-w-md rounded-2xl border bg-card p-8 text-center shadow-[var(--shadow-soft)]">
+        <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-muted">
+          <StoreIcon className="h-7 w-7 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">Loja não encontrada</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Não localizamos nenhuma loja para <span className="font-mono">/{slug}</span>.
+          Verifique o link ou volte para a página inicial.
+        </p>
+        <Button asChild className="mt-5"><Link to="/">Voltar para o início</Link></Button>
+      </div>
+    </div>
+  );
+}
+
+function StorePage({ tenant }: { tenant: Tenant }) {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -58,41 +84,57 @@ function StorePage() {
       .filter((g) => g.items.length > 0);
   }, [filtered, activeCat]);
 
+  const bannerStyle = {
+    backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
+  };
+
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Banner */}
-      <div className="relative h-32 w-full overflow-hidden gradient-brand sm:h-44 md:h-52">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),transparent_60%)]" />
-        <div className="container relative mx-auto flex h-full items-start px-4 pt-3 sm:items-end sm:pt-0 sm:pb-4">
-          <p className="rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-xs sm:text-sm font-medium text-white line-clamp-2 max-w-[90%]">
-            {store.banner}
-          </p>
-        </div>
-      </div>
+      {/* Banner com identidade da loja */}
+      <header className="relative h-44 w-full overflow-hidden sm:h-56" style={bannerStyle}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.28),transparent_60%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/15" />
+      </header>
 
-      {/* Store header */}
-      <div className="container mx-auto -mt-6 px-4 sm:-mt-10">
+      {/* Identidade da loja */}
+      <div className="container mx-auto -mt-14 px-4 sm:-mt-16">
         <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
-          <div className="flex items-start gap-3 sm:gap-4">
-            <div className="grid h-14 w-14 sm:h-16 sm:w-16 shrink-0 place-items-center rounded-2xl gradient-brand text-2xl font-bold text-primary-foreground shadow-md">
-              {store.logoLetter}
+          <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
+            <div className="relative">
+              {tenant.logoUrl ? (
+                <img
+                  src={tenant.logoUrl}
+                  alt={`Logo ${tenant.name}`}
+                  className="h-20 w-20 rounded-2xl border-4 border-card object-cover shadow-md sm:h-24 sm:w-24"
+                />
+              ) : (
+                <div
+                  className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-card text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl"
+                  style={bannerStyle}
+                  aria-label={`Logo ${tenant.name}`}
+                >
+                  {tenant.logoLetter}
+                </div>
+              )}
             </div>
+
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold truncate">{store.name}</h1>
-                <Badge className={store.open ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
-                  {store.open ? "Aberta" : "Fechada"}
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <h1 className="text-lg font-bold sm:text-xl">{tenant.name}</h1>
+                <Badge className={tenant.open ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
+                  {tenant.open ? "Aberta" : "Fechada"}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{store.description}</p>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {store.prepTime}</span>
-                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {store.address}</span>
-                <span>Pedido mín. {brl(store.minOrder)}</span>
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{tenant.description}</p>
+              <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:justify-start">
+                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {tenant.prepTime}</span>
+                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {tenant.address}</span>
+                <span>Pedido mín. {brl(tenant.minOrder)}</span>
               </div>
             </div>
+
             <Button asChild size="icon" variant="outline" className="h-10 w-10 shrink-0">
-              <a href={whatsappLink(store.whatsapp, "Olá! Tenho uma dúvida sobre o cardápio.")} target="_blank" rel="noreferrer">
+              <a href={whatsappLink(tenant.whatsapp, "Olá! Tenho uma dúvida sobre o cardápio.")} target="_blank" rel="noreferrer">
                 <MessageCircle className="h-4 w-4 text-success" />
               </a>
             </Button>
