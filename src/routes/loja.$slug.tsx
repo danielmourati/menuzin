@@ -90,14 +90,9 @@ function StorePage({ tenant }: { tenant: Tenant }) {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Banner com identidade da loja */}
-      <header className="relative h-44 w-full overflow-hidden sm:h-56" style={bannerStyle}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.28),transparent_60%)]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/15" />
-      </header>
-
       {/* Identidade da loja */}
-      <div className="container mx-auto -mt-14 px-4 sm:-mt-16">
+      <div className="container mx-auto px-4 pt-4">
+
         <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
           <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
             <div className="relative">
