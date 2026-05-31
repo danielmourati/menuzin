@@ -33,7 +33,7 @@ export function ProductModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-muted/30 p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
+        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
@@ -53,7 +53,7 @@ export function ProductModal({
         </div>
 
         {/* Content scroll */}
-        <div className="flex-1 overflow-y-auto bg-muted/30 px-5 pt-5">
+        <div className="flex-1 overflow-y-auto bg-card px-5 pt-5">
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
           <p className="mt-1 text-base">
             <span className="font-bold">{brl(base)}</span>
