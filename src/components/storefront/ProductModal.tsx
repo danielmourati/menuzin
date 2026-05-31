@@ -33,7 +33,7 @@ export function ProductModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-muted/30 p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button[type='button']:last-of-type]:hidden"
+        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-muted/30 p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
       >
         <VisuallyHidden><DialogTitle>{product.name}</DialogTitle></VisuallyHidden>
 
