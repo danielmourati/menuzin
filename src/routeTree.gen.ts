@@ -15,6 +15,7 @@ import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
@@ -49,6 +50,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
   path: '/admin/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/admin/configuracoes',
+  path: '/admin/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
   id: '/admin/categorias',
   path: '/admin/categorias',
@@ -70,6 +76,7 @@ const LojaSlugAcompanharOrderIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin/categorias'
+    | '/admin/configuracoes'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin/categorias'
+    | '/admin/configuracoes'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin/categorias'
+    | '/admin/configuracoes'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -140,6 +152,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/admin/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/categorias': {
       id: '/admin/categorias'
       path: '/admin/categorias'
@@ -232,6 +252,7 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
+  AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRoute,
