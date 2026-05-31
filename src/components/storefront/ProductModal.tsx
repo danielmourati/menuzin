@@ -8,7 +8,7 @@ import { brl } from "@/lib/format";
 import type { Product, ProductAddon } from "@/lib/mock-data";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+
 
 export function ProductModal({
   product, open, onOpenChange,
