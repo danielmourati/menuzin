@@ -21,6 +21,7 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
+import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
@@ -84,6 +85,11 @@ const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
   path: '/admin/aparencia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
+  id: '/platform/tenants/novo',
+  path: '/platform/tenants/novo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaSlugPedidoConfirmadoRoute =
   LojaSlugPedidoConfirmadoRouteImport.update({
     id: '/pedido-confirmado',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/platform/lojas': typeof PlatformLojasRoute
   '/admin/': typeof AdminIndexRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/platform/lojas': typeof PlatformLojasRoute
   '/admin': typeof AdminIndexRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesById {
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/platform/lojas': typeof PlatformLojasRoute
   '/admin/': typeof AdminIndexRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/platform/lojas'
     | '/admin/'
     | '/loja/$slug/pedido-confirmado'
+    | '/platform/tenants/novo'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/platform/lojas'
     | '/admin'
     | '/loja/$slug/pedido-confirmado'
+    | '/platform/tenants/novo'
     | '/loja/$slug/acompanhar/$orderId'
   id:
     | '__root__'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/platform/lojas'
     | '/admin/'
     | '/loja/$slug/pedido-confirmado'
+    | '/platform/tenants/novo'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   PlatformDashboardRoute: typeof PlatformDashboardRoute
   PlatformLojasRoute: typeof PlatformLojasRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAparenciaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform/tenants/novo': {
+      id: '/platform/tenants/novo'
+      path: '/platform/tenants/novo'
+      fullPath: '/platform/tenants/novo'
+      preLoaderRoute: typeof PlatformTenantsNovoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/$slug/pedido-confirmado': {
       id: '/loja/$slug/pedido-confirmado'
       path: '/pedido-confirmado'
@@ -342,7 +362,18 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformDashboardRoute: PlatformDashboardRoute,
   PlatformLojasRoute: PlatformLojasRoute,
   AdminIndexRoute: AdminIndexRoute,
+  PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
