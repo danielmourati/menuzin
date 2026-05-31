@@ -51,25 +51,25 @@ function StorePage() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Banner */}
-      <div className="relative h-44 w-full overflow-hidden gradient-brand md:h-56">
+      <div className="relative h-32 w-full overflow-hidden gradient-brand sm:h-44 md:h-52">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),transparent_60%)]" />
-        <div className="container relative mx-auto flex h-full items-end px-4 pb-4">
-          <p className="rounded-full bg-white/15 backdrop-blur px-4 py-1.5 text-sm font-medium text-white">
+        <div className="container relative mx-auto flex h-full items-start px-4 pt-3 sm:items-end sm:pt-0 sm:pb-4">
+          <p className="rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-xs sm:text-sm font-medium text-white line-clamp-2 max-w-[90%]">
             {store.banner}
           </p>
         </div>
       </div>
 
       {/* Store header */}
-      <div className="container mx-auto -mt-10 px-4">
-        <div className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-soft)]">
-          <div className="flex items-start gap-4">
-            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl gradient-brand text-2xl font-bold text-primary-foreground shadow-md">
+      <div className="container mx-auto -mt-6 px-4 sm:-mt-10">
+        <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="grid h-14 w-14 sm:h-16 sm:w-16 shrink-0 place-items-center rounded-2xl gradient-brand text-2xl font-bold text-primary-foreground shadow-md">
               {store.logoLetter}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold">{store.name}</h1>
+                <h1 className="text-lg sm:text-xl font-bold truncate">{store.name}</h1>
                 <Badge className={store.open ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
                   {store.open ? "Aberta" : "Fechada"}
                 </Badge>
