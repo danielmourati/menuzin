@@ -100,7 +100,7 @@ function StorePage({ tenant }: { tenant: Tenant }) {
                 <img
                   src={tenant.logoUrl}
                   alt={`Logo ${tenant.name}`}
-                  className="h-20 w-20 rounded-2xl border-4 border-card object-cover shadow-md sm:h-24 sm:w-24"
+                  className="h-20 w-auto object-contain sm:h-24"
                 />
               ) : (
                 <div
