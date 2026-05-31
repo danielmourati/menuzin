@@ -388,7 +388,7 @@ export function CartDrawer({
                 </Button>
               }
             />
-            <div className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-4">
+            <div className="flex-1 space-y-3 overflow-y-auto bg-card p-4">
               {/* Customer */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-center gap-2 font-semibold"><User className="h-4 w-4" /> {name}</div>
