@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
+import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const LojaSlugRoute = LojaSlugRouteImport.update({
   id: '/loja/$slug',
   path: '/loja/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminProdutosRoute = AdminProdutosRouteImport.update({
+  id: '/admin/produtos',
+  path: '/admin/produtos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtos': typeof AdminProdutosRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtos': typeof AdminProdutosRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
+  '/admin/produtos': typeof AdminProdutosRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
+    | '/admin/produtos'
     | '/loja/$slug'
     | '/loja/$slug/pedido-confirmado'
     | '/loja/$slug/acompanhar/$orderId'
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
+    | '/admin/produtos'
     | '/loja/$slug'
     | '/loja/$slug/pedido-confirmado'
     | '/loja/$slug/acompanhar/$orderId'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
+    | '/admin/produtos'
     | '/loja/$slug'
     | '/loja/$slug/pedido-confirmado'
     | '/loja/$slug/acompanhar/$orderId'
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminProdutosRoute: typeof AdminProdutosRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
 }
 
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/loja/$slug'
       fullPath: '/loja/$slug'
       preLoaderRoute: typeof LojaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/produtos': {
+      id: '/admin/produtos'
+      path: '/admin/produtos'
+      fullPath: '/admin/produtos'
+      preLoaderRoute: typeof AdminProdutosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/pedidos': {
@@ -194,6 +214,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRoute,
+  AdminProdutosRoute: AdminProdutosRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport
