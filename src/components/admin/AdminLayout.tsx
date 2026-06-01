@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { store } from "@/lib/mock-data";
+import { AdminNotificationsBell } from "@/components/admin/AdminNotificationsBell";
+import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListener";
 
 const items = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -68,6 +70,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="flex min-h-screen bg-muted/30">
+      <OrdersRealtimeListener />
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border lg:block">
         <SidebarInner />
       </aside>
@@ -82,7 +85,10 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
             </SheetContent>
           </Sheet>
           <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
-          <div className="ml-auto">{action}</div>
+          <div className="ml-auto flex items-center gap-2">
+            <AdminNotificationsBell />
+            {action}
+          </div>
         </header>
         <main className="flex-1 p-4 lg:p-8">{children ?? <Outlet />}</main>
       </div>

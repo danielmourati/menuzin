@@ -169,3 +169,28 @@
   .text-balance { text-wrap: balance; }
 }
 
+@media print {
+  body.printing-receipt {
+    background: white !important;
+    color: black !important;
+  }
+  body.printing-receipt #root {
+    display: none !important;
+  }
+  body.printing-receipt #print-root {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+@media screen {
+  #print-root {
+    display: none !important;
+  }
+}
+
+

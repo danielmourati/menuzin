@@ -30,6 +30,7 @@ function SettingsPage() {
             <TabsTrigger value="dados">Dados</TabsTrigger>
             <TabsTrigger value="horarios">Horários</TabsTrigger>
             <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
+            <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
             <TabsTrigger value="entrega">Entrega</TabsTrigger>
             <TabsTrigger value="redes">Redes sociais</TabsTrigger>
             <TabsTrigger value="link">Link público</TabsTrigger>
@@ -73,6 +74,29 @@ function SettingsPage() {
                 <Button asChild className="h-11 px-6 rounded-xl font-semibold">
                   <Link to="/admin/configuracoes/pagamentos">
                     Configurar Métodos de Pagamento e Mercado Pago
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pedidos" className="mt-6 space-y-4">
+            <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold tracking-tight">Alertas de Pedidos em Tempo Real</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Configure alertas sonoros, notificações flutuantes na tela (toasts) e destaque visual para novos pedidos para garantir que nenhum cliente fique esperando.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button asChild className="h-11 px-6 rounded-xl font-semibold">
+                  <Link to="/admin/configuracoes/pedidos">
+                    Configurar Alertas e Notificações
                   </Link>
                 </Button>
               </div>
