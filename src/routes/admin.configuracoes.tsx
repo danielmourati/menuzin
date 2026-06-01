@@ -56,15 +56,26 @@ function SettingsPage() {
             ))}
           </TabsContent>
 
-          <TabsContent value="pagamento" className="mt-6 space-y-3">
-            <Row label="Dinheiro" value={dinheiro} onChange={setDinheiro} />
-            <Row label="Pix" value={pix} onChange={setPix} />
-            <Row label="Cartão de crédito na entrega" value={credito} onChange={setCredito} />
-            <Row label="Cartão de débito na entrega" value={debito} onChange={setDebito} />
-            <div className="mt-4 grid gap-3 rounded-xl border p-4 md:grid-cols-3">
-              <div><Label>Tipo de chave Pix</Label><Input placeholder="E-mail / CPF / Telefone" className="mt-1.5" /></div>
-              <div><Label>Chave Pix</Label><Input placeholder="pix@loja.com" className="mt-1.5" /></div>
-              <div><Label>Recebedor</Label><Input placeholder="Razão social" className="mt-1.5" /></div>
+          <TabsContent value="pagamento" className="mt-6 space-y-4">
+            <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold tracking-tight">Nova Central de Pagamentos</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Aprimoramos o sistema de pagamentos! Agora você pode conectar sua própria conta do <strong>Mercado Pago</strong> com checkout transparente e configurar todos os métodos manuais no mesmo lugar.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button asChild className="h-11 px-6 rounded-xl font-semibold">
+                  <Link to="/admin/configuracoes/pagamentos">
+                    Configurar Métodos de Pagamento e Mercado Pago
+                  </Link>
+                </Button>
+              </div>
             </div>
           </TabsContent>
 

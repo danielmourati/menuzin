@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useState, useEffect, type ReactNode } from "react";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { store } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { getPaymentSettingsBySlug, createPixPayment, createCardPayment } from "@/lib/payment-service";
+import type { StorePaymentSettingsSafe, PaymentMethod, PixPaymentData, CardPaymentData } from "@/lib/payment-types";
+import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelector";
+import { PixCheckout } from "@/components/payment/PixCheckout";
+import { CardCheckout } from "@/components/payment/CardCheckout";
 
 type Step =
   | "cart"
@@ -22,6 +27,8 @@ type Step =
   | "mode-table"
   | "payment-when"
   | "payment-method"
+  | "payment-online-pix"
+  | "payment-online-card"
   | "payment-pix"
   | "customer"
   | "review";
@@ -31,10 +38,17 @@ type Mode = "entrega" | "retirada" | "consumo_local";
 export function CartDrawer({
   open, onOpenChange,
 }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { slug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
   const { items, update, remove, subtotal, clear } = useCart();
   const [step, setStep] = useState<Step>("cart");
   const [history, setHistory] = useState<Step[]>([]);
+
+  // payment settings from DB
+  const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [pixData, setPixData] = useState<PixPaymentData | null>(null);
+  const [cardData, setCardData] = useState<CardPaymentData | null>(null);
 
   // customer
   const [name, setName] = useState("");
@@ -56,6 +70,17 @@ export function CartDrawer({
   const [paymentWhen, setPaymentWhen] = useState<"agora" | "na_retirada" | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string>("PIX");
   const [generalNote, setGeneralNote] = useState("");
+
+  // Fetch settings for tenant
+  useEffect(() => {
+    if (open && slug) {
+      getPaymentSettingsBySlug(slug).then((data) => {
+        if (data) {
+          setSettings(data);
+        }
+      });
+    }
+  }, [open, slug]);
 
   const deliveryFee = mode === "entrega" ? store.deliveryFee : 0;
   const total = subtotal + deliveryFee;
@@ -99,12 +124,77 @@ export function CartDrawer({
 
   const selectPaymentWhen = (w: "agora" | "na_retirada") => {
     setPaymentWhen(w);
+    setSelectedMethod(null);
     goTo("payment-method");
   };
-  const selectMethod = (m: string) => {
-    setPaymentMethod(m);
-    if (m === "PIX") goTo("payment-pix");
-    else goTo("customer");
+
+  const handleSelectMethod = async (m: PaymentMethod) => {
+    setSelectedMethod(m);
+    
+    // Mapear labels visíveis
+    const methodLabels: Record<PaymentMethod, string> = {
+      pix_online: "Pix Online (Mercado Pago)",
+      credit_card: "Cartão de Crédito Online (Mercado Pago)",
+      debit_card: "Cartão de Débito Online (Mercado Pago)",
+      pix_manual: "Pix Manual (Comprovante)",
+      cash: "Dinheiro em Espécie",
+      card_on_delivery: "Cartão na Maquininha (Entrega)",
+    };
+    setPaymentMethod(methodLabels[m]);
+
+    if (m === "pix_online") {
+      try {
+        toast.loading("Gerando transação Pix segura...");
+        const res = await createPixPayment({
+          store_slug: slug || "burger-prime",
+          order_id: `o_${Date.now()}`,
+          payment_method: "pix_online",
+          payer: {
+            email: email || "comprador@teste.com",
+            first_name: name.split(" ")[0] || "Cliente",
+            last_name: name.split(" ").slice(1).join(" ") || "Menuzin",
+          },
+        });
+        toast.dismiss();
+        setPixData(res.data);
+        goTo("payment-online-pix");
+      } catch (err) {
+        toast.dismiss();
+        toast.error("Erro ao gerar pagamento Pix. Tente novamente.");
+      }
+    } else if (m === "credit_card" || m === "debit_card") {
+      goTo("payment-online-card");
+    } else if (m === "pix_manual") {
+      goTo("payment-pix");
+    } else {
+      goTo("customer");
+    }
+  };
+
+  const handleCardSubmit = async (cardInfo: {
+    cardNumber: string;
+    cardholderName: string;
+    expirationMonth: string;
+    expirationYear: string;
+    securityCode: string;
+    installments: number;
+  }) => {
+    // Simula a criação do pagamento transparente via Cartão
+    const res = await createCardPayment({
+      store_slug: slug || "burger-prime",
+      order_id: `o_${Date.now()}`,
+      payment_method: selectedMethod === "debit_card" ? "debit_card" : "credit_card",
+      card_token: `tok_${Math.random().toString(36).substring(7)}`,
+      installments: cardInfo.installments,
+      payer: {
+        email: email || "comprador@teste.com",
+        first_name: cardInfo.cardholderName.split(" ")[0] || "Titular",
+        last_name: cardInfo.cardholderName.split(" ").slice(1).join(" ") || "Card",
+        identification: { type: "CPF", number: doc || "111.111.111-11" },
+      },
+    });
+    setCardData(res.data);
+    return res.data;
   };
 
   const confirmCustomer = () => {
@@ -113,6 +203,21 @@ export function CartDrawer({
   };
 
   const finalize = () => {
+    // Definir status de pagamento e pedido baseado no método
+    let finalPaymentStatus: any = "pending";
+    let finalOrderStatus: any = "new";
+    let mpPaymentId = undefined;
+
+    if (selectedMethod === "pix_online") {
+      finalPaymentStatus = pixData?.payment_status || "pending";
+      finalOrderStatus = finalPaymentStatus === "approved" ? "new" : "pending_payment";
+      mpPaymentId = pixData?.payment_id;
+    } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
+      finalPaymentStatus = cardData?.payment_status || "approved";
+      finalOrderStatus = finalPaymentStatus === "approved" ? "new" : "pending_payment";
+      mpPaymentId = cardData?.payment_id;
+    }
+
     const order = {
       number: 1000 + Math.floor(Math.random() * 9000),
       customerName: name,
@@ -121,6 +226,10 @@ export function CartDrawer({
       doc,
       mode: mode!,
       payment: `${paymentWhenLabel} · ${paymentMethod}`,
+      paymentMethod: selectedMethod,
+      paymentStatus: finalPaymentStatus,
+      orderStatus: finalOrderStatus,
+      mpPaymentId,
       items: items.map((i) => ({
         name: i.product.name,
         qty: i.qty,
@@ -139,7 +248,7 @@ export function CartDrawer({
     resetAll();
     navigate({
       to: "/loja/$slug/pedido-confirmado",
-      params: { slug: store.slug },
+      params: { slug: slug || store.slug },
       search: { n: order.number } as never,
     });
   };
@@ -313,16 +422,52 @@ export function CartDrawer({
           <>
             <Header title="Método de pagamento" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {paymentWhen === "agora" ? (
-                <OptionRow icon={<span className="text-base font-bold">⬥</span>} title="PIX" onClick={() => selectMethod("PIX")} />
-              ) : (
-                <>
-                  <OptionRow icon={<DollarSign className="h-5 w-5" />} title="Dinheiro" onClick={() => selectMethod("Dinheiro")} />
-                  <OptionRow icon={<Smartphone className="h-5 w-5" />} title="Cartão de crédito" onClick={() => selectMethod("Cartão de crédito")} />
-                  <OptionRow icon={<Smartphone className="h-5 w-5" />} title="Cartão de débito" onClick={() => selectMethod("Cartão de débito")} />
-                  <OptionRow icon={<span className="text-base font-bold">⬥</span>} title="PIX" onClick={() => selectMethod("PIX")} />
-                </>
-              )}
+              <PaymentMethodSelector
+                settings={settings}
+                paymentWhen={paymentWhen || "na_retirada"}
+                selectedMethod={selectedMethod}
+                onSelectMethod={handleSelectMethod}
+              />
+            </div>
+            <StickySubtotal />
+          </>
+        )}
+
+        {/* PAYMENT - ONLINE - PIX */}
+        {step === "payment-online-pix" && pixData && (
+          <>
+            <Header title="Pagamento Pix" />
+            <div className="flex-1 overflow-y-auto bg-card">
+              <PixCheckout
+                pixData={pixData}
+                amount={total}
+                onSuccess={() => goTo("customer")}
+                onCancel={() => {
+                  setPixData(null);
+                  setSelectedMethod(null);
+                  setStep("payment-method");
+                }}
+              />
+            </div>
+            <StickySubtotal />
+          </>
+        )}
+
+        {/* PAYMENT - ONLINE - CARD */}
+        {step === "payment-online-card" && (
+          <>
+            <Header title="Pagamento com Cartão" />
+            <div className="flex-1 overflow-y-auto bg-card">
+              <CardCheckout
+                amount={total}
+                onSubmit={handleCardSubmit}
+                onSuccess={() => goTo("customer")}
+                onCancel={() => {
+                  setCardData(null);
+                  setSelectedMethod(null);
+                  setStep("payment-method");
+                }}
+              />
             </div>
             <StickySubtotal />
           </>
