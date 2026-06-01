@@ -21,6 +21,7 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
+import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
@@ -86,6 +87,11 @@ const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
   path: '/admin/aparencia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminConfiguracoesRoute,
+} as any)
 const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
   id: '/platform/tenants/novo',
   path: '/platform/tenants/novo',
@@ -126,13 +132,13 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
+  '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
-  '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -144,6 +150,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
+  '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesById {
@@ -163,6 +170,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
+  '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -183,13 +191,13 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
+    | '/admin/configuracoes/'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin/aparencia'
     | '/admin/categorias'
-    | '/admin/configuracoes'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -201,6 +209,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
+    | '/admin/configuracoes'
     | '/loja/$slug/acompanhar/$orderId'
   id:
     | '__root__'
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
+    | '/admin/configuracoes/'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -324,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAparenciaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/configuracoes/': {
+      id: '/admin/configuracoes/'
+      path: '/'
+      fullPath: '/admin/configuracoes/'
+      preLoaderRoute: typeof AdminConfiguracoesIndexRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
     '/platform/tenants/novo': {
       id: '/platform/tenants/novo'
       path: '/platform/tenants/novo'
@@ -357,10 +374,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminConfiguracoesRouteChildren {
   AdminConfiguracoesPagamentosRoute: typeof AdminConfiguracoesPagamentosRoute
+  AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
 }
 
 const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
   AdminConfiguracoesPagamentosRoute: AdminConfiguracoesPagamentosRoute,
+  AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
 }
 
 const AdminConfiguracoesRouteWithChildren =
@@ -398,3 +417,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
