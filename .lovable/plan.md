@@ -1,61 +1,79 @@
-## Escopo desta fase
+# Teste end-to-end: pedido do cliente até o admin
 
-Apenas **salvar e validar credenciais manuais do Mercado Pago** (sandbox e produção) contra a API real do MP, persistindo de forma segura no banco. Sem OAuth, sem checkout transparente, sem pagamento de teste de R$ 0,01.
+Objetivo: validar manualmente que um pedido feito na loja aparece no painel `/admin/pedidos` do estabelecimento certo, com itens, total, pagamento e status corretos.
 
-## 1. Banco de dados
+## Pré-requisitos
 
-Nova tabela `store_payment_settings` (uma linha por tenant):
+1. Loja ativa em `tenants` (ex.: Bora Burger, slug `boraburger`).
+2. Pelo menos 1 categoria + 1 produto disponível.
+3. Usuário com papel `owner` ou `admin` vinculado ao `tenant_id` dessa loja em `user_roles`.
+4. (Opcional) Pagamentos configurados em `/admin/configuracoes/pagamentos` — para este teste pode ficar só com "Dinheiro" / "PIX manual" habilitados, sem MP.
 
-- `tenant_id` (FK lógica → `tenants.id`, **unique**)
-- `provider` (default `mercadopago`)
-- `mp_public_key` (texto, seguro de expor — começa com `APP_USR-` ou `TEST-`)
-- `mp_access_token_encrypted` (bytea, cifrado com `pgcrypto` usando chave do servidor — **nunca exposto ao client**)
-- `mp_user_id` (texto, retornado pelo MP)
-- `mp_live_mode` (bool)
-- `mp_connected` (bool)
-- `mp_last_validated_at` (timestamptz)
-- Flags de métodos: `cash_enabled`, `pix_manual_enabled`, `card_on_delivery_enabled`, `pix_enabled`, `credit_card_enabled`, `debit_card_enabled`
-- `pix_manual_key`, `pix_manual_key_type`, `pix_manual_receiver`
-- `created_at`, `updated_at`
+## Roteiro de teste (2 abas)
 
-**RLS**: apenas owner/admin do tenant (ou platform_admin) leem/escrevem. GRANTs para `authenticated` e `service_role`.
+### Aba A — Admin do estabelecimento
+1. Login em `/admin/login` com o usuário owner da loja.
+2. Abrir `/admin/pedidos` e deixar visível.
+3. Anotar quantos pedidos existem hoje (baseline).
 
-Funções `encrypt_mp_token(text)` / `decrypt_mp_token(bytea)` em `SECURITY DEFINER` usando `pgp_sym_encrypt` com chave lida de `current_setting('app.payment_encryption_key')` — chave injetada apenas em server functions admin.
+### Aba B — Cliente (anônima/privada)
+1. Abrir `/loja/{slug}` (ex.: `/loja/boraburger`) em janela anônima.
+2. Adicionar 1–2 produtos ao carrinho.
+3. Ir ao checkout, preencher nome, WhatsApp e:
+   - Modo: Delivery (com endereço) **ou** Retirada **ou** Mesa.
+   - Pagamento: Dinheiro (com troco) — caminho mais simples.
+4. Confirmar pedido → deve redirecionar para `/loja/{slug}/pedido-confirmado` com o número do pedido.
+5. Copiar o ID do pedido e abrir `/loja/{slug}/acompanhar/{orderId}` para validar a visão do cliente.
 
-## 2. Secret
+### Verificação no admin (Aba A)
+1. Recarregar `/admin/pedidos` (ou aguardar refresh automático, se houver).
+2. Confirmar que o novo pedido apareceu com:
+   - Número sequencial, nome do cliente, WhatsApp.
+   - Itens corretos (nome, qtd, preço, addons).
+   - Subtotal + taxa de entrega = total.
+   - Forma de pagamento e modo (delivery/retirada/mesa).
+   - Status inicial = `novo`.
+3. Transicionar status: `novo → aceito → em preparo → pronto → finalizado` e verificar:
+   - Histórico em `order_status_history`.
+   - Página `/acompanhar/{orderId}` reflete o novo status na aba B.
 
-Solicitar `PAYMENT_ENCRYPTION_KEY` (string aleatória ≥32 chars) para cifrar/decifrar o access token em repouso.
+## Checagens diretas no banco (opcional, mais rápido para diagnosticar)
 
-## 3. Server functions (`src/lib/payments.functions.ts`)
+Executáveis via SQL read-only:
 
-Todas com `requireSupabaseAuth` + checagem de `has_tenant_role` (owner/admin):
+```sql
+-- Último pedido da loja
+select id, number, customer_name, status, payment_status, total, created_at
+from orders where tenant_id = '<TENANT_ID>'
+order by created_at desc limit 5;
 
-- **`getPaymentSettings({ tenantId })`** — retorna versão **safe** (sem access token), incluindo `mp_public_key` mascarado para UI.
-- **`saveMpCredentials({ tenantId, mp_public_key, mp_access_token, mp_live_mode })`**:
-  1. Valida formato (`APP_USR-` / `TEST-`) + coerência com `mp_live_mode`.
-  2. Chama `GET https://api.mercadopago.com/users/me` com o access token.
-  3. Se 200: captura `id` (`mp_user_id`), `site_id` (deve ser `MLB`).
-  4. Persiste via `supabaseAdmin` cifrando o token; seta `mp_connected=true`, `mp_last_validated_at=now()`, ativa `pix_enabled` e `credit_card_enabled` por padrão.
-  5. Retorna `{ success, message, mp_public_key_masked, mp_user_id, live_mode }`.
-  6. Em erro do MP: retorna `success:false` com mensagem clara (token inválido, expirado, sandbox vs prod).
-- **`disconnectMercadoPago({ tenantId })`** — zera credenciais e flags online.
-- **`updatePaymentSettings({ tenantId, patch })`** — atualiza somente campos seguros (flags, dados PIX manual).
+-- Itens do pedido
+select name_snapshot, qty, unit_price, addons
+from order_items where order_id = '<ORDER_ID>';
 
-## 4. Frontend
+-- Histórico de status
+select previous_status, new_status, changed_by_name, created_at
+from order_status_history where order_id = '<ORDER_ID>' order by created_at;
+```
 
-- Substituir `src/lib/payment-service.ts` por wrapper fino usando `useServerFn`. Remover mock `localSettings` e `mockSettings`.
-- Em `src/routes/admin.configuracoes.pagamentos.tsx`: trocar `storeId = "t1"` por `profile.tenant_id` do `useAuth()`. Bloquear UI se não houver tenant.
-- `MercadoPagoStatus`: mostrar `mp_user_id` e `mp_last_validated_at` quando conectado; badge sandbox/produção.
-- Remover botão "Testar pagamento" (volta na próxima fase).
+## Cenários a cobrir
 
-## 5. Fora de escopo (próximas fases)
+| Cenário | Modo | Pagamento | O que valida |
+|---|---|---|---|
+| 1 | Delivery | Dinheiro com troco | Endereço + `change_for` salvos |
+| 2 | Retirada | PIX manual | `pickup_time`, chave PIX exibida |
+| 3 | Mesa | Cartão na entrega | `table_label` salvo |
+| 4 | Delivery | (com MP configurado) | Fluxo será coberto depois do checkout transparente |
 
-- OAuth (`mp-connect-start` / callback).
-- Checkout transparente PIX/cartão (`create-transparent-payment`).
-- Webhook (`mercado-pago-webhook`).
-- Pagamento de teste R$ 0,01.
+## Pontos de atenção identificados
 
-## Pontos a confirmar
+- **Sem realtime**: o painel `/admin/pedidos` provavelmente não atualiza sozinho (não há subscription em `postgres_changes`). Para o teste manual, recarregar a página. Se quiser, em build mode podemos adicionar realtime na tabela `orders` para o admin ver o pedido cair instantaneamente.
+- **Permissões RLS**: o admin só vê pedidos do seu `tenant_id`. Se o pedido não aparecer, conferir se o `tenant_id` do `orders` bate com o `tenant_id` do `user_roles` do admin logado.
+- **Som/notificação**: hoje não existe — opcional adicionar depois.
 
-1. OK criar a tabela + pedir o secret `PAYMENT_ENCRYPTION_KEY` agora?
-2. Posso usar as credenciais de sandbox que já estão no `.env` (`TEST_MP_ACCESS_TOKEN` / `TEST_MP_PUBLIC_KEY`) para você testar o fluxo na UI, ou prefere inserir manualmente no formulário?
+## Próximo passo sugerido
+
+Após validar o roteiro acima, decidir se quer que eu, em build mode:
+1. Adicione realtime ao `/admin/pedidos` (subscription em `orders`).
+2. Adicione notificação sonora + badge no menu lateral quando entrar pedido novo.
+3. Siga para implementar OAuth do Mercado Pago e o checkout transparente.
