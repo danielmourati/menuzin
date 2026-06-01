@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { DbOrder, DbOrderItem } from "@/lib/db-types";
+import type { DbOrder, DbOrderItem, DbHistoryRow } from "@/lib/db-types";
 
 const AddonSchema = z.object({ name: z.string().max(120), price: z.number().min(0) });
 const ItemSchema = z.object({
