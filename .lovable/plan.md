@@ -1,79 +1,85 @@
-# Teste end-to-end: pedido do cliente até o admin
+## Auditoria — o que ainda é mock
 
-Objetivo: validar manualmente que um pedido feito na loja aparece no painel `/admin/pedidos` do estabelecimento certo, com itens, total, pagamento e status corretos.
+`src/lib/mock-data.ts` exporta dois grupos:
 
-## Pré-requisitos
+**A. Tipos (contrato de UI)** — usados em ~25 componentes, devem ser preservados (apenas renomeados/movidos):
+`Product`, `ProductAddon`, `Category`, `Order`, `OrderItem`, `OrderStatus`, `OrderMode`, `PaymentStatus`, `OrderStatusHistoryEntry`, `Tenant`, `AdminNotification`.
 
-1. Loja ativa em `tenants` (ex.: Bora Burger, slug `boraburger`).
-2. Pelo menos 1 categoria + 1 produto disponível.
-3. Usuário com papel `owner` ou `admin` vinculado ao `tenant_id` dessa loja em `user_roles`.
-4. (Opcional) Pagamentos configurados em `/admin/configuracoes/pagamentos` — para este teste pode ficar só com "Dinheiro" / "PIX manual" habilitados, sem MP.
+**B. Dados mock ainda em uso**
 
-## Roteiro de teste (2 abas)
+| Símbolo | Onde é lido | Status no DB |
+|---|---|---|
+| `store` (loja hard-coded "Burger Prime") | `routes/index.tsx`, `admin.aparencia`, `admin.configuracoes.index`, `admin.dashboard`, `admin.pedidos`, `CartDrawer` | já existe em `tenants` (precisa buscar via `getMyTenant` / slug) |
+| `tenants[]`, `getTenantBySlug`, `isSlugAvailable`, `slugify` | `platform.tenants.novo`, helpers | tabela `tenants` no DB; falta serverFn de criar/checar slug |
+| `platformStores`, `platformGrowth` | `platform.dashboard`, `platform.lojas` | derivar de `tenants` + `orders` |
+| `salesLast7Days`, `ordersByMode`, `topProducts` | `admin.dashboard` | derivar de `orders` + `order_items` |
+| `plans` (catálogo de planos da landing) | `routes/index.tsx` | conteúdo estático, **não é mock** — mover para `src/lib/plans.ts` |
+| `categories[]`, `products[]`, `orders[]`, `adminNotifications[]` | nenhum import em runtime | dead data — remover |
 
-### Aba A — Admin do estabelecimento
-1. Login em `/admin/login` com o usuário owner da loja.
-2. Abrir `/admin/pedidos` e deixar visível.
-3. Anotar quantos pedidos existem hoje (baseline).
+**C. Não é mock (já está integrado)**
+- `useOrdersRealtime` lê do DB via `listOrdersForMyTenant` + realtime no `orders` (notificações em memória são derivadas, não mockadas).
+- `useCustomerOrder`, `catalog.functions`, `catalog-admin.functions`, `orders.functions`, `tenants.functions`, `payments.functions` — todos no DB.
 
-### Aba B — Cliente (anônima/privada)
-1. Abrir `/loja/{slug}` (ex.: `/loja/boraburger`) em janela anônima.
-2. Adicionar 1–2 produtos ao carrinho.
-3. Ir ao checkout, preencher nome, WhatsApp e:
-   - Modo: Delivery (com endereço) **ou** Retirada **ou** Mesa.
-   - Pagamento: Dinheiro (com troco) — caminho mais simples.
-4. Confirmar pedido → deve redirecionar para `/loja/{slug}/pedido-confirmado` com o número do pedido.
-5. Copiar o ID do pedido e abrir `/loja/{slug}/acompanhar/{orderId}` para validar a visão do cliente.
+---
 
-### Verificação no admin (Aba A)
-1. Recarregar `/admin/pedidos` (ou aguardar refresh automático, se houver).
-2. Confirmar que o novo pedido apareceu com:
-   - Número sequencial, nome do cliente, WhatsApp.
-   - Itens corretos (nome, qtd, preço, addons).
-   - Subtotal + taxa de entrega = total.
-   - Forma de pagamento e modo (delivery/retirada/mesa).
-   - Status inicial = `novo`.
-3. Transicionar status: `novo → aceito → em preparo → pronto → finalizado` e verificar:
-   - Histórico em `order_status_history`.
-   - Página `/acompanhar/{orderId}` reflete o novo status na aba B.
+## Plano de migração — 5 fases
 
-## Checagens diretas no banco (opcional, mais rápido para diagnosticar)
+### Fase 1 — Separar tipos dos dados mock
+- Criar `src/lib/domain-types.ts` com TODOS os types do bloco A acima.
+- Refatorar os ~25 arquivos para `import type { ... } from "@/lib/domain-types"`.
+- Mover `plans` para `src/lib/plans.ts` (constante estática de landing).
+- Mover `slugify` para `src/lib/utils.ts` (puro, reaproveitável).
 
-Executáveis via SQL read-only:
+Resultado: `mock-data.ts` deixa de ser importado em runtime.
 
-```sql
--- Último pedido da loja
-select id, number, customer_name, status, payment_status, total, created_at
-from orders where tenant_id = '<TENANT_ID>'
-order by created_at desc limit 5;
+### Fase 2 — Loja única (`store`)
 
--- Itens do pedido
-select name_snapshot, qty, unit_price, addons
-from order_items where order_id = '<ORDER_ID>';
+Substituir todos os usos de `store` por dados reais do tenant do admin logado:
 
--- Histórico de status
-select previous_status, new_status, changed_by_name, created_at
-from order_status_history where order_id = '<ORDER_ID>' order by created_at;
-```
+- **Admin** (`admin.aparencia`, `admin.configuracoes.index`, `admin.dashboard`, `admin.pedidos`): consumir `getMyTenant()` via React Query. Formulários de configuração passam a salvar via nova serverFn `updateMyTenant({ name, whatsapp, description, address, city, state, delivery_fee, min_order, prep_time, hours, logo_url, theme_from, theme_to, social })` — usa middleware autenticado + RLS (`tenants: owners/admins update own`).
+- **Storefront** (`CartDrawer`): receber o tenant carregado em `routes/loja.$slug.tsx` via props/contexto (já é buscado lá), removendo `store.deliveryFee` e `store.address`.
+- **Landing** (`routes/index.tsx`): trocar "Demo da loja" por link para uma loja `featured` real (ou esconder se não houver). Critério a confirmar (ver pergunta).
 
-## Cenários a cobrir
+### Fase 3 — Painel da plataforma
 
-| Cenário | Modo | Pagamento | O que valida |
-|---|---|---|---|
-| 1 | Delivery | Dinheiro com troco | Endereço + `change_for` salvos |
-| 2 | Retirada | PIX manual | `pickup_time`, chave PIX exibida |
-| 3 | Mesa | Cartão na entrega | `table_label` salvo |
-| 4 | Delivery | (com MP configurado) | Fluxo será coberto depois do checkout transparente |
+- Nova serverFn `listPlatformStores()` (somente `platform_admin`) — agrega por `tenant_id`: nome, slug, cidade/UF, status, plano, `orders_month` (count em `orders` dos últimos 30d) e `revenue_month` (sum `total` aprovado ou finalizado). Usa `supabaseAdmin` com checagem de `is_platform_admin`.
+- Nova serverFn `getPlatformGrowth()` — count de tenants criados por mês nos últimos 6 meses.
+- `platform.lojas.tsx` e `platform.dashboard.tsx` consomem via React Query; remover imports de mock.
 
-## Pontos de atenção identificados
+### Fase 4 — Analytics do admin (`admin.dashboard`)
 
-- **Sem realtime**: o painel `/admin/pedidos` provavelmente não atualiza sozinho (não há subscription em `postgres_changes`). Para o teste manual, recarregar a página. Se quiser, em build mode podemos adicionar realtime na tabela `orders` para o admin ver o pedido cair instantaneamente.
-- **Permissões RLS**: o admin só vê pedidos do seu `tenant_id`. Se o pedido não aparecer, conferir se o `tenant_id` do `orders` bate com o `tenant_id` do `user_roles` do admin logado.
-- **Som/notificação**: hoje não existe — opcional adicionar depois.
+- Nova serverFn `getMyTenantAnalytics({ days: 7 })` retornando:
+  - `salesLast7Days`: array `{ day, vendas, pedidos }` agregando `orders` por `date_trunc('day', created_at)` no tenant.
+  - `ordersByMode`: count por `mode` (entrega/retirada/consumo_local).
+  - `topProducts`: top 5 por `sum(qty)` em `order_items` join `orders` do tenant nos últimos 30d.
+- Tela usa `useQuery`; remove imports de mock.
 
-## Próximo passo sugerido
+### Fase 5 — Criação de tenant
 
-Após validar o roteiro acima, decidir se quer que eu, em build mode:
-1. Adicione realtime ao `/admin/pedidos` (subscription em `orders`).
-2. Adicione notificação sonora + badge no menu lateral quando entrar pedido novo.
-3. Siga para implementar OAuth do Mercado Pago e o checkout transparente.
+- Nova serverFn `createTenant(input)` (apenas `platform_admin`): insere em `tenants` + cria `user_roles` (owner) se `owner_user_id` informado. Inclui checagem de slug único no servidor.
+- Nova serverFn `isSlugAvailable({ slug })` consultando `tenants`.
+- `platform.tenants.novo.tsx` passa a usar `useMutation` + as duas serverFns; remove `tenants.push(...)` em memória.
+
+### Fase 6 — Limpeza
+
+- Deletar bloco B inteiro de `mock-data.ts`. Manter o arquivo apenas se algum re-export de tipos fizer sentido — preferência: remover o arquivo completamente após fase 1.
+- Remover asset `prime-burguer-logo.png` se não houver mais referência.
+- Rodar typecheck/build.
+
+---
+
+## Detalhes técnicos
+
+- **Segurança**: todas as novas serverFns usam `requireSupabaseAuth` + RLS (defesa em camadas, como já feito em `catalog-admin.functions`). As funções de plataforma checam `is_platform_admin()` antes de qualquer leitura agregada.
+- **React Query**: padrão `queryOptions` + `useQuery` em componentes; `useMutation` para writes; invalidação por chave (`["admin","tenant"]`, `["platform","stores"]`, etc.).
+- **Sem mudanças de schema** — todas as tabelas necessárias (`tenants`, `orders`, `order_items`, `user_roles`, `profiles`) já existem com RLS adequada.
+- **Sem novos secrets** nem novas dependências.
+
+---
+
+## Perguntas para destravar a fase 2
+
+1. **Landing (`/`)**: o botão "Demo da loja" deve apontar para uma loja marcada como `featured`/destaque no DB, para a primeira loja ativa, ou ser removido?
+2. **Admin para usuários sem tenant**: se um usuário logado abrir o admin sem `profiles.tenant_id`, mostramos onboarding ("crie sua loja") ou redirecionamos para `/platform/tenants/novo` quando ele for `platform_admin`?
+
+Posso prosseguir com a Fase 1 assumindo defaults (1: primeira loja ativa; 2: tela de "loja não vinculada" com instruções) caso prefira não responder agora.
