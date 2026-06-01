@@ -10,6 +10,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, P
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
