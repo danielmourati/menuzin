@@ -66,15 +66,8 @@ export function MercadoPagoStatus({
       setValidationError("Informe o Access Token.");
       return false;
     }
-    const validPrefixes = ["APP_USR-", "TEST-"];
-    if (!validPrefixes.some((p) => publicKey.startsWith(p))) {
-      setValidationError("Public Key inválida. Deve começar com APP_USR- ou TEST-.");
-      return false;
-    }
-    if (!validPrefixes.some((p) => accessToken.startsWith(p))) {
-      setValidationError("Access Token inválido. Deve começar com APP_USR- ou TEST-.");
-      return false;
-    }
+    // Validação real é feita pelo servidor contra a API do Mercado Pago.
+    // Não impomos prefixo aqui pois MP emite credenciais com formatos variados.
     setValidationError(null);
     return true;
   };
