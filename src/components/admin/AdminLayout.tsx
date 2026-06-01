@@ -1,11 +1,16 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { store } from "@/lib/mock-data";
 import { AdminNotificationsBell } from "@/components/admin/AdminNotificationsBell";
 import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListener";
+import { useAuth } from "@/lib/auth-context";
+import { getMyTenant, claimNewTenant } from "@/lib/tenants.functions";
+import { toast } from "sonner";
 
 const items = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -41,26 +46,136 @@ function Nav({ onClick }: { onClick?: () => void }) {
 }
 
 function SidebarInner({ onNav }: { onNav?: () => void }) {
+  const { signOut, profile } = useAuth();
+  const { data } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant(),
+    enabled: !!profile?.tenant_id,
+  });
+  const tenant = data?.tenant;
+  const navigate = useNavigate();
+
   return (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="border-b border-sidebar-border px-5 py-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-primary-foreground font-bold">F</div>
-          <span className="font-display font-bold">FoodCatálogo</span>
+          <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-primary-foreground font-bold">M</div>
+          <span className="font-display font-bold">Menuzin</span>
         </Link>
         <div className="mt-3 rounded-xl border border-sidebar-border bg-card p-2.5">
           <p className="text-xs text-muted-foreground">Loja conectada</p>
-          <p className="text-sm font-semibold">{store.name}</p>
+          <p className="text-sm font-semibold">{tenant?.name ?? "—"}</p>
         </div>
       </div>
       <Nav onClick={onNav} />
       <div className="border-t border-sidebar-border p-3 space-y-1">
-        <Button asChild variant="ghost" size="sm" className="w-full justify-start" onClick={onNav}>
-          <Link to="/loja/$slug" params={{ slug: store.slug }} target="_blank"><ExternalLink className="mr-2 h-4 w-4" /> Ver loja pública</Link>
+        {tenant?.slug && (
+          <Button asChild variant="ghost" size="sm" className="w-full justify-start" onClick={onNav}>
+            <Link to="/loja/$slug" params={{ slug: tenant.slug }} target="_blank">
+              <ExternalLink className="mr-2 h-4 w-4" /> Ver loja pública
+            </Link>
+          </Button>
+        )}
+        <Button
+          variant="ghost" size="sm"
+          className="w-full justify-start text-muted-foreground"
+          onClick={async () => {
+            await signOut();
+            navigate({ to: "/admin/login" });
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" /> Sair
         </Button>
-        <Button asChild variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={onNav}>
-          <Link to="/admin/login"><LogOut className="mr-2 h-4 w-4" /> Sair</Link>
-        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AuthGate({ children }: { children: ReactNode }) {
+  const { loading, isAuthenticated, profile } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate({ to: "/admin/login" });
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!isAuthenticated) return null;
+  if (!profile?.tenant_id) return <OnboardingClaim />;
+  return <>{children}</>;
+}
+
+function OnboardingClaim() {
+  const { refresh } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [city, setCity] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const slugify = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      await claimNewTenant({ data: { slug, name, whatsapp, city } });
+      toast.success("Loja criada com sucesso!");
+      await refresh();
+      navigate({ to: "/admin/dashboard" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao criar loja");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="grid min-h-screen place-items-center bg-muted/30 p-4">
+      <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-[var(--shadow-soft)]">
+        <h1 className="text-xl font-bold">Vamos criar sua loja</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Configure as informações básicas para começar a receber pedidos.</p>
+        <form onSubmit={onSubmit} className="mt-5 space-y-4">
+          <div>
+            <Label>Nome da loja *</Label>
+            <Input value={name} onChange={(e) => { setName(e.target.value); if (!slug) setSlug(slugify(e.target.value)); }} required minLength={2} className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Endereço público (slug) *</Label>
+            <div className="mt-1.5 flex items-center rounded-md border bg-background">
+              <span className="px-3 text-sm text-muted-foreground">menuzin.app/loja/</span>
+              <input
+                value={slug}
+                onChange={(e) => setSlug(slugify(e.target.value))}
+                required pattern="[a-z0-9-]{2,60}"
+                className="h-10 flex-1 bg-transparent text-sm outline-none"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>WhatsApp (com DDI) *</Label>
+            <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="5586999999999" required className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Cidade *</Label>
+            <Input value={city} onChange={(e) => setCity(e.target.value)} required className="mt-1.5" />
+          </div>
+          <Button type="submit" className="h-11 w-full" disabled={submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Criar minha loja
+          </Button>
+        </form>
       </div>
     </div>
   );
@@ -69,29 +184,31 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
 export function AdminLayout({ children, title, action }: { children?: ReactNode; title?: string; action?: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   return (
-    <div className="flex min-h-screen bg-muted/30">
-      <OrdersRealtimeListener />
-      <aside className="hidden w-64 shrink-0 border-r border-sidebar-border lg:block">
-        <SidebarInner />
-      </aside>
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden"><Menu className="h-5 w-5" /></Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0">
-              <SidebarInner onNav={() => setMobileOpen(false)} />
-            </SheetContent>
-          </Sheet>
-          <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <AdminNotificationsBell />
-            {action}
-          </div>
-        </header>
-        <main className="flex-1 p-4 lg:p-8">{children ?? <Outlet />}</main>
+    <AuthGate>
+      <div className="flex min-h-screen bg-muted/30">
+        <OrdersRealtimeListener />
+        <aside className="hidden w-64 shrink-0 border-r border-sidebar-border lg:block">
+          <SidebarInner />
+        </aside>
+        <div className="flex flex-1 flex-col">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden"><Menu className="h-5 w-5" /></Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0">
+                <SidebarInner onNav={() => setMobileOpen(false)} />
+              </SheetContent>
+            </Sheet>
+            <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
+            <div className="ml-auto flex items-center gap-2">
+              <AdminNotificationsBell />
+              {action}
+            </div>
+          </header>
+          <main className="flex-1 p-4 lg:p-8">{children ?? <Outlet />}</main>
+        </div>
       </div>
-    </div>
+    </AuthGate>
   );
 }
