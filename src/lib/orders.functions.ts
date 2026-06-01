@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { DbOrder, DbOrderItem } from "@/lib/db-types";
+import type { DbOrder, DbOrderItem, DbHistoryRow } from "@/lib/db-types";
 
 const AddonSchema = z.object({ name: z.string().max(120), price: z.number().min(0) });
 const ItemSchema = z.object({
@@ -88,17 +88,27 @@ export const createOrder = createServerFn({ method: "POST" })
     return { order: order as unknown as DbOrder };
   });
 
+async function loadOrderBundle(orderId: string) {
+  const [{ data: order }, { data: items }, { data: history }] = await Promise.all([
+    supabaseAdmin.from("orders").select("*").eq("id", orderId).maybeSingle(),
+    supabaseAdmin.from("order_items").select("*").eq("order_id", orderId),
+    supabaseAdmin.from("order_status_history").select("*")
+      .eq("order_id", orderId).order("created_at", { ascending: true }),
+  ]);
+  if (!order) return null;
+  return {
+    order: { ...(order as unknown as DbOrder), items: (items ?? []) as unknown as DbOrderItem[] },
+    history: (history ?? []) as unknown as DbHistoryRow[],
+  };
+}
+
 const GetOrderInput = z.object({ id: z.string().uuid() });
 
 export const getOrder = createServerFn({ method: "POST" })
   .inputValidator((d) => GetOrderInput.parse(d))
   .handler(async ({ data }) => {
-    const [{ data: order }, { data: items }] = await Promise.all([
-      supabaseAdmin.from("orders").select("*").eq("id", data.id).maybeSingle(),
-      supabaseAdmin.from("order_items").select("*").eq("order_id", data.id),
-    ]);
-    if (!order) return { order: null };
-    return { order: { ...(order as unknown as DbOrder), items: (items ?? []) as unknown as DbOrderItem[] } };
+    const bundle = await loadOrderBundle(data.id);
+    return bundle ?? { order: null, history: [] as DbHistoryRow[] };
   });
 
 const GetByNumberInput = z.object({
@@ -111,14 +121,13 @@ export const getOrderByNumber = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { data: tenant } = await supabaseAdmin
       .from("tenants").select("id").eq("slug", data.tenant_slug).maybeSingle();
-    if (!tenant) return { order: null };
+    if (!tenant) return { order: null, history: [] as DbHistoryRow[] };
     const { data: order } = await supabaseAdmin
-      .from("orders").select("*")
+      .from("orders").select("id")
       .eq("tenant_id", tenant.id).eq("number", data.number).maybeSingle();
-    if (!order) return { order: null };
-    const { data: items } = await supabaseAdmin
-      .from("order_items").select("*").eq("order_id", order.id);
-    return { order: { ...(order as unknown as DbOrder), items: (items ?? []) as unknown as DbOrderItem[] } };
+    if (!order) return { order: null, history: [] as DbHistoryRow[] };
+    const bundle = await loadOrderBundle(order.id);
+    return bundle ?? { order: null, history: [] as DbHistoryRow[] };
   });
 
 // ========= Admin =========

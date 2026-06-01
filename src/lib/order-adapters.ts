@@ -1,5 +1,16 @@
-import type { DbOrder, DbOrderItem } from "./db-types";
+import type { DbOrder, DbOrderItem, DbHistoryRow, OrderStatus as DbOrderStatus } from "./db-types";
 import type { Order, OrderItem, OrderStatusHistoryEntry } from "./mock-data";
+
+export function dbHistoryToUi(rows: DbHistoryRow[]): OrderStatusHistoryEntry[] {
+  return rows.map((r) => ({
+    id: r.id,
+    previousStatus: (r.previous_status ?? undefined) as OrderStatusHistoryEntry["previousStatus"],
+    newStatus: r.new_status as DbOrderStatus,
+    note: r.note ?? undefined,
+    changedByName: r.changed_by_name ?? undefined,
+    createdAt: r.created_at,
+  }));
+}
 
 export function dbOrderItemToUi(it: DbOrderItem): OrderItem {
   return {

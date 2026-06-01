@@ -1,26 +1,42 @@
-import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
-import { getTenantBySlug } from "@/lib/mock-data";
-import { brl, modeLabel } from "@/lib/format";
+import { useCustomerOrder } from "@/hooks/useCustomerOrder";
+import { useQuery } from "@tanstack/react-query";
+import { getTenantBySlug } from "@/lib/catalog.functions";
+import { dbTenantToUi } from "@/lib/db-adapters";
+import { brl } from "@/lib/format";
 import { OrderStatusTimeline } from "../orders/OrderStatusTimeline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, ArrowLeft, ShoppingBag, MapPin, Utensils, Clock } from "lucide-react";
+import { MessageCircle, ArrowLeft, ShoppingBag, MapPin, Utensils, Clock, Loader2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
 import { OrderStatusBadge, PaymentStatusBadge } from "../orders/OrderStatusBadge";
 
 interface CustomerOrderTrackingProps {
   slug: string;
-  orderId: string;
+  orderId: string; // pode ser UUID ou número (#)
 }
 
-export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingProps) {
-  const { orders } = useOrdersRealtime();
-  const tenant = getTenantBySlug(slug);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  // Busca o pedido na lista sincronizada
-  const order = orders.find((o) => o.id === orderId || String(o.number) === orderId);
+export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingProps) {
+  const isUuid = UUID_RE.test(orderId);
+  const asNumber = Number(orderId);
+
+  const lookup = isUuid
+    ? { kind: "id" as const, id: orderId }
+    : Number.isFinite(asNumber) && asNumber > 0
+      ? { kind: "number" as const, tenantSlug: slug, number: asNumber }
+      : null;
+
+  const { order, isLoading } = useCustomerOrder(lookup);
+
+  const { data: tenantRes } = useQuery({
+    queryKey: ["tenant", slug],
+    queryFn: () => getTenantBySlug({ data: { slug } }),
+    staleTime: 60_000,
+  });
+  const tenant = tenantRes?.tenant ? dbTenantToUi(tenantRes.tenant) : null;
 
   if (!tenant) {
     return (
@@ -41,6 +57,14 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!order) {
     return (
       <div className="min-h-screen bg-muted/10 flex items-center justify-center p-4">
@@ -49,7 +73,7 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
             <span className="text-4xl">🔍</span>
             <h2 className="text-xl font-bold">Pedido não encontrado</h2>
             <p className="text-sm text-muted-foreground">
-              Não encontramos o pedido #{orderId} em nosso sistema. Verifique o link ou tente novamente.
+              Não encontramos o pedido <strong>{orderId}</strong> em nosso sistema. Verifique o link ou tente novamente.
             </p>
             <Button asChild className="w-full">
               <Link to="/loja/$slug" params={{ slug }}>
@@ -66,7 +90,6 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
 
   return (
     <div className="min-h-screen bg-muted/10 pb-12">
-      {/* Header Premium da Loja */}
       <div className="gradient-brand text-primary-foreground py-6 px-4 shadow-sm">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -85,7 +108,6 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
       </div>
 
       <div className="max-w-lg mx-auto px-4 mt-6 space-y-5">
-        {/* Status Geral Card */}
         <Card className="overflow-hidden">
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-between">
@@ -100,20 +122,18 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
               <OrderStatusBadge status={order.status} className="text-sm px-3 py-1 font-bold" />
             </div>
 
-            {/* Timeline */}
             <div className="border-t pt-4">
               <OrderStatusTimeline order={order} />
             </div>
           </CardContent>
         </Card>
 
-        {/* Detalhes do Pedido */}
         <Card>
           <CardContent className="p-5 space-y-4">
             <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 border-b pb-2">
               <ShoppingBag className="h-4 w-4" /> Detalhes do seu pedido
             </h3>
-            
+
             <div className="divide-y text-sm">
               {order.items.map((item, idx) => (
                 <div key={idx} className="py-2.5 first:pt-0 last:pb-0">
@@ -139,7 +159,6 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
               ))}
             </div>
 
-            {/* Endereço / Local de Consumo */}
             <div className="border-t pt-3 text-xs space-y-2 text-muted-foreground">
               {order.mode === "entrega" && order.address && (
                 <div className="flex items-start gap-2">
@@ -170,7 +189,6 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
               </div>
             </div>
 
-            {/* Totais */}
             <div className="border-t pt-3 space-y-1.5 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span>
@@ -190,7 +208,6 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
           </CardContent>
         </Card>
 
-        {/* Ações */}
         <div className="space-y-2">
           <Button asChild className="h-12 w-full bg-success hover:bg-success/90 text-success-foreground font-semibold">
             <a

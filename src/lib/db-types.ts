@@ -102,3 +102,12 @@ export type DbOrder = {
   created_at: string;
   items: DbOrderItem[];
 };
+
+export type DbHistoryRow = {
+  id: string;
+  previous_status: string | null;
+  new_status: string;
+  note: string | null;
+  changed_by_name: string | null;
+  created_at: string;
+};
