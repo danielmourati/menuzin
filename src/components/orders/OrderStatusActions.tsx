@@ -90,13 +90,13 @@ export function OrderStatusActions({
           return (
             <Button
               key={status}
-              variant="destructive-outline"
+              variant="outline"
               size={size}
               onClick={(e) => {
                 e.stopPropagation();
                 onCancel();
               }}
-              className="flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             >
               {isNew ? "Recusar" : "Cancelar"}
             </Button>
