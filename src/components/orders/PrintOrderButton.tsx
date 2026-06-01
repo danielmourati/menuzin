@@ -45,9 +45,10 @@ export function PrintOrderButton({
         variant={variant}
         size={size}
         className={className}
+        title="Imprimir pedido"
       >
-        <Printer className="mr-2 h-4 w-4" />
-        Imprimir
+        <Printer className={size === "icon" ? "h-3.5 w-3.5" : "mr-2 h-4 w-4"} />
+        {size !== "icon" && "Imprimir"}
       </Button>
 
       {isPrinting &&
