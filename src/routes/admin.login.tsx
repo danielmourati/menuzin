@@ -129,7 +129,7 @@ function LoginPage() {
             </div>
             <div>
               <Label>Senha</Label>
-              <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1.5" required minLength={6} />
+              <PasswordInput value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1.5" required minLength={6} />
             </div>
             <Button type="submit" className="h-11 w-full" disabled={submitting}>
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
