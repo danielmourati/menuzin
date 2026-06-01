@@ -10,7 +10,7 @@ interface PrintOrderButtonProps {
   storeName?: string;
   storePhone?: string;
   storeAddress?: string;
-  size?: "default" | "sm" | "lg";
+  size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary";
   className?: string;
 }
