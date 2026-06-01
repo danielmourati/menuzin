@@ -133,16 +133,11 @@ serve(async (req) => {
       payment_method_id: payment_method === "pix_online" ? "pix" : undefined, // Will be parsed automatically if token provided
       token: card_token || undefined,
       installments: installments ? Number(installments) : 1,
-      external_reference: order.id,
+      external_reference: order.id, // tracks order_id + store_id via the order record
       payer: {
         email: payer.email,
         first_name: payer.first_name,
         last_name: payer.last_name,
-      },
-      metadata: {
-        order_id: order.id,
-        store_id: storeId,
-        store_slug,
       },
     };
 
