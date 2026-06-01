@@ -41,7 +41,7 @@ export const getCatalog = createServerFn({ method: "POST" })
     const cats = (categories ?? []) as DbCategory[];
     const catNameById = new Map(cats.map((c) => [c.id, c.name]));
 
-    const prods: DbProduct[] = ((products ?? []) as DbProduct[]).map((p) => ({
+    const prods: DbProduct[] = ((products ?? []) as unknown as DbProduct[]).map((p) => ({
       ...p,
       addons: addonsByProduct.get(p.id) ?? [],
       category: p.category_id ? catNameById.get(p.category_id) ?? "" : "",
