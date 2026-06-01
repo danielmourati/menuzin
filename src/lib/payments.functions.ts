@@ -37,9 +37,9 @@ async function encryptToken(plain: string): Promise<string> {
   const key = await getCryptoKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv as BufferSource },
     key,
-    new TextEncoder().encode(plain),
+    new TextEncoder().encode(plain) as BufferSource,
   );
   return `${b64encode(iv)}.${b64encode(ct)}`;
 }
@@ -50,9 +50,9 @@ export async function decryptToken(encoded: string): Promise<string> {
   if (!ivB64 || !ctB64) throw new Error("Token criptografado inválido.");
   const key = await getCryptoKey();
   const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: b64decode(ivB64) },
+    { name: "AES-GCM", iv: b64decode(ivB64) as BufferSource },
     key,
-    b64decode(ctB64),
+    b64decode(ctB64) as BufferSource,
   );
   return new TextDecoder().decode(pt);
 }
