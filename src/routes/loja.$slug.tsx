@@ -1,32 +1,44 @@
 import { useState, useMemo } from "react";
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
+import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { categories, products, getTenantBySlug, type Product, type Tenant } from "@/lib/mock-data";
 import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
 import { whatsappLink } from "@/lib/whatsapp";
+import { getCatalog } from "@/lib/catalog.functions";
+import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters";
+import type { Product, Tenant, Category } from "@/lib/mock-data";
 
-export const Route = createFileRoute("/loja/$slug")({
-  head: ({ params }) => {
-    const t = getTenantBySlug(params.slug);
-    const title = t ? `${t.name} — Cardápio online` : "Loja não encontrada";
-    const desc = t?.description ?? "Esta loja não está disponível.";
+const catalogQueryOptions = (slug: string) => queryOptions({
+  queryKey: ["catalog", slug],
+  queryFn: async () => {
+    const res = await getCatalog({ data: { slug } });
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[] };
+    const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
     return {
-      meta: [
-        { title },
-        { name: "description", content: desc },
-        { property: "og:title", content: title },
-        { property: "og:description", content: desc },
-      ],
+      tenant: dbTenantToUi(res.tenant),
+      categories: dbCategoriesToUi(res.categories),
+      products: res.products.map((p) =>
+        dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : ""),
+      ),
     };
   },
+});
+
+export const Route = createFileRoute("/loja/$slug")({
+  loader: ({ context, params }) => context.queryClient.ensureQueryData(catalogQueryOptions(params.slug)),
   component: StoreRoute,
+  errorComponent: ({ error }) => (
+    <div className="grid min-h-screen place-items-center px-4 text-center">
+      <p className="text-sm text-muted-foreground">Erro ao carregar a loja: {error.message}</p>
+    </div>
+  ),
 });
 
 function StoreRoute() {
@@ -37,9 +49,9 @@ function StoreRoute() {
 
   if (!isStorefront) return <Outlet />;
 
-  const tenant = getTenantBySlug(slug);
-  if (!tenant) return <StoreNotFound slug={slug} />;
-  return <StorePage tenant={tenant} />;
+  const { data } = useSuspenseQuery(catalogQueryOptions(slug));
+  if (!data.tenant) return <StoreNotFound slug={slug} />;
+  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} />;
 }
 
 function StoreNotFound({ slug }: { slug: string }) {
@@ -60,7 +72,7 @@ function StoreNotFound({ slug }: { slug: string }) {
   );
 }
 
-function StorePage({ tenant }: { tenant: Tenant }) {
+function StorePage({ tenant, categories, products }: { tenant: Tenant; categories: Category[]; products: Product[] }) {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -75,14 +87,14 @@ function StorePage({ tenant }: { tenant: Tenant }) {
         return false;
       return true;
     });
-  }, [search, activeCat]);
+  }, [search, activeCat, products]);
 
   const grouped = useMemo(() => {
     if (activeCat !== "Todos") return [{ name: activeCat, items: filtered }];
     return categories
       .map((c) => ({ name: c.name, items: filtered.filter((p) => p.category === c.name) }))
       .filter((g) => g.items.length > 0);
-  }, [filtered, activeCat]);
+  }, [filtered, activeCat, categories]);
 
   const bannerStyle = {
     backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
@@ -90,18 +102,12 @@ function StorePage({ tenant }: { tenant: Tenant }) {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Identidade da loja */}
       <div className="container mx-auto px-4 pt-4">
-
         <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
           <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
             <div className="relative">
               {tenant.logoUrl ? (
-                <img
-                  src={tenant.logoUrl}
-                  alt={`Logo ${tenant.name}`}
-                  className="h-20 w-auto object-contain sm:h-24"
-                />
+                <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-20 w-auto object-contain sm:h-24" />
               ) : (
                 <div
                   className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-card text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl"
@@ -136,7 +142,6 @@ function StorePage({ tenant }: { tenant: Tenant }) {
           </div>
         </div>
 
-        {/* Search */}
         <div className="relative mt-4">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -147,7 +152,6 @@ function StorePage({ tenant }: { tenant: Tenant }) {
           />
         </div>
 
-        {/* Categories */}
         <div className="mt-4 -mx-4 overflow-x-auto px-4 scrollbar-hide">
           <div className="flex gap-2">
             {["Todos", ...categories.map((c) => c.name)].map((c) => (
@@ -164,7 +168,6 @@ function StorePage({ tenant }: { tenant: Tenant }) {
           </div>
         </div>
 
-        {/* Products */}
         <div className="mt-6 space-y-8">
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
@@ -189,7 +192,6 @@ function StorePage({ tenant }: { tenant: Tenant }) {
         </div>
       </div>
 
-      {/* Floating cart bar */}
       {count > 0 && (
         <button
           onClick={() => setCartOpen(true)}

@@ -202,24 +202,61 @@ export function CartDrawer({
     goTo("review");
   };
 
-  const finalize = () => {
+  const finalize = async () => {
     // Definir status de pagamento e pedido baseado no método
-    let finalPaymentStatus: any = "pending";
-    let finalOrderStatus: any = "new";
-    let mpPaymentId = undefined;
+    let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
+    let finalOrderStatus: string = "new";
+    let mpPaymentId: string | undefined = undefined;
 
     if (selectedMethod === "pix_online") {
-      finalPaymentStatus = pixData?.payment_status || "pending";
-      finalOrderStatus = finalPaymentStatus === "approved" ? "new" : "pending_payment";
+      finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
+      finalOrderStatus = (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment";
       mpPaymentId = pixData?.payment_id;
     } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
-      finalPaymentStatus = cardData?.payment_status || "approved";
-      finalOrderStatus = finalPaymentStatus === "approved" ? "new" : "pending_payment";
+      finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
+      finalOrderStatus = (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment";
       mpPaymentId = cardData?.payment_id;
+    } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
+      finalPaymentStatus = "manual";
+    }
+
+    // Persiste no banco (DB) via server fn
+    const { createOrder } = await import("@/lib/orders.functions");
+    let dbOrderNumber: number | null = null;
+    let dbOrderId: string | null = null;
+    try {
+      const res = await createOrder({
+        data: {
+          tenant_slug: slug || "burger-prime",
+          customer_name: name,
+          whatsapp: phone.replace(/\D/g, ""),
+          mode: mode!,
+          payment_label: `${paymentWhenLabel} · ${paymentMethod}`,
+          delivery_fee: deliveryFee,
+          address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
+          table_label: mode === "consumo_local" ? table : null,
+          note: generalNote || null,
+          items: items.map((i) => ({
+            product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
+            name_snapshot: i.product.name,
+            qty: i.qty,
+            unit_price: i.product.promoPrice ?? i.product.price,
+            addons: i.addons.map((a) => ({ name: a.name, price: a.price })),
+            note: i.note ?? null,
+          })),
+        },
+      });
+      dbOrderNumber = res.order.number;
+      dbOrderId = res.order.id;
+    } catch (err) {
+      console.error("Falha ao persistir pedido no banco:", err);
+      toast.error("Não foi possível registrar o pedido. Tente novamente.");
+      return;
     }
 
     const order = {
-      number: 1000 + Math.floor(Math.random() * 9000),
+      number: dbOrderNumber ?? 1000 + Math.floor(Math.random() * 9000),
+      id: dbOrderId,
       customerName: name,
       whatsapp: phone.replace(/\D/g, ""),
       email,
