@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { adminCreateTenant } from "@/lib/platform.functions";
+import { maskPhone } from "@/lib/masks";
 import { PlatformLayout } from "./platform.dashboard";
 
 export const Route = createFileRoute("/platform/tenants/novo")({ component: NewTenantPage });
