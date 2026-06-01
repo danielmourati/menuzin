@@ -155,6 +155,19 @@ export interface MpOAuthCallbackParams {
   state: string;
 }
 
+/** mp-save-credentials — Manual API Key connection */
+export interface SaveMpCredentialsRequest {
+  store_id: string;
+  mp_public_key: string;   // APP_USR-... or TEST-...
+  mp_access_token: string; // APP_USR-... or TEST-... (encrypted server-side)
+  mp_live_mode: boolean;
+}
+export interface SaveMpCredentialsResponse {
+  success: boolean;
+  message: string;
+  mp_public_key_masked?: string; // e.g. "APP_USR-****-xxxx"
+}
+
 /** create-transparent-payment — Pix */
 export interface CreatePixPaymentRequest {
   store_slug: string;

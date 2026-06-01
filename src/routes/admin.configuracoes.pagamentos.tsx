@@ -15,6 +15,7 @@ import {
   simulateMpConnectSuccess,
   updatePaymentSettings,
   testPayment,
+  saveMpCredentials,
 } from "@/lib/payment-service";
 import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment-types";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ function AdminPaymentSettingsPage() {
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
+  const [connectedVia, setConnectedVia] = useState<"oauth" | "manual" | undefined>(undefined);
 
   // Chaves Pix manuais
   const [pixKey, setPixKey] = useState("");
@@ -43,6 +45,10 @@ function AdminPaymentSettingsPage() {
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
+          // If already connected and has mp_user_id it was OAuth, else manual
+          if (data.mp_connected) {
+            setConnectedVia(data.mp_user_id ? "oauth" : "manual");
+          }
           setPixKey(data.pix_manual_key || "");
           setPixKeyType(data.pix_manual_key_type || "email");
           setPixReceiver(data.pix_manual_receiver || "");
@@ -111,12 +117,39 @@ function AdminPaymentSettingsPage() {
         if (data) {
           setSettings(data);
           setMpStatus("connected");
+          setConnectedVia("oauth");
           toast.success("Conta Mercado Pago conectada com sucesso!");
         }
       }, 2000);
     } catch (err) {
       setMpStatus("error");
       toast.error("Falha ao iniciar conexão OAuth.");
+    }
+  };
+
+  const handleConnectMPManual = async (
+    publicKey: string,
+    accessToken: string,
+    mpLiveMode: boolean
+  ) => {
+    setMpStatus("connecting");
+    try {
+      const result = await saveMpCredentials(storeId, publicKey, accessToken, mpLiveMode);
+      if (!result.success) {
+        setMpStatus("disconnected");
+        toast.error(result.message);
+        return;
+      }
+      const data = await getStorePaymentSettings(storeId);
+      if (data) {
+        setSettings(data);
+        setMpStatus("connected");
+        setConnectedVia("manual");
+        toast.success(result.message);
+      }
+    } catch (err) {
+      setMpStatus("error");
+      toast.error("Erro ao salvar credenciais do Mercado Pago.");
     }
   };
 
@@ -128,6 +161,7 @@ function AdminPaymentSettingsPage() {
       if (data) {
         setSettings(data);
         setMpStatus("disconnected");
+        setConnectedVia(undefined);
         toast.success("Mercado Pago desconectado.");
       }
     } catch (err) {
@@ -192,7 +226,10 @@ function AdminPaymentSettingsPage() {
             onConnect={handleConnectMP}
             onDisconnect={handleDisconnectMP}
             onTestPayment={handleTestPay}
+            onConnectManual={handleConnectMPManual}
             expiresAt={settings?.mp_token_expires_at}
+            connectedVia={connectedVia}
+            connectedPublicKey={settings?.mp_public_key}
           />
 
           {settings?.mp_connected && (

@@ -11,7 +11,17 @@ import type {
   CardPaymentData,
   MpConnectStartResponse,
   PaymentStatus,
+  SaveMpCredentialsResponse,
 } from "./payment-types";
+
+/** Mask a public key for display: APP_USR-1234-abcd → APP_USR-****-abcd */
+function maskKey(key: string): string {
+  const parts = key.split("-");
+  if (parts.length >= 4) {
+    return parts.map((p, i) => (i === 1 || i === 2 ? "****" : p)).join("-");
+  }
+  return key.slice(0, 8) + "****" + key.slice(-4);
+}
 
 // ---- Mock Store Payment Settings per tenant ----
 
@@ -142,6 +152,52 @@ export async function simulateMpConnectSuccess(storeId: string): Promise<void> {
     pix_enabled: true,
     credit_card_enabled: true,
     updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Save manual Mercado Pago credentials (Public Key + Access Token).
+ * In production, this calls the `mp-save-credentials` Edge Function which
+ * encrypts the Access Token server-side before storing it.
+ */
+export async function saveMpCredentials(
+  storeId: string,
+  mpPublicKey: string,
+  mpAccessToken: string,
+  mpLiveMode: boolean
+): Promise<SaveMpCredentialsResponse> {
+  // Basic client-side format validation
+  const validPrefixes = ["APP_USR-", "TEST-"];
+  const isValidKey = validPrefixes.some((p) => mpPublicKey.startsWith(p));
+  const isValidToken = validPrefixes.some((p) => mpAccessToken.startsWith(p));
+
+  if (!isValidKey || !isValidToken) {
+    return {
+      success: false,
+      message:
+        "Credenciais inválidas. A Public Key e o Access Token devem começar com APP_USR- (Produção) ou TEST- (Sandbox).",
+    };
+  }
+
+  await delay(900);
+
+  // Update in-memory settings (mock; real implementation: edge function → DB)
+  localSettings[storeId] = {
+    ...localSettings[storeId],
+    mp_connected: true,
+    mp_public_key: mpPublicKey,
+    mp_live_mode: mpLiveMode,
+    mp_token_expires_at: undefined, // Manual credentials don't expire via refresh token
+    pix_enabled: true,
+    credit_card_enabled: true,
+    debit_card_enabled: false,
+    updated_at: new Date().toISOString(),
+  };
+
+  return {
+    success: true,
+    message: "Credenciais salvas com sucesso! Mercado Pago conectado.",
+    mp_public_key_masked: maskKey(mpPublicKey),
   };
 }
 
