@@ -88,14 +88,7 @@ export const createOrder = createServerFn({ method: "POST" })
     return { order: order as unknown as DbOrder };
   });
 
-export type DbHistoryRow = {
-  id: string;
-  previous_status: string | null;
-  new_status: string;
-  note: string | null;
-  changed_by_name: string | null;
-  created_at: string;
-};
+import type { DbHistoryRow } from "@/lib/db-types";
 
 async function loadOrderBundle(orderId: string) {
   const [{ data: order }, { data: items }, { data: history }] = await Promise.all([
