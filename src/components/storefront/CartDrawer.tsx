@@ -205,7 +205,7 @@ export function CartDrawer({
   const finalize = async () => {
     // Definir status de pagamento e pedido baseado no método
     let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
-    let finalOrderStatus = "new";
+    let finalOrderStatus: string = "new";
     let mpPaymentId: string | undefined = undefined;
 
     if (selectedMethod === "pix_online") {
