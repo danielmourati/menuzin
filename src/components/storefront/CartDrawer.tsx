@@ -20,6 +20,7 @@ import type { StorePaymentSettingsSafe, PaymentMethod, PixPaymentData, CardPayme
 import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelector";
 import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
+import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 
 type Step =
   | "cart"
@@ -550,7 +551,7 @@ export function CartDrawer({
                 <Label>Telefone <span className="text-primary">*</span></Label>
                 <div className="mt-1.5 flex gap-2">
                   <div className="flex h-11 items-center gap-1 rounded-md border bg-card px-3 text-sm">🇧🇷 +55</div>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" className="h-11 flex-1" />
+                  <Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="h-11 flex-1" />
                 </div>
               </div>
               <div>
@@ -559,7 +560,7 @@ export function CartDrawer({
               </div>
               <div>
                 <Label>CPF/CNPJ</Label>
-                <Input value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="Insira seu CPF ou CNPJ" className="mt-1.5 h-11" />
+                <Input value={doc} onChange={(e) => setDoc(maskCpfCnpj(e.target.value))} placeholder="Insira seu CPF ou CNPJ" inputMode="numeric" maxLength={18} className="mt-1.5 h-11" />
               </div>
               <div>
                 <Label>Observação geral</Label>
