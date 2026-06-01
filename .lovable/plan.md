@@ -1,122 +1,61 @@
-## Objetivo
+## Escopo desta fase
 
-Tirar o app do `mock-data.ts` e colocá-lo sobre Lovable Cloud (Supabase) com:
+Apenas **salvar e validar credenciais manuais do Mercado Pago** (sandbox e produção) contra a API real do MP, persistindo de forma segura no banco. Sem OAuth, sem checkout transparente, sem pagamento de teste de R$ 0,01.
 
-- Multi-tenant real (cada loja isolada por `tenant_id`)
-- Auth do painel admin (email/senha + Google)
-- Catálogo persistente (lojas, categorias, produtos, addons)
-- Pedidos persistentes (orders + order_items)
-- Dashboard da plataforma lendo dados reais
-- Seed com as 3 lojas + cardápio + pedidos do mock atual
+## 1. Banco de dados
 
-## Fases
+Nova tabela `store_payment_settings` (uma linha por tenant):
 
-### Fase 1 — Ativar Lovable Cloud
+- `tenant_id` (FK lógica → `tenants.id`, **unique**)
+- `provider` (default `mercadopago`)
+- `mp_public_key` (texto, seguro de expor — começa com `APP_USR-` ou `TEST-`)
+- `mp_access_token_encrypted` (bytea, cifrado com `pgcrypto` usando chave do servidor — **nunca exposto ao client**)
+- `mp_user_id` (texto, retornado pelo MP)
+- `mp_live_mode` (bool)
+- `mp_connected` (bool)
+- `mp_last_validated_at` (timestamptz)
+- Flags de métodos: `cash_enabled`, `pix_manual_enabled`, `card_on_delivery_enabled`, `pix_enabled`, `credit_card_enabled`, `debit_card_enabled`
+- `pix_manual_key`, `pix_manual_key_type`, `pix_manual_receiver`
+- `created_at`, `updated_at`
 
-Habilitar a integração (provisiona Supabase, gera `src/integrations/supabase/*`).
+**RLS**: apenas owner/admin do tenant (ou platform_admin) leem/escrevem. GRANTs para `authenticated` e `service_role`.
 
-### Fase 2 — Schema (1ª migration)
+Funções `encrypt_mp_token(text)` / `decrypt_mp_token(bytea)` em `SECURITY DEFINER` usando `pgp_sym_encrypt` com chave lida de `current_setting('app.payment_encryption_key')` — chave injetada apenas em server functions admin.
 
-```text
-tenants (lojas)
-  id, slug (uniq), name, city, whatsapp, logo_url, cover_url,
-  primary_color, accent_color, plan, status, created_at
+## 2. Secret
 
-profiles                          user_roles
-  id (=auth.users.id)              user_id → auth.users
-  tenant_id → tenants              tenant_id → tenants (null = platform)
-  full_name, avatar_url            role: app_role enum
-  created_at                       (owner | admin | staff | platform_admin)
+Solicitar `PAYMENT_ENCRYPTION_KEY` (string aleatória ≥32 chars) para cifrar/decifrar o access token em repouso.
 
-categories                       products
-  id, tenant_id, name, sort       id, tenant_id, category_id,
-                                  name, description, price, image_url,
-                                  active, sort
+## 3. Server functions (`src/lib/payments.functions.ts`)
 
-addon_groups                     addons
-  id, product_id, name,           id, group_id, name, price
-  min_select, max_select
+Todas com `requireSupabaseAuth` + checagem de `has_tenant_role` (owner/admin):
 
-orders                           order_items
-  id, tenant_id, number (uniq      id, order_id, product_id,
-   por tenant), customer_name,     name_snapshot, qty,
-   whatsapp, mode, address,        unit_price, addons (jsonb),
-   payment_method, subtotal,       note
-   delivery_fee, total, status,
-   created_at, updated_at
+- **`getPaymentSettings({ tenantId })`** — retorna versão **safe** (sem access token), incluindo `mp_public_key` mascarado para UI.
+- **`saveMpCredentials({ tenantId, mp_public_key, mp_access_token, mp_live_mode })`**:
+  1. Valida formato (`APP_USR-` / `TEST-`) + coerência com `mp_live_mode`.
+  2. Chama `GET https://api.mercadopago.com/users/me` com o access token.
+  3. Se 200: captura `id` (`mp_user_id`), `site_id` (deve ser `MLB`).
+  4. Persiste via `supabaseAdmin` cifrando o token; seta `mp_connected=true`, `mp_last_validated_at=now()`, ativa `pix_enabled` e `credit_card_enabled` por padrão.
+  5. Retorna `{ success, message, mp_public_key_masked, mp_user_id, live_mode }`.
+  6. Em erro do MP: retorna `success:false` com mensagem clara (token inválido, expirado, sandbox vs prod).
+- **`disconnectMercadoPago({ tenantId })`** — zera credenciais e flags online.
+- **`updatePaymentSettings({ tenantId, patch })`** — atualiza somente campos seguros (flags, dados PIX manual).
 
-platform_metrics (view)
-  agrega tenants / orders / receita para o /platform/dashboard
-```
+## 4. Frontend
 
-**Segurança:**
+- Substituir `src/lib/payment-service.ts` por wrapper fino usando `useServerFn`. Remover mock `localSettings` e `mockSettings`.
+- Em `src/routes/admin.configuracoes.pagamentos.tsx`: trocar `storeId = "t1"` por `profile.tenant_id` do `useAuth()`. Bloquear UI se não houver tenant.
+- `MercadoPagoStatus`: mostrar `mp_user_id` e `mp_last_validated_at` quando conectado; badge sandbox/produção.
+- Remover botão "Testar pagamento" (volta na próxima fase).
 
-- `app_role` como enum + função `has_role(_user_id, _role)` SECURITY DEFINER (evita recursão).
-- Função `current_tenant_id()` SECURITY DEFINER lendo de `profiles`.
-- RLS em todas as tabelas:
-  - `tenants/products/categories/addons`: SELECT público (`USING true`) para a vitrine `/loja/$slug`; INSERT/UPDATE/DELETE só para `has_role('owner'|'admin', tenant)`.
-  - `orders/order_items`: INSERT público (cliente final cria pedido); SELECT/UPDATE só do próprio tenant.
-  - `profiles/user_roles`: usuário lê o próprio; `platform_admin` lê tudo.
-- GRANTs explícitos por tabela (`anon` SELECT só nas públicas; `authenticated` CRUD; `service_role` ALL).
-- Trigger `handle_new_user` cria `profiles` automaticamente no signup.
+## 5. Fora de escopo (próximas fases)
 
-### Fase 3 — Seed (2ª migration, dados)
+- OAuth (`mp-connect-start` / callback).
+- Checkout transparente PIX/cartão (`create-transparent-payment`).
+- Webhook (`mercado-pago-webhook`).
+- Pagamento de teste R$ 0,01.
 
-Insere via `INSERT`:
+## Pontos a confirmar
 
-- 3 tenants do `platformStores` (burger-prime, pizzaria-napoli, acai-tropical)
-- Categorias + produtos + addons da `burger-prime` (mock atual)
-- Alguns pedidos de exemplo
-
-### Fase 4 — Auth
-
-- `supabase--configure_social_auth` com `["google"]` (broker Lovable).
-- Layout `src/routes/_authenticated.tsx` com `beforeLoad` checando `context.auth.isAuthenticated`.
-- Mover rotas `admin.*` para `_authenticated/admin.*`; rotas `platform.*` para `_authenticated/_platform.*` (gate de role `platform_admin`).
-- `admin.login.tsx` real: email/senha + botão "Entrar com Google" via `lovable.auth.signInWithOAuth("google", ...)`.
-- `src/start.ts`: adicionar `attachSupabaseAuth` ao `functionMiddleware`.
-- `__root.tsx`: `onAuthStateChange` único invalidando router + queryClient.
-
-### Fase 5 — Camada de dados (server functions)
-
-Criar em `src/lib/*.functions.ts` (arquivos finos, só `createServerFn`):
-
-```text
-tenants.functions.ts      → getTenantBySlug (público, supabaseAdmin scoped por slug)
-catalog.functions.ts      → getCatalog(slug) — vitrine pública
-admin/products.functions.ts, categories.functions.ts
-                          → CRUD com requireSupabaseAuth + tenant do profile
-orders.functions.ts       → createOrder (público), listOrders, updateOrderStatus
-platform.functions.ts     → métricas agregadas (gate platform_admin)
-```
-
-Loaders de rotas públicas (`/loja/$slug`, confirmação, acompanhar) chamam server fns públicas (sem `requireSupabaseAuth`). Rotas admin usam loaders sob `_authenticated/` chamando fns protegidas.
-
-### Fase 6 — Refatorar componentes
-
-- Trocar todos os imports de `@/lib/mock-data` por server fns + TanStack Query (`queryOptions` + `useSuspenseQuery`).
-- `CartContext` continua client-side; `checkout` passa a chamar `createOrder` server fn.
-- `OrdersRealtimeListener` agora usa `supabase.channel('orders').on('postgres_changes')` real.
-- Manter `mock-data.ts` apenas como types compartilhados (ou apagar e usar tipos gerados de `integrations/supabase/types`).
-
-### Fase 7 — Verificação
-
-- Rodar `scripts/ssr-smoke-test.mjs` contra preview.
-- Testar: signup admin → cria tenant → cadastra produto → cliente faz pedido em `/loja/<slug>` → admin vê em `/admin/pedidos` em realtime.
-
-## Detalhes técnicos importantes
-
-- **Sem Edge Functions** para lógica do app — tudo via `createServerFn`. Edge functions atuais do Mercado Pago ficam como estão (são webhooks externos).
-- **Imports server-only**: `client.server.ts` só dentro de `*.functions.ts` (evitar vazamento para o bundle do cliente — vide `tanstack-supabase-import-graph`).
-- **Loaders isomórficos**: nunca chamar `supabaseAdmin` direto em loader; sempre via server fn.
-- `**getUser()` no servidor** para validar JWT (não `getSession()`).
-- **GRANTs** em toda tabela `public` na mesma migration que a cria.
-- **Reset password**: criar rota `/reset-password` pública.
-
-## Fora deste plano
-
-- Storage de imagens de produto (continua URL externa por enquanto — pode ser fase 2).
-- Pagamentos Mercado Pago (já existem edge functions; integrar com `orders` numa próxima iteração).
-- Convites de usuários para uma loja existente (owner adiciona staff) — modelar agora, UI depois.
-
-Posso seguir e executar tudo isso assim que você aprovar.
+1. OK criar a tabela + pedir o secret `PAYMENT_ENCRYPTION_KEY` agora?
+2. Posso usar as credenciais de sandbox que já estão no `.env` (`TEST_MP_ACCESS_TOKEN` / `TEST_MP_PUBLIC_KEY`) para você testar o fluxo na UI, ou prefere inserir manualmente no formulário?

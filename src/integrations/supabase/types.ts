@@ -372,6 +372,75 @@ export type Database = {
           },
         ]
       }
+      store_payment_settings: {
+        Row: {
+          card_on_delivery_enabled: boolean
+          cash_enabled: boolean
+          created_at: string
+          credit_card_enabled: boolean
+          debit_card_enabled: boolean
+          id: string
+          mp_access_token_encrypted: string | null
+          mp_connected: boolean
+          mp_last_validated_at: string | null
+          mp_live_mode: boolean
+          mp_public_key: string | null
+          mp_user_id: string | null
+          pix_enabled: boolean
+          pix_manual_enabled: boolean
+          pix_manual_key: string | null
+          pix_manual_key_type: string | null
+          pix_manual_receiver: string | null
+          provider: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          card_on_delivery_enabled?: boolean
+          cash_enabled?: boolean
+          created_at?: string
+          credit_card_enabled?: boolean
+          debit_card_enabled?: boolean
+          id?: string
+          mp_access_token_encrypted?: string | null
+          mp_connected?: boolean
+          mp_last_validated_at?: string | null
+          mp_live_mode?: boolean
+          mp_public_key?: string | null
+          mp_user_id?: string | null
+          pix_enabled?: boolean
+          pix_manual_enabled?: boolean
+          pix_manual_key?: string | null
+          pix_manual_key_type?: string | null
+          pix_manual_receiver?: string | null
+          provider?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          card_on_delivery_enabled?: boolean
+          cash_enabled?: boolean
+          created_at?: string
+          credit_card_enabled?: boolean
+          debit_card_enabled?: boolean
+          id?: string
+          mp_access_token_encrypted?: string | null
+          mp_connected?: boolean
+          mp_last_validated_at?: string | null
+          mp_live_mode?: boolean
+          mp_public_key?: string | null
+          mp_user_id?: string | null
+          pix_enabled?: boolean
+          pix_manual_enabled?: boolean
+          pix_manual_key?: string | null
+          pix_manual_key_type?: string | null
+          pix_manual_receiver?: string | null
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           active: boolean
