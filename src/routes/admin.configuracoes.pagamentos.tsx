@@ -369,6 +369,6 @@ function AdminPaymentSettingsPage() {
           </Card>
         </div>
       </div>
-    </AdminPaymentSettingsPage>
+    </AdminLayout>
   );
 }
