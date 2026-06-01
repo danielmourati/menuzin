@@ -210,11 +210,11 @@ export function CartDrawer({
 
     if (selectedMethod === "pix_online") {
       finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
-      finalOrderStatus = finalPaymentStatus === "approved" ? "new" : "pending_payment";
+      finalOrderStatus = (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment";
       mpPaymentId = pixData?.payment_id;
     } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
       finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
-      finalOrderStatus = finalPaymentStatus === "approved" ? "new" : "pending_payment";
+      finalOrderStatus = (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment";
       mpPaymentId = cardData?.payment_id;
     } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
       finalPaymentStatus = "manual";
