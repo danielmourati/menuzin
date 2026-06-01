@@ -21,13 +21,15 @@ import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment
 import { toast } from "sonner";
 import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
   component: AdminPaymentSettingsPage,
 });
 
 function AdminPaymentSettingsPage() {
-  const storeId = "t1"; // Burger Prime mock tenant ID
+  const { profile } = useAuth();
+  const storeId = profile?.tenant_id ?? "";
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
