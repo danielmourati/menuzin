@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,47 +11,104 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Edit2, Copy, Trash2, Star } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2 } from "lucide-react";
 import { brl } from "@/lib/format";
-import { products as initialProducts, categories, type Product } from "@/lib/mock-data";
 import { toast } from "sonner";
+import {
+  listMyCategories, listMyProducts, saveProduct, deleteProduct, toggleProductAvailable,
+} from "@/lib/catalog-admin.functions";
 
 export const Route = createFileRoute("/admin/produtos")({
   component: ProductsPage,
 });
 
+type Editing = {
+  id?: string;
+  name: string;
+  description: string;
+  category_id: string | null;
+  price: number;
+  promo_price: number | null;
+  image_url: string | null;
+  available: boolean;
+  featured: boolean;
+  prep_time: string | null;
+  sort_order: number;
+};
+
 function ProductsPage() {
-  const [list, setList] = useState<Product[]>(initialProducts);
+  const qc = useQueryClient();
+  const productsQ = useQuery({
+    queryKey: ["admin", "products"],
+    queryFn: async () => (await listMyProducts()).products,
+  });
+  const categoriesQ = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => (await listMyCategories()).categories,
+  });
+
   const [q, setQ] = useState("");
   const [catFilter, setCatFilter] = useState("todas");
   const [statusFilter, setStatusFilter] = useState("todos");
-  const [editing, setEditing] = useState<Product | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
   const [open, setOpen] = useState(false);
 
-  const filtered = useMemo(() => list.filter((p) => {
-    if (catFilter !== "todas" && p.category !== catFilter) return false;
+  const products = productsQ.data ?? [];
+  const categories = categoriesQ.data ?? [];
+
+  const filtered = useMemo(() => products.filter((p) => {
+    if (catFilter !== "todas" && p.category_id !== catFilter) return false;
     if (statusFilter === "disponivel" && !p.available) return false;
     if (statusFilter === "indisponivel" && p.available) return false;
     if (statusFilter === "destaque" && !p.featured) return false;
     if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  }), [list, q, catFilter, statusFilter]);
+  }), [products, q, catFilter, statusFilter]);
+
+  const saveMut = useMutation({
+    mutationFn: (input: Editing) => saveProduct({ data: input }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success("Produto salvo");
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteProduct({ data: { id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success("Produto excluído");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const toggleMut = useMutation({
+    mutationFn: ({ id, available }: { id: string; available: boolean }) =>
+      toggleProductAvailable({ data: { id, available } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const openNew = () => {
-    setEditing({ id: "", name: "", category: categories[0].name, description: "", price: 0, image: "", available: true, featured: false });
+    if (categories.length === 0) {
+      toast.error("Cadastre uma categoria primeiro.");
+      return;
+    }
+    setEditing({
+      name: "", description: "", category_id: categories[0]?.id ?? null,
+      price: 0, promo_price: null, image_url: "", available: true,
+      featured: false, prep_time: null, sort_order: products.length + 1,
+    });
     setOpen(true);
   };
 
   const save = () => {
     if (!editing) return;
     if (!editing.name) return toast.error("Nome é obrigatório");
-    setList((prev) => {
-      if (editing.id) return prev.map((p) => p.id === editing.id ? editing : p);
-      return [...prev, { ...editing, id: `p${Date.now()}` }];
-    });
-    toast.success(editing.id ? "Produto atualizado" : "Produto criado");
-    setOpen(false);
+    saveMut.mutate(editing);
   };
+
+  const catNameById = new Map(categories.map((c) => [c.id, c.name]));
 
   return (
     <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
@@ -64,7 +122,7 @@ function ProductsPage() {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas categorias</SelectItem>
-              {categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -79,25 +137,46 @@ function ProductsPage() {
         </CardContent></Card>
 
         <div className="grid gap-3">
-          {filtered.length === 0 && <Card><CardContent className="p-10 text-center text-muted-foreground">Nenhum produto.</CardContent></Card>}
+          {productsQ.isLoading && (
+            <Card><CardContent className="p-10 text-center text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+            </CardContent></Card>
+          )}
+          {productsQ.error && (
+            <Card><CardContent className="p-10 text-center text-destructive">{(productsQ.error as Error).message}</CardContent></Card>
+          )}
+          {!productsQ.isLoading && filtered.length === 0 && (
+            <Card><CardContent className="p-10 text-center text-muted-foreground">Nenhum produto.</CardContent></Card>
+          )}
           {filtered.map((p) => (
             <Card key={p.id}>
               <CardContent className="flex gap-4 p-4">
-                <img src={p.image || "https://placehold.co/120x120?text=Foto"} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                <img src={p.image_url || "https://placehold.co/120x120?text=Foto"} alt="" className="h-20 w-20 rounded-xl object-cover" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{p.name}</p>
                     {p.featured && <Badge className="bg-primary/15 text-primary border-0"><Star className="mr-1 h-3 w-3" /> Destaque</Badge>}
                     {!p.available && <Badge variant="destructive">Indisponível</Badge>}
                   </div>
-                  <p className="text-xs text-muted-foreground">{p.category}</p>
-                  <p className="mt-1 font-bold text-primary">{brl(p.promoPrice ?? p.price)}</p>
+                  <p className="text-xs text-muted-foreground">{p.category_id ? catNameById.get(p.category_id) ?? "—" : "—"}</p>
+                  <p className="mt-1 font-bold text-primary">{brl(Number(p.promo_price ?? p.price))}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}><Edit2 className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => { setList((l) => [...l, { ...p, id: `p${Date.now()}`, name: p.name + " (cópia)" }]); toast.success("Produto duplicado"); }}><Copy className="h-4 w-4" /></Button>
-                  <Switch checked={p.available} onCheckedChange={(v) => setList((l) => l.map((x) => x.id === p.id ? { ...x, available: v } : x))} />
-                  <Button size="icon" variant="ghost" className="text-destructive" onClick={() => { setList((l) => l.filter((x) => x.id !== p.id)); toast.success("Produto excluído"); }}><Trash2 className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => {
+                    setEditing({
+                      id: p.id, name: p.name, description: p.description ?? "",
+                      category_id: p.category_id, price: Number(p.price),
+                      promo_price: p.promo_price != null ? Number(p.promo_price) : null,
+                      image_url: p.image_url ?? "", available: p.available, featured: p.featured,
+                      prep_time: p.prep_time ?? null, sort_order: p.sort_order,
+                    });
+                    setOpen(true);
+                  }}><Edit2 className="h-4 w-4" /></Button>
+                  <Switch checked={p.available} onCheckedChange={(v) => toggleMut.mutate({ id: p.id, available: v })} />
+                  <Button size="icon" variant="ghost" className="text-destructive"
+                    onClick={() => { if (confirm(`Excluir "${p.name}"?`)) delMut.mutate(p.id); }}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -112,25 +191,27 @@ function ProductsPage() {
             <div className="space-y-3">
               <div><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" /></div>
               <div><Label>Categoria</Label>
-                <Select value={editing.category} onValueChange={(v) => setEditing({ ...editing, category: v })}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                  <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
+                <Select value={editing.category_id ?? ""} onValueChange={(v) => setEditing({ ...editing, category_id: v })}>
+                  <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
-              <div><Label>URL da foto</Label><Input value={editing.image} onChange={(e) => setEditing({ ...editing, image: e.target.value })} className="mt-1.5" placeholder="https://..." /></div>
+              <div><Label>URL da foto</Label><Input value={editing.image_url ?? ""} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} className="mt-1.5" placeholder="https://..." /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Preço</Label><Input type="number" step="0.10" value={editing.price} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} className="mt-1.5" /></div>
-                <div><Label>Preço promo (opcional)</Label><Input type="number" step="0.10" value={editing.promoPrice ?? ""} onChange={(e) => setEditing({ ...editing, promoPrice: e.target.value ? Number(e.target.value) : undefined })} className="mt-1.5" /></div>
+                <div><Label>Preço promo (opcional)</Label><Input type="number" step="0.10" value={editing.promo_price ?? ""} onChange={(e) => setEditing({ ...editing, promo_price: e.target.value ? Number(e.target.value) : null })} className="mt-1.5" /></div>
               </div>
-              <div><Label>Tempo de preparo</Label><Input value={editing.prepTime ?? ""} onChange={(e) => setEditing({ ...editing, prepTime: e.target.value })} className="mt-1.5" placeholder="Ex: 25 min" /></div>
+              <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 25 min" /></div>
               <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
               <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save}>Salvar</Button>
+            <Button onClick={save} disabled={saveMut.isPending}>
+              {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
