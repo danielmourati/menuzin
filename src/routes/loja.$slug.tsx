@@ -13,7 +13,7 @@ import { CartDrawer } from "@/components/storefront/CartDrawer";
 import { whatsappLink } from "@/lib/whatsapp";
 import { getCatalog } from "@/lib/catalog.functions";
 import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters";
-import type { Product, Tenant, Category } from "@/lib/mock-data";
+import type { Product, Tenant, Category } from "@/lib/domain-types";
 
 const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],

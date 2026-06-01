@@ -1,13 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { isSlugAvailable, slugify, tenants, type Tenant } from "@/lib/mock-data";
+import { slugify } from "@/lib/utils";
+import { isSlugAvailable } from "@/lib/tenants.functions";
+import { adminCreateTenant } from "@/lib/platform.functions";
 import { PlatformLayout } from "./platform.dashboard";
 
 export const Route = createFileRoute("/platform/tenants/novo")({ component: NewTenantPage });
@@ -21,50 +25,58 @@ function NewTenantPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
-  const [ownerEmail, setOwnerEmail] = useState("");
   const [themeFrom, setThemeFrom] = useState("#FF6A1F");
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
-  const slugOk = computedSlug.length >= 3 && isSlugAvailable(computedSlug);
+
+  const { data: slugCheck, isFetching: slugChecking } = useQuery({
+    queryKey: ["slug-check", computedSlug],
+    queryFn: () => isSlugAvailable({ data: { slug: computedSlug } }),
+    enabled: computedSlug.length >= 2,
+    staleTime: 0,
+  });
+  const slugOk = computedSlug.length >= 3 && !!slugCheck?.available;
   const canSubmit = name.trim().length >= 2 && slugOk && whatsapp.trim().length >= 8;
 
   const previewUrl = useMemo(
-    () => (computedSlug ? `seudominio.com.br/${computedSlug}` : "seudominio.com.br/sua-loja"),
+    () => (computedSlug ? `seudominio.com.br/loja/${computedSlug}` : "seudominio.com.br/loja/sua-loja"),
     [computedSlug],
   );
+
+  useEffect(() => {
+    if (!slugTouched) setSlug(slugify(name));
+  }, [name, slugTouched]);
+
+  const createMut = useMutation({
+    mutationFn: () =>
+      adminCreateTenant({
+        data: {
+          slug: computedSlug,
+          name: name.trim(),
+          description: description.trim(),
+          whatsapp: whatsapp.replace(/\D/g, ""),
+          city,
+          address,
+          theme_from: themeFrom,
+          theme_to: themeTo,
+          active,
+        },
+      }),
+    onSuccess: () => {
+      toast.success(`Loja "${name.trim()}" cadastrada!`);
+      navigate({ to: "/platform/lojas" });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const handleSubmit = () => {
     if (!canSubmit) {
       toast.error("Preencha os campos obrigatórios e escolha um slug válido.");
       return;
     }
-    // Mock: empurra para a lista em memória
-    const next: Tenant = {
-      id: `t${tenants.length + 1}`,
-      slug: computedSlug,
-      name: name.trim(),
-      description: description.trim() || "Nova loja cadastrada na plataforma.",
-      whatsapp: whatsapp.replace(/\D/g, ""),
-      city: city || "—",
-      state: "",
-      address: address || "—",
-      open: active,
-      prepTime: "30 a 45 min",
-      minOrder: 15,
-      deliveryFee: 5,
-      hours: "Definir no painel da loja",
-      logoLetter: name.trim().charAt(0).toUpperCase() || "L",
-      themeFrom,
-      themeTo,
-      active,
-    };
-    tenants.push(next);
-    toast.success(`Loja "${next.name}" cadastrada!`, {
-      description: `Vitrine disponível em /${next.slug}. Credenciais enviadas para ${ownerEmail || "o dono cadastrado"}.`,
-    });
-    navigate({ to: "/platform/lojas" });
+    createMut.mutate();
   };
 
   return (
@@ -84,7 +96,7 @@ function NewTenantPage() {
                 placeholder="pizzaria-napoli"
                 className="mt-1.5 font-mono"
               />
-              {!slugOk && computedSlug && (
+              {computedSlug && !slugChecking && !slugOk && (
                 <p className="mt-1 text-xs text-destructive">
                   {computedSlug.length < 3 ? "Mínimo 3 caracteres." : "Slug já em uso."}
                 </p>
@@ -104,7 +116,7 @@ function NewTenantPage() {
             </div>
             <div>
               <Label>Cidade</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Teresina/PI" className="mt-1.5" />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Teresina" className="mt-1.5" />
             </div>
           </div>
 
@@ -130,17 +142,6 @@ function NewTenantPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-muted/30 p-4">
-            <h3 className="text-sm font-semibold">Usuário dono do estabelecimento</h3>
-            <p className="text-xs text-muted-foreground">As credenciais de acesso serão enviadas por e-mail (mock).</p>
-            <Input
-              value={ownerEmail}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-              placeholder="dono@loja.com.br"
-              className="mt-3"
-            />
-          </div>
-
           <div className="flex items-center justify-between rounded-2xl border p-4">
             <div>
               <p className="font-medium">Tenant ativo</p>
@@ -151,7 +152,10 @@ function NewTenantPage() {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => navigate({ to: "/platform/lojas" })}>Cancelar</Button>
-            <Button disabled={!canSubmit} onClick={handleSubmit}>Cadastrar loja</Button>
+            <Button disabled={!canSubmit || createMut.isPending} onClick={handleSubmit}>
+              {createMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Cadastrar loja
+            </Button>
           </div>
         </CardContent></Card>
 

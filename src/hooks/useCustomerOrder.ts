@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrder, getOrderByNumber } from "@/lib/orders.functions";
 import { dbOrderToUi, dbHistoryToUi } from "@/lib/order-adapters";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 
 type Lookup =
   | { kind: "id"; id: string }

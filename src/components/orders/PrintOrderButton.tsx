@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 import { PrintableOrder } from "./PrintableOrder";
 import { createPortal } from "react-dom";
 

@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 
 interface CancelOrderModalProps {
   order: Order | null;

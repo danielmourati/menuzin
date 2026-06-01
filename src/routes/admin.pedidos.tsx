@@ -14,7 +14,8 @@ import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
 import { OrderCard } from "@/components/orders/OrderCard";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { store } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { getMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: OrdersPage,
@@ -28,6 +29,11 @@ function OrdersPage() {
     updateOrderStatus,
     simulateNewOrder,
   } = useOrdersRealtime();
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant(),
+  });
+  const tenantName = tenantData?.tenant?.name ?? "Sua loja";
 
   const [q, setQ] = useState("");
   const [modeFilter, setModeFilter] = useState<string>("todos");
@@ -234,7 +240,7 @@ function OrdersPage() {
         onAccept={() => detailedOrder && acceptOrder(detailedOrder.id)}
         onCancel={() => detailedOrder && setCancellationOrderId(detailedOrder.id)}
         onUpdateStatus={(status) => detailedOrder && updateOrderStatus(detailedOrder.id, status)}
-        storeName={store.name}
+        storeName={tenantName}
       />
 
       {/* Modal de Cancelamento de Pedido */}

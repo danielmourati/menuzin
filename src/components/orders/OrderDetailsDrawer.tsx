@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, modeLabel, formatDateTime } from "@/lib/format";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { OrderStatusActions } from "./OrderStatusActions";

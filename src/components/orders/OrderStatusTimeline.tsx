@@ -1,5 +1,5 @@
 import { getTimelineSteps, getTimelineIndex, formatTime } from "@/lib/format";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 import { Check, Clock, Play } from "lucide-react";
 
 interface OrderStatusTimelineProps {

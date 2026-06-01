@@ -74,3 +74,49 @@ export const isSlugAvailable = createServerFn({ method: "POST" })
       .from("tenants").select("id").eq("slug", data.slug).maybeSingle();
     return { available: !taken };
   });
+
+// ===== Update do tenant pelo dono/admin =====
+
+const UpdateTenantInput = z.object({
+  name: z.string().min(2).max(120).optional(),
+  description: z.string().max(2000).optional(),
+  whatsapp: z.string().min(8).max(20).optional(),
+  city: z.string().max(80).optional(),
+  state: z.string().max(40).optional(),
+  address: z.string().max(240).optional(),
+  prep_time: z.string().max(80).optional(),
+  min_order: z.number().min(0).max(99999).optional(),
+  delivery_fee: z.number().min(0).max(9999).optional(),
+  hours: z.string().max(200).optional(),
+  open: z.boolean().optional(),
+  logo_url: z.string().max(1000).nullable().optional(),
+  logo_letter: z.string().max(2).optional(),
+  theme_from: z.string().max(40).optional(),
+  theme_to: z.string().max(40).optional(),
+  social: z.record(z.string().max(40), z.string().max(200)).optional(),
+});
+
+export const updateMyTenant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => UpdateTenantInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
+    if (!profile?.tenant_id) throw new Error("Usuário sem loja vinculada.");
+
+    // Verifica role no tenant (defesa em camadas — RLS também restringe)
+    const { data: roles } = await supabase
+      .from("user_roles").select("role")
+      .eq("user_id", userId).eq("tenant_id", profile.tenant_id);
+    const allowed = new Set(["owner", "admin", "platform_admin"]);
+    if (!(roles ?? []).some((r) => allowed.has(r.role as string))) {
+      throw new Error("Sem permissão para editar esta loja.");
+    }
+
+    const { error } = await supabase
+      .from("tenants").update(data as never).eq("id", profile.tenant_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+

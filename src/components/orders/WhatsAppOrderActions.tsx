@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { whatsappLink } from "@/lib/whatsapp";
 import { whatsappOrderMessage } from "@/lib/format";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 import { MessageCircle } from "lucide-react";
 
 interface WhatsAppOrderActionsProps {

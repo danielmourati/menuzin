@@ -1,4 +1,4 @@
-import type { OrderMode, OrderStatus } from "@/lib/mock-data";
+import type { OrderMode, OrderStatus } from "@/lib/domain-types";
 
 export const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

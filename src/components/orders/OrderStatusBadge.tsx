@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { statusLabel, statusColor, paymentStatusLabel, paymentStatusColor } from "@/lib/format";
-import type { OrderStatus, PaymentStatus } from "@/lib/mock-data";
+import type { OrderStatus, PaymentStatus } from "@/lib/domain-types";
 
 interface OrderStatusBadgeProps {
   status: OrderStatus;

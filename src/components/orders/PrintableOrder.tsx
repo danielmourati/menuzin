@@ -1,5 +1,5 @@
 import { brl, formatDateTime } from "@/lib/format";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 
 interface PrintableOrderProps {
   order: Order;

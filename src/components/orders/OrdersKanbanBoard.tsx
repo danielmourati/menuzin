@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from "@/lib/mock-data";
+import type { Order, OrderStatus } from "@/lib/domain-types";
 import { OrderCard } from "./OrderCard";
 import { Badge } from "@/components/ui/badge";
 

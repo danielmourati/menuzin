@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Minus, Plus, ArrowLeft } from "lucide-react";
 import { brl } from "@/lib/format";
-import type { Product, ProductAddon } from "@/lib/mock-data";
+import type { Product, ProductAddon } from "@/lib/domain-types";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
 

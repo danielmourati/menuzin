@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { plans, store } from "@/lib/mock-data";
+import { plans } from "@/lib/plans";
 import { brl } from "@/lib/format";
+import { useQuery } from "@tanstack/react-query";
+import { listActiveTenants } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,6 +19,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const { data: tenantsData } = useQuery({
+    queryKey: ["public", "active-tenants"],
+    queryFn: () => listActiveTenants(),
+    staleTime: 60_000,
+  });
+  const demoSlug = tenantsData?.tenants?.[0]?.slug;
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
@@ -28,7 +36,7 @@ function Landing() {
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features">Recursos</a>
             <a href="#plans">Planos</a>
-            <Link to="/loja/$slug" params={{ slug: store.slug }}>Demo da loja</Link>
+            {demoSlug && <Link to="/loja/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
           </nav>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm"><Link to="/admin/login">Entrar</Link></Button>
@@ -50,11 +58,13 @@ function Landing() {
               Cardápio online, carrinho, checkout e pedidos direto no WhatsApp. Tudo personalizável, em um link só, pronto para vender hoje.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/loja/$slug" params={{ slug: store.slug }}>
-                  Ver loja demo <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              {demoSlug && (
+                <Button asChild size="lg" className="gap-2">
+                  <Link to="/loja/$slug" params={{ slug: demoSlug }}>
+                    Ver loja demo <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="outline" size="lg">
                 <Link to="/admin/dashboard">Entrar no painel</Link>
               </Button>
