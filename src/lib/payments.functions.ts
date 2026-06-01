@@ -154,20 +154,14 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Format validation
-    const validPrefixes = ["APP_USR-", "TEST-"];
-    if (!validPrefixes.some((p) => data.mp_public_key.startsWith(p))) {
-      return { success: false as const, message: "Public Key inválida. Deve começar com APP_USR- ou TEST-." };
+    // Basic non-empty validation only — Mercado Pago credentials may have
+    // varying prefixes (APP_USR-, TEST-, or no prefix for newer accounts).
+    // The real validation is done against the MP API below.
+    if (!data.mp_public_key.trim()) {
+      return { success: false as const, message: "Public Key não pode estar vazia." };
     }
-    if (!validPrefixes.some((p) => data.mp_access_token.startsWith(p))) {
-      return { success: false as const, message: "Access Token inválido. Deve começar com APP_USR- ou TEST-." };
-    }
-    // Live mode consistency
-    if (data.mp_live_mode && !data.mp_access_token.startsWith("APP_USR-")) {
-      return { success: false as const, message: "Modo Produção exige um Access Token APP_USR-." };
-    }
-    if (!data.mp_live_mode && !data.mp_access_token.startsWith("TEST-")) {
-      return { success: false as const, message: "Modo Sandbox exige um Access Token TEST-." };
+    if (!data.mp_access_token.trim()) {
+      return { success: false as const, message: "Access Token não pode estar vazio." };
     }
 
     // Validate against MP API
