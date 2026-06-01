@@ -1,7 +1,7 @@
 // Conversores entre os tipos do banco (DbProduct/DbTenant) e os tipos de UI
-// pré-existentes (Product/Tenant em mock-data.ts) para minimizar refactor.
+// pré-existentes (Product/Tenant em domain-types.ts) para minimizar refactor.
 import type { DbProduct, DbTenant } from "./db-types";
-import type { Product, ProductAddon, Tenant, Category } from "./mock-data";
+import type { Product, ProductAddon, Tenant, Category } from "./domain-types";
 
 export function dbProductToUi(p: DbProduct, categoryName: string): Product {
   return {

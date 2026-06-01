@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import type { Product, ProductAddon } from "./mock-data";
+import type { Product, ProductAddon } from "./domain-types";
 
 export type CartItem = {
   uid: string;
