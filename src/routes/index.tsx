@@ -17,6 +17,12 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const { data: tenantsData } = useQuery({
+    queryKey: ["public", "active-tenants"],
+    queryFn: () => listActiveTenants(),
+    staleTime: 60_000,
+  });
+  const demoSlug = tenantsData?.tenants?.[0]?.slug;
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
