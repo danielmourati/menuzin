@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useId } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type Order,
@@ -46,6 +46,9 @@ export function useOrdersRealtime() {
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(globalNewOrderAlert);
   const [isSimulating, setIsSimulating] = useState(autoSimulationActive);
   const { prefs } = useNotificationPrefs();
+  const soundEnabledRef = useRef(prefs.soundEnabled);
+  useEffect(() => { soundEnabledRef.current = prefs.soundEnabled; }, [prefs.soundEnabled]);
+  const instanceId = useId();
 
   // load initial + refetch
   const refetch = useCallback(async () => {
@@ -59,20 +62,22 @@ export function useOrdersRealtime() {
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  // realtime subscription
+  // realtime subscription — canal único por instância para evitar
+  // "cannot add postgres_changes callbacks after subscribe()" quando
+  // múltiplos componentes montam o hook simultaneamente.
   useEffect(() => {
+    const channelName = `orders-changes:${instanceId}:${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("orders-changes")
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
-        // ao detectar mudança, refetch o snapshot
         refetch();
-        if (payload.eventType === "INSERT" && prefs.soundEnabled) {
+        if (payload.eventType === "INSERT" && soundEnabledRef.current) {
           playNotificationSound();
         }
       })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [refetch, prefs.soundEnabled]);
+  }, [refetch, instanceId]);
 
   // bridge para listeners locais (notificações)
   useEffect(() => {
