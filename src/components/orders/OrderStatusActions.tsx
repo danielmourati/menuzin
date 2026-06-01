@@ -90,7 +90,7 @@ export function OrderStatusActions({
           return (
             <Button
               key={status}
-              variant="destructive-outline"
+              variant="outline"
               size={size}
               onClick={(e) => {
                 e.stopPropagation();
