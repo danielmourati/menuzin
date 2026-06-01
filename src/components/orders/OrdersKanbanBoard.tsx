@@ -1,6 +1,5 @@
 import type { Order, OrderStatus } from "@/lib/mock-data";
 import { OrderCard } from "./OrderCard";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface OrdersKanbanBoardProps {
@@ -24,29 +23,29 @@ const COLUMNS: Column[] = [
     id: "novo",
     title: "Novos",
     statuses: ["novo"],
-    colorClass: "bg-red-500/5 border-t-2 border-t-primary dark:bg-red-950/5",
-    badgeClass: "bg-primary text-primary-foreground",
+    colorClass: "bg-red-500/5 border border-zinc-200 dark:border-zinc-800 border-l-4 border-l-primary dark:bg-red-950/5",
+    badgeClass: "bg-primary text-primary-foreground font-bold",
   },
   {
     id: "aceito",
     title: "Aceitos",
     statuses: ["aceito"],
-    colorClass: "bg-amber-500/5 border-t-2 border-t-amber-500 dark:bg-amber-950/5",
-    badgeClass: "bg-amber-500 text-white",
+    colorClass: "bg-amber-500/5 border border-zinc-200 dark:border-zinc-800 border-l-4 border-l-amber-500 dark:bg-amber-950/5",
+    badgeClass: "bg-amber-500 text-white font-bold",
   },
   {
     id: "preparo",
     title: "Em Preparo",
     statuses: ["preparo"],
-    colorClass: "bg-blue-500/5 border-t-2 border-t-blue-500 dark:bg-blue-950/5",
-    badgeClass: "bg-blue-500 text-white",
+    colorClass: "bg-blue-500/5 border border-zinc-200 dark:border-zinc-800 border-l-4 border-l-blue-500 dark:bg-blue-950/5",
+    badgeClass: "bg-blue-500 text-white font-bold",
   },
   {
     id: "despachado",
     title: "Prontos / Despachados",
     statuses: ["pronto_retirada", "saiu_entrega", "servido"],
-    colorClass: "bg-green-500/5 border-t-2 border-t-success dark:bg-green-950/5",
-    badgeClass: "bg-success text-success-foreground",
+    colorClass: "bg-green-500/5 border border-zinc-200 dark:border-zinc-800 border-l-4 border-l-success dark:bg-green-950/5",
+    badgeClass: "bg-success text-success-foreground font-bold",
   },
 ];
 
@@ -63,18 +62,27 @@ export function OrdersKanbanBoard({
   );
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-[calc(100vh-210px)] min-h-[450px]">
+    <div className="space-y-6">
       {COLUMNS.map((col) => {
         const colOrders = activeOrders.filter((o) => col.statuses.includes(o.status));
 
         return (
           <div
             key={col.id}
-            className={`rounded-xl border flex flex-col h-full overflow-hidden ${col.colorClass}`}
+            className={`rounded-2xl p-5 transition-all duration-300 shadow-sm flex flex-col gap-4 ${col.colorClass}`}
           >
-            {/* Header da Coluna */}
-            <div className="p-4 flex items-center justify-between bg-card border-b shrink-0">
-              <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
+            {/* Header da Linha */}
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200/50 dark:border-zinc-800/50">
+              <h3 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
+                <span className={`h-2 w-2 rounded-full ${
+                  col.id === "novo" 
+                    ? "bg-primary" 
+                    : col.id === "aceito" 
+                    ? "bg-amber-500" 
+                    : col.id === "preparo" 
+                    ? "bg-blue-500" 
+                    : "bg-success"
+                }`} />
                 {col.title}
                 <Badge className={`rounded-full px-2 py-0.5 text-xs ${col.badgeClass}`}>
                   {colOrders.length}
@@ -82,20 +90,20 @@ export function OrdersKanbanBoard({
               </h3>
             </div>
 
-            {/* Lista de Cards com Scroll Interno */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3 scrollbar-hide">
-              {colOrders.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-muted rounded-xl bg-card/40">
-                  <span className="text-2xl">💤</span>
-                  <p className="text-xs text-muted-foreground mt-1.5 font-medium">
-                    Sem pedidos nesta etapa
-                  </p>
-                </div>
-              ) : (
-                colOrders.map((order) => (
+            {/* Grid de Cards na Linha */}
+            {colOrders.length === 0 ? (
+              <div className="py-8 text-center border border-dashed border-zinc-300/60 dark:border-zinc-700/60 rounded-xl bg-card/40 flex flex-col sm:flex-row items-center justify-center gap-2">
+                <span className="text-xl">💤</span>
+                <p className="text-xs text-muted-foreground font-semibold">
+                  Sem pedidos nesta etapa no momento.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {colOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="cursor-grab active:cursor-grabbing hover:scale-[1.01] transition-transform duration-200"
+                    className="hover:scale-[1.01] transition-transform duration-200"
                   >
                     <OrderCard
                       order={order}
@@ -105,9 +113,9 @@ export function OrdersKanbanBoard({
                       onUpdateStatus={(status) => onUpdateStatus(order.id, status)}
                     />
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
