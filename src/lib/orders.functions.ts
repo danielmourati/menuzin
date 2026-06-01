@@ -85,7 +85,7 @@ export const createOrder = createServerFn({ method: "POST" })
       changed_by_name: "Sistema",
     });
 
-    return { order: order as DbOrder };
+    return { order: order as unknown as DbOrder };
   });
 
 const GetOrderInput = z.object({ id: z.string().uuid() });
@@ -98,7 +98,7 @@ export const getOrder = createServerFn({ method: "POST" })
       supabaseAdmin.from("order_items").select("*").eq("order_id", data.id),
     ]);
     if (!order) return { order: null };
-    return { order: { ...(order as DbOrder), items: (items ?? []) as DbOrderItem[] } };
+    return { order: { ...(order as unknown as DbOrder), items: (items ?? []) as unknown as DbOrderItem[] } };
   });
 
 const GetByNumberInput = z.object({
@@ -118,7 +118,7 @@ export const getOrderByNumber = createServerFn({ method: "POST" })
     if (!order) return { order: null };
     const { data: items } = await supabaseAdmin
       .from("order_items").select("*").eq("order_id", order.id);
-    return { order: { ...(order as DbOrder), items: (items ?? []) as DbOrderItem[] } };
+    return { order: { ...(order as unknown as DbOrder), items: (items ?? []) as unknown as DbOrderItem[] } };
   });
 
 // ========= Admin =========
@@ -144,12 +144,12 @@ export const listOrdersForMyTenant = createServerFn({ method: "POST" })
       : { data: [] as DbOrderItem[] };
 
     const itemsByOrder = new Map<string, DbOrderItem[]>();
-    for (const it of (items ?? []) as DbOrderItem[]) {
+    for (const it of (items ?? []) as unknown as DbOrderItem[]) {
       const arr = itemsByOrder.get(it.order_id) ?? [];
       arr.push(it);
       itemsByOrder.set(it.order_id, arr);
     }
-    const full: DbOrder[] = ((orders ?? []) as DbOrder[]).map((o) => ({
+    const full: DbOrder[] = ((orders ?? []) as unknown as DbOrder[]).map((o) => ({
       ...o, items: itemsByOrder.get(o.id) ?? [],
     }));
     return { orders: full };
@@ -167,14 +167,14 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: prev } = await supabase.from("orders").select("status").eq("id", data.order_id).maybeSingle();
-    const patch: Record<string, unknown> = { status: data.new_status };
+    const patch: Record<string, string | null> = { status: data.new_status };
     if (data.new_status === "aceito") patch.accepted_at = new Date().toISOString();
     if (data.new_status === "finalizado") patch.completed_at = new Date().toISOString();
     if (data.new_status === "cancelado") {
       patch.cancelled_at = new Date().toISOString();
       patch.cancel_reason = data.note ?? null;
     }
-    const { error } = await supabase.from("orders").update(patch).eq("id", data.order_id);
+    const { error } = await supabase.from("orders").update(patch as never).eq("id", data.order_id);
     if (error) throw new Error(error.message);
 
     await supabase.from("order_status_history").insert({
