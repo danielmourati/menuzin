@@ -171,22 +171,72 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
         headers: { Authorization: `Bearer ${data.mp_access_token}` },
       });
       if (!res.ok) {
-        const body = await res.text();
-        console.error("MP /users/me failed:", res.status, body);
+        const rawBody = await res.text();
+        console.error("MP /users/me failed:", res.status, rawBody);
+
+        // Try to parse structured MP error
+        let mpMessage: string | undefined;
+        let mpError: string | undefined;
+        let mpCause: string | undefined;
+        try {
+          const parsed = JSON.parse(rawBody) as {
+            message?: string;
+            error?: string;
+            cause?: Array<{ code?: string | number; description?: string }>;
+          };
+          mpMessage = parsed.message;
+          mpError = parsed.error;
+          if (Array.isArray(parsed.cause) && parsed.cause.length > 0) {
+            mpCause = parsed.cause
+              .map((c) => [c.code, c.description].filter(Boolean).join(": "))
+              .join("; ");
+          }
+        } catch {
+          // not JSON, keep raw
+        }
+
+        // Build suggestion based on status
+        let suggestion = "";
+        if (res.status === 401) {
+          suggestion =
+            "O Access Token foi rejeitado. Verifique se você copiou o token completo da sua conta Mercado Pago (Painel do Desenvolvedor → Credenciais) e se está usando o token correspondente ao modo selecionado (Sandbox/Produção).";
+        } else if (res.status === 403) {
+          suggestion =
+            "Token sem permissão. Confirme se a aplicação no Mercado Pago tem as permissões de leitura e pagamentos habilitadas.";
+        } else if (res.status === 404) {
+          suggestion = "Endpoint não encontrado. Tente novamente em instantes.";
+        } else if (res.status >= 500) {
+          suggestion = "O Mercado Pago está indisponível no momento. Tente novamente em alguns minutos.";
+        } else {
+          suggestion = "Revise as credenciais no painel do Mercado Pago e tente novamente.";
+        }
+
+        const detail = mpMessage || mpError || rawBody.slice(0, 200) || "Sem detalhes adicionais.";
+        const causeText = mpCause ? ` (causa: ${mpCause})` : "";
+
         return {
           success: false as const,
-          message: `Mercado Pago rejeitou as credenciais (HTTP ${res.status}). Verifique se o Access Token é válido.`,
+          message: `Mercado Pago rejeitou as credenciais (HTTP ${res.status}): ${detail}${causeText}. ${suggestion}`,
         };
       }
-      const me = (await res.json()) as { id?: number | string };
+      const me = (await res.json()) as { id?: number | string; site_id?: string };
       if (!me.id) {
-        return { success: false as const, message: "Resposta inesperada do Mercado Pago." };
+        return {
+          success: false as const,
+          message:
+            "Resposta inesperada do Mercado Pago: o campo 'id' do usuário não foi retornado. Verifique se o Access Token pertence a uma conta válida.",
+        };
       }
       mpUserId = String(me.id);
     } catch (err) {
       console.error("MP validation error:", err);
-      return { success: false as const, message: "Não foi possível conectar ao Mercado Pago. Tente novamente." };
+      const errMsg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false as const,
+        message: `Não foi possível conectar ao Mercado Pago: ${errMsg}. Verifique sua conexão e tente novamente.`,
+      };
     }
+
 
     const tenantId = await resolveTenantId(supabase, userId);
     const encrypted = await encryptToken(data.mp_access_token);
