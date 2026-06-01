@@ -1,5 +1,4 @@
-import type { DbOrder, DbOrderItem, OrderStatus as DbOrderStatus } from "./db-types";
-import type { DbHistoryRow } from "./orders.functions";
+import type { DbOrder, DbOrderItem, DbHistoryRow, OrderStatus as DbOrderStatus } from "./db-types";
 import type { Order, OrderItem, OrderStatusHistoryEntry } from "./mock-data";
 
 export function dbHistoryToUi(rows: DbHistoryRow[]): OrderStatusHistoryEntry[] {
