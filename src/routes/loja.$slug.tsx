@@ -209,7 +209,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
       )}
 
       <ProductModal product={selectedProduct} open={modalOpen} onOpenChange={setModalOpen} />
-      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} tenant={tenant} />
+      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
     </div>
   );
 }
