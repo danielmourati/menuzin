@@ -18,7 +18,7 @@ import {
 } from "@/lib/payment-service";
 import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment-types";
 import { toast } from "sonner";
-import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
