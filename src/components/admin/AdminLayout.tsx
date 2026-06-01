@@ -67,8 +67,10 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
           <p className="text-sm font-semibold">{tenant?.name ?? "—"}</p>
         </div>
       </div>
-      <Nav onClick={onNav} />
-      <div className="border-t border-sidebar-border p-3 space-y-1">
+      <div className="flex-1 overflow-y-auto">
+        <Nav onClick={onNav} />
+      </div>
+      <div className="mt-auto border-t border-sidebar-border p-3 space-y-1">
         {tenant?.slug && (
           <Button asChild variant="ghost" size="sm" className="w-full justify-start" onClick={onNav}>
             <Link to="/loja/$slug" params={{ slug: tenant.slug }} target="_blank">
