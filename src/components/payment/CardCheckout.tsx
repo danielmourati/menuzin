@@ -219,9 +219,8 @@ export function CardCheckout({ amount, onSubmit, onSuccess, onCancel }: CardChec
               </div>
               <div>
                 <Label htmlFor="cvv">CVV (Código)</Label>
-                <Input
+                <PasswordInput
                   id="cvv"
-                  type="password"
                   value={cvv}
                   onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
                   maxLength={4}
