@@ -21,13 +21,15 @@ import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment
 import { toast } from "sonner";
 import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
   component: AdminPaymentSettingsPage,
 });
 
 function AdminPaymentSettingsPage() {
-  const storeId = "t1"; // Burger Prime mock tenant ID
+  const { profile } = useAuth();
+  const storeId = profile?.tenant_id ?? "";
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
@@ -39,30 +41,33 @@ function AdminPaymentSettingsPage() {
   const [pixReceiver, setPixReceiver] = useState("");
 
   useEffect(() => {
+    if (!storeId) return;
+    let cancelled = false;
     async function loadSettings() {
       try {
         const data = await getStorePaymentSettings(storeId);
+        if (cancelled) return;
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
-          // If already connected and has mp_user_id it was OAuth, else manual
-          if (data.mp_connected) {
-            setConnectedVia(data.mp_user_id ? "oauth" : "manual");
-          }
+          if (data.mp_connected) setConnectedVia("manual");
           setPixKey(data.pix_manual_key || "");
           setPixKeyType(data.pix_manual_key_type || "email");
           setPixReceiver(data.pix_manual_receiver || "");
         }
       } catch (err) {
         console.error(err);
-        setMpStatus("error");
-        toast.error("Erro ao carregar configurações de pagamento.");
+        if (!cancelled) {
+          setMpStatus("error");
+          toast.error("Erro ao carregar configurações de pagamento.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     loadSettings();
-  }, []);
+    return () => { cancelled = true; };
+  }, [storeId]);
 
   const handleToggleManual = async (key: "cash_enabled" | "pix_manual_enabled" | "card_on_delivery_enabled", val: boolean) => {
     if (!settings) return;
