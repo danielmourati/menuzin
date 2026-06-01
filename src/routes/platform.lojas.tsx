@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, ExternalLink } from "lucide-react";
-import { platformStores } from "@/lib/mock-data";
+import { platformStores } from "@/lib/domain-types";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
 

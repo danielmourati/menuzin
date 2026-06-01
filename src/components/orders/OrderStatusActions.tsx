@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { nextStatuses, statusLabel } from "@/lib/format";
-import type { Order, OrderStatus } from "@/lib/mock-data";
+import type { Order, OrderStatus } from "@/lib/domain-types";
 import { Check, Flame, Truck, PackageCheck, Coffee, Award, XCircle } from "lucide-react";
 
 interface OrderStatusActionsProps {

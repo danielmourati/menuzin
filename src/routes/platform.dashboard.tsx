@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { brl } from "@/lib/format";
-import { platformStores, platformGrowth } from "@/lib/mock-data";
+import { platformStores, platformGrowth } from "@/lib/domain-types";
 
 export const Route = createFileRoute("/platform/dashboard")({ component: PlatformDashboard });
 

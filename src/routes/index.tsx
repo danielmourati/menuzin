@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { plans, store } from "@/lib/mock-data";
+import { plans, store } from "@/lib/domain-types";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/")({

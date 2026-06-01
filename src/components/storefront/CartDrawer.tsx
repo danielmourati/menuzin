@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
-import { store } from "@/lib/mock-data";
+import { store } from "@/lib/domain-types";
 import { toast } from "sonner";
 import { getPaymentSettingsBySlug, createPixPayment, createCardPayment } from "@/lib/payment-service";
 import type { StorePaymentSettingsSafe, PaymentMethod, PixPaymentData, CardPaymentData } from "@/lib/payment-types";

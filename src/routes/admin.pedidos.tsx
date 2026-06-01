@@ -14,7 +14,7 @@ import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
 import { OrderCard } from "@/components/orders/OrderCard";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { store } from "@/lib/mock-data";
+import { store } from "@/lib/domain-types";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: OrdersPage,

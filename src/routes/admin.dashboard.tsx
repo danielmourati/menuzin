@@ -7,7 +7,7 @@ import { Link } from "@tanstack/react-router";
 import { TrendingUp, DollarSign, ShoppingBag, Package, Users, AlertCircle, ChevronRight } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, PieChart, Legend, Line, LineChart, CartesianGrid } from "recharts";
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
-import { orders, salesLast7Days, ordersByMode, topProducts, store } from "@/lib/mock-data";
+import { orders, salesLast7Days, ordersByMode, topProducts, store } from "@/lib/domain-types";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,

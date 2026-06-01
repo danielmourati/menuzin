@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { isSlugAvailable, slugify, tenants, type Tenant } from "@/lib/mock-data";
+import { isSlugAvailable, slugify, tenants, type Tenant } from "@/lib/domain-types";
 import { PlatformLayout } from "./platform.dashboard";
 
 export const Route = createFileRoute("/platform/tenants/novo")({ component: NewTenantPage });

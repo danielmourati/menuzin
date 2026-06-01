@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { brl } from "@/lib/format";
-import type { Product } from "@/lib/mock-data";
+import type { Product } from "@/lib/domain-types";
 
 export function ProductCard({ product, onClick }: { product: Product; onClick: () => void }) {
   const unavailable = !product.available;

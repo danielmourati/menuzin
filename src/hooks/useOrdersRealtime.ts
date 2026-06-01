@@ -4,7 +4,7 @@ import {
   type Order,
   type OrderStatus,
   type AdminNotification,
-} from "@/lib/mock-data";
+} from "@/lib/domain-types";
 import { supabase } from "@/integrations/supabase/client";
 import { listOrdersForMyTenant, updateOrderStatus as updateOrderStatusFn, createOrder } from "@/lib/orders.functions";
 import { dbOrderToUi } from "@/lib/order-adapters";

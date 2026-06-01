@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, modeLabel, timeAgo } from "@/lib/format";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { OrderStatusActions } from "./OrderStatusActions";
 import { PrintOrderButton } from "./PrintOrderButton";

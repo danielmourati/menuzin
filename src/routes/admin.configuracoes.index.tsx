@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { store } from "@/lib/mock-data";
+import { store } from "@/lib/domain-types";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: SettingsPage });

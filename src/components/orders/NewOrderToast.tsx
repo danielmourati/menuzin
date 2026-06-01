@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
-import type { Order } from "@/lib/mock-data";
+import type { Order } from "@/lib/domain-types";
 import { ShoppingBag, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
