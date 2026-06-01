@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Menu } from "lucide-react";
+import { LayoutDashboard, Store, Menu, Loader2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { brl } from "@/lib/format";
-import { platformStores, platformGrowth } from "@/lib/domain-types";
+import { listPlatformStores, getPlatformGrowth } from "@/lib/platform.functions";
 
 export const Route = createFileRoute("/platform/dashboard")({ component: PlatformDashboard });
 
@@ -60,14 +61,41 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
 }
 
 function PlatformDashboard() {
-  const totalStores = platformStores.length;
-  const active = platformStores.filter((s) => s.status === "ativa").length;
-  const trial = platformStores.filter((s) => s.status === "teste").length;
-  const orders = platformStores.reduce((s, x) => s + x.ordersMonth, 0);
-  const revenue = platformStores.reduce((s, x) => s + x.revenue, 0);
+  const { data: storesData, isLoading: storesLoading, error: storesError } = useQuery({
+    queryKey: ["platform", "stores"],
+    queryFn: () => listPlatformStores(),
+  });
+  const { data: growthData } = useQuery({
+    queryKey: ["platform", "growth"],
+    queryFn: () => getPlatformGrowth(),
+  });
 
-  const topByOrders = [...platformStores].sort((a, b) => b.ordersMonth - a.ordersMonth).slice(0, 5);
-  const topByRevenue = [...platformStores].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  if (storesLoading) {
+    return (
+      <PlatformLayout title="Visão geral">
+        <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      </PlatformLayout>
+    );
+  }
+  if (storesError) {
+    return (
+      <PlatformLayout title="Visão geral">
+        <p className="rounded-xl border bg-destructive/10 p-4 text-destructive">{(storesError as Error).message}</p>
+      </PlatformLayout>
+    );
+  }
+
+  const stores = storesData?.stores ?? [];
+  const growth = growthData?.points ?? [];
+
+  const totalStores = stores.length;
+  const active = stores.filter((s) => s.status === "ativa").length;
+  const trial = stores.filter((s) => s.status === "teste").length;
+  const orders = stores.reduce((s, x) => s + x.orders_month, 0);
+  const revenue = stores.reduce((s, x) => s + x.revenue_month, 0);
+
+  const topByOrders = [...stores].sort((a, b) => b.orders_month - a.orders_month).slice(0, 5);
+  const topByRevenue = [...stores].sort((a, b) => b.revenue_month - a.revenue_month).slice(0, 5);
 
   return (
     <PlatformLayout title="Visão geral">
@@ -78,10 +106,7 @@ function PlatformDashboard() {
             { l: "Lojas ativas", v: String(active) },
             { l: "Em teste", v: String(trial) },
             { l: "Pedidos no mês", v: String(orders) },
-            { l: "MRR simulado", v: brl(8540) },
-            { l: "Receita lojas", v: brl(revenue) },
-            { l: "Churn simulado", v: "2,4%" },
-            { l: "NPS", v: "72" },
+            { l: "Receita lojas (30d)", v: brl(revenue) },
           ].map((s) => (
             <Card key={s.l}><CardContent className="p-5">
               <p className="text-sm text-muted-foreground">{s.l}</p>
@@ -95,7 +120,7 @@ function PlatformDashboard() {
             <CardHeader><CardTitle>Crescimento de lojas</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={platformGrowth}>
+                <LineChart data={growth}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="mes" stroke="var(--muted-foreground)" fontSize={12} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={12} />
@@ -106,14 +131,14 @@ function PlatformDashboard() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Top lojas por pedidos</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Top lojas por pedidos (30d)</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={topByOrders} layout="vertical" margin={{ left: 10 }}>
                   <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} />
                   <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} width={130} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                  <Bar dataKey="ordersMonth" fill="var(--primary)" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="orders_month" fill="var(--primary)" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -121,16 +146,17 @@ function PlatformDashboard() {
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Top lojas por faturamento</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Top lojas por faturamento (30d)</CardTitle></CardHeader>
           <CardContent className="space-y-2">
+            {topByRevenue.length === 0 && <p className="text-sm text-muted-foreground">Nenhum dado ainda.</p>}
             {topByRevenue.map((s, i) => (
               <div key={s.id} className="flex items-center justify-between rounded-xl border p-3">
                 <div className="flex items-center gap-3">
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 font-bold text-primary">{i + 1}</span>
-                  <div><p className="font-semibold">{s.name}</p><p className="text-xs text-muted-foreground">{s.city}</p></div>
+                  <div><p className="font-semibold">{s.name}</p><p className="text-xs text-muted-foreground">{s.city}{s.state ? `/${s.state}` : ""}</p></div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold">{brl(s.revenue)}</p>
+                  <p className="font-bold">{brl(s.revenue_month)}</p>
                   <Badge variant="outline">{s.plan}</Badge>
                 </div>
               </div>
