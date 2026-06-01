@@ -47,6 +47,7 @@ export const createOrder = createServerFn({ method: "POST" })
       .from("orders")
       .insert({
         tenant_id: tenant.id,
+        number: 0, // trigger preenche
         customer_name: data.customer_name,
         whatsapp: data.whatsapp,
         mode: data.mode,
