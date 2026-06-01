@@ -96,7 +96,7 @@ export function OrderStatusActions({
                 e.stopPropagation();
                 onCancel();
               }}
-              className="flex-1 sm:flex-initial"
+              className="flex-1 sm:flex-initial border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
             >
               {isNew ? "Recusar" : "Cancelar"}
             </Button>
