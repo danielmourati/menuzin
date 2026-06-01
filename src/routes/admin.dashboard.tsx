@@ -10,6 +10,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, P
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
@@ -37,14 +38,19 @@ function StatCard({ icon: Icon, label, value, hint, accent }: { icon: typeof Tre
 }
 
 function DashboardPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const enabled = !authLoading && isAuthenticated;
+
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["admin", "analytics", 7],
     queryFn: () => getMyTenantAnalytics({ data: { days: 7 } }),
+    enabled,
   });
 
   const { data: ordersData } = useQuery({
     queryKey: ["admin", "recent-orders"],
     queryFn: () => listOrdersForMyTenant(),
+    enabled,
   });
   const recentOrders = (ordersData?.orders ?? []).slice(0, 5);
 
