@@ -88,8 +88,6 @@ export const createOrder = createServerFn({ method: "POST" })
     return { order: order as unknown as DbOrder };
   });
 
-import type { DbHistoryRow } from "@/lib/db-types";
-
 async function loadOrderBundle(orderId: string) {
   const [{ data: order }, { data: items }, { data: history }] = await Promise.all([
     supabaseAdmin.from("orders").select("*").eq("id", orderId).maybeSingle(),
