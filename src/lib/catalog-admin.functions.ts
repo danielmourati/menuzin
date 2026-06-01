@@ -1,14 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
 import type { DbCategory, DbProduct, DbAddon } from "@/lib/db-types";
 
-async function getMyTenantId(userId: string): Promise<string> {
-  const { data } = await supabaseAdmin
+type SB = SupabaseClient<Database>;
+
+/**
+ * Resolve o tenant_id do usuário autenticado e garante que ele possua
+ * role owner/admin/staff naquele tenant. Roda sob o client autenticado,
+ * portanto RLS continua aplicada como defesa em profundidade.
+ */
+async function getAuthorizedTenantId(supabase: SB, userId: string): Promise<string> {
+  const { data: profile, error: pErr } = await supabase
     .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
-  if (!data?.tenant_id) throw new Error("Usuário sem loja vinculada.");
-  return data.tenant_id as string;
+  if (pErr) throw new Error(`Falha ao ler perfil: ${pErr.message}`);
+  const tenantId = profile?.tenant_id as string | null | undefined;
+  if (!tenantId) throw new Error("Usuário sem loja vinculada.");
+
+  const { data: roles, error: rErr } = await supabase
+    .from("user_roles").select("role").eq("user_id", userId).eq("tenant_id", tenantId);
+  if (rErr) throw new Error(`Falha ao verificar permissões: ${rErr.message}`);
+  const allowed = new Set(["owner", "admin", "staff", "platform_admin"]);
+  const ok = (roles ?? []).some((r) => allowed.has(r.role as string));
+  if (!ok) throw new Error("Sem permissão para gerenciar este catálogo.");
+
+  return tenantId;
 }
 
 // ===== Categories =====
@@ -16,8 +34,9 @@ async function getMyTenantId(userId: string): Promise<string> {
 export const listMyCategories = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const tenantId = await getMyTenantId(context.userId);
-    const { data, error } = await supabaseAdmin
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const { data, error } = await sb
       .from("categories").select("*").eq("tenant_id", tenantId).order("sort_order");
     if (error) throw new Error(error.message);
     return { categories: (data ?? []) as DbCategory[] };
@@ -35,16 +54,17 @@ export const saveCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => CategoryInput.parse(d))
   .handler(async ({ data, context }) => {
-    const tenantId = await getMyTenantId(context.userId);
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
     if (data.id) {
-      const { error } = await supabaseAdmin.from("categories").update({
+      const { error } = await sb.from("categories").update({
         name: data.name, description: data.description ?? "",
         sort_order: data.sort_order, active: data.active,
       }).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: row, error } = await supabaseAdmin.from("categories").insert({
+    const { data: row, error } = await sb.from("categories").insert({
       tenant_id: tenantId, name: data.name, description: data.description ?? "",
       sort_order: data.sort_order, active: data.active,
     }).select("id").single();
@@ -56,8 +76,9 @@ export const deleteCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const tenantId = await getMyTenantId(context.userId);
-    const { error } = await supabaseAdmin.from("categories")
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const { error } = await sb.from("categories")
       .delete().eq("id", data.id).eq("tenant_id", tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -68,14 +89,21 @@ export const deleteCategory = createServerFn({ method: "POST" })
 export const listMyProducts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const tenantId = await getMyTenantId(context.userId);
-    const [{ data: products, error: pErr }, { data: addons }] = await Promise.all([
-      supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).order("sort_order"),
-      supabaseAdmin.from("product_addons").select("*").order("sort_order"),
-    ]);
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const { data: products, error: pErr } = await sb
+      .from("products").select("*").eq("tenant_id", tenantId).order("sort_order");
     if (pErr) throw new Error(pErr.message);
+    const productIds = (products ?? []).map((p) => p.id);
+    let addons: DbAddon[] = [];
+    if (productIds.length) {
+      const { data: ad, error: aErr } = await sb
+        .from("product_addons").select("*").in("product_id", productIds).order("sort_order");
+      if (aErr) throw new Error(aErr.message);
+      addons = (ad ?? []) as DbAddon[];
+    }
     const byProduct = new Map<string, DbAddon[]>();
-    for (const a of (addons ?? []) as DbAddon[]) {
+    for (const a of addons) {
       const arr = byProduct.get(a.product_id) ?? [];
       arr.push(a); byProduct.set(a.product_id, arr);
     }
@@ -103,7 +131,18 @@ export const saveProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => ProductInput.parse(d))
   .handler(async ({ data, context }) => {
-    const tenantId = await getMyTenantId(context.userId);
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+
+    // Se uma categoria foi informada, garanta que pertence ao mesmo tenant.
+    if (data.category_id) {
+      const { data: cat, error: cErr } = await sb
+        .from("categories").select("id").eq("id", data.category_id)
+        .eq("tenant_id", tenantId).maybeSingle();
+      if (cErr) throw new Error(cErr.message);
+      if (!cat) throw new Error("Categoria inválida para este tenant.");
+    }
+
     const payload = {
       name: data.name,
       description: data.description ?? "",
@@ -117,12 +156,12 @@ export const saveProduct = createServerFn({ method: "POST" })
       sort_order: data.sort_order,
     };
     if (data.id) {
-      const { error } = await supabaseAdmin.from("products")
+      const { error } = await sb.from("products")
         .update(payload).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: row, error } = await supabaseAdmin.from("products")
+    const { data: row, error } = await sb.from("products")
       .insert({ ...payload, tenant_id: tenantId }).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
@@ -132,8 +171,9 @@ export const deleteProduct = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const tenantId = await getMyTenantId(context.userId);
-    const { error } = await supabaseAdmin.from("products")
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const { error } = await sb.from("products")
       .delete().eq("id", data.id).eq("tenant_id", tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -143,8 +183,9 @@ export const toggleProductAvailable = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid(), available: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const tenantId = await getMyTenantId(context.userId);
-    const { error } = await supabaseAdmin.from("products")
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const { error } = await sb.from("products")
       .update({ available: data.available }).eq("id", data.id).eq("tenant_id", tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
