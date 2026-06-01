@@ -296,7 +296,7 @@ export function CartDrawer({
     resetAll();
     navigate({
       to: "/loja/$slug/pedido-confirmado",
-      params: { slug: slug || store.slug },
+      params: { slug: slug || tenant?.slug || "" },
       search: { n: order.number } as never,
     });
   };
@@ -608,7 +608,7 @@ export function CartDrawer({
                 {mode === "retirada" && (
                   <div className="mt-3 text-sm">
                     <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
-                    <p className="mt-1">{store.address}</p>
+                    <p className="mt-1">{tenantAddress}</p>
                     <button className="mt-2 flex items-center gap-1 text-sm font-semibold text-primary"><Map className="h-4 w-4" /> Ver no mapa</button>
                   </div>
                 )}
