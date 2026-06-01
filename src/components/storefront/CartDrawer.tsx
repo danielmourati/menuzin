@@ -20,6 +20,7 @@ import type { StorePaymentSettingsSafe, PaymentMethod, PixPaymentData, CardPayme
 import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelector";
 import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
+import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 
 type Step =
   | "cart"
