@@ -113,7 +113,7 @@ function NewTenantPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>WhatsApp *</Label>
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="5586999999999" className="mt-1.5" />
+              <Input value={whatsapp} onChange={(e) => setWhatsapp(maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="mt-1.5" />
             </div>
             <div>
               <Label>Cidade</Label>
