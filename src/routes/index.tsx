@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { plans, store } from "@/lib/domain-types";
+import { plans } from "@/lib/plans";
 import { brl } from "@/lib/format";
+import { useQuery } from "@tanstack/react-query";
+import { listActiveTenants } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
