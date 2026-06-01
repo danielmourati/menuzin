@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
-import { store } from "@/lib/domain-types";
+import { useQuery } from "@tanstack/react-query";
+import { getTenantBySlug } from "@/lib/catalog.functions";
 import { toast } from "sonner";
 import { getPaymentSettingsBySlug, createPixPayment, createCardPayment } from "@/lib/payment-service";
 import type { StorePaymentSettingsSafe, PaymentMethod, PixPaymentData, CardPaymentData } from "@/lib/payment-types";
@@ -82,7 +83,17 @@ export function CartDrawer({
     }
   }, [open, slug]);
 
-  const deliveryFee = mode === "entrega" ? store.deliveryFee : 0;
+  const { data: tenantData } = useQuery({
+    queryKey: ["public-tenant", slug],
+    queryFn: () => slug ? getTenantBySlug({ data: { slug } }) : Promise.resolve({ tenant: null }),
+    enabled: !!slug,
+    staleTime: 60_000,
+  });
+  const tenant = tenantData?.tenant;
+  const tenantDeliveryFee = Number(tenant?.delivery_fee ?? 0);
+  const tenantAddress = tenant?.address ?? "";
+
+  const deliveryFee = mode === "entrega" ? tenantDeliveryFee : 0;
   const total = subtotal + deliveryFee;
 
   const goTo = (next: Step) => {
