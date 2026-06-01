@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
-import { TrendingUp, DollarSign, ShoppingBag, Package, Users, AlertCircle, ChevronRight } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, PieChart, Legend, Line, LineChart, CartesianGrid } from "recharts";
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
-import { orders, salesLast7Days, ordersByMode, topProducts, store } from "@/lib/domain-types";
+import { getMyTenantAnalytics } from "@/lib/analytics.functions";
+import { listOrdersForMyTenant } from "@/lib/orders.functions";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
@@ -35,21 +37,38 @@ function StatCard({ icon: Icon, label, value, hint, accent }: { icon: typeof Tre
 }
 
 function DashboardPage() {
-  const pending = orders.filter((o) => ["novo", "confirmado", "preparo"].includes(o.status)).length;
+  const { data: analytics, isLoading } = useQuery({
+    queryKey: ["admin", "analytics", 7],
+    queryFn: () => getMyTenantAnalytics({ data: { days: 7 } }),
+  });
+
+  const { data: ordersData } = useQuery({
+    queryKey: ["admin", "recent-orders"],
+    queryFn: () => listOrdersForMyTenant(),
+  });
+  const recentOrders = (ordersData?.orders ?? []).slice(0, 5);
+
+  if (isLoading || !analytics) {
+    return (
+      <AdminLayout title="Dashboard">
+        <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout title="Dashboard">
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={ShoppingBag} label="Pedidos hoje" value="24" hint="+12% vs ontem" />
-          <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(1284.5)} hint="+18% vs ontem" accent="bg-success/15 text-success" />
-          <StatCard icon={TrendingUp} label="Ticket médio" value={brl(53.5)} />
-          <StatCard icon={AlertCircle} label="Pendentes" value={String(pending)} accent="bg-warning/20 text-warning-foreground" />
+          <StatCard icon={ShoppingBag} label="Pedidos hoje" value={String(analytics.todayOrdersCount)} />
+          <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(analytics.todayRevenue)} accent="bg-success/15 text-success" />
+          <StatCard icon={TrendingUp} label="Ticket médio (finalizados)" value={brl(analytics.avgTicket)} />
+          <StatCard icon={AlertCircle} label="Pendentes" value={String(analytics.pendingCount)} accent="bg-warning/20 text-warning-foreground" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={Package} label="Produtos ativos" value="11" />
-          <StatCard icon={Users} label="Clientes do mês" value="187" />
-          <StatCard icon={ShoppingBag} label="Pedidos no mês" value="412" />
-          <StatCard icon={DollarSign} label="MRR estimado" value={brl(18420)} accent="bg-chart-4/15 text-chart-4" />
+          <StatCard icon={Package} label="Produtos ativos" value={String(analytics.productsActive)} />
+          <StatCard icon={ShoppingBag} label="Pedidos no mês" value={String(analytics.monthOrdersCount)} />
+          <StatCard icon={DollarSign} label="Receita finalizada (30d)" value={brl(analytics.monthRevenue)} accent="bg-chart-4/15 text-chart-4" />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -57,7 +76,7 @@ function DashboardPage() {
             <CardHeader><CardTitle>Vendas dos últimos 7 dias</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={salesLast7Days}>
+                <LineChart data={analytics.salesByDay}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={12} />
                   <YAxis stroke="var(--muted-foreground)" fontSize={12} />
@@ -72,8 +91,8 @@ function DashboardPage() {
             <CardContent>
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={ordersByMode} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={3}>
-                    {ordersByMode.map((_, i) => <Cell key={i} fill={chartColors[i % chartColors.length]} />)}
+                  <Pie data={analytics.ordersByMode} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={3}>
+                    {analytics.ordersByMode.map((_entry, i) => <Cell key={i} fill={chartColors[i % chartColors.length]} />)}
                   </Pie>
                   <Legend />
                 </PieChart>
@@ -85,17 +104,21 @@ function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Produtos mais vendidos</CardTitle>
+              <CardTitle>Produtos mais vendidos (30d)</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={topProducts} layout="vertical" margin={{ left: 10 }}>
-                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} />
-                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} width={120} />
-                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
-                  <Bar dataKey="vendas" fill="var(--primary)" radius={[0, 8, 8, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {analytics.topProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem dados ainda.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={analytics.topProducts} layout="vertical" margin={{ left: 10 }}>
+                    <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} />
+                    <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} width={120} />
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                    <Bar dataKey="vendas" fill="var(--primary)" radius={[0, 8, 8, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
@@ -105,11 +128,14 @@ function DashboardPage() {
               <Button asChild size="sm" variant="ghost"><Link to="/admin/pedidos">Ver todos <ChevronRight className="ml-1 h-4 w-4" /></Link></Button>
             </CardHeader>
             <CardContent className="space-y-2">
-              {orders.slice(0, 5).map((o) => (
+              {recentOrders.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhum pedido ainda.</p>
+              )}
+              {recentOrders.map((o) => (
                 <div key={o.id} className="flex items-center justify-between rounded-xl border p-3">
                   <div className="min-w-0">
-                    <p className="font-semibold">#{o.number} · {o.customerName}</p>
-                    <p className="text-xs text-muted-foreground">{modeLabel[o.mode]} · {brl(o.total)}</p>
+                    <p className="font-semibold">#{o.number} · {o.customer_name}</p>
+                    <p className="text-xs text-muted-foreground">{modeLabel[o.mode]} · {brl(Number(o.total))}</p>
                   </div>
                   <Badge className={statusColor[o.status]} variant="secondary">{statusLabel[o.status]}</Badge>
                 </div>
@@ -121,10 +147,8 @@ function DashboardPage() {
         <Card>
           <CardHeader><CardTitle>Alertas</CardTitle></CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2">
-            <Alert tone="success">Sua loja está {store.open ? "aberta" : "fechada"}.</Alert>
-            <Alert tone="warning">Você possui {pending} pedidos pendentes.</Alert>
-            <Alert tone="default">1 produto está indisponível.</Alert>
-            <Alert tone="default">Compartilhe seu link no Instagram para vender mais.</Alert>
+            <Alert tone="success">Sua loja está {analytics.storeOpen ? "aberta" : "fechada"}.</Alert>
+            <Alert tone="warning">Você possui {analytics.pendingCount} pedidos pendentes.</Alert>
           </CardContent>
         </Card>
       </div>
