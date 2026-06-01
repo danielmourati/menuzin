@@ -551,7 +551,7 @@ export function CartDrawer({
                 <Label>Telefone <span className="text-primary">*</span></Label>
                 <div className="mt-1.5 flex gap-2">
                   <div className="flex h-11 items-center gap-1 rounded-md border bg-card px-3 text-sm">🇧🇷 +55</div>
-                  <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" className="h-11 flex-1" />
+                  <Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="h-11 flex-1" />
                 </div>
               </div>
               <div>
