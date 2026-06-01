@@ -560,7 +560,7 @@ export function CartDrawer({
               </div>
               <div>
                 <Label>CPF/CNPJ</Label>
-                <Input value={doc} onChange={(e) => setDoc(e.target.value)} placeholder="Insira seu CPF ou CNPJ" className="mt-1.5 h-11" />
+                <Input value={doc} onChange={(e) => setDoc(maskCpfCnpj(e.target.value))} placeholder="Insira seu CPF ou CNPJ" inputMode="numeric" maxLength={18} className="mt-1.5 h-11" />
               </div>
               <div>
                 <Label>Observação geral</Label>
