@@ -167,7 +167,7 @@ function AdminPaymentSettingsPage() {
       title="Configurações de Pagamento"
       action={
         <Button asChild variant="outline" size="sm">
-          <Link to="/admin/configuracoes">
+          <Link to="/admin/configuracoes/">
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Link>
         </Button>
