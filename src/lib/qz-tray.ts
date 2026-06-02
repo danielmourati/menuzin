@@ -161,6 +161,25 @@ export async function listQzPrinters(): Promise<string[]> {
   return arr.filter(Boolean);
 }
 
+export async function listQzPrintersWithDefault(): Promise<{
+  printers: QzPrinter[];
+  defaultPrinter: string | null;
+}> {
+  const qz = await ensureQzConnected();
+  const res = await qz.printers.find();
+  const arr = (Array.isArray(res) ? res : [res]).filter(Boolean) as string[];
+  let def: string | null = null;
+  try {
+    def = (await qz.printers.getDefault()) || null;
+  } catch {
+    def = null;
+  }
+  return {
+    printers: arr.map((name) => ({ name, isDefault: !!def && name === def })),
+    defaultPrinter: def,
+  };
+}
+
 export async function printQzTextTest(
   printerName: string | undefined,
   text: string,
