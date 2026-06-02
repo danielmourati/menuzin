@@ -383,14 +383,19 @@ export function CartDrawer({
               ) : (
                 <div className="divide-y bg-card">
                   {items.map((i) => {
-                    const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
+                    const unit = computeUnitPrice(i);
+                    const detailParts: string[] = [];
+                    if (i.size) detailParts.push(i.size.name);
+                    if (i.flavors && i.flavors.length) detailParts.push(i.flavors.map((f) => f.name).join(" + "));
+                    if (i.groupOptions && i.groupOptions.length) detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
+                    if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
                     return (
                       <div key={i.uid} className="px-4 py-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold leading-tight">{i.product.name}</p>
-                            {i.addons.length > 0 && (
-                              <p className="mt-0.5 text-xs text-muted-foreground">+ {i.addons.map(a => a.name).join(", ")}</p>
+                            {detailParts.length > 0 && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">{detailParts.join(" · ")}</p>
                             )}
                             <p className="mt-2 font-bold">{brl(unit * i.qty)}</p>
                           </div>
