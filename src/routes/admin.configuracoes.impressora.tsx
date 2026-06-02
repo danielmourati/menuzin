@@ -166,11 +166,23 @@ function PrinterSettingsPage() {
 
   const handleTestPrint = async () => {
     setQzBusy(true);
+    const startedAt = performance.now();
     try {
       await printQzTextTest(form.printer_name, previewText);
       setQzStatus("connected");
+      setLastAttempt({
+        at: new Date(), ok: true,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: `Teste de impressão${form.printer_name ? ` → ${form.printer_name}` : ""}`,
+      });
       toast.success("Teste de impressão enviado com sucesso.");
     } catch (e) {
+      setLastAttempt({
+        at: new Date(), ok: false,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: "Teste de impressão",
+        error: (e as Error).message,
+      });
       handleQzError(e);
     } finally {
       setQzBusy(false);
