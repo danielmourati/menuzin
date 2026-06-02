@@ -14,6 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_group_targets: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          group_id: string
+          id: string
+          product_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          group_id: string
+          id?: string
+          product_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          group_id?: string
+          id?: string
+          product_id?: string | null
+        }
+        Relationships: []
+      }
+      addon_groups: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          max_select: number
+          min_select: number
+          name: string
+          required: boolean
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_select?: number
+          min_select?: number
+          name: string
+          required?: boolean
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          max_select?: number
+          min_select?: number
+          name?: string
+          required?: boolean
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      addon_options: {
+        Row: {
+          active: boolean
+          created_at: string
+          group_id: string
+          id: string
+          name: string
+          price: number
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          group_id: string
+          id?: string
+          name: string
+          price?: number
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          group_id?: string
+          id?: string
+          name?: string
+          price?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           active: boolean
@@ -268,8 +361,69 @@ export type Database = {
           },
         ]
       }
+      product_flavors: {
+        Row: {
+          available: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price_delta: number
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price_delta?: number
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_delta?: number
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      product_sizes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          price: number
+          product_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          product_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          product_id?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
+          allow_observations: boolean
           available: boolean
           category_id: string | null
           created_at: string
@@ -277,15 +431,18 @@ export type Database = {
           featured: boolean
           id: string
           image_url: string | null
+          max_flavors: number | null
           name: string
           prep_time: string | null
           price: number
           promo_price: number | null
           sort_order: number
           tenant_id: string
+          type: string
           updated_at: string
         }
         Insert: {
+          allow_observations?: boolean
           available?: boolean
           category_id?: string | null
           created_at?: string
@@ -293,15 +450,18 @@ export type Database = {
           featured?: boolean
           id?: string
           image_url?: string | null
+          max_flavors?: number | null
           name: string
           prep_time?: string | null
           price: number
           promo_price?: number | null
           sort_order?: number
           tenant_id: string
+          type?: string
           updated_at?: string
         }
         Update: {
+          allow_observations?: boolean
           available?: boolean
           category_id?: string | null
           created_at?: string
@@ -309,12 +469,14 @@ export type Database = {
           featured?: boolean
           id?: string
           image_url?: string | null
+          max_flavors?: number | null
           name?: string
           prep_time?: string | null
           price?: number
           promo_price?: number | null
           sort_order?: number
           tenant_id?: string
+          type?: string
           updated_at?: string
         }
         Relationships: [
@@ -457,6 +619,7 @@ export type Database = {
           name: string
           open: boolean
           plan: string
+          pos_paper_width: string
           prep_time: string | null
           slug: string
           social: Json
@@ -482,6 +645,7 @@ export type Database = {
           name: string
           open?: boolean
           plan?: string
+          pos_paper_width?: string
           prep_time?: string | null
           slug: string
           social?: Json
@@ -507,6 +671,7 @@ export type Database = {
           name?: string
           open?: boolean
           plan?: string
+          pos_paper_width?: string
           prep_time?: string | null
           slug?: string
           social?: Json
