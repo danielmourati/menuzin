@@ -638,6 +638,48 @@ function PrinterSettingsPage() {
                   </div>
                 )}
 
+                {certCheck.state !== "idle" && (
+                  <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                    <div className="mb-1.5 font-medium text-muted-foreground">
+                      Endpoint <code className="rounded bg-muted px-1 py-0.5">/api/public/qz-cert.crt</code>
+                    </div>
+                    {certCheck.state === "loading" && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando PEM…
+                      </div>
+                    )}
+                    {certCheck.state === "err" && (
+                      <div className="flex items-start gap-2 text-destructive">
+                        <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <div>
+                          <div>Falha ao carregar o PEM{certCheck.status ? ` (HTTP ${certCheck.status})` : ""}.</div>
+                          <div className="text-muted-foreground">{certCheck.message}</div>
+                        </div>
+                      </div>
+                    )}
+                    {certCheck.state === "ok" && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          PEM válido — {certCheck.bytes} bytes, {certCheck.lines} linhas.
+                        </div>
+                        <div className="text-muted-foreground">
+                          Content-Type: <code>{certCheck.contentType}</code>
+                        </div>
+                        <div className="text-muted-foreground truncate">{certCheck.beginLine}</div>
+                        <div className="text-muted-foreground truncate">{certCheck.endLine}</div>
+                        {certCheck.fingerprint && (
+                          <div className="break-all text-muted-foreground">
+                            SHA-256: <code className="text-[10px]">{certCheck.fingerprint}</code>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+
+
                 {qzTrustState === "prompted" && !isDemoCert && (
                   <div className="space-y-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
                     <div className="flex items-start gap-2">
