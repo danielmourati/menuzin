@@ -43,6 +43,7 @@ export type Database = {
           active: boolean
           created_at: string
           id: string
+          kind: string
           max_select: number
           min_select: number
           name: string
@@ -55,6 +56,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          kind?: string
           max_select?: number
           min_select?: number
           name: string
@@ -67,6 +69,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          kind?: string
           max_select?: number
           min_select?: number
           name?: string
