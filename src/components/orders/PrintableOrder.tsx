@@ -7,166 +7,285 @@ interface PrintableOrderProps {
   storeName?: string;
   storePhone?: string;
   storeAddress?: string;
+  storeCnpj?: string;
+  storeInstagram?: string;
+  storePixKey?: string;
   /** Largura do papel térmico. Padrão: "80mm". */
-  paperWidth?: "55mm" | "80mm";
+  paperWidth?: "55mm" | "58mm" | "80mm";
 }
+
+/* ============================================================
+ * Helpers de formatação para cupom térmico monoespaçado
+ * ============================================================ */
+
+const stripAccents = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+/** Apenas número monetário no padrão BR, sem "R$" (economia de coluna). */
+const money = (v: number) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const lineOf = (ch: string, cols: number) => ch.repeat(cols);
+
+const center = (text: string, cols: number) => {
+  const t = text.length > cols ? text.slice(0, cols) : text;
+  const pad = Math.max(0, Math.floor((cols - t.length) / 2));
+  return " ".repeat(pad) + t;
+};
+
+/** Quebra texto preservando palavras inteiras quando possível. */
+function wrap(text: string, cols: number): string[] {
+  if (cols <= 0) return [text];
+  const words = text.split(/\s+/);
+  const out: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    if (!w) continue;
+    if (w.length > cols) {
+      if (cur) { out.push(cur); cur = ""; }
+      for (let i = 0; i < w.length; i += cols) out.push(w.slice(i, i + cols));
+      continue;
+    }
+    if (!cur) { cur = w; continue; }
+    if (cur.length + 1 + w.length <= cols) cur += " " + w;
+    else { out.push(cur); cur = w; }
+  }
+  if (cur) out.push(cur);
+  return out.length ? out : [""];
+}
+
+/** Linha "label .... value" alinhando à esquerda e à direita. */
+function row(label: string, value: string, cols: number): string {
+  const l = label ?? "";
+  const v = value ?? "";
+  if (l.length + v.length + 1 > cols) {
+    // Quebra o label, mantém o valor sozinho na última linha alinhado à direita
+    const labelLines = wrap(l, cols);
+    const last = labelLines.pop()!;
+    const remaining = cols - last.length - v.length;
+    if (remaining >= 1) {
+      labelLines.push(last + " ".repeat(remaining) + v);
+    } else {
+      labelLines.push(last);
+      labelLines.push(" ".repeat(Math.max(0, cols - v.length)) + v);
+    }
+    return labelLines.join("\n");
+  }
+  const gap = cols - l.length - v.length;
+  return l + " ".repeat(gap) + v;
+}
+
+/** Item: nome (multi-linha) + linha com "Qtd UN x Vl Unit  Vl Tot" à direita. */
+function itemBlock(name: string, qty: number, unit: number, total: number, cols: number) {
+  const lines = wrap(stripAccents(name), cols);
+  const right = `${qty}UN x ${money(unit)}  ${money(total)}`;
+  const padded =
+    right.length >= cols
+      ? right
+      : " ".repeat(cols - right.length) + right;
+  return [...lines, padded].join("\n");
+}
+
+/** Linha de adicional indentada: "  + Nx nome" alinhada com valor opcional. */
+function addonLine(qty: number, name: string, price: number | undefined, cols: number) {
+  const indent = "  ";
+  const labelRaw = `+ ${qty}x ${stripAccents(name)}`;
+  const value = price && price > 0 ? money(price) : "";
+  const inner = cols - indent.length;
+  if (!value) {
+    return wrap(labelRaw, inner).map((l) => indent + l).join("\n");
+  }
+  const lines = wrap(labelRaw, inner - value.length - 1);
+  const last = lines.pop()!;
+  const gap = inner - last.length - value.length;
+  lines.push(last + " ".repeat(Math.max(1, gap)) + value);
+  return lines.map((l) => indent + l).join("\n");
+}
+
+/* ============================================================
+ * Builder do cupom
+ * ============================================================ */
+
+function buildReceipt(
+  order: Order,
+  cols: number,
+  opts: {
+    storeName: string;
+    storePhone?: string;
+    storeAddress?: string;
+    storeCnpj?: string;
+    storeInstagram?: string;
+    storePixKey?: string;
+  },
+): string {
+  const out: string[] = [];
+  const sep = lineOf("-", cols);
+  const sepDouble = lineOf("=", cols);
+
+  /* ---- 1. Cabeçalho da loja ---- */
+  out.push(center(stripAccents(opts.storeName.toUpperCase()), cols));
+  if (opts.storeAddress) {
+    wrap(stripAccents(opts.storeAddress), cols).forEach((l) => out.push(center(l, cols)));
+  }
+  if (opts.storeCnpj) out.push(center(`CNPJ: ${opts.storeCnpj}`, cols));
+  if (opts.storePhone) out.push(center(`WhatsApp: ${opts.storePhone}`, cols));
+  out.push(sep);
+
+  /* ---- 2. Aviso fiscal ---- */
+  out.push("");
+  out.push(center("NAO E DOCUMENTO FISCAL", cols));
+  wrap("AGUARDE A EMISSAO DO DOCUMENTO FISCAL", cols).forEach((l) =>
+    out.push(center(l, cols)),
+  );
+  out.push(sepDouble);
+
+  /* ---- 3. Identificação do pedido ---- */
+  const shortId = order.id.replace(/-/g, "").slice(0, 8).toUpperCase();
+  const idFmt = `${shortId.slice(0, 4)}.${shortId.slice(4, 8)}`;
+  out.push("");
+  out.push(center(`CONFERENCIA - VENDA ${idFmt}`, cols));
+  out.push(sep);
+
+  /* ---- 4. Dados do cliente ---- */
+  out.push("");
+  out.push(`Cliente: ${stripAccents(order.customerName) || "Consumidor"}`);
+  if (order.whatsapp) out.push(`Fone: ${order.whatsapp}`);
+  out.push(sep);
+
+  /* ---- 5. Cabeçalho da tabela ---- */
+  out.push("");
+  out.push("Descricao");
+  out.push("Qtd Un  Vl Unit   Vl Tot");
+  out.push(sepDouble);
+
+  /* ---- 6. Itens ---- */
+  for (const it of order.items) {
+    out.push(itemBlock(it.name, it.qty, it.unitPrice, it.unitPrice * it.qty, cols));
+    if (it.addons?.length) {
+      for (const a of it.addons) {
+        const parsed = parseAddonLabel(a.name);
+        const label =
+          parsed.kind === "size" ? `Tamanho: ${parsed.label}` :
+          parsed.kind === "flavor" ? `Sabor: ${parsed.label}` :
+          parsed.kind === "group" ? `${parsed.groupName}: ${parsed.label}` :
+          parsed.label;
+        out.push(addonLine(1, label, Number(a.price) || 0, cols));
+      }
+    }
+    if (it.note) {
+      wrap(`* ${stripAccents(it.note)}`, cols - 2).forEach((l) => out.push("  " + l));
+    }
+    out.push("");
+  }
+
+  /* ---- 7. Total ---- */
+  out.push(sep);
+  if (order.deliveryFee > 0) {
+    out.push(row("Subtotal", money(order.subtotal), cols));
+    out.push(row("Taxa de entrega", money(order.deliveryFee), cols));
+  }
+  out.push(row("TOTAL", money(order.total), cols));
+  out.push("");
+
+  /* ---- 8. Forma de pagamento ---- */
+  out.push(row("Forma de Pagamento", "Valor Pago", cols));
+  const payLabel = stripAccents(order.payment || "-");
+  out.push(row(payLabel, money(order.total), cols));
+  if (order.changeFor && order.changeFor > 0) {
+    out.push(row("Troco para", money(order.changeFor), cols));
+  }
+  out.push(sep);
+
+  /* ---- 9. Informações adicionais ---- */
+  out.push("");
+  out.push(`Catalogo Online - Pedido ${String(order.number).padStart(6, "0")}`);
+  if (order.mode === "retirada") {
+    out.push("Retirada no local");
+    if (order.pickupTime) out.push(`Horario: ${order.pickupTime}`);
+  } else if (order.mode === "consumo_local") {
+    if (order.table) out.push(`Mesa: ${order.table}`);
+  } else if (order.mode === "entrega" && order.address) {
+    out.push("Entrega:");
+    const a = order.address;
+    const linhaEnd = [
+      [a.street, a.number].filter(Boolean).join(", "),
+      a.complement,
+    ].filter(Boolean).join(" - ");
+    if (linhaEnd) wrap(stripAccents(linhaEnd), cols).forEach((l) => out.push("  " + l));
+    if (a.neighborhood) wrap(stripAccents(a.neighborhood), cols - 2).forEach((l) => out.push("  " + l));
+    if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - 2).forEach((l) => out.push("  " + l));
+  }
+  if (order.paymentStatus === "approved") out.push("Cobranca antecipada");
+  else if (order.paymentStatus === "manual") out.push("Pagamento na entrega");
+  else if (order.paymentStatus === "pending") out.push("Aguardando pagamento");
+
+  if (order.note) {
+    out.push("");
+    out.push("Observacao:");
+    wrap(stripAccents(order.note), cols).forEach((l) => out.push(l));
+  }
+
+  /* ---- 10. Rodapé ---- */
+  out.push(sepDouble);
+  out.push(center("NAO E DOCUMENTO FISCAL", cols));
+  out.push(`Data/Hora: ${formatDateTime(order.createdAt)}`);
+  out.push("");
+  out.push(center("Obrigado, volte sempre!", cols));
+  if (opts.storeInstagram) out.push(center(`Instagram: @${opts.storeInstagram.replace(/^@/, "")}`, cols));
+  if (opts.storePixKey) {
+    wrap(`PIX: ${opts.storePixKey}`, cols).forEach((l) => out.push(center(l, cols)));
+  }
+  out.push("");
+  out.push("");
+  out.push("");
+
+  return out.join("\n");
+}
+
+/* ============================================================
+ * Componente
+ * ============================================================ */
 
 export function PrintableOrder({
   order,
   storeName = "Burger Prime",
   storePhone = "(86) 99999-9999",
   storeAddress = "Av. Beira Rio, 123 — Centro, Parnaíba/PI",
+  storeCnpj,
+  storeInstagram,
+  storePixKey,
   paperWidth = "80mm",
 }: PrintableOrderProps) {
-  const isNarrow = paperWidth === "55mm";
-  const fontBase = isNarrow ? "text-[10px]" : "text-[12px]";
-  const fontSmall = isNarrow ? "text-[8px]" : "text-[10px]";
-  const fontTitle = isNarrow ? "text-[12px]" : "text-sm";
-  const pad = isNarrow ? "p-2" : "p-4";
-  // Hint para impressão: tamanho do papel via @page no head do iframe/print, mas
-  // também restringimos a largura visual do recibo para preview e impressão direta.
-  const widthPx = isNarrow ? "max-w-[55mm]" : "max-w-[80mm]";
+  const isNarrow = paperWidth === "55mm" || paperWidth === "58mm";
+  const cols = isNarrow ? 32 : 48;
+  const fontSize = isNarrow ? "10px" : "12px";
+  const widthClass = isNarrow ? "max-w-[58mm]" : "max-w-[80mm]";
+  const pageSize = isNarrow ? "58mm" : "80mm";
+
+  const text = buildReceipt(order, cols, {
+    storeName,
+    storePhone,
+    storeAddress,
+    storeCnpj,
+    storeInstagram,
+    storePixKey,
+  });
 
   return (
-    <div className={`printable-order-receipt mx-auto w-full ${widthPx} ${fontBase} font-mono leading-tight text-black ${pad} bg-white select-none`}>
-      <style>{`@media print { @page { size: ${paperWidth} auto; margin: 2mm; } }`}</style>
-
-      {/* Cabeçalho do estabelecimento */}
-      <div className="text-center space-y-1 mb-3 border-b border-dashed border-black pb-2">
-        <h2 className={`${fontTitle} font-bold uppercase`}>{storeName}</h2>
-        <p className={`${fontSmall} text-zinc-700`}>{storeAddress}</p>
-        <p className={`${fontSmall} text-zinc-700`}>WhatsApp: {storePhone}</p>
-      </div>
-
-      {/* Dados do Pedido */}
-      <div className="space-y-1 mb-3 border-b border-dashed border-black pb-2">
-        <div className="flex justify-between font-bold">
-          <span>PEDIDO: #{order.number}</span>
-          <span className="uppercase">
-            {order.mode === "consumo_local"
-              ? "MESA"
-              : order.mode === "retirada"
-              ? "RETIRADA"
-              : "ENTREGA"}
-          </span>
-        </div>
-        <div>DATA: {formatDateTime(order.createdAt)}</div>
-        <div>CLIENTE: {order.customerName}</div>
-        <div>FONE: {order.whatsapp}</div>
-
-        {order.mode === "entrega" && order.address && (
-          <div className="mt-1">
-            <span className="font-bold">ENTREGAR EM:</span>
-            <p>
-              {order.address.street}, {order.address.number}
-              {order.address.complement ? ` - ${order.address.complement}` : ""}
-            </p>
-            <p>{order.address.neighborhood}</p>
-            {order.address.reference && (
-              <p className={`${fontSmall} text-zinc-700`}>Ref: {order.address.reference}</p>
-            )}
-          </div>
-        )}
-
-        {order.mode === "consumo_local" && order.table && (
-          <div className="mt-1 font-bold">LOCAL: {order.table}</div>
-        )}
-
-        {order.mode === "retirada" && order.pickupTime && (
-          <div className="mt-1">HORÁRIO RETIRADA: {order.pickupTime}</div>
-        )}
-      </div>
-
-      {/* Itens */}
-      <div className="mb-3 border-b border-dashed border-black pb-2">
-        <div className="flex justify-between font-bold border-b border-dashed border-black pb-1 mb-1">
-          <span>ITEM</span>
-          <span>VALOR</span>
-        </div>
-        <div className="space-y-2">
-          {order.items.map((item, idx) => (
-            <div key={idx}>
-              <div className="flex justify-between items-start">
-                <span className="flex-1 pr-2">{item.qty}x {item.name}</span>
-                <span className="shrink-0">{brl(item.unitPrice * item.qty)}</span>
-              </div>
-              {item.addons && item.addons.length > 0 && (
-                <div className={`${fontSmall} pl-3 text-zinc-700 space-y-0.5`}>
-                  {item.addons.map((addon) => {
-                    const parsed = parseAddonLabel(addon.name);
-                    const prefix =
-                      parsed.kind === "size" ? "Tamanho:" :
-                      parsed.kind === "flavor" ? "Sabor:" :
-                      parsed.kind === "group" ? `${parsed.groupName}:` :
-                      "+";
-                    return (
-                      <div key={addon.id} className="flex justify-between">
-                        <span>{prefix} {parsed.label}</span>
-                        {Number(addon.price) > 0 && <span>{brl(addon.price)}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {item.note && (
-                <p className={`${fontSmall} pl-3 text-zinc-700 italic`}>Obs: {item.note}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Observações */}
-      {order.note && (
-        <div className="mb-3 border-b border-dashed border-black pb-2">
-          <span className="font-bold">OBSERVAÇÃO GERAL:</span>
-          <p className="italic">{order.note}</p>
-        </div>
-      )}
-
-      {/* Totais */}
-      <div className="space-y-1 mb-3 border-b border-dashed border-black pb-2">
-        <div className="flex justify-between">
-          <span>Subtotal:</span>
-          <span>{brl(order.subtotal)}</span>
-        </div>
-        {order.deliveryFee > 0 && (
-          <div className="flex justify-between">
-            <span>Taxa de Entrega:</span>
-            <span>{brl(order.deliveryFee)}</span>
-          </div>
-        )}
-        <div className={`flex justify-between font-bold ${fontTitle} border-t border-dotted border-black pt-1`}>
-          <span>TOTAL:</span>
-          <span>{brl(order.total)}</span>
-        </div>
-      </div>
-
-      {/* Pagamento */}
-      <div className="space-y-1 border-b border-dashed border-black pb-2 mb-3">
-        <div>PAGAMENTO: <span className="font-bold uppercase">{order.payment}</span></div>
-        <div>
-          STATUS:{" "}
-          <span className="font-bold uppercase">
-            {order.paymentStatus === "approved"
-              ? "PAGO / APROVADO"
-              : order.paymentStatus === "pending"
-              ? "PENDENTE"
-              : order.paymentStatus === "manual"
-              ? "PAGAR NA ENTREGA"
-              : "NÃO PAGO"}
-          </span>
-        </div>
-        {order.changeFor && (
-          <div>TROCO PARA: <span className="font-bold">{brl(order.changeFor)}</span></div>
-        )}
-      </div>
-
-      {/* Rodapé */}
-      <div className={`text-center ${fontSmall} text-zinc-700 mt-2 space-y-1`}>
-        <p>Agradecemos a preferência!</p>
-        <p>Desenvolvido por Menuzin</p>
-      </div>
+    <div className={`printable-order-receipt mx-auto w-full ${widthClass} bg-white text-black p-2 select-none`}>
+      <style>{`@media print { @page { size: ${pageSize} auto; margin: 2mm; } }`}</style>
+      <pre
+        className="font-mono leading-tight whitespace-pre"
+        style={{
+          fontFamily: '"Courier New", Courier, monospace',
+          fontSize,
+          lineHeight: 1.15,
+          margin: 0,
+          letterSpacing: 0,
+        }}
+      >
+        {text}
+      </pre>
     </div>
   );
 }
