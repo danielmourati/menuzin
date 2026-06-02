@@ -182,6 +182,68 @@ function NewTenantPage() {
             <Switch checked={cloneBurger} onCheckedChange={setCloneBurger} />
           </div>
 
+          <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
+            <div>
+              <p className="font-medium">Acesso do dono da loja</p>
+              <p className="text-xs text-muted-foreground">
+                Defina o email e uma senha inicial. No primeiro acesso, o dono será obrigado a trocar por uma senha pessoal.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Nome do dono</Label>
+                <Input
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Ex.: João Silva"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Email do dono *</Label>
+                <Input
+                  type="email"
+                  value={ownerEmail}
+                  onChange={(e) => setOwnerEmail(e.target.value)}
+                  placeholder="dono@loja.com"
+                  className="mt-1.5"
+                  autoComplete="off"
+                />
+                {ownerEmail.length > 0 && !emailValid && (
+                  <p className="mt-1 text-xs text-destructive">Email inválido.</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label>Senha inicial *</Label>
+              <Input
+                type="text"
+                value={ownerPassword}
+                onChange={(e) => setOwnerPassword(e.target.value)}
+                placeholder="Defina uma senha forte"
+                className="mt-1.5 font-mono"
+                autoComplete="off"
+                maxLength={72}
+              />
+              <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                {[
+                  { ok: pwdChecks.len, label: "8+ caracteres" },
+                  { ok: pwdChecks.upper, label: "Letra maiúscula" },
+                  { ok: pwdChecks.lower, label: "Letra minúscula" },
+                  { ok: pwdChecks.num, label: "Número" },
+                  { ok: pwdChecks.special, label: "Caractere especial" },
+                ].map((r) => (
+                  <li
+                    key={r.label}
+                    className={r.ok ? "text-success" : "text-muted-foreground"}
+                  >
+                    {r.ok ? "✓" : "○"} {r.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => navigate({ to: "/platform/lojas" })}>Cancelar</Button>
             <Button disabled={!canSubmit || createMut.isPending} onClick={handleSubmit}>
