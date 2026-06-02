@@ -163,10 +163,10 @@ function PrinterSettingsPage() {
                   >
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="browser">QZ Tray — Impressão local (recomendado)</SelectItem>
                       <SelectItem value="bluetooth">Bluetooth</SelectItem>
                       <SelectItem value="usb">USB</SelectItem>
                       <SelectItem value="network">Rede / IP</SelectItem>
-                      <SelectItem value="browser">Navegador / Sistema (recomendado)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
