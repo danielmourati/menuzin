@@ -237,6 +237,9 @@ function AdminPaymentSettingsPage() {
             expiresAt={settings?.mp_token_expires_at}
             connectedVia={connectedVia}
             connectedPublicKey={settings?.mp_public_key}
+            accountKind={settings?.mp_account_kind}
+            liveModeSaved={settings?.mp_live_mode}
+            mpUserId={settings?.mp_user_id}
           />
 
           {settings?.mp_connected && (
