@@ -59,7 +59,7 @@ function NewTenantPage() {
     name.trim().length >= 2 && slugOk && whatsapp.trim().length >= 8 && ownerOk;
 
   const previewUrl = useMemo(
-    () => (computedSlug ? `seudominio.com.br/loja/${computedSlug}` : "seudominio.com.br/loja/sua-loja"),
+    () => (computedSlug ? `seudominio.com.br/${computedSlug}` : "seudominio.com.br/sua-loja"),
     [computedSlug],
   );
 
