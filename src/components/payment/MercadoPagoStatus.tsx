@@ -264,13 +264,16 @@ export function MercadoPagoStatus({
                 {testing ? (
                   <>
                     <RefreshCw className="mr-1.5 h-3 w-3 animate-spin" />
-                    Processando...
+                    Testando...
                   </>
                 ) : (
                   "Testar pagamento"
                 )}
               </Button>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              Cria uma cobrança Pix de R$ 1,00 e cancela automaticamente para validar o par credenciais + modo.
+            </p>
           </div>
         ) : status === "expired" ? (
           /* ─── EXPIRED ─── */
