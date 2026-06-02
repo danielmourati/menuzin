@@ -1,6 +1,8 @@
-import { brl, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
+import type { PrinterSettings } from "@/lib/printer-types";
+import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
 
 interface PrintableOrderProps {
   order: Order;
@@ -10,8 +12,10 @@ interface PrintableOrderProps {
   storeCnpj?: string;
   storeInstagram?: string;
   storePixKey?: string;
-  /** Largura do papel térmico. Padrão: "80mm". */
+  /** Largura do papel térmico. Se `settings` for fornecido, sua largura prevalece. */
   paperWidth?: "55mm" | "58mm" | "80mm";
+  /** Configurações de impressão por tenant (layout, separador, visibilidade...). */
+  settings?: PrinterSettings;
 }
 
 /* ============================================================
@@ -21,7 +25,6 @@ interface PrintableOrderProps {
 const stripAccents = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-/** Apenas número monetário no padrão BR, sem "R$" (economia de coluna). */
 const money = (v: number) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -33,7 +36,6 @@ const center = (text: string, cols: number) => {
   return " ".repeat(pad) + t;
 };
 
-/** Quebra texto preservando palavras inteiras quando possível. */
 function wrap(text: string, cols: number): string[] {
   if (cols <= 0) return [text];
   const words = text.split(/\s+/);
@@ -54,12 +56,10 @@ function wrap(text: string, cols: number): string[] {
   return out.length ? out : [""];
 }
 
-/** Linha "label .... value" alinhando à esquerda e à direita. */
 function row(label: string, value: string, cols: number): string {
   const l = label ?? "";
   const v = value ?? "";
   if (l.length + v.length + 1 > cols) {
-    // Quebra o label, mantém o valor sozinho na última linha alinhado à direita
     const labelLines = wrap(l, cols);
     const last = labelLines.pop()!;
     const remaining = cols - last.length - v.length;
@@ -75,7 +75,6 @@ function row(label: string, value: string, cols: number): string {
   return l + " ".repeat(gap) + v;
 }
 
-/** Item: nome (multi-linha) + linha com "Qtd UN x Vl Unit  Vl Tot" à direita. */
 function itemBlock(name: string, qty: number, unit: number, total: number, cols: number) {
   const lines = wrap(stripAccents(name), cols);
   const right = `${qty}UN x ${money(unit)}  ${money(total)}`;
@@ -86,7 +85,6 @@ function itemBlock(name: string, qty: number, unit: number, total: number, cols:
   return [...lines, padded].join("\n");
 }
 
-/** Linha de adicional indentada: "  + Nx nome" alinhada com valor opcional. */
 function addonLine(qty: number, name: string, price: number | undefined, cols: number) {
   const indent = "  ";
   const labelRaw = `+ ${qty}x ${stripAccents(name)}`;
@@ -109,6 +107,7 @@ function addonLine(qty: number, name: string, price: number | undefined, cols: n
 function buildReceipt(
   order: Order,
   cols: number,
+  s: PrinterSettings,
   opts: {
     storeName: string;
     storePhone?: string;
@@ -119,17 +118,22 @@ function buildReceipt(
   },
 ): string {
   const out: string[] = [];
-  const sep = lineOf("-", cols);
-  const sepDouble = lineOf("=", cols);
+  const sepChar = s.separator_char || "-";
+  const sep = lineOf(sepChar, cols);
+  const sepDouble = lineOf(sepChar === "=" ? "=" : "=", cols);
 
   /* ---- 1. Cabeçalho da loja ---- */
-  out.push(center(stripAccents(opts.storeName.toUpperCase()), cols));
-  if (opts.storeAddress) {
+  if (s.show_store_name && opts.storeName) {
+    out.push(center(stripAccents(opts.storeName.toUpperCase()), cols));
+  }
+  if (s.show_address && opts.storeAddress) {
     wrap(stripAccents(opts.storeAddress), cols).forEach((l) => out.push(center(l, cols)));
   }
-  if (opts.storeCnpj) out.push(center(`CNPJ: ${opts.storeCnpj}`, cols));
-  if (opts.storePhone) out.push(center(`WhatsApp: ${opts.storePhone}`, cols));
-  out.push(sep);
+  if (s.show_document && opts.storeCnpj) out.push(center(`CNPJ: ${opts.storeCnpj}`, cols));
+  if (s.show_whatsapp && opts.storePhone) out.push(center(`WhatsApp: ${opts.storePhone}`, cols));
+  if (s.show_store_name || s.show_address || s.show_document || s.show_whatsapp) {
+    out.push(sep);
+  }
 
   /* ---- 2. Aviso fiscal ---- */
   out.push("");
@@ -146,13 +150,13 @@ function buildReceipt(
   out.push(center(`CONFERENCIA - VENDA ${idFmt}`, cols));
   out.push(sep);
 
-  /* ---- 4. Dados do cliente ---- */
+  /* ---- 4. Cliente ---- */
   out.push("");
   out.push(`Cliente: ${stripAccents(order.customerName) || "Consumidor"}`);
   if (order.whatsapp) out.push(`Fone: ${order.whatsapp}`);
   out.push(sep);
 
-  /* ---- 5. Cabeçalho da tabela ---- */
+  /* ---- 5. Tabela ---- */
   out.push("");
   out.push("Descricao");
   out.push("Qtd Un  Vl Unit   Vl Tot");
@@ -187,16 +191,15 @@ function buildReceipt(
   out.push(row("TOTAL", money(order.total), cols));
   out.push("");
 
-  /* ---- 8. Forma de pagamento ---- */
+  /* ---- 8. Pagamento ---- */
   out.push(row("Forma de Pagamento", "Valor Pago", cols));
-  const payLabel = stripAccents(order.payment || "-");
-  out.push(row(payLabel, money(order.total), cols));
+  out.push(row(stripAccents(order.payment || "-"), money(order.total), cols));
   if (order.changeFor && order.changeFor > 0) {
     out.push(row("Troco para", money(order.changeFor), cols));
   }
   out.push(sep);
 
-  /* ---- 9. Informações adicionais ---- */
+  /* ---- 9. Info adicionais ---- */
   out.push("");
   out.push(`Catalogo Online - Pedido ${String(order.number).padStart(6, "0")}`);
   if (order.mode === "retirada") {
@@ -230,14 +233,16 @@ function buildReceipt(
   out.push(center("NAO E DOCUMENTO FISCAL", cols));
   out.push(`Data/Hora: ${formatDateTime(order.createdAt)}`);
   out.push("");
-  out.push(center("Obrigado, volte sempre!", cols));
-  if (opts.storeInstagram) out.push(center(`Instagram: @${opts.storeInstagram.replace(/^@/, "")}`, cols));
-  if (opts.storePixKey) {
+  if (s.show_thank_message && s.thank_message) {
+    out.push(center(stripAccents(s.thank_message), cols));
+  }
+  if (s.show_instagram && opts.storeInstagram) {
+    out.push(center(`Instagram: @${opts.storeInstagram.replace(/^@/, "")}`, cols));
+  }
+  if (s.show_pix && opts.storePixKey) {
     wrap(`PIX: ${opts.storePixKey}`, cols).forEach((l) => out.push(center(l, cols)));
   }
-  out.push("");
-  out.push("");
-  out.push("");
+  for (let i = 0; i < Math.max(0, s.feed_lines); i++) out.push("");
 
   return out.join("\n");
 }
@@ -254,15 +259,20 @@ export function PrintableOrder({
   storeCnpj,
   storeInstagram,
   storePixKey,
-  paperWidth = "80mm",
+  paperWidth,
+  settings,
 }: PrintableOrderProps) {
-  const isNarrow = paperWidth === "55mm" || paperWidth === "58mm";
+  const s = settings ?? DEFAULT_PRINTER_SETTINGS;
+  // Largura efetiva: prop > settings > default
+  const widthRaw = paperWidth ?? s.paper_width;
+  const isNarrow = widthRaw === "55mm" || widthRaw === "58mm";
   const cols = isNarrow ? 32 : 48;
-  const fontSize = isNarrow ? "10px" : "12px";
+  const fontSize =
+    s.font_size === "compact" ? (isNarrow ? "9px" : "10px") : (isNarrow ? "10px" : "12px");
   const widthClass = isNarrow ? "max-w-[58mm]" : "max-w-[80mm]";
   const pageSize = isNarrow ? "58mm" : "80mm";
 
-  const text = buildReceipt(order, cols, {
+  const text = buildReceipt(order, cols, s, {
     storeName,
     storePhone,
     storeAddress,
@@ -282,6 +292,7 @@ export function PrintableOrder({
           lineHeight: 1.15,
           margin: 0,
           letterSpacing: 0,
+          fontWeight: s.use_bold_titles ? 500 : 400,
         }}
       >
         {text}
