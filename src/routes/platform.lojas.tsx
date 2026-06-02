@@ -54,6 +54,12 @@ const statusTone: Record<string, string> = {
 
 function PlatformStores() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const accessStore = (id: string) => {
+    setActiveTenantId(id);
+    qc.invalidateQueries();
+    navigate({ to: "/admin/dashboard" });
+  };
   const { data, isLoading, error } = useQuery({
     queryKey: ["platform", "stores"],
     queryFn: () => listPlatformStores(),
