@@ -67,7 +67,7 @@ function loadMpSdk(): Promise<void> {
   });
 }
 
-export function CardCheckout({ amount, publicKey, onSubmit, onCancel }: CardCheckoutProps) {
+export function CardCheckout({ amount, publicKey, onSubmit, onSuccess, onCancel }: CardCheckoutProps) {
   const [cardNumber, setCardNumber] = useState("");
   const [cardholderName, setCardholderName] = useState("");
   const [expiration, setExpiration] = useState("");
