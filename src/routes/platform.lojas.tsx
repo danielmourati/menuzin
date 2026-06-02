@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +42,7 @@ import {
 } from "@/lib/platform.functions";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
+import { setActiveTenantId } from "@/lib/active-tenant";
 
 export const Route = createFileRoute("/platform/lojas")({ component: PlatformStores });
 
