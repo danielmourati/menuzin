@@ -867,7 +867,7 @@ function PrinterSettingsPage() {
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="generic">Genérico ESC/POS</SelectItem>
-                      <SelectItem value="mini_bt_58">Mini Bluetooth 58mm</SelectItem>
+                      <SelectItem value="mini_bt_58">Mini Bluetooth 55mm</SelectItem>
                       <SelectItem value="generic_80">80mm Genérica</SelectItem>
                       <SelectItem value="elgin_i8_i9">ELGIN i8 / i9 compatível</SelectItem>
                     </SelectContent>
