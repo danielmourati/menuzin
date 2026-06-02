@@ -102,7 +102,20 @@ function SettingsPage() {
 
             <TabsContent value="dados" className="mt-6 grid gap-4 md:grid-cols-2">
               <div><Label>Nome da loja</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} className="mt-1.5" /></div>
-              <div><Label>WhatsApp</Label><Input value={form.whatsapp} onChange={(e) => set("whatsapp", maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="mt-1.5" /></div>
+              <div>
+                <Label>WhatsApp</Label>
+                <div className="mt-1.5 flex">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground">+55</span>
+                  <Input
+                    value={form.whatsapp}
+                    onChange={(e) => set("whatsapp", e.target.value.replace(/\D/g, ""))}
+                    placeholder="DDD + número"
+                    inputMode="numeric"
+                    maxLength={11}
+                    className="rounded-l-none"
+                  />
+                </div>
+              </div>
               <div className="md:col-span-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
