@@ -313,26 +313,61 @@ function PrinterSettingsPage() {
           <Card className="lg:sticky lg:top-4 self-start">
             <CardHeader className="flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
-              <Button size="sm" onClick={handleTestPrint}>
-                <Printer className="mr-1.5 h-4 w-4" /> Imprimir teste
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md bg-muted/40 p-2 flex justify-center max-h-[70vh] overflow-auto">
-                <div className="shadow-sm ring-1 ring-border rounded-sm">
-                  <PrintableOrder
-                    order={testOrder}
-                    storeName={form.show_store_name ? (tenant?.name || "Nome da Loja") : ""}
-                    storePhone={form.show_whatsapp ? tenant?.whatsapp : undefined}
-                    storeAddress={form.show_address ? tenant?.address : undefined}
-                    storeInstagram={form.show_instagram ? tenant?.social?.instagram : undefined}
-                    paperWidth={form.paper_width}
-                    settings={form}
-                  />
-                </div>
+              <div className="flex gap-1.5">
+                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy}>
+                  <Plug className="mr-1.5 h-4 w-4" /> Detectar
+                </Button>
+                <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
+                  {qzBusy ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Printer className="mr-1.5 h-4 w-4" />
+                  )}
+                  Testar impressão
+                </Button>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                A prévia usa o cupom real da plataforma com um pedido fictício e as opções de layout escolhidas.
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {qzPrinters.length > 0 && (
+                <div>
+                  <Label className="text-xs">Impressora QZ Tray</Label>
+                  <Select
+                    value={form.printer_name || ""}
+                    onValueChange={(v) => set("printer_name", v)}
+                  >
+                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
+                    <SelectContent>
+                      {qzPrinters.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div
+                className="receipt-preview mx-auto"
+                style={{
+                  background: "#fff",
+                  color: "#111",
+                  fontFamily: '"Courier New", Courier, monospace',
+                  fontSize: form.font_size === "compact" ? "12px" : "13px",
+                  lineHeight: 1.35,
+                  whiteSpace: "pre",
+                  overflowX: "auto",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid hsl(var(--border))",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  maxWidth: form.paper_width === "58mm" ? "320px" : "440px",
+                  maxHeight: "70vh",
+                }}
+              >
+                {previewText}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Prévia em texto puro · {columnsFor(form.paper_width)} colunas. A impressão real é enviada via QZ Tray para a impressora selecionada.
               </p>
             </CardContent>
           </Card>
