@@ -10,11 +10,12 @@ import { pollPaymentStatus } from "@/lib/payment-service";
 interface PixCheckoutProps {
   pixData: PixPaymentData;
   amount: number;
+  storeSlug: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function PixCheckout({ pixData, amount, onSuccess, onCancel }: PixCheckoutProps) {
+export function PixCheckout({ pixData, amount, storeSlug, onSuccess, onCancel }: PixCheckoutProps) {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PaymentStatus>("pending");
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutos em segundos
