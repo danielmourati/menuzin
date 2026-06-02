@@ -47,17 +47,19 @@ export const Route = createFileRoute("/$slug")({
 
 function StoreRoute() {
   const { slug } = Route.useParams();
+  const isReserved = RESERVED_SLUGS.has(slug);
   const isStorefront = useRouterState({
     select: (state) => state.location.pathname === `/${slug}`,
   });
+  const { data } = useSuspenseQuery(catalogQueryOptions(isReserved ? "__reserved__" : slug));
 
-  if (RESERVED_SLUGS.has(slug)) return <StoreNotFound slug={slug} />;
+  if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
-
-  const { data } = useSuspenseQuery(catalogQueryOptions(slug));
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
   return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} />;
 }
+
+
 
 function StoreNotFound({ slug }: { slug: string }) {
   return (
