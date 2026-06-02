@@ -214,9 +214,14 @@ function PrinterSettingsPage() {
             <Card>
               <CardHeader className="flex-row items-center justify-between gap-2">
                 <CardTitle className="text-base">Status do QZ Tray</CardTitle>
-                <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
-                  <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setDiagOpen(true)}>
+                    <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
+                    <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
