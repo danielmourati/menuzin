@@ -398,6 +398,92 @@ export type Database = {
           },
         ]
       }
+      printer_settings: {
+        Row: {
+          connection_type: string
+          created_at: string
+          cut_type: string
+          escpos_profile: string
+          feed_lines: number
+          font_size: string
+          id: string
+          paper_width: string
+          printer_model: string
+          printer_name: string
+          separator_char: string
+          show_address: boolean
+          show_document: boolean
+          show_instagram: boolean
+          show_pix: boolean
+          show_store_name: boolean
+          show_thank_message: boolean
+          show_whatsapp: boolean
+          tenant_id: string
+          thank_message: string
+          updated_at: string
+          use_bold_titles: boolean
+          use_double_total: boolean
+        }
+        Insert: {
+          connection_type?: string
+          created_at?: string
+          cut_type?: string
+          escpos_profile?: string
+          feed_lines?: number
+          font_size?: string
+          id?: string
+          paper_width?: string
+          printer_model?: string
+          printer_name?: string
+          separator_char?: string
+          show_address?: boolean
+          show_document?: boolean
+          show_instagram?: boolean
+          show_pix?: boolean
+          show_store_name?: boolean
+          show_thank_message?: boolean
+          show_whatsapp?: boolean
+          tenant_id: string
+          thank_message?: string
+          updated_at?: string
+          use_bold_titles?: boolean
+          use_double_total?: boolean
+        }
+        Update: {
+          connection_type?: string
+          created_at?: string
+          cut_type?: string
+          escpos_profile?: string
+          feed_lines?: number
+          font_size?: string
+          id?: string
+          paper_width?: string
+          printer_model?: string
+          printer_name?: string
+          separator_char?: string
+          show_address?: boolean
+          show_document?: boolean
+          show_instagram?: boolean
+          show_pix?: boolean
+          show_store_name?: boolean
+          show_thank_message?: boolean
+          show_whatsapp?: boolean
+          tenant_id?: string
+          thank_message?: string
+          updated_at?: string
+          use_bold_titles?: boolean
+          use_double_total?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "printer_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_addons: {
         Row: {
           created_at: string
