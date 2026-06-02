@@ -425,6 +425,13 @@ function PrinterSettingsPage() {
           </Card>
         </div>
       )}
+
+      <QzInstallGuide
+        open={guideOpen}
+        onOpenChange={setGuideOpen}
+        onRetry={handleDetectQz}
+        retrying={qzBusy}
+      />
     </AdminLayout>
   );
 }
