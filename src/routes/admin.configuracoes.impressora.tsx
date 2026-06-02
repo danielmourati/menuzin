@@ -592,6 +592,20 @@ function PrinterSettingsPage() {
                       {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
                       Teste de conexão
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleTestCertEndpoint}
+                      disabled={certCheck.state === "loading"}
+                      title="Faz GET em /api/public/qz-cert.crt e valida o PEM."
+                    >
+                      {certCheck.state === "loading" ? (
+                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-1.5 h-4 w-4" />
+                      )}
+                      Testar /qz-cert.crt
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={handleDownloadDiagnosticReport}>
                       <Download className="mr-1.5 h-4 w-4" />
                       Baixar diagnóstico
