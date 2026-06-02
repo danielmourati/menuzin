@@ -19,6 +19,8 @@ import { PrintOrderButton } from "./PrintOrderButton";
 import { MapPin, Phone, Clipboard, Check, AlertTriangle, Utensils, Calendar } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { getMyTenant } from "@/lib/tenants.functions";
 
 interface OrderDetailsDrawerProps {
   order: Order | null;

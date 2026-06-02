@@ -26,6 +26,8 @@ export function OrderCard({
   onCancel,
   onUpdateStatus,
 }: OrderCardProps) {
+  const { data: tenantData } = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant(), staleTime: 60_000 });
+  const paperWidth = ((tenantData?.tenant as { pos_paper_width?: string } | null)?.pos_paper_width === "55mm" ? "55mm" : "80mm") as "55mm" | "80mm";
   const [elapsed, setElapsed] = useState(() => timeAgo(order.createdAt));
   const [expanded, setExpanded] = useState(false);
 
