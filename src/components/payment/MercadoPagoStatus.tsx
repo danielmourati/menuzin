@@ -195,6 +195,41 @@ export function MercadoPagoStatus({
               </p>
             </div>
 
+            {/* Account kind + mismatch warning */}
+            {accountKind && (
+              <div
+                className={`rounded-lg border px-3.5 py-2.5 text-xs ${
+                  (liveModeSaved && accountKind === "test_user") ||
+                  (!liveModeSaved && accountKind === "production")
+                    ? "border-destructive/40 bg-destructive/5 text-destructive"
+                    : "border-emerald-500/30 bg-emerald-500/5 text-muted-foreground"
+                }`}
+              >
+                <span className="font-medium text-foreground">Conta MP: </span>
+                {accountKind === "test_user" ? "Usuário de Teste" : "Produção"}
+                {mpUserId ? ` (#${mpUserId})` : ""}
+                {liveModeSaved && accountKind === "test_user" && (
+                  <div className="mt-1.5 font-medium">
+                    ⚠ Modo Produção ativo com credenciais de Teste — pagamentos serão rejeitados pelo MP.
+                  </div>
+                )}
+                {!liveModeSaved && accountKind === "production" && (
+                  <div className="mt-1.5 font-medium">
+                    ⚠ Modo Teste ativo com credenciais de Produção — o MP vai rejeitar com "Unauthorized use of live credentials". Reconecte com credenciais de um{" "}
+                    <a
+                      href="https://www.mercadopago.com.br/developers/panel/test-users"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline font-semibold"
+                    >
+                      Usuário de Teste
+                    </a>
+                    .
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Connection method info */}
             {connectedVia === "manual" && connectedPublicKey && (
               <div className="rounded-lg border border-dashed border-emerald-500/30 bg-emerald-500/5 px-3.5 py-2.5 text-xs text-muted-foreground">
