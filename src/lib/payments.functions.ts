@@ -68,6 +68,7 @@ type DbRow = {
   mp_live_mode: boolean;
   mp_connected: boolean;
   mp_last_validated_at: string | null;
+  mp_account_kind: string | null;
   cash_enabled: boolean;
   pix_manual_enabled: boolean;
   card_on_delivery_enabled: boolean;
@@ -82,6 +83,9 @@ type DbRow = {
 };
 
 function toSafe(row: DbRow): StorePaymentSettingsSafe {
+  const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
+    ? row.mp_account_kind
+    : undefined;
   return {
     id: row.id,
     store_id: row.tenant_id,
@@ -90,6 +94,7 @@ function toSafe(row: DbRow): StorePaymentSettingsSafe {
     mp_public_key: row.mp_public_key ?? undefined,
     mp_connected: row.mp_connected,
     mp_live_mode: row.mp_live_mode,
+    mp_account_kind: kind,
     mp_token_expires_at: row.mp_last_validated_at ?? undefined,
     cash_enabled: row.cash_enabled,
     pix_manual_enabled: row.pix_manual_enabled,
