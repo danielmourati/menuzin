@@ -21,7 +21,7 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
 import {
-  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError,
+  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError, downloadQzCertificate,
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 
