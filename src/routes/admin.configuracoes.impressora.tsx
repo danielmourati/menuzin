@@ -763,8 +763,17 @@ function PrinterSettingsPage() {
                     </div>
                   </div>
                 )}
+
+                <div className="md:col-span-2">
+                  <Toggle
+                    label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
+                    value={form.auto_connect}
+                    onChange={(v) => set("auto_connect", v)}
+                  />
+                </div>
               </CardContent>
             </Card>
+
 
             {/* Bloco 2 — Papel */}
             <Card>

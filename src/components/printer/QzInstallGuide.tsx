@@ -105,6 +105,17 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
                   )}
                   cert.pem
                 </Button>
+                <span className="text-xs text-muted-foreground">
+                  ou via URL direta:&nbsp;
+                  <a
+                    href="/api/public/qz-cert.crt"
+                    className="underline underline-offset-2"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    /api/public/qz-cert.crt
+                  </a>
+                </span>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Salve na pasta do QZ Tray:
@@ -123,6 +134,7 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
                 (Linux).
               </p>
             </li>
+
             <li>
               <div className="flex flex-wrap items-center gap-2">
                 <span>

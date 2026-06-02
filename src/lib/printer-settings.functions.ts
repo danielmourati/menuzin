@@ -31,6 +31,7 @@ const SaveInput = z.object({
   separator_char: z.string().min(1).max(3),
   cut_type: CutType,
   feed_lines: z.number().int().min(0).max(10),
+  auto_connect: z.boolean().default(false),
 });
 
 function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
@@ -57,8 +58,10 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     separator_char: (row.separator_char as string) ?? "-",
     cut_type: (row.cut_type as PrinterSettings["cut_type"]) ?? "none",
     feed_lines: typeof row.feed_lines === "number" ? row.feed_lines : 3,
+    auto_connect: row.auto_connect === true,
   };
 }
+
 
 export const getMyPrinterSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

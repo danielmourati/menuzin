@@ -13,8 +13,10 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "../lib/cart-context";
 import { AuthProvider } from "../lib/auth-context";
+import { PrintServerProvider } from "../lib/print-server-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+
 
 function NotFoundComponent() {
   return (
@@ -117,11 +119,14 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AuthStateInvalidator />
-        <CartProvider>
-          <Outlet />
-          <Toaster position="top-center" richColors />
-        </CartProvider>
+        <PrintServerProvider>
+          <CartProvider>
+            <Outlet />
+            <Toaster position="top-center" richColors />
+          </CartProvider>
+        </PrintServerProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
+

@@ -28,6 +28,8 @@ export type PrinterSettings = {
   separator_char: string;
   cut_type: CutType;
   feed_lines: number;
+  /** Quando true, o app conecta ao QZ Tray automaticamente no login. */
+  auto_connect: boolean;
 };
 
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
@@ -50,6 +52,8 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   separator_char: "-",
   cut_type: "none",
   feed_lines: 3,
+  auto_connect: false,
 };
+
 
 export const columnsFor = (w: PaperWidth) => (w === "58mm" ? 32 : 48);
