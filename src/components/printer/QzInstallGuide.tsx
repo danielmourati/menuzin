@@ -89,6 +89,53 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
           <li>Volte aqui e clique em <strong>Tentar novamente</strong>.</li>
         </ol>
 
+        <div className="rounded-md border bg-muted/30 p-3 text-xs">
+          <div className="mb-1.5 font-medium">
+            Se ainda aparecer o prompt do QZ Tray (Site Manager)
+          </div>
+          <p className="mb-2 text-muted-foreground">
+            Na primeira impressão o QZ Tray pode mostrar uma janela perguntando se você confia neste
+            site. Faça uma vez por máquina e o prompt some.
+          </p>
+          <ol className="list-decimal space-y-1.5 pl-5">
+            <li>
+              No ícone do QZ Tray (bandeja do sistema) → <strong>Advanced</strong> →
+              <strong> Site Manager</strong>.
+            </li>
+            <li>
+              Aba <strong>Allowed</strong> → <em>Add</em> → cole a URL deste painel (o domínio que
+              você está usando agora).
+            </li>
+            <li>
+              Aba <strong>Blocked</strong> → se este domínio estiver lá, selecione e clique em{" "}
+              <em>Remove</em>.
+            </li>
+            <li>
+              Importe o certificado em <strong>Trusted</strong>: <em>Add</em> → aponte para o arquivo
+              baixado em{" "}
+              <a
+                href="/api/public/qz-cert.crt"
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2"
+              >
+                /api/public/qz-cert.crt
+              </a>
+              .
+            </li>
+            <li>
+              Quando o prompt aparecer pela primeira vez, marque{" "}
+              <strong>“Remember this decision”</strong> e clique em <em>Allow</em>. Da próxima vez
+              não aparece mais.
+            </li>
+            <li>
+              Volte aqui e clique em <strong>Teste de conexão</strong> — deve completar em menos de
+              2s, sem prompt.
+            </li>
+          </ol>
+        </div>
+
+
         <details className="text-xs">
           <summary className="cursor-pointer select-none text-muted-foreground">
             Prefiro fazer manualmente (macOS, Linux ou avançado)
