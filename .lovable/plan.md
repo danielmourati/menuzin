@@ -1,58 +1,41 @@
-# Plano: Acesso de Platform Admin às Lojas
+# Remover o prefixo `/loja` do slug do tenant
 
-## Problema
-1. `admin.login.tsx` sempre redireciona para `/admin/dashboard` — para `dmouraphb@gmail.com` (platform_admin sem `tenant_id`) isso cai em `OnboardingClaim` indevidamente.
-2. ServerFns admin resolvem tenant via `profiles.tenant_id` do próprio usuário. Platform admin não tem tenant_id → não consegue acessar painel de nenhuma loja.
+## Situação atual
 
-## Solução
+A migração já foi feita parcialmente:
 
-### 1. Redirecionamento por papel no login
-**`src/routes/admin.login.tsx`**: Após `signInWithPassword` / OAuth callback, consultar `user_roles` do usuário. Se contiver `platform_admin` → redirect `/platform/dashboard`. Senão → `/admin/dashboard`.
+- As rotas públicas novas já vivem na raiz: `src/routes/$slug.tsx`, `$slug.pedido-confirmado.tsx`, `$slug.acompanhar.$orderId.tsx`.
+- As rotas antigas `src/routes/loja.$slug*.tsx` ainda existem, mas funcionam apenas como **redirect 301** para `/$slug` (compatibilidade com links antigos).
+- `src/lib/reserved-slugs.ts` já reserva `"loja"` como slug proibido para novos tenants.
 
-### 2. Tenant ativo (impersonação)
-**Novo `src/lib/active-tenant.ts`**: helpers `getActiveTenantId()` / `setActiveTenantId(id|null)` / `clearActiveTenant()` usando `localStorage` + `useSyncExternalStore` para reatividade. Hook `useActiveTenantId()`.
+O que **não** foi atualizado e ainda mostra `/loja/...`:
 
-### 3. Anexar header em serverFns
-**Novo `src/lib/active-tenant-attacher.ts`**: middleware client que injeta `X-Active-Tenant: <id>` em todas as chamadas serverFn quando `getActiveTenantId()` retorna valor.
-**`src/start.ts`**: append do attacher em `functionMiddleware` (preservar `attachSupabaseAuth` existente).
+1. `src/routes/platform.tenants.novo.tsx` (linha 62) — preview do slug exibe `seudominio.com.br/loja/{slug}`.
+2. `src/components/admin/AdminLayout.tsx` (linha 206) — onboarding mostra `menuzin.app/loja/` antes do input.
+3. As rotas legadas `loja.$slug*.tsx` continuam ocupando espaço no route tree.
 
-### 4. Resolução server-side validada
-**Novo `src/lib/active-tenant.server.ts`**:
-```ts
-resolveEffectiveTenantId({ userId, supabase, supabaseAdmin }): Promise<string>
-```
-- Lê header `x-active-tenant` via `getRequestHeader`.
-- Se presente: verificar via `supabaseAdmin` que (a) usuário tem role `platform_admin` em `user_roles` e (b) tenant existe. Se válido, retorna o id.
-- Caso contrário: fallback para `profiles.tenant_id` (comportamento atual).
-- Lança erro claro se nenhum tenant resolvido.
+## O que fazer
 
-**Refatorar serverFns admin** para usar `resolveEffectiveTenantId` em vez de ler `profiles.tenant_id` diretamente:
-- `src/lib/catalog-admin.functions.ts`
-- `src/lib/tenants.functions.ts` (apenas onde aplicável)
-- `src/lib/analytics.functions.ts`
-- `src/lib/orders.functions.ts` (admin reads/updates)
-- demais que seguem o mesmo padrão (settings, addons, etc.)
+### 1. Atualizar previews de URL na UI
+- Em `platform.tenants.novo.tsx`, trocar `seudominio.com.br/loja/${slug}` por `seudominio.com.br/${slug}` (e o placeholder equivalente).
+- Em `AdminLayout.tsx` (onboarding de criação de loja), trocar o prefixo `menuzin.app/loja/` por `menuzin.app/`.
+- Conferir outros pontos que ainda mencionem `/loja/` na UI (toasts, copy de configurações, links "Ver loja pública") e ajustar para a URL nova.
 
-### 5. Botão "Acessar painel" em `/platform/lojas`
-**`src/routes/platform.lojas.tsx`**: em cada card de loja adicionar botão que chama `setActiveTenantId(store.id)` + `queryClient.invalidateQueries()` + `navigate({ to: '/admin/dashboard' })`.
+### 2. Decidir o destino das rotas legadas
+Recomendado: **manter** os três arquivos `loja.$slug*.tsx` apenas como redirects, pois links antigos compartilhados por clientes/WhatsApp continuam funcionando. Eles já não geram UI nem custo perceptível.
 
-### 6. AdminLayout: banner de impersonação
-**`src/components/admin/AdminLayout.tsx`**:
-- Se `isPlatformAdmin` e sem `tenant_id` próprio e sem `activeTenantId` → mostrar tela "Selecione uma loja em /platform/lojas" (não `OnboardingClaim`).
-- Se `activeTenantId` setado → banner amarelo no topo: "Acessando como admin: <nome da loja>" + botão "Sair da loja" que chama `clearActiveTenant()` + navega para `/platform/lojas`.
-- Usuários comuns: comportamento inalterado.
+Alternativa (se preferir limpar): deletar `loja.$slug.tsx`, `loja.$slug.pedido-confirmado.tsx`, `loja.$slug.acompanhar.$orderId.tsx`. Links antigos passam a cair em 404.
 
-### 7. Guarda em `/platform/*`
-**Novo `src/components/platform/PlatformLayout.tsx`** (ou inline nas rotas): verifica `useAuth().isPlatformAdmin`. Se falso → redirect `/admin/dashboard`. Aplicar em `platform.dashboard.tsx`, `platform.lojas.tsx`, `platform.tenants.novo.tsx`.
+→ **Pergunta para você:** manter os redirects de compatibilidade ou remover de vez?
 
-## Sem migrações
-RLS atual já cobre platform_admin via `is_platform_admin()`. Validação server-side do header é obrigatória (usuário comum não pode forjar acesso a outro tenant).
+### 3. Validação rápida
+- Abrir `/platform/tenants/novo` e confirmar que o preview mostra `seudominio.com.br/{slug}`.
+- Abrir o onboarding de criação de loja e confirmar o prefixo novo.
+- Acessar uma loja existente em `/{slug}` e (se mantidos) em `/loja/{slug}` para confirmar o redirect.
 
-## Fora de escopo
-- Auditoria/histórico de impersonação
-- Login como usuário específico (apenas seleção de loja)
-- Múltiplas lojas ativas simultaneamente
+## Arquivos afetados
+- `src/routes/platform.tenants.novo.tsx` (edit)
+- `src/components/admin/AdminLayout.tsx` (edit)
+- Opcional: deletar `src/routes/loja.$slug.tsx`, `src/routes/loja.$slug.pedido-confirmado.tsx`, `src/routes/loja.$slug.acompanhar.$orderId.tsx`.
 
-## Arquivos
-**Novos:** `src/lib/active-tenant.ts`, `src/lib/active-tenant-attacher.ts`, `src/lib/active-tenant.server.ts`, `src/components/platform/PlatformLayout.tsx`.
-**Editados:** `src/start.ts`, `src/routes/admin.login.tsx`, `src/components/admin/AdminLayout.tsx`, `src/routes/platform.dashboard.tsx`, `src/routes/platform.lojas.tsx`, `src/routes/platform.tenants.novo.tsx`, `src/lib/catalog-admin.functions.ts`, `src/lib/tenants.functions.ts`, `src/lib/analytics.functions.ts`, `src/lib/orders.functions.ts`.
+Sem mudanças de banco, server functions ou lógica de negócio.
