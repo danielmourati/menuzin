@@ -236,12 +236,20 @@ export function OrderDetailsDrawer({
                     
                     {item.addons && item.addons.length > 0 && (
                       <div className="pl-3 mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-                        {item.addons.map((add) => (
-                          <div key={add.id} className="flex justify-between">
-                            <span>+ {add.name}</span>
-                            <span>{brl(add.price)}</span>
-                          </div>
-                        ))}
+                        {item.addons.map((add) => {
+                          const p = parseAddonLabel(add.name);
+                          const prefix =
+                            p.kind === "size" ? "Tamanho:" :
+                            p.kind === "flavor" ? "Sabor:" :
+                            p.kind === "group" ? `${p.groupName}:` :
+                            "+";
+                          return (
+                            <div key={add.id} className="flex justify-between">
+                              <span>{prefix} {p.label}</span>
+                              {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
