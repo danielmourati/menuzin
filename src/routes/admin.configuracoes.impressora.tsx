@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -18,9 +18,9 @@ import {
 import {
   DEFAULT_PRINTER_SETTINGS, columnsFor, type PrinterSettings,
 } from "@/lib/printer-types";
-import { PrintableOrder } from "@/components/orders/PrintableOrder";
 import { getMyTenant } from "@/lib/tenants.functions";
-import type { Order } from "@/lib/domain-types";
+import { buildReceiptPreviewText } from "@/lib/receipt-preview";
+import { ensureQzConnected, listQzPrinters, printQzTextTest } from "@/lib/qz-tray";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: PrinterSettingsPage,
@@ -57,45 +57,59 @@ function PrinterSettingsPage() {
   const set = <K extends keyof PrinterSettings>(k: K, v: PrinterSettings[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  // Pedido fictício para o cupom de teste
-  const testOrder: Order = useMemo(
-    () => ({
-      id: "00000000-0000-0000-0000-000000000000",
-      number: 1234,
-      storeId: "test",
-      customerName: "Cliente Teste",
-      whatsapp: "(00) 00000-0000",
-      mode: "retirada",
-      status: "novo",
-      paymentStatus: "manual",
-      payment: "Pagar no balcão",
-      items: [
-        { productId: "p1", name: "Produto Teste", qty: 1, unitPrice: 10, addons: [] },
-        { productId: "p2", name: "Taxa de Serviço", qty: 1, unitPrice: 1, addons: [] },
-      ],
-      subtotal: 11,
-      deliveryFee: 0,
-      total: 11,
-      createdAt: new Date().toISOString(),
-      statusHistory: [],
-    }),
-    [],
-  );
-
   const tenant = tenantData?.tenant as
     | { name?: string; whatsapp?: string; address?: string; social?: { instagram?: string } }
     | null
     | undefined;
 
+  const previewText = useMemo(
+    () =>
+      buildReceiptPreviewText(form, {
+        storeName: tenant?.name,
+        storeAddress: tenant?.address,
+        storeWhatsapp: tenant?.whatsapp,
+        storeInstagram: tenant?.social?.instagram,
+        storePixKey: undefined,
+      }),
+    [form, tenant],
+  );
+
   const browserSupportsBluetooth = typeof navigator !== "undefined" && "bluetooth" in navigator;
   const browserSupportsUsb = typeof navigator !== "undefined" && "usb" in navigator;
 
-  const handleTestPrint = () => {
-    document.body.classList.add("printing-receipt");
-    setTimeout(() => {
-      window.print();
-      document.body.classList.remove("printing-receipt");
-    }, 100);
+  const [qzBusy, setQzBusy] = useState(false);
+  const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+
+  const handleDetectQz = async () => {
+    setQzBusy(true);
+    try {
+      await ensureQzConnected();
+      const list = await listQzPrinters();
+      setQzPrinters(list);
+      if (list.length === 0) {
+        toast.warning("Nenhuma impressora encontrada.");
+      } else {
+        toast.success(`QZ Tray conectado · ${list.length} impressora(s) encontrada(s).`);
+        if (!form.printer_name && list[0]) set("printer_name", list[0]);
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Erro ao conectar ao QZ Tray.");
+    } finally {
+      setQzBusy(false);
+    }
+  };
+
+  const handleTestPrint = async () => {
+    setQzBusy(true);
+    try {
+      await printQzTextTest(form.printer_name, previewText);
+      toast.success("Teste de impressão enviado com sucesso.");
+    } catch (e) {
+      const msg = (e as Error).message || "Erro ao enviar teste de impressão.";
+      toast.error(msg);
+    } finally {
+      setQzBusy(false);
+    }
   };
 
   return (
@@ -149,10 +163,10 @@ function PrinterSettingsPage() {
                   >
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="browser">QZ Tray — Impressão local (recomendado)</SelectItem>
                       <SelectItem value="bluetooth">Bluetooth</SelectItem>
                       <SelectItem value="usb">USB</SelectItem>
                       <SelectItem value="network">Rede / IP</SelectItem>
-                      <SelectItem value="browser">Navegador / Sistema (recomendado)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -299,26 +313,61 @@ function PrinterSettingsPage() {
           <Card className="lg:sticky lg:top-4 self-start">
             <CardHeader className="flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
-              <Button size="sm" onClick={handleTestPrint}>
-                <Printer className="mr-1.5 h-4 w-4" /> Imprimir teste
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md bg-muted/40 p-2 flex justify-center max-h-[70vh] overflow-auto">
-                <div className="shadow-sm ring-1 ring-border rounded-sm">
-                  <PrintableOrder
-                    order={testOrder}
-                    storeName={form.show_store_name ? (tenant?.name || "Nome da Loja") : ""}
-                    storePhone={form.show_whatsapp ? tenant?.whatsapp : undefined}
-                    storeAddress={form.show_address ? tenant?.address : undefined}
-                    storeInstagram={form.show_instagram ? tenant?.social?.instagram : undefined}
-                    paperWidth={form.paper_width}
-                    settings={form}
-                  />
-                </div>
+              <div className="flex gap-1.5">
+                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy}>
+                  <Plug className="mr-1.5 h-4 w-4" /> Detectar
+                </Button>
+                <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
+                  {qzBusy ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Printer className="mr-1.5 h-4 w-4" />
+                  )}
+                  Testar impressão
+                </Button>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                A prévia usa o cupom real da plataforma com um pedido fictício e as opções de layout escolhidas.
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {qzPrinters.length > 0 && (
+                <div>
+                  <Label className="text-xs">Impressora QZ Tray</Label>
+                  <Select
+                    value={form.printer_name || ""}
+                    onValueChange={(v) => set("printer_name", v)}
+                  >
+                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
+                    <SelectContent>
+                      {qzPrinters.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div
+                className="receipt-preview mx-auto"
+                style={{
+                  background: "#fff",
+                  color: "#111",
+                  fontFamily: '"Courier New", Courier, monospace',
+                  fontSize: form.font_size === "compact" ? "12px" : "13px",
+                  lineHeight: 1.35,
+                  whiteSpace: "pre",
+                  overflowX: "auto",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid hsl(var(--border))",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  maxWidth: form.paper_width === "58mm" ? "320px" : "440px",
+                  maxHeight: "70vh",
+                }}
+              >
+                {previewText}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Prévia em texto puro · {columnsFor(form.paper_width)} colunas. A impressão real é enviada via QZ Tray para a impressora selecionada.
               </p>
             </CardContent>
           </Card>
