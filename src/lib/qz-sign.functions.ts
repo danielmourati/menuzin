@@ -14,11 +14,11 @@ import { createSign } from "crypto";
 import { z } from "zod";
 
 export const getQzCertificate = createServerFn({ method: "GET" }).handler(async () => {
-  const cert = process.env.QZ_CERT_PEM?.trim();
-  if (!cert) {
+  const raw = process.env.QZ_CERT_PEM;
+  if (!raw) {
     return { cert: "", configured: false as const };
   }
-  return { cert, configured: true as const };
+  return { cert: normalizePem(raw), configured: true as const };
 });
 
 export const signQzRequest = createServerFn({ method: "POST" })
