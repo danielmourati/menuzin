@@ -297,7 +297,7 @@ async function cloneCatalog(fromTenantId: string, toTenantId: string): Promise<v
     }
   }
 
-  // 3) Grupos de complementos + opções + alvos
+  // 3) Grupos de adicionais + opções + alvos
   const { data: groups } = await supabaseAdmin
     .from("addon_groups").select("*").eq("tenant_id", fromTenantId);
   const groupIdMap = new Map<string, string>();
@@ -305,6 +305,7 @@ async function cloneCatalog(fromTenantId: string, toTenantId: string): Promise<v
     const { data: row } = await supabaseAdmin.from("addon_groups").insert({
       tenant_id: toTenantId,
       name: g.name as string,
+      kind: ((g as { kind?: string }).kind ?? "adicional") as string,
       required: g.required as boolean,
       min_select: g.min_select as number,
       max_select: g.max_select as number,
