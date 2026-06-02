@@ -105,12 +105,18 @@ function PrinterSettingsPage() {
 
   const handleDetectQz = async () => {
     setQzBusy(true);
+    const startedAt = performance.now();
     try {
       await ensureQzConnected();
       const { printers, defaultPrinter } = await listQzPrintersWithDefault();
       setQzPrinters(printers);
       setQzDefaultPrinter(defaultPrinter);
       setQzStatus("connected");
+      setLastAttempt({
+        at: new Date(), ok: true,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: `Detectar (${printers.length} impressora(s))`,
+      });
       if (printers.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
@@ -120,6 +126,12 @@ function PrinterSettingsPage() {
         setPrinterInputMode("select");
       }
     } catch (e) {
+      setLastAttempt({
+        at: new Date(), ok: false,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: "Detectar",
+        error: (e as Error).message,
+      });
       handleQzError(e);
     } finally {
       setQzBusy(false);
