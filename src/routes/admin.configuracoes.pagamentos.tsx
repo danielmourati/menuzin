@@ -29,7 +29,8 @@ export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
 
 function AdminPaymentSettingsPage() {
   const { profile } = useAuth();
-  const storeId = profile?.tenant_id ?? "";
+  const activeTenantId = useActiveTenantId();
+  const storeId = activeTenantId ?? profile?.tenant_id ?? "";
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
