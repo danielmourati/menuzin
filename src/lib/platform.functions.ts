@@ -134,6 +134,9 @@ const CreateTenantInput = z.object({
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
   owner_user_id: z.string().uuid().nullable().optional(),
+  owner_email: z.string().email().max(160).optional().nullable(),
+  owner_password: z.string().min(8).max(72).optional().nullable(),
+  owner_name: z.string().max(120).optional().nullable(),
   clone_from_slug: z.string().max(60).optional().nullable(),
 });
 
@@ -164,13 +167,41 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }).select("id").single();
     if (error || !tenant) throw new Error(error?.message || "Falha ao criar loja");
 
-    if (data.owner_user_id) {
+    // 1) Dono já existente (id informado)
+    let ownerId: string | null = data.owner_user_id ?? null;
+
+    // 2) Criar usuário dono a partir de email/senha (super-admin define credenciais iniciais)
+    if (!ownerId && data.owner_email && data.owner_password) {
+      const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+        email: data.owner_email,
+        password: data.owner_password,
+        email_confirm: true,
+        user_metadata: { full_name: data.owner_name ?? data.name },
+      });
+      if (cErr || !created.user) {
+        // rollback do tenant para não deixar órfão
+        await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
+        throw new Error(cErr?.message || "Falha ao criar usuário do dono.");
+      }
+      ownerId = created.user.id;
+      // garante profile (o trigger handle_new_user também faz, mas idempotente)
+      await supabaseAdmin.from("profiles").upsert({
+        id: ownerId,
+        email: data.owner_email,
+        full_name: data.owner_name ?? data.name,
+      }, { onConflict: "id" });
+    }
+
+    if (ownerId) {
       await supabaseAdmin.from("user_roles").insert({
-        user_id: data.owner_user_id,
+        user_id: ownerId,
         tenant_id: tenant.id,
         role: "owner",
       });
-      await supabaseAdmin.from("profiles").update({ tenant_id: tenant.id }).eq("id", data.owner_user_id);
+      await supabaseAdmin.from("profiles").update({
+        tenant_id: tenant.id,
+        must_change_password: true,
+      }).eq("id", ownerId);
     }
 
     // === Clone de catálogo a partir de outro tenant (default: Burger Prime) ===
@@ -183,7 +214,7 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }
     }
 
-    return { tenant_id: tenant.id as string };
+    return { tenant_id: tenant.id as string, owner_user_id: ownerId };
   });
 
 /**
