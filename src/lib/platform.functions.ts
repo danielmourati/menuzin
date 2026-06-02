@@ -134,6 +134,7 @@ const CreateTenantInput = z.object({
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
   owner_user_id: z.string().uuid().nullable().optional(),
+  clone_from_slug: z.string().max(60).optional().nullable(),
 });
 
 export const adminCreateTenant = createServerFn({ method: "POST" })
@@ -172,8 +173,142 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       await supabaseAdmin.from("profiles").update({ tenant_id: tenant.id }).eq("id", data.owner_user_id);
     }
 
+    // === Clone de catálogo a partir de outro tenant (default: Burger Prime) ===
+    const sourceSlug = data.clone_from_slug ?? "burgerprime";
+    if (sourceSlug) {
+      const { data: src } = await supabaseAdmin
+        .from("tenants").select("id").eq("slug", sourceSlug).maybeSingle();
+      if (src?.id) {
+        await cloneCatalog(src.id as string, tenant.id as string);
+      }
+    }
+
     return { tenant_id: tenant.id as string };
   });
+
+/**
+ * Clona categorias, produtos (com tamanhos/sabores) e grupos de complementos
+ * de um tenant fonte para o destino, preservando relações.
+ */
+async function cloneCatalog(fromTenantId: string, toTenantId: string): Promise<void> {
+  // 1) Categorias
+  const { data: cats } = await supabaseAdmin
+    .from("categories").select("*").eq("tenant_id", fromTenantId);
+  const catIdMap = new Map<string, string>();
+  for (const c of cats ?? []) {
+    const { data: row } = await supabaseAdmin.from("categories").insert({
+      tenant_id: toTenantId,
+      name: c.name as string,
+      description: (c.description as string) ?? "",
+      sort_order: c.sort_order as number,
+      active: c.active as boolean,
+    }).select("id").single();
+    if (row) catIdMap.set(c.id as string, row.id as string);
+  }
+
+  // 2) Produtos
+  const { data: prods } = await supabaseAdmin
+    .from("products").select("*").eq("tenant_id", fromTenantId);
+  const prodIdMap = new Map<string, string>();
+  for (const p of prods ?? []) {
+    const newCat = p.category_id ? catIdMap.get(p.category_id as string) ?? null : null;
+    const { data: row } = await supabaseAdmin.from("products").insert({
+      tenant_id: toTenantId,
+      category_id: newCat,
+      name: p.name as string,
+      description: (p.description as string) ?? "",
+      price: p.price as number,
+      promo_price: p.promo_price as number | null,
+      image_url: p.image_url as string | null,
+      available: p.available as boolean,
+      featured: p.featured as boolean,
+      prep_time: p.prep_time as string | null,
+      sort_order: p.sort_order as number,
+      type: (p.type as string) ?? "standard",
+      max_flavors: p.max_flavors as number | null,
+      allow_observations: p.allow_observations as boolean,
+    }).select("id").single();
+    if (row) prodIdMap.set(p.id as string, row.id as string);
+  }
+
+  if (prodIdMap.size) {
+    const oldIds = Array.from(prodIdMap.keys());
+
+    const { data: sizes } = await supabaseAdmin
+      .from("product_sizes").select("*").in("product_id", oldIds);
+    for (const s of sizes ?? []) {
+      const np = prodIdMap.get(s.product_id as string);
+      if (!np) continue;
+      await supabaseAdmin.from("product_sizes").insert({
+        product_id: np, name: s.name as string, price: s.price as number, sort_order: s.sort_order as number,
+      });
+    }
+
+    const { data: flavors } = await supabaseAdmin
+      .from("product_flavors").select("*").in("product_id", oldIds);
+    for (const f of flavors ?? []) {
+      const np = prodIdMap.get(f.product_id as string);
+      if (!np) continue;
+      await supabaseAdmin.from("product_flavors").insert({
+        product_id: np, name: f.name as string, description: (f.description as string) ?? "",
+        price_delta: f.price_delta as number, available: f.available as boolean, sort_order: f.sort_order as number,
+      });
+    }
+
+    const { data: addons } = await supabaseAdmin
+      .from("product_addons").select("*").in("product_id", oldIds);
+    for (const a of addons ?? []) {
+      const np = prodIdMap.get(a.product_id as string);
+      if (!np) continue;
+      await supabaseAdmin.from("product_addons").insert({
+        product_id: np, name: a.name as string, price: a.price as number, sort_order: a.sort_order as number,
+      });
+    }
+  }
+
+  // 3) Grupos de complementos + opções + alvos
+  const { data: groups } = await supabaseAdmin
+    .from("addon_groups").select("*").eq("tenant_id", fromTenantId);
+  const groupIdMap = new Map<string, string>();
+  for (const g of groups ?? []) {
+    const { data: row } = await supabaseAdmin.from("addon_groups").insert({
+      tenant_id: toTenantId,
+      name: g.name as string,
+      required: g.required as boolean,
+      min_select: g.min_select as number,
+      max_select: g.max_select as number,
+      active: g.active as boolean,
+      sort_order: g.sort_order as number,
+    }).select("id").single();
+    if (row) groupIdMap.set(g.id as string, row.id as string);
+  }
+  if (groupIdMap.size) {
+    const oldGroupIds = Array.from(groupIdMap.keys());
+    const { data: opts } = await supabaseAdmin
+      .from("addon_options").select("*").in("group_id", oldGroupIds);
+    for (const o of opts ?? []) {
+      const ng = groupIdMap.get(o.group_id as string);
+      if (!ng) continue;
+      await supabaseAdmin.from("addon_options").insert({
+        group_id: ng, name: o.name as string, price: o.price as number,
+        active: o.active as boolean, sort_order: o.sort_order as number,
+      });
+    }
+    const { data: targets } = await supabaseAdmin
+      .from("addon_group_targets").select("*").in("group_id", oldGroupIds);
+    for (const t of targets ?? []) {
+      const ng = groupIdMap.get(t.group_id as string);
+      if (!ng) continue;
+      const newCat = t.category_id ? catIdMap.get(t.category_id as string) ?? null : null;
+      const newProd = t.product_id ? prodIdMap.get(t.product_id as string) ?? null : null;
+      if (!newCat && !newProd) continue;
+      await supabaseAdmin.from("addon_group_targets").insert({
+        group_id: ng, category_id: newCat, product_id: newProd,
+      });
+    }
+  }
+}
+
 
 // ===== Update / Delete / Status (apenas platform_admin) =====
 

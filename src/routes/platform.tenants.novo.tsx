@@ -29,6 +29,7 @@ function NewTenantPage() {
   const [themeFrom, setThemeFrom] = useState("#FF6A1F");
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
+  const [cloneBurger, setCloneBurger] = useState(true);
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
@@ -63,6 +64,7 @@ function NewTenantPage() {
           theme_from: themeFrom,
           theme_to: themeTo,
           active,
+          clone_from_slug: cloneBurger ? "burgerprime" : null,
         },
       }),
     onSuccess: () => {
@@ -149,6 +151,16 @@ function NewTenantPage() {
               <p className="text-xs text-muted-foreground">Lojas inativas não aparecem para o público.</p>
             </div>
             <Switch checked={active} onCheckedChange={setActive} />
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl border p-4">
+            <div>
+              <p className="font-medium">Clonar catálogo do Burger Prime</p>
+              <p className="text-xs text-muted-foreground">
+                Copia categorias, produtos, tamanhos, sabores e grupos de complementos como ponto de partida.
+              </p>
+            </div>
+            <Switch checked={cloneBurger} onCheckedChange={setCloneBurger} />
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
