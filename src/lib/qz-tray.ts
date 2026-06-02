@@ -168,8 +168,11 @@ export function downloadQzProperties(): void {
  * O usuário só precisa rodar como Administrador (clique direito → "Executar como administrador").
  */
 export function buildQzWindowsInstaller(certPem: string): string {
-  // Normaliza para LF e remove eventuais aspas simples que quebrariam o here-string do PowerShell.
-  const cleanCert = certPem.replace(/\r\n/g, "\n").trim();
+  // Embute o cert.pem como base64 (single-line) — cmd não passa multi-line para o powershell.
+  const certB64 =
+    typeof btoa === "function"
+      ? btoa(unescape(encodeURIComponent(certPem.replace(/\r\n/g, "\n").trim() + "\n")))
+      : Buffer.from(certPem.replace(/\r\n/g, "\n").trim() + "\n", "utf-8").toString("base64");
   return [
     "@echo off",
     "setlocal EnableExtensions EnableDelayedExpansion",
@@ -192,8 +195,8 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "net session >nul 2>&1",
     "if errorlevel 1 (",
     "  echo.",
-    '  echo Este instalador precisa ser executado como Administrador.',
-    '  echo Feche esta janela, clique com o botao direito no arquivo e escolha',
+    "  echo Este instalador precisa ser executado como Administrador.",
+    "  echo Feche esta janela, clique com o botao direito no arquivo e escolha",
     '  echo "Executar como administrador".',
     "  echo.",
     "  pause",
@@ -202,13 +205,23 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "",
     'echo Configurando QZ Tray em "%QZ_DIR%"...',
     "",
-    ":: Escreve cert.pem usando PowerShell (preserva quebras de linha)",
-    'powershell -NoProfile -ExecutionPolicy Bypass -Command "$c = @\'',
-    cleanCert,
-    "'@; Set-Content -LiteralPath \\\"$env:QZ_DIR\\cert.pem\\\" -Value $c -Encoding ascii\"",
+    `set "CERT_B64=${certB64}"`,
+    "",
+    ":: Escreve cert.pem (conteudo embutido em base64)",
+    'powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllBytes((Join-Path $env:QZ_DIR \'cert.pem\'), [Convert]::FromBase64String($env:CERT_B64))"',
+    "if errorlevel 1 (",
+    "  echo Falha ao escrever cert.pem.",
+    "  pause",
+    "  exit /b 1",
+    ")",
     "",
     ":: Garante a linha authcert.override=cert.pem em qz-tray.properties",
     'powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Join-Path $env:QZ_DIR \'qz-tray.properties\'; $lines = if (Test-Path $p) { Get-Content $p } else { @() }; $lines = $lines | Where-Object { $_ -notmatch \'^\\s*authcert\\.override\\s*=\' }; $lines += \'authcert.override=cert.pem\'; Set-Content -LiteralPath $p -Value $lines -Encoding ascii"',
+    "if errorlevel 1 (",
+    "  echo Falha ao atualizar qz-tray.properties.",
+    "  pause",
+    "  exit /b 1",
+    ")",
     "",
     ":: Reinicia o QZ Tray",
     'taskkill /IM "QZ Tray.exe" /F >nul 2>&1',
