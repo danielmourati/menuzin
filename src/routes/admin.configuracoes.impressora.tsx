@@ -904,7 +904,7 @@ function PrinterSettingsPage() {
               <CardHeader><CardTitle className="text-base">Papel</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  {(["58mm", "80mm"] as const).map((w) => (
+                  {(["55mm", "80mm"] as const).map((w) => (
                     <Button
                       key={w}
                       type="button"
