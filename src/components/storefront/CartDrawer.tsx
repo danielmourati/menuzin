@@ -657,7 +657,7 @@ export function CartDrawer({
                 </div>
                 <div className="mt-3 space-y-2 text-sm">
                   {items.map((i) => {
-                    const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
+                    const unit = computeUnitPrice(i);
                     return (
                       <div key={i.uid} className="flex justify-between gap-3">
                         <span><span className="font-semibold">{i.qty}x</span> {i.product.name}</span>
