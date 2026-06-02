@@ -67,7 +67,7 @@ function PrinterSettingsPage() {
       buildReceiptPreviewText(form, {
         storeName: tenant?.name,
         storeAddress: tenant?.address,
-        storeWhatsapp: tenant?.whatsapp,
+        storePhone: tenant?.whatsapp,
         storeInstagram: tenant?.social?.instagram,
         storePixKey: undefined,
       }),
