@@ -615,6 +615,7 @@ export type Database = {
           debit_card_enabled: boolean
           id: string
           mp_access_token_encrypted: string | null
+          mp_account_kind: string | null
           mp_connected: boolean
           mp_last_validated_at: string | null
           mp_live_mode: boolean
@@ -637,6 +638,7 @@ export type Database = {
           debit_card_enabled?: boolean
           id?: string
           mp_access_token_encrypted?: string | null
+          mp_account_kind?: string | null
           mp_connected?: boolean
           mp_last_validated_at?: string | null
           mp_live_mode?: boolean
@@ -659,6 +661,7 @@ export type Database = {
           debit_card_enabled?: boolean
           id?: string
           mp_access_token_encrypted?: string | null
+          mp_account_kind?: string | null
           mp_connected?: boolean
           mp_last_validated_at?: string | null
           mp_live_mode?: boolean

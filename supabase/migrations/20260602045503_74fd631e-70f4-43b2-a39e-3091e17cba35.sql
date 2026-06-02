@@ -1,0 +1,1 @@
+ALTER TABLE public.store_payment_settings ADD COLUMN IF NOT EXISTS mp_account_kind text;
