@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { Order } from "@/lib/domain-types";
 import { useQuery } from "@tanstack/react-query";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
 import { printOrderViaQz } from "@/lib/print-order";
@@ -15,7 +16,7 @@ interface PrintOrderButtonProps {
   storeName?: string;
   storePhone?: string;
   storeAddress?: string;
-  /** Compat — ignorado quando há printer_settings. */
+  /** Compat — ignorado. */
   paperWidth?: "55mm" | "80mm";
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary" | "ghost";
@@ -34,23 +35,43 @@ export function PrintOrderButton({
   const { isAuthenticated } = useAuth();
   const [printing, setPrinting] = useState(false);
 
-  const { data } = useQuery({
+  const { data: settingsData } = useQuery({
     queryKey: ["printer-settings"],
     queryFn: () => getMyPrinterSettings(),
     enabled: isAuthenticated,
     staleTime: 60_000,
     retry: false,
   });
-  const settings = data?.settings ?? DEFAULT_PRINTER_SETTINGS;
+  const settings = settingsData?.settings ?? DEFAULT_PRINTER_SETTINGS;
+
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant(),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const tenant = tenantData?.tenant as
+    | {
+        name?: string;
+        whatsapp?: string;
+        address?: string;
+        social?: { instagram?: string; pix?: string; cnpj?: string };
+      }
+    | null
+    | undefined;
 
   const handlePrint = async () => {
     if (printing) return;
     setPrinting(true);
     try {
       const { printer } = await printOrderViaQz(order, settings, {
-        storeName,
-        storePhone,
-        storeAddress,
+        storeName: storeName ?? tenant?.name,
+        storePhone: storePhone ?? tenant?.whatsapp,
+        storeAddress: storeAddress ?? tenant?.address,
+        storeInstagram: tenant?.social?.instagram,
+        storePixKey: tenant?.social?.pix,
+        storeCnpj: tenant?.social?.cnpj,
       });
       toast.success(`Cupom enviado para ${printer}`);
     } catch (err) {
