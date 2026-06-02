@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Menu, Loader2 } from "lucide-react";
+import { LayoutDashboard, Store, Menu, Loader2, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { clearActiveTenantId } from "@/lib/active-tenant";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
