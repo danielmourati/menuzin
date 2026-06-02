@@ -39,7 +39,6 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
       </div>
     );
   }
-  const { signOut } = useAuth();
   const handleLogout = async () => {
     try {
       clearActiveTenant();
