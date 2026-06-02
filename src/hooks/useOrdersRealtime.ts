@@ -19,23 +19,28 @@ function notifyListeners() { listeners.forEach((l) => l()); }
 
 const CLIENT_NAMES = ["Guilherme Santos","Beatriz Oliveira","Roberto Carlos","Juliana Mello","Renato Augusto","Fernanda Lima"];
 
+let _alertAudio: HTMLAudioElement | null = null;
+function getAlertAudio(): HTMLAudioElement | null {
+  if (typeof window === "undefined") return null;
+  if (!_alertAudio) {
+    _alertAudio = new Audio("/sounds/alert.mp3");
+    _alertAudio.preload = "auto";
+    _alertAudio.volume = 0.9;
+  }
+  return _alertAudio;
+}
+
 export function playNotificationSound() {
   try {
-    const w = window as Window & { webkitAudioContext?: typeof AudioContext };
-    const Ctx = window.AudioContext || w.webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.4);
+    const audio = getAlertAudio();
+    if (!audio) return;
+    audio.currentTime = 0;
+    const p = audio.play();
+    if (p && typeof p.catch === "function") {
+      p.catch((err) => console.warn("Autoplay bloqueado:", err));
+    }
   } catch (e) {
-    console.warn("Web Audio falhou:", e);
+    console.warn("Falha ao tocar alert.mp3:", e);
   }
 }
 
