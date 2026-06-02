@@ -2,8 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 
-const SlugSchema = z.string().min(2).max(60).regex(/^[a-z0-9-]+$/);
+const SlugSchema = z
+  .string()
+  .min(2)
+  .max(60)
+  .regex(/^[a-z0-9-]+$/)
+  .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
 
 const ClaimInput = z.object({
   slug: SlugSchema,
@@ -94,6 +100,7 @@ const UpdateTenantInput = z.object({
   theme_from: z.string().max(40).optional(),
   theme_to: z.string().max(40).optional(),
   social: z.record(z.string().max(40), z.string().max(200)).optional(),
+  pos_paper_width: z.enum(["55mm", "80mm"]).optional(),
 });
 
 export const updateMyTenant = createServerFn({ method: "POST" })

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 
 /**
  * Garante que o usuário autenticado é platform_admin antes de qualquer
@@ -115,7 +116,12 @@ export const getPlatformGrowth = createServerFn({ method: "POST" })
 
 // ===== Criar tenant (apenas platform_admin) =====
 
-const SlugSchema = z.string().min(2).max(60).regex(/^[a-z0-9-]+$/);
+const SlugSchema = z
+  .string()
+  .min(2)
+  .max(60)
+  .regex(/^[a-z0-9-]+$/)
+  .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
 
 const CreateTenantInput = z.object({
   slug: SlugSchema,

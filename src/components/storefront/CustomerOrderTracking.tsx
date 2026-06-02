@@ -76,7 +76,7 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
               Não encontramos o pedido <strong>{orderId}</strong> em nosso sistema. Verifique o link ou tente novamente.
             </p>
             <Button asChild className="w-full">
-              <Link to="/loja/$slug" params={{ slug }}>
+              <Link to="/$slug" params={{ slug }}>
                 Voltar ao Cardápio
               </Link>
             </Button>
@@ -223,7 +223,7 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
           </Button>
 
           <Button asChild variant="outline" className="w-full h-11">
-            <Link to="/loja/$slug" params={{ slug }}>
+            <Link to="/$slug" params={{ slug }}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Cardápio
             </Link>
           </Button>

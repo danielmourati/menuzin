@@ -73,7 +73,7 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
       <div className="mt-auto border-t border-sidebar-border p-3 space-y-1">
         {tenant?.slug && (
           <Button asChild variant="ghost" size="sm" className="w-full justify-start" onClick={onNav}>
-            <Link to="/loja/$slug" params={{ slug: tenant.slug }} target="_blank">
+            <Link to="/$slug" params={{ slug: tenant.slug }} target="_blank">
               <ExternalLink className="mr-2 h-4 w-4" /> Ver loja pública
             </Link>
           </Button>

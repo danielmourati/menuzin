@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Search, Edit2, Trash2, Star, Loader2 } from "lucide-react";
 import { brl } from "@/lib/format";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { toast } from "sonner";
 import {
   listMyCategories, listMyProducts, saveProduct, deleteProduct, toggleProductAvailable,
@@ -197,7 +198,12 @@ function ProductsPage() {
                 </Select>
               </div>
               <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
-              <div><Label>URL da foto</Label><Input value={editing.image_url ?? ""} onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} className="mt-1.5" placeholder="https://..." /></div>
+              <ImageUploader
+                label="Foto do produto"
+                value={editing.image_url}
+                onChange={(url) => setEditing({ ...editing, image_url: url })}
+                folder="produtos"
+              />
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>Preço</Label><Input type="number" step="0.10" value={editing.price} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} className="mt-1.5" /></div>
                 <div><Label>Preço promo (opcional)</Label><Input type="number" step="0.10" value={editing.promo_price ?? ""} onChange={(e) => setEditing({ ...editing, promo_price: e.target.value ? Number(e.target.value) : null })} className="mt-1.5" /></div>

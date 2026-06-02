@@ -10,6 +10,7 @@ interface PrintOrderButtonProps {
   storeName?: string;
   storePhone?: string;
   storeAddress?: string;
+  paperWidth?: "55mm" | "80mm";
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary";
   className?: string;
@@ -20,6 +21,7 @@ export function PrintOrderButton({
   storeName,
   storePhone,
   storeAddress,
+  paperWidth,
   size = "default",
   variant = "outline",
   className = "",
@@ -59,6 +61,7 @@ export function PrintOrderButton({
               storeName={storeName}
               storePhone={storePhone}
               storeAddress={storeAddress}
+              paperWidth={paperWidth}
             />
           </div>,
           document.body

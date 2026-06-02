@@ -28,6 +28,7 @@ type FormState = {
   delivery_fee: number;
   min_order: number;
   prep_time: string;
+  pos_paper_width: "55mm" | "80mm";
 };
 
 function SettingsPage() {
@@ -40,11 +41,12 @@ function SettingsPage() {
 
   const [form, setForm] = useState<FormState>({
     name: "", whatsapp: "", description: "", address: "", city: "", state: "",
-    delivery_fee: 0, min_order: 0, prep_time: "",
+    delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
   });
 
   useEffect(() => {
     if (!tenant) return;
+    const t = tenant as typeof tenant & { pos_paper_width?: string };
     setForm({
       name: tenant.name ?? "",
       whatsapp: tenant.whatsapp ?? "",
@@ -55,6 +57,7 @@ function SettingsPage() {
       delivery_fee: Number(tenant.delivery_fee ?? 0),
       min_order: Number(tenant.min_order ?? 0),
       prep_time: tenant.prep_time ?? "",
+      pos_paper_width: (t.pos_paper_width === "55mm" ? "55mm" : "80mm"),
     });
   }, [tenant]);
 
@@ -70,7 +73,7 @@ function SettingsPage() {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
-  const publicLink = tenant?.slug ? `${window.location.host}/loja/${tenant.slug}` : "";
+  const publicLink = tenant?.slug ? `${window.location.host}/${tenant.slug}` : "";
 
   return (
     <AdminLayout
@@ -152,6 +155,24 @@ function SettingsPage() {
               <div><Label>Taxa de entrega</Label><Input type="number" value={form.delivery_fee} onChange={(e) => set("delivery_fee", Number(e.target.value))} className="mt-1.5" /></div>
               <div><Label>Pedido mínimo</Label><Input type="number" value={form.min_order} onChange={(e) => set("min_order", Number(e.target.value))} className="mt-1.5" /></div>
               <div><Label>Tempo médio de preparo</Label><Input value={form.prep_time} onChange={(e) => set("prep_time", e.target.value)} className="mt-1.5" /></div>
+              <div className="md:col-span-2">
+                <Label>Largura do papel térmico (POS)</Label>
+                <div className="mt-2 flex gap-2">
+                  {(["55mm", "80mm"] as const).map((w) => (
+                    <Button
+                      key={w}
+                      type="button"
+                      variant={form.pos_paper_width === w ? "default" : "outline"}
+                      onClick={() => set("pos_paper_width", w)}
+                    >
+                      {w}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Define o layout do cupom impresso de pedidos.
+                </p>
+              </div>
             </TabsContent>
 
             <TabsContent value="redes" className="mt-6 grid gap-3 md:grid-cols-2">

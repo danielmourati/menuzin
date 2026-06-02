@@ -1,12 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CustomerOrderTracking } from "@/components/storefront/CustomerOrderTracking";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/loja/$slug/acompanhar/$orderId")({
-  component: TrackPage,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/$slug/acompanhar/$orderId",
+      params: { slug: params.slug, orderId: params.orderId },
+      replace: true,
+    });
+  },
+  component: () => null,
 });
-
-function TrackPage() {
-  const { slug, orderId } = Route.useParams();
-
-  return <CustomerOrderTracking slug={slug} orderId={orderId} />;
-}

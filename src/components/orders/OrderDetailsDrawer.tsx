@@ -19,6 +19,8 @@ import { PrintOrderButton } from "./PrintOrderButton";
 import { MapPin, Phone, Clipboard, Check, AlertTriangle, Utensils, Calendar } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { getMyTenant } from "@/lib/tenants.functions";
 
 interface OrderDetailsDrawerProps {
   order: Order | null;
@@ -39,6 +41,8 @@ export function OrderDetailsDrawer({
   onUpdateStatus,
   storeName = "Burger Prime",
 }: OrderDetailsDrawerProps) {
+  const { data: tenantData } = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant(), staleTime: 60_000 });
+  const paperWidth = ((tenantData?.tenant as { pos_paper_width?: string } | null)?.pos_paper_width === "55mm" ? "55mm" : "80mm") as "55mm" | "80mm";
   const [copied, setCopied] = useState(false);
 
   if (!order) return null;
@@ -306,7 +310,7 @@ export function OrderDetailsDrawer({
           <WhatsAppOrderActions order={order} storeName={storeName} />
           
           <div className="flex gap-2">
-            <PrintOrderButton order={order} className="flex-1" />
+            <PrintOrderButton order={order} className="flex-1" paperWidth={paperWidth} />
             <Button variant="outline" onClick={onClose} className="flex-1">
               Fechar
             </Button>
