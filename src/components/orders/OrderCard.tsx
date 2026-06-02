@@ -96,9 +96,11 @@ export function OrderCard({
         </div>
 
         {/* Cliente + Endereço */}
-        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-          <span className="font-semibold text-sm text-foreground truncate">{order.customerName}</span>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <div className="flex-1 min-w-0 basis-[180px] flex flex-col gap-0.5">
+          <span className="font-semibold text-sm text-foreground truncate" title={order.customerName}>
+            {order.customerName || "Sem nome"}
+          </span>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground min-w-0">
             <span className="truncate">{order.whatsapp}</span>
             {order.mode === "entrega" && order.address && (
               <span className="flex items-center gap-0.5 shrink-0 truncate">
@@ -115,8 +117,8 @@ export function OrderCard({
           </div>
         </div>
 
-        {/* Itens resumidos */}
-        <div className="hidden md:block flex-1 min-w-0">
+        {/* Itens resumidos — só em telas largas para não roubar espaço do cliente */}
+        <div className="hidden xl:block flex-1 min-w-0 basis-[220px]">
           <p className="text-[11px] text-muted-foreground line-clamp-1">
             <span className="font-semibold text-foreground/80">Itens: </span>
             {order.items.map((i) => `${i.qty}x ${i.name}`).join(" · ")}
@@ -178,7 +180,7 @@ export function OrderCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground md:hidden"
+            className="h-8 w-8 text-muted-foreground xl:hidden"
             onClick={() => setExpanded((v) => !v)}
             title={expanded ? "Recolher" : "Expandir"}
           >
@@ -187,9 +189,9 @@ export function OrderCard({
         </div>
       </div>
 
-      {/* ── LINHA EXPANDIDA (mobile: itens detalhados) ─────────────────── */}
+      {/* ── LINHA EXPANDIDA (itens detalhados) ─────────────────── */}
       {expanded && (
-        <div className="pl-4 pr-3 pb-3 border-t border-dashed mx-3 pt-2 md:hidden animate-fade-in">
+        <div className="pl-4 pr-3 pb-3 border-t border-dashed mx-3 pt-2 xl:hidden animate-fade-in">
           <p className="text-[11px] text-muted-foreground">
             <span className="font-semibold text-foreground/80">Itens: </span>
             {order.items.map((i) => `${i.qty}x ${i.name}`).join(" · ")}
