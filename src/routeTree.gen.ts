@@ -21,9 +21,9 @@ import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
-import { Route as AdminComplementosRouteImport } from './routes/admin.complementos'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
+import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
@@ -93,11 +93,6 @@ const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
   path: '/admin/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminComplementosRoute = AdminComplementosRouteImport.update({
-  id: '/admin/complementos',
-  path: '/admin/complementos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
   id: '/admin/categorias',
   path: '/admin/categorias',
@@ -106,6 +101,11 @@ const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
 const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
   id: '/admin/aparencia',
   path: '/admin/aparencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdicionaisRoute = AdminAdicionaisRouteImport.update({
+  id: '/admin/adicionais',
+  path: '/admin/adicionais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SlugPedidoConfirmadoRoute = SlugPedidoConfirmadoRouteImport.update({
@@ -157,9 +157,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
+  '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
-  '/admin/complementos': typeof AdminComplementosRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -182,9 +182,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
+  '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
-  '/admin/complementos': typeof AdminComplementosRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -207,9 +207,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
+  '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
-  '/admin/complementos': typeof AdminComplementosRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
@@ -234,9 +234,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/$slug/pedido-confirmado'
+    | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/categorias'
-    | '/admin/complementos'
     | '/admin/configuracoes'
     | '/admin/dashboard'
     | '/admin/login'
@@ -259,9 +259,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/$slug/pedido-confirmado'
+    | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/categorias'
-    | '/admin/complementos'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -283,9 +283,9 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/$slug/pedido-confirmado'
+    | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/categorias'
-    | '/admin/complementos'
     | '/admin/configuracoes'
     | '/admin/dashboard'
     | '/admin/login'
@@ -308,9 +308,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
+  AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
-  AdminComplementosRoute: typeof AdminComplementosRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -410,13 +410,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/complementos': {
-      id: '/admin/complementos'
-      path: '/admin/complementos'
-      fullPath: '/admin/complementos'
-      preLoaderRoute: typeof AdminComplementosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/categorias': {
       id: '/admin/categorias'
       path: '/admin/categorias'
@@ -429,6 +422,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/aparencia'
       fullPath: '/admin/aparencia'
       preLoaderRoute: typeof AdminAparenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/adicionais': {
+      id: '/admin/adicionais'
+      path: '/admin/adicionais'
+      fullPath: '/admin/adicionais'
+      preLoaderRoute: typeof AdminAdicionaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$slug/pedido-confirmado': {
@@ -534,9 +534,9 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
+  AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
-  AdminComplementosRoute: AdminComplementosRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminLoginRoute: AdminLoginRoute,
