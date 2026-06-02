@@ -40,6 +40,18 @@ export function ProductModal({
     }
   }, [open, product?.id]);
 
+  const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
+    const out: CartSelectedGroupOption[] = [];
+    if (!product) return out;
+    for (const g of product.addonGroups ?? []) {
+      const ids = groupSelections[g.id] ?? [];
+      for (const o of g.options) {
+        if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
+      }
+    }
+    return out;
+  }, [product, groupSelections]);
+
   if (!product) return null;
 
   const isPizza = product.type === "pizza";
@@ -48,17 +60,6 @@ export function ProductModal({
   const selectedFlavors: ProductFlavor[] = (product.flavors ?? []).filter((f) => flavorIds.includes(f.id));
 
   const basePrice = computeBasePrice(product, selectedSize, selectedFlavors);
-
-  const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
-    const out: CartSelectedGroupOption[] = [];
-    for (const g of product.addonGroups ?? []) {
-      const ids = groupSelections[g.id] ?? [];
-      for (const o of g.options) {
-        if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
-      }
-    }
-    return out;
-  }, [product.addonGroups, groupSelections]);
 
   const addonsSum = legacyAddons.reduce((s, a) => s + a.price, 0);
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
