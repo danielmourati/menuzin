@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import { DEFAULT_PRINTER_SETTINGS, type PrinterSettings } from "@/lib/printer-types";
 
-const PaperWidth = z.enum(["58mm", "80mm"]);
+const PaperWidth = z.enum(["55mm", "80mm"]);
 const ConnectionType = z.enum(["bluetooth", "usb", "network", "browser"]);
 const EscPosProfile = z.enum(["generic", "mini_bt_58", "generic_80", "elgin_i8_i9"]);
 const FontSize = z.enum(["normal", "compact"]);
