@@ -11,6 +11,12 @@ import { brl } from "@/lib/format";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
 import { toast } from "sonner";
+import {
+  validateSelection,
+  computeBasePrice,
+  toggleFlavorId,
+  toggleGroupOptionId,
+} from "@/lib/product-selection";
 
 export function ProductModal({
   product, open, onOpenChange,
