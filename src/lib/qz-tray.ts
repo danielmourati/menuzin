@@ -27,6 +27,8 @@ type QZ = {
   };
 };
 
+export type QzPrinter = { name: string; isDefault: boolean };
+
 declare global {
   interface Window {
     qz?: QZ;

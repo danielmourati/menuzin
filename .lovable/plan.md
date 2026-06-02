@@ -1,109 +1,57 @@
-## Problema
+## Objetivo
 
-O arquivo `C:\Program Files\QZ Tray\qz-tray.properties` fica em uma pasta protegida do Windows. O Bloco de Notas aberto sem privilégio de administrador não consegue salvar nada lá — daí a mensagem "Você não está autorizado a abrir este arquivo".
+1. Eliminar o modal "Action Required — Untrusted website" do QZ Tray (atual: aparece a cada conexão).
+2. Após detecção, permitir **selecionar** a impressora a partir das que o QZ Tray retornou do sistema (hoje o campo é texto livre).
 
-Editar manualmente exige: clicar com o botão direito no Bloco de Notas → "Executar como administrador" → abrir o arquivo → adicionar a linha → salvar. Para um lojista comum isso é frágil e nada transparente.
+---
 
-## Solução proposta — instalador `.bat` de 1 clique
+## Diagnóstico do modal "Untrusted website"
 
-Em vez de pedir para o usuário editar o arquivo, geramos um instalador que faz tudo sozinho ao ser executado **como administrador**. O usuário só precisa de dois cliques: baixar e "Executar como administrador".
+O QZ Tray só pula esse modal quando o certificado que assina as requisições é **explicitamente confiado**. Hoje o instalador grava `cert.pem` e `authcert.override=cert.pem` apenas em `C:\Program Files\QZ Tray\qz-tray.properties`. Isso falha em dois cenários comuns:
 
-O instalador faz:
+- **Caminho relativo `cert.pem`**: o QZ Tray procura relativo ao working dir do processo, não à pasta de instalação — quando inicia via atalho, o cert não é encontrado e o app cai no fluxo "unsigned" (que sempre pede aceite).
+- **Properties por usuário sobrepondo**: a partir do 2.2.x o QZ Tray também lê `%APPDATA%\qz\qz-tray.properties` e `%ProgramData%\QZ Tray\qz-tray.properties`. Se algum desses existir sem o override, a configuração global é ignorada.
 
-1. Detecta a pasta de instalação do QZ Tray (`C:\Program Files\QZ Tray` ou `C:\Program Files (x86)\QZ Tray`).
-2. Escreve o `cert.pem` (conteúdo embutido no próprio `.bat`) dentro dessa pasta.
-3. Garante a linha `authcert.override=cert.pem` no `qz-tray.properties` (adiciona se faltar, substitui se já existir com outro valor).
-4. Reinicia o serviço/processo do QZ Tray para aplicar.
-5. Mostra "Configuração concluída" e fecha.
+Resultado: o cert é carregado parcialmente, a assinatura é validada (não dá "Failed to sign"), mas o cert não está na trust store → prompt "Untrusted website" toda vez.
 
-Tudo em UTF-8, com mensagens em português e tratamento de erro (QZ Tray não instalado, etc.).
+---
 
-## Mudanças na tela `/admin/configuracoes/impressora`
+## Correção 1 — Confiança permanente do certificado
 
-No card **Status do QZ Tray**, adicionar um botão principal:
+Atualizar `buildQzWindowsInstaller()` em `src/lib/qz-tray.ts` para:
 
-- **Configurar automaticamente (Windows)** → baixa `menuzin-qz-setup.bat` já com o `cert.pem` embutido. Tooltip/legenda: "Clique direito → Executar como administrador".
+1. Gravar `cert.pem` em **três** locais (cobre todas as variantes de instalação/perfil):
+   - `%QZ_DIR%\cert.pem` (pasta de instalação)
+   - `%ProgramData%\QZ Tray\cert.pem` (machine-wide)
+   - `%APPDATA%\qz\cert.pem` (per-user, do usuário que rodou o .bat — usar o `%USERPROFILE%` real, não o do Admin elevado: capturar via `for /f` em `whoami` antes do UAC ou usar `%SendTo%\..\..\AppData\Roaming\qz`).
+2. Para cada `qz-tray.properties` correspondente, remover linhas `authcert.override=` antigas e gravar **com caminho absoluto**:
+   ```
+   authcert.override=C:\ProgramData\QZ Tray\cert.pem
+   ```
+   (usar sempre o caminho do `%ProgramData%`, que é estável e legível por qualquer usuário).
+3. Manter o restart do QZ Tray já implementado.
+4. Mensagem final no .bat: instruir o usuário a clicar **Allow + Remember this decision** **uma única vez** caso ainda apareça o prompt no primeiro reinício (a partir daí entra em `allowed.dat`).
 
-Manter, como fallback avançado, os botões já existentes (Baixar cert.pem, exemplo `qz-tray.properties`, guia "Como instalar"). Eles ficam num accordion "Instalação manual (avançado)" para não competir com o caminho fácil.
+Nenhuma mudança em `src/routes/api.public.qz.ts` — a assinatura server-side já está correta.
 
-No diálogo **Como instalar** (`QzInstallGuide`), reescrever o passo a passo do Windows para:
+---
 
-```text
-1. Instale o QZ Tray (botão).
-2. Baixe o instalador da Menuzin (botão).
-3. Clique com o botão direito no arquivo → "Executar como administrador".
-4. Volte aqui e clique em "Tentar novamente".
-```
+## Correção 2 — Seleção de impressoras detectadas
 
-Os passos antigos (baixar cert.pem, abrir properties, colar linha, reiniciar) viram uma seção colapsável "Prefiro fazer manualmente".
+Em `src/routes/admin.configuracoes.impressora.tsx`:
 
-Para macOS/Linux mantemos o fluxo manual atual (lá `sudo` resolve sem fricção e o público é menor), com instruções específicas no mesmo diálogo.
+- Após `handleDetectQz` popular `qzPrinters`, trocar o `<Input>` do campo **"Nome da impressora"** por um padrão híbrido:
+  - Se `qzPrinters.length > 0`: renderizar um `<Select>` com as impressoras detectadas + um item final `"✏️  Digitar manualmente…"` que volta para o `<Input>` livre.
+  - Se vazio (ainda não detectou ou QZ offline): manter o `<Input>` atual.
+- Marcar a impressora padrão do sistema (já obtida via `qz.printers.getDefault()`) com sufixo "(padrão)" — adicionar um pequeno wrapper em `listQzPrinters` para retornar `{ name, isDefault }[]` ou retornar separadamente `defaultPrinter`.
+- Persistir a escolha em `form.printer_name` como hoje (string), nenhuma migração de schema.
+- Auto-selecionar a padrão quando `form.printer_name` está vazio (já existe lógica parecida — ajustar para usar a default em vez de `list[0]`).
 
-## Detalhes técnicos
+---
 
-**Geração do `.bat`:** feita no cliente, em uma nova função utilitária `buildQzWindowsInstaller(certPem: string): string` em `src/lib/qz-tray.ts`. O `cert.pem` vem do mesmo `getQzCertificate` server function que já existe, então a chave privada continua só no servidor.
+## Arquivos alterados
 
-**Estrutura do `.bat`:**
+- `src/lib/qz-tray.ts` — `buildQzWindowsInstaller()` reescrito; `listQzPrinters()` passa a expor a impressora padrão.
+- `src/routes/admin.configuracoes.impressora.tsx` — campo de impressora vira Select quando há detecção; auto-seleção da padrão.
 
-```bat
-@echo off
-setlocal EnableExtensions EnableDelayedExpansion
-chcp 65001 >nul
-
-:: 1) detecta pasta
-set "QZ_DIR=%ProgramFiles%\QZ Tray"
-if not exist "%QZ_DIR%\qz-tray.properties" set "QZ_DIR=%ProgramFiles(x86)%\QZ Tray"
-if not exist "%QZ_DIR%\qz-tray.properties" (
-  echo QZ Tray nao encontrado. Instale primeiro em https://qz.io/download/
-  pause & exit /b 1
-)
-
-:: 2) checa admin
-net session >nul 2>&1 || (
-  echo Execute este arquivo como Administrador ^(clique direito^).
-  pause & exit /b 1
-)
-
-:: 3) escreve cert.pem via PowerShell (para preservar quebras e UTF-8)
-powershell -NoProfile -Command "$c = @'
------BEGIN CERTIFICATE-----
-...conteudo do cert.pem embutido aqui...
------END CERTIFICATE-----
-'@; Set-Content -LiteralPath '%QZ_DIR%\cert.pem' -Value $c -Encoding ascii"
-
-:: 4) garante authcert.override=cert.pem em qz-tray.properties
-powershell -NoProfile -Command ^
-  "$p='%QZ_DIR%\qz-tray.properties';" ^
-  "$lines = if (Test-Path $p) { Get-Content $p } else { @() };" ^
-  "$lines = $lines | Where-Object { $_ -notmatch '^\s*authcert\.override\s*=' };" ^
-  "$lines += 'authcert.override=cert.pem';" ^
-  "Set-Content -LiteralPath $p -Value $lines -Encoding ascii"
-
-:: 5) reinicia QZ Tray
-taskkill /IM "QZ Tray.exe" /F >nul 2>&1
-start "" "%QZ_DIR%\QZ Tray.exe"
-
-echo Configuracao concluida. Pode fechar esta janela.
-pause
-```
-
-O arquivo é gerado em memória com `Blob` + `URL.createObjectURL` e baixado com nome `menuzin-qz-setup.bat`.
-
-**Sobre segurança / antivírus:** `.bat` baixado tende a disparar SmartScreen. O texto do botão deixa isso explícito ("o Windows pode pedir confirmação — clique em 'Mais informações' → 'Executar assim mesmo'"). É o mesmo padrão que o próprio QZ Tray usa para o instalador.
-
-**Arquivos tocados:**
-
-- `src/lib/qz-tray.ts` — adiciona `buildQzWindowsInstaller` e `downloadQzWindowsInstaller`.
-- `src/components/printer/QzInstallGuide.tsx` — reescreve fluxo do Windows com o novo passo a passo + accordion manual.
-- `src/routes/admin.configuracoes.impressora.tsx` — novo botão "Configurar automaticamente (Windows)" no card Status do QZ Tray; reorganiza os botões existentes em "avançado".
-
-Nada de servidor muda — `getQzCertificate` e `signQzRequest` continuam como estão.
-
-## Resultado para o lojista
-
-Fluxo final em Windows, sem editar nada manualmente:
-
-1. Instala QZ Tray.
-2. Em `/admin/configuracoes/impressora` clica **Configurar automaticamente (Windows)**.
-3. Clica com o botão direito no arquivo baixado → **Executar como administrador**.
-4. Volta na tela e clica **Detectar** → status "Conectado — impressão sem prompts".
+Sem mudanças de backend, schema, secrets ou rotas.
