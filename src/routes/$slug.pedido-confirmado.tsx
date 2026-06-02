@@ -150,3 +150,50 @@ function ConfirmedPage() {
     </div>
   );
 }
+
+function buildWhatsAppOrderMessage(order: Order, tenantName: string): string {
+  const lines: string[] = [];
+  lines.push(`Olá ${tenantName}! Segue meu pedido #${order.number}.`);
+  lines.push("");
+  lines.push(`*Cliente:* ${order.customerName}`);
+  lines.push(`*Modalidade:* ${modeLabel[order.mode]}`);
+  if (order.mode === "entrega" && order.address) {
+    const a = order.address;
+    lines.push(`*Endereço:* ${a.street ?? ""}, ${a.number ?? ""} — ${a.neighborhood ?? ""}`);
+    if (a.complement) lines.push(`Compl.: ${a.complement}`);
+    if (a.reference) lines.push(`Ref.: ${a.reference}`);
+  }
+  if (order.mode === "consumo_local" && order.table) lines.push(`*Local:* ${order.table}`);
+  lines.push("");
+  lines.push("*Itens:*");
+  for (const it of order.items) {
+    lines.push(`• ${it.qty}x ${it.name} — ${brl(it.unitPrice * it.qty)}`);
+    const sizes: string[] = [];
+    const flavors: string[] = [];
+    const groups: Record<string, string[]> = {};
+    const extras: string[] = [];
+    for (const a of it.addons ?? []) {
+      const p = parseAddonLabel(a.name);
+      const suffix = Number(a.price) > 0 ? ` (+${brl(a.price)})` : "";
+      if (p.kind === "size") sizes.push(p.label);
+      else if (p.kind === "flavor") flavors.push(p.label);
+      else if (p.kind === "group" && p.groupName) (groups[p.groupName] ||= []).push(p.label + suffix);
+      else extras.push(p.label + suffix);
+    }
+    if (sizes.length) lines.push(`   _Tamanho:_ ${sizes.join(", ")}`);
+    if (flavors.length) lines.push(`   _Sabores:_ ${flavors.join(" + ")}`);
+    for (const [g, opts] of Object.entries(groups)) lines.push(`   _${g}:_ ${opts.join(", ")}`);
+    if (extras.length) lines.push(`   _Adicionais:_ ${extras.join(", ")}`);
+    if (it.note) lines.push(`   _Obs:_ ${it.note}`);
+  }
+  lines.push("");
+  lines.push(`Subtotal: ${brl(order.subtotal)}`);
+  if (order.deliveryFee > 0) lines.push(`Entrega: ${brl(order.deliveryFee)}`);
+  lines.push(`*Total: ${brl(order.total)}*`);
+  lines.push(`Pagamento: ${order.payment}`);
+  if (order.note) {
+    lines.push("");
+    lines.push(`Observação geral: ${order.note}`);
+  }
+  return lines.join("\n");
+}
