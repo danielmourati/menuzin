@@ -306,7 +306,7 @@ export function CartDrawer({
       payment: `${paymentWhenLabel} · ${paymentMethod}`,
       paymentMethod: selectedMethod,
       paymentStatus: finalPaymentStatus,
-      orderStatus: finalPaymentStatus === "approved" ? "new" : "pending_payment",
+      orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
       mpPaymentId,
       items: items.map((i) => ({
         name: i.product.name,
