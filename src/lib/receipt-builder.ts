@@ -106,7 +106,9 @@ export function buildReceipt(
   const out: string[] = [];
   const sepChar = s.separator_char || "-";
   const sep = lineOf(sepChar, cols);
-  const sepDouble = lineOf("=", cols);
+  const narrow = cols <= 32;
+  const sepStrong = narrow ? sep : lineOf("=", cols);
+  const addonIndent = narrow ? " " : "  ";
 
   /* 1. Cabeçalho da loja */
   if (s.show_store_name && opts.storeName) {
@@ -115,40 +117,46 @@ export function buildReceipt(
   if (s.show_address && opts.storeAddress) {
     wrap(stripAccents(opts.storeAddress), cols).forEach((l) => out.push(center(l, cols)));
   }
-  if (s.show_document && opts.storeCnpj) out.push(center(`CNPJ: ${opts.storeCnpj}`, cols));
-  if (s.show_whatsapp && opts.storePhone) out.push(center(`WhatsApp: ${opts.storePhone}`, cols));
+  // CNPJ + Telefone na mesma linha quando couber
+  const docPart = s.show_document && opts.storeCnpj ? `CNPJ ${opts.storeCnpj}` : "";
+  const telPart = s.show_whatsapp && opts.storePhone ? `Tel ${opts.storePhone}` : "";
+  if (docPart && telPart) {
+    const joined = `${docPart}  ${telPart}`;
+    if (joined.length <= cols) out.push(center(joined, cols));
+    else { out.push(center(docPart, cols)); out.push(center(telPart, cols)); }
+  } else if (docPart) out.push(center(docPart, cols));
+  else if (telPart) out.push(center(telPart, cols));
   if (s.show_store_name || s.show_address || s.show_document || s.show_whatsapp) {
     out.push(sep);
   }
 
-  /* 2. Aviso fiscal */
-  out.push("");
-  out.push(center("NAO E DOCUMENTO FISCAL", cols));
-  wrap("AGUARDE A EMISSAO DO DOCUMENTO FISCAL", cols).forEach((l) =>
-    out.push(center(l, cols)),
-  );
-  out.push(sepDouble);
+  /* 2. Aviso fiscal — uma única linha condensada */
+  out.push(center("*** NAO E DOCUMENTO FISCAL ***", cols));
+  out.push(sepStrong);
 
-  /* 3. Identificação do pedido */
+  /* 3. Identificação do pedido + número (mesma linha) */
   const shortId = order.id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const idFmt = `${shortId.slice(0, 4)}.${shortId.slice(4, 8)}`;
-  out.push("");
-  out.push(center(`CONFERENCIA - VENDA ${idFmt}`, cols));
+  const numFmt = String(order.number).padStart(4, "0");
+  out.push(center(`PEDIDO #${numFmt} - ${idFmt}`, cols));
   out.push(sep);
 
-  /* 4. Cliente */
-  out.push("");
-  out.push(`Cliente: ${stripAccents(order.customerName) || "Consumidor"}`);
-  if (order.whatsapp) out.push(`Fone: ${order.whatsapp}`);
+  /* 4. Cliente — nome + telefone juntos quando couber */
+  const cliName = stripAccents(order.customerName) || "Consumidor";
+  const cliLine = `Cliente: ${cliName}`;
+  if (order.whatsapp && cliLine.length + 2 + order.whatsapp.length <= cols) {
+    out.push(`${cliLine}  ${order.whatsapp}`);
+  } else {
+    out.push(cliLine);
+    if (order.whatsapp) out.push(`Fone: ${order.whatsapp}`);
+  }
   out.push(sep);
 
   /* 5. Tabela */
-  out.push("");
-  out.push("Descricao");
-  out.push("Qtd Un  Vl Unit   Vl Tot");
-  out.push(sepDouble);
+  out.push(narrow ? "Qtd  Vl Unit    Vl Tot" : "Qtd Un  Vl Unit   Vl Tot");
+  out.push(sep);
 
-  /* 6. Itens */
+  /* 6. Itens (sem linha em branco entre itens) */
   for (const it of order.items) {
     out.push(itemBlock(it.name, it.qty, it.unitPrice, it.unitPrice * it.qty, cols));
     if (it.addons?.length) {
@@ -159,38 +167,36 @@ export function buildReceipt(
           parsed.kind === "flavor" ? `Sabor: ${parsed.label}` :
           parsed.kind === "group" ? `${parsed.groupName}: ${parsed.label}` :
           parsed.label;
-        out.push(addonLine(1, label, Number(a.price) || 0, cols));
+        const indentSaved = addonIndent;
+        const addon = addonLine(1, label, Number(a.price) || 0, cols);
+        out.push(narrow ? addon.replace(/^  /gm, indentSaved) : addon);
       }
     }
     if (it.note) {
-      wrap(`* ${stripAccents(it.note)}`, cols - 2).forEach((l) => out.push("  " + l));
+      wrap(`* ${stripAccents(it.note)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
     }
-    out.push("");
   }
 
   /* 7. Total */
   out.push(sep);
   if (order.deliveryFee > 0) {
     out.push(row("Subtotal", money(order.subtotal), cols));
-    out.push(row("Taxa de entrega", money(order.deliveryFee), cols));
+    out.push(row("Taxa entrega", money(order.deliveryFee), cols));
   }
   out.push(row("TOTAL", money(order.total), cols));
-  out.push("");
 
-  /* 8. Pagamento */
-  out.push(row("Forma de Pagamento", "Valor Pago", cols));
-  out.push(row(stripAccents(order.payment || "-"), money(order.total), cols));
+  /* 8. Pagamento — linha única quando couber */
+  const payLabel = stripAccents(order.payment || "-");
+  out.push(row(`Pgto: ${payLabel}`, money(order.total), cols));
   if (order.changeFor && order.changeFor > 0) {
     out.push(row("Troco para", money(order.changeFor), cols));
   }
   out.push(sep);
 
   /* 9. Info adicionais */
-  out.push("");
-  out.push(`Catalogo Online - Pedido ${String(order.number).padStart(6, "0")}`);
   if (order.mode === "retirada") {
-    out.push("Retirada no local");
-    if (order.pickupTime) out.push(`Horario: ${order.pickupTime}`);
+    const pick = order.pickupTime ? `Retirada: ${order.pickupTime}` : "Retirada no local";
+    out.push(pick);
   } else if (order.mode === "consumo_local") {
     if (order.table) out.push(`Mesa: ${order.table}`);
   } else if (order.mode === "entrega" && order.address) {
@@ -200,25 +206,21 @@ export function buildReceipt(
       [a.street, a.number].filter(Boolean).join(", "),
       a.complement,
     ].filter(Boolean).join(" - ");
-    if (linhaEnd) wrap(stripAccents(linhaEnd), cols).forEach((l) => out.push("  " + l));
-    if (a.neighborhood) wrap(stripAccents(a.neighborhood), cols - 2).forEach((l) => out.push("  " + l));
-    if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - 2).forEach((l) => out.push("  " + l));
+    if (linhaEnd) wrap(stripAccents(linhaEnd), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    if (a.neighborhood) wrap(stripAccents(a.neighborhood), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
   }
   if (order.paymentStatus === "approved") out.push("Cobranca antecipada");
   else if (order.paymentStatus === "manual") out.push("Pagamento na entrega");
   else if (order.paymentStatus === "pending") out.push("Aguardando pagamento");
 
   if (order.note) {
-    out.push("");
-    out.push("Observacao:");
-    wrap(stripAccents(order.note), cols).forEach((l) => out.push(l));
+    out.push("Obs: " + stripAccents(order.note).slice(0, 200));
   }
 
   /* 10. Rodapé */
-  out.push(sepDouble);
-  out.push(center("NAO E DOCUMENTO FISCAL", cols));
+  out.push(sep);
   out.push(`Data/Hora: ${formatDateTime(order.createdAt)}`);
-  out.push("");
   if (s.show_thank_message && s.thank_message) {
     out.push(center(stripAccents(s.thank_message), cols));
   }
@@ -228,7 +230,8 @@ export function buildReceipt(
   if (s.show_pix && opts.storePixKey) {
     wrap(`PIX: ${opts.storePixKey}`, cols).forEach((l) => out.push(center(l, cols)));
   }
-  for (let i = 0; i < Math.max(0, s.feed_lines); i++) out.push("");
+  const feed = Math.min(4, Math.max(1, s.feed_lines));
+  for (let i = 0; i < feed; i++) out.push("");
 
   return out.join("\n");
 }
