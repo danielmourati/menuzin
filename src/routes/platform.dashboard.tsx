@@ -22,7 +22,7 @@ const navItems = [
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { loading, isAuthenticated, isPlatformAdmin } = useAuth();
+  const { loading, isAuthenticated, isPlatformAdmin, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
