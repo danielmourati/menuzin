@@ -432,6 +432,7 @@ function PrinterSettingsPage() {
     }
   };
 
+  return (
     <AdminLayout
       title="Impressora de Cupom"
       action={
