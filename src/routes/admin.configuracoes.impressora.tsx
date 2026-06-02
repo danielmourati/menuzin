@@ -128,6 +128,74 @@ function PrinterSettingsPage() {
   const [testSteps, setTestSteps] = useState<TestStep[] | null>(null);
   const [testBusy, setTestBusy] = useState(false);
 
+  type CertCheck =
+    | { state: "idle" }
+    | { state: "loading" }
+    | {
+        state: "ok";
+        status: number;
+        contentType: string;
+        bytes: number;
+        lines: number;
+        beginLine: string;
+        endLine: string;
+        fingerprint?: string;
+      }
+    | { state: "err"; message: string; status?: number };
+  const [certCheck, setCertCheck] = useState<CertCheck>({ state: "idle" });
+
+  const handleTestCertEndpoint = async () => {
+    setCertCheck({ state: "loading" });
+    try {
+      const res = await fetch("/api/public/qz-cert.crt", { cache: "no-store" });
+      const text = await res.text();
+      const ct = res.headers.get("content-type") || "";
+      if (!res.ok) {
+        setCertCheck({ state: "err", status: res.status, message: text.slice(0, 200) || res.statusText });
+        toast.error(`Cert endpoint retornou ${res.status}.`);
+        return;
+      }
+      const lines = text.split(/\r?\n/).filter((l) => l.length > 0);
+      const begin = lines.find((l) => l.startsWith("-----BEGIN")) || "";
+      const end = lines.find((l) => l.startsWith("-----END")) || "";
+      const looksLikePem =
+        /BEGIN CERTIFICATE/.test(begin) && /END CERTIFICATE/.test(end);
+      if (!looksLikePem) {
+        setCertCheck({
+          state: "err",
+          status: res.status,
+          message: "Resposta não parece um PEM X.509 válido (faltam marcadores BEGIN/END CERTIFICATE).",
+        });
+        toast.error("PEM inválido recebido do endpoint.");
+        return;
+      }
+      // Fingerprint SHA-256 do PEM bruto (referência rápida para checklist).
+      let fingerprint: string | undefined;
+      try {
+        const enc = new TextEncoder().encode(text);
+        const hash = await crypto.subtle.digest("SHA-256", enc);
+        fingerprint = Array.from(new Uint8Array(hash))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(":")
+          .toUpperCase();
+      } catch { /* opcional */ }
+      setCertCheck({
+        state: "ok",
+        status: res.status,
+        contentType: ct,
+        bytes: text.length,
+        lines: lines.length,
+        beginLine: begin,
+        endLine: end,
+        fingerprint,
+      });
+      toast.success("PEM carregado com sucesso.");
+    } catch (e) {
+      setCertCheck({ state: "err", message: (e as Error).message });
+      toast.error((e as Error).message);
+    }
+  };
+
   // Status do cert do servidor — para alertar quando ainda for o cert demo.
   const { data: qzCert, refetch: refetchQzCert } = useQuery({
     queryKey: ["qz-cert"],
