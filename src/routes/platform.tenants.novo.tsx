@@ -64,6 +64,7 @@ function NewTenantPage() {
           theme_from: themeFrom,
           theme_to: themeTo,
           active,
+          clone_from_slug: cloneBurger ? "burgerprime" : null,
         },
       }),
     onSuccess: () => {
