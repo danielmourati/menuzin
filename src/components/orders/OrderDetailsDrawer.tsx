@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, modeLabel, formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
+import { parseAddonLabel } from "@/lib/product-selection";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { OrderStatusActions } from "./OrderStatusActions";
@@ -68,12 +69,24 @@ export function OrderDetailsDrawer({
     lines.push("*Itens:*");
     order.items.forEach((item) => {
       lines.push(`• ${item.qty}x ${item.name} (${brl(item.unitPrice)})`);
-      if (item.addons && item.addons.length > 0) {
-        lines.push(`  + Adicionais: ${item.addons.map((a) => a.name).join(", ")}`);
+      const sizes: string[] = [];
+      const flavors: string[] = [];
+      const groups: Record<string, string[]> = {};
+      const extras: string[] = [];
+      for (const a of item.addons ?? []) {
+        const p = parseAddonLabel(a.name);
+        const suffix = Number(a.price) > 0 ? ` (+${brl(a.price)})` : "";
+        if (p.kind === "size") sizes.push(p.label);
+        else if (p.kind === "flavor") flavors.push(p.label);
+        else if (p.kind === "group" && p.groupName) {
+          (groups[p.groupName] ||= []).push(p.label + suffix);
+        } else extras.push(p.label + suffix);
       }
-      if (item.note) {
-        lines.push(`  Obs item: ${item.note}`);
-      }
+      if (sizes.length) lines.push(`   Tamanho: ${sizes.join(", ")}`);
+      if (flavors.length) lines.push(`   Sabores: ${flavors.join(" + ")}`);
+      for (const [g, opts] of Object.entries(groups)) lines.push(`   ${g}: ${opts.join(", ")}`);
+      if (extras.length) lines.push(`   Adicionais: ${extras.join(", ")}`);
+      if (item.note) lines.push(`   Obs: ${item.note}`);
     });
 
     lines.push("");
@@ -223,12 +236,20 @@ export function OrderDetailsDrawer({
                     
                     {item.addons && item.addons.length > 0 && (
                       <div className="pl-3 mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-                        {item.addons.map((add) => (
-                          <div key={add.id} className="flex justify-between">
-                            <span>+ {add.name}</span>
-                            <span>{brl(add.price)}</span>
-                          </div>
-                        ))}
+                        {item.addons.map((add) => {
+                          const p = parseAddonLabel(add.name);
+                          const prefix =
+                            p.kind === "size" ? "Tamanho:" :
+                            p.kind === "flavor" ? "Sabor:" :
+                            p.kind === "group" ? `${p.groupName}:` :
+                            "+";
+                          return (
+                            <div key={add.id} className="flex justify-between">
+                              <span>{prefix} {p.label}</span>
+                              {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 
