@@ -284,6 +284,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
           mp_access_token_encrypted: encrypted,
           mp_user_id: mpUserId,
           mp_live_mode: data.mp_live_mode,
+          mp_account_kind: mpAccountKind,
           mp_connected: true,
           mp_last_validated_at: new Date().toISOString(),
         },
@@ -300,9 +301,10 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
       ? parts.map((p, i) => (i === 1 || i === 2 ? "****" : p)).join("-")
       : data.mp_public_key.slice(0, 8) + "****" + data.mp_public_key.slice(-4);
 
+    const kindLabel = mpAccountKind === "test_user" ? "Usuário de Teste" : "Produção";
     return {
       success: true as const,
-      message: `Credenciais validadas com sucesso! Conectado como MP user ${mpUserId}.`,
+      message: `Credenciais validadas! Conta MP #${mpUserId} (${kindLabel}).`,
       mp_public_key_masked: masked,
       mp_user_id: mpUserId,
     };
