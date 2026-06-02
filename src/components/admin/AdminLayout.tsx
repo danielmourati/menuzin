@@ -252,6 +252,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
             </Sheet>
             <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
+              <StoreOpenToggle />
               <AdminNotificationsBell />
               {action}
             </div>
