@@ -28,6 +28,7 @@ import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
+import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
@@ -131,6 +132,11 @@ const LojaSlugPedidoConfirmadoRoute =
     path: '/pedido-confirmado',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const ApiPublicQzCertDotcrtRoute = ApiPublicQzCertDotcrtRouteImport.update({
+  id: '/api/public/qz-cert.crt',
+  path: '/api/public/qz-cert.crt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
   id: '/api/public/qz',
   path: '/api/public/qz',
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/api/public/qz': typeof ApiPublicQzRoute
+  '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
@@ -214,6 +221,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/api/public/qz': typeof ApiPublicQzRoute
+  '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
@@ -242,6 +250,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/api/public/qz': typeof ApiPublicQzRoute
+  '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
@@ -271,6 +280,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/api/public/qz'
+    | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/api/public/qz'
+    | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
     | '/admin/configuracoes'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/api/public/qz'
+    | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
@@ -347,6 +359,7 @@ export interface RootRouteChildren {
   PlatformLojasRoute: typeof PlatformLojasRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
+  ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
 }
 
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugPedidoConfirmadoRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/api/public/qz-cert.crt': {
+      id: '/api/public/qz-cert.crt'
+      path: '/api/public/qz-cert.crt'
+      fullPath: '/api/public/qz-cert.crt'
+      preLoaderRoute: typeof ApiPublicQzCertDotcrtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/qz': {
       id: '/api/public/qz'
       path: '/api/public/qz'
@@ -590,8 +610,19 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformLojasRoute: PlatformLojasRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
+  ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
