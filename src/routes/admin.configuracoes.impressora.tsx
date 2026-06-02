@@ -130,6 +130,19 @@ function PrinterSettingsPage() {
     }
   };
 
+  const [installerBusy, setInstallerBusy] = useState(false);
+  const handleDownloadInstaller = async () => {
+    setInstallerBusy(true);
+    try {
+      await downloadQzWindowsInstaller();
+      toast.success("Instalador baixado. Clique direito → Executar como administrador.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setInstallerBusy(false);
+    }
+  };
+
   const handleTestPrint = async () => {
     setQzBusy(true);
     try {
