@@ -57,45 +57,59 @@ function PrinterSettingsPage() {
   const set = <K extends keyof PrinterSettings>(k: K, v: PrinterSettings[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
-  // Pedido fictício para o cupom de teste
-  const testOrder: Order = useMemo(
-    () => ({
-      id: "00000000-0000-0000-0000-000000000000",
-      number: 1234,
-      storeId: "test",
-      customerName: "Cliente Teste",
-      whatsapp: "(00) 00000-0000",
-      mode: "retirada",
-      status: "novo",
-      paymentStatus: "manual",
-      payment: "Pagar no balcão",
-      items: [
-        { productId: "p1", name: "Produto Teste", qty: 1, unitPrice: 10, addons: [] },
-        { productId: "p2", name: "Taxa de Serviço", qty: 1, unitPrice: 1, addons: [] },
-      ],
-      subtotal: 11,
-      deliveryFee: 0,
-      total: 11,
-      createdAt: new Date().toISOString(),
-      statusHistory: [],
-    }),
-    [],
-  );
-
   const tenant = tenantData?.tenant as
     | { name?: string; whatsapp?: string; address?: string; social?: { instagram?: string } }
     | null
     | undefined;
 
+  const previewText = useMemo(
+    () =>
+      buildReceiptPreviewText(form, {
+        storeName: tenant?.name,
+        storeAddress: tenant?.address,
+        storeWhatsapp: tenant?.whatsapp,
+        storeInstagram: tenant?.social?.instagram,
+        storePixKey: undefined,
+      }),
+    [form, tenant],
+  );
+
   const browserSupportsBluetooth = typeof navigator !== "undefined" && "bluetooth" in navigator;
   const browserSupportsUsb = typeof navigator !== "undefined" && "usb" in navigator;
 
-  const handleTestPrint = () => {
-    document.body.classList.add("printing-receipt");
-    setTimeout(() => {
-      window.print();
-      document.body.classList.remove("printing-receipt");
-    }, 100);
+  const [qzBusy, setQzBusy] = useState(false);
+  const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+
+  const handleDetectQz = async () => {
+    setQzBusy(true);
+    try {
+      await ensureQzConnected();
+      const list = await listQzPrinters();
+      setQzPrinters(list);
+      if (list.length === 0) {
+        toast.warning("Nenhuma impressora encontrada.");
+      } else {
+        toast.success(`QZ Tray conectado · ${list.length} impressora(s) encontrada(s).`);
+        if (!form.printer_name && list[0]) set("printer_name", list[0]);
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Erro ao conectar ao QZ Tray.");
+    } finally {
+      setQzBusy(false);
+    }
+  };
+
+  const handleTestPrint = async () => {
+    setQzBusy(true);
+    try {
+      await printQzTextTest(form.printer_name, previewText);
+      toast.success("Teste de impressão enviado com sucesso.");
+    } catch (e) {
+      const msg = (e as Error).message || "Erro ao enviar teste de impressão.";
+      toast.error(msg);
+    } finally {
+      setQzBusy(false);
+    }
   };
 
   return (
