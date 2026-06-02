@@ -56,4 +56,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
 };
 
 
-export const columnsFor = (w: PaperWidth) => (w === "55mm" ? 30 : 48);
+// Colunas úteis (Font A monoespaçada). Reduzimos o 80mm de 48→42 e 55mm de 30→32
+// pois a margem física da maioria das térmicas (Elgin i9, Bematech, MP-4200…)
+// não acomoda a largura nominal completa e isso causava quebra do separador.
+export const columnsFor = (w: PaperWidth) => (w === "55mm" ? 32 : 42);
