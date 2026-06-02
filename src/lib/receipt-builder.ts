@@ -215,7 +215,7 @@ export function buildReceipt(
   else if (order.paymentStatus === "pending") out.push("Aguardando pagamento");
 
   if (order.note) {
-    out.push("Obs: " + stripAccents(order.note).slice(0, 200));
+    wrap("Obs: " + stripAccents(order.note).slice(0, 200), cols).forEach((l) => out.push(l));
   }
 
   /* 10. Rodapé */
