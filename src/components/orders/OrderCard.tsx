@@ -10,6 +10,7 @@ import { Eye, Clock, MapPin, MessageCircle, Utensils, ChevronDown, ChevronUp } f
 import { whatsappLink } from "@/lib/whatsapp";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
+import { useAuth } from "@/lib/auth-context";
 
 interface OrderCardProps {
   order: Order;
@@ -26,7 +27,14 @@ export function OrderCard({
   onCancel,
   onUpdateStatus,
 }: OrderCardProps) {
-  const { data: tenantData } = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant(), staleTime: 60_000 });
+  const { isAuthenticated } = useAuth();
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant(),
+    staleTime: 60_000,
+    enabled: isAuthenticated,
+    retry: false,
+  });
   const paperWidth = ((tenantData?.tenant as { pos_paper_width?: string } | null)?.pos_paper_width === "55mm" ? "55mm" : "80mm") as "55mm" | "80mm";
   const [elapsed, setElapsed] = useState(() => timeAgo(order.createdAt));
   const [expanded, setExpanded] = useState(false);
