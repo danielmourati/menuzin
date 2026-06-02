@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle, Plug } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -20,7 +20,10 @@ import {
 } from "@/lib/printer-types";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
-import { ensureQzConnected, listQzPrinters, printQzTextTest } from "@/lib/qz-tray";
+import {
+  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError,
+} from "@/lib/qz-tray";
+import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: PrinterSettingsPage,
@@ -79,6 +82,20 @@ function PrinterSettingsPage() {
 
   const [qzBusy, setQzBusy] = useState(false);
   const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+  const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  const handleQzError = (e: unknown) => {
+    if (e instanceof QzNotRunningError) {
+      setQzStatus("offline");
+      setGuideOpen(true);
+      toast.error(e.message, {
+        action: { label: "Como instalar", onClick: () => setGuideOpen(true) },
+      });
+      return;
+    }
+    toast.error((e as Error).message || "Erro ao se comunicar com o QZ Tray.");
+  };
 
   const handleDetectQz = async () => {
     setQzBusy(true);
@@ -86,6 +103,7 @@ function PrinterSettingsPage() {
       await ensureQzConnected();
       const list = await listQzPrinters();
       setQzPrinters(list);
+      setQzStatus("connected");
       if (list.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
@@ -93,7 +111,7 @@ function PrinterSettingsPage() {
         if (!form.printer_name && list[0]) set("printer_name", list[0]);
       }
     } catch (e) {
-      toast.error((e as Error).message || "Erro ao conectar ao QZ Tray.");
+      handleQzError(e);
     } finally {
       setQzBusy(false);
     }
@@ -103,10 +121,10 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     try {
       await printQzTextTest(form.printer_name, previewText);
+      setQzStatus("connected");
       toast.success("Teste de impressão enviado com sucesso.");
     } catch (e) {
-      const msg = (e as Error).message || "Erro ao enviar teste de impressão.";
-      toast.error(msg);
+      handleQzError(e);
     } finally {
       setQzBusy(false);
     }
@@ -133,6 +151,40 @@ function PrinterSettingsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <div className="space-y-4">
+            {/* Status do QZ Tray */}
+            <Card>
+              <CardHeader className="flex-row items-center justify-between gap-2">
+                <CardTitle className="text-base">Status do QZ Tray</CardTitle>
+                <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
+                  <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
+                </Button>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  {qzStatus === "connected" ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>Conectado — impressão sem prompts.</span>
+                    </>
+                  ) : qzStatus === "offline" ? (
+                    <>
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <span>QZ Tray não encontrado. Instale e abra o aplicativo.</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plug className="h-4 w-4 text-muted-foreground" />
+                      <span>Clique em <strong>Detectar</strong> para verificar.</span>
+                    </>
+                  )}
+                </div>
+                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
+                  {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
+                  Detectar
+                </Button>
+              </CardContent>
+            </Card>
+
             {/* Bloco 1 — Impressora */}
             <Card>
               <CardHeader><CardTitle className="text-base">Impressora</CardTitle></CardHeader>
@@ -373,6 +425,13 @@ function PrinterSettingsPage() {
           </Card>
         </div>
       )}
+
+      <QzInstallGuide
+        open={guideOpen}
+        onOpenChange={setGuideOpen}
+        onRetry={handleDetectQz}
+        retrying={qzBusy}
+      />
     </AdminLayout>
   );
 }
