@@ -559,6 +559,18 @@ function PrinterSettingsPage() {
         onRetry={handleDetectQz}
         retrying={qzBusy}
       />
+
+      <QzDiagnosticsModal
+        open={diagOpen}
+        onOpenChange={setDiagOpen}
+        selectedPrinter={form.printer_name}
+        defaultPrinter={qzDefaultPrinter}
+        qzPrinters={qzPrinters}
+        qzStatus={qzStatus}
+        lastAttempt={lastAttempt}
+        onRetryDetect={handleDetectQz}
+        retrying={qzBusy}
+      />
     </AdminLayout>
   );
 }
