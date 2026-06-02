@@ -418,8 +418,8 @@ export function MercadoPagoStatus({
                       <p className="text-xs font-semibold">Modo Produção (Live)</p>
                       <p className="text-[11px] text-muted-foreground">
                         {liveMode
-                          ? "Transações reais. Use credenciais APP_USR-... de produção."
-                          : "Modo Sandbox/Testes. Use credenciais TEST-..."}
+                          ? "Transações reais. Use credenciais da sua conta real do Mercado Pago."
+                          : "Modo Teste. Use credenciais de um Usuário de Teste criado no painel do MP."}
                       </p>
                     </div>
                     <Switch
@@ -428,6 +428,26 @@ export function MercadoPagoStatus({
                       onCheckedChange={setLiveMode}
                     />
                   </div>
+
+                  {/* Test mode explainer */}
+                  {!liveMode && (
+                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-3.5 py-2.5 text-[11px] text-muted-foreground leading-relaxed">
+                      <strong className="text-foreground">Para testar com cartões e Pix de sandbox</strong> você
+                      precisa usar as credenciais de um <strong>Usuário de Teste</strong> do MP, não da sua conta
+                      real. Crie um em{" "}
+                      <a
+                        href="https://www.mercadopago.com.br/developers/panel/test-users"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline font-semibold text-blue-600"
+                      >
+                        Contas de teste
+                      </a>{" "}
+                      e copie as credenciais dele aqui. Caso contrário o MP retornará{" "}
+                      <code className="font-mono">Unauthorized use of live credentials</code>.
+                    </div>
+                  )}
+
 
                   {/* Validation Error */}
                   {validationError && (
