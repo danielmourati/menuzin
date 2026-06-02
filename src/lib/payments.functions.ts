@@ -166,6 +166,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
 
     // Validate against MP API
     let mpUserId: string;
+    let mpAccountKind: "test_user" | "production" = "production";
     try {
       const res = await fetch("https://api.mercadopago.com/users/me", {
         headers: { Authorization: `Bearer ${data.mp_access_token}` },
@@ -219,7 +220,13 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
           message: `Mercado Pago rejeitou as credenciais (HTTP ${res.status}): ${detail}${causeText}. ${suggestion}`,
         };
       }
-      const me = (await res.json()) as { id?: number | string; site_id?: string };
+      const me = (await res.json()) as {
+        id?: number | string;
+        site_id?: string;
+        tags?: string[];
+        email?: string;
+        nickname?: string;
+      };
       if (!me.id) {
         return {
           success: false as const,
@@ -228,6 +235,31 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
         };
       }
       mpUserId = String(me.id);
+
+      // Detect test user — MP marks accounts created via Test Users API with
+      // tags: ["test_user", ...] (sometimes also "normal"). Real seller
+      // accounts never include "test_user". The nickname pattern
+      // "TESTUSER..." or email "@testuser.com" is an extra hint.
+      const tags = Array.isArray(me.tags) ? me.tags.map((t) => String(t).toLowerCase()) : [];
+      const isTestNickname = typeof me.nickname === "string" && /^testuser/i.test(me.nickname);
+      const isTestEmail = typeof me.email === "string" && /@testuser\.com$/i.test(me.email);
+      mpAccountKind = tags.includes("test_user") || isTestNickname || isTestEmail ? "test_user" : "production";
+
+      // Coherence check: live mode flag vs actual account kind
+      if (data.mp_live_mode && mpAccountKind === "test_user") {
+        return {
+          success: false as const,
+          message:
+            "Você marcou Modo Produção, mas as credenciais informadas são de um Usuário de Teste. Use credenciais da sua conta real do Mercado Pago, ou desligue o Modo Produção para usar o sandbox.",
+        };
+      }
+      if (!data.mp_live_mode && mpAccountKind === "production") {
+        return {
+          success: false as const,
+          message:
+            "As credenciais informadas são de Produção, mas o Modo Teste está ativado. Para testar com cartões e Pix de sandbox, crie um Usuário de Teste em https://www.mercadopago.com.br/developers/panel/test-users e use as credenciais dele. Caso queira receber pagamentos reais, ative o Modo Produção.",
+        };
+      }
     } catch (err) {
       console.error("MP validation error:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -236,6 +268,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
         message: `Não foi possível conectar ao Mercado Pago: ${errMsg}. Verifique sua conexão e tente novamente.`,
       };
     }
+
 
 
     const tenantId = await resolveTenantId(supabase, userId);
