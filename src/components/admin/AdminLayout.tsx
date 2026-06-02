@@ -295,3 +295,59 @@ function ImpersonationBanner() {
     </div>
   );
 }
+
+function StoreOpenToggle() {
+  const { profile, isPlatformAdmin } = useAuth();
+  const activeTenantId = useActiveTenantId();
+  const qc = useQueryClient();
+  const tenantKey = activeTenantId ?? profile?.tenant_id ?? "none";
+  const { data } = useQuery({
+    queryKey: ["my-tenant", tenantKey],
+    queryFn: () => getMyTenant(),
+    enabled: !!(profile?.tenant_id || activeTenantId),
+  });
+  const tenant = data?.tenant;
+
+  const canToggle = !!tenant && (isPlatformAdmin || !!profile?.tenant_id);
+
+  const mut = useMutation({
+    mutationFn: (open: boolean) => updateMyTenant({ data: { open } }),
+    onSuccess: (_r, open) => {
+      toast.success(open ? "Atendimento aberto" : "Atendimento fechado");
+      qc.invalidateQueries({ queryKey: ["my-tenant"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!canToggle) return null;
+  const open = !!tenant?.open;
+
+  return (
+    <Button
+      size="sm"
+      variant={open ? "default" : "outline"}
+      onClick={() => mut.mutate(!open)}
+      disabled={mut.isPending}
+      className={
+        open
+          ? "bg-success text-success-foreground hover:bg-success/90"
+          : "border-destructive text-destructive hover:bg-destructive/10"
+      }
+      title={
+        open
+          ? "Clique para fechar/bloquear o atendimento agora (ignora os horários)"
+          : "Clique para abrir o atendimento agora (ignora os horários)"
+      }
+    >
+      {mut.isPending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Power className="h-4 w-4" />
+      )}
+      <span className="ml-1.5 hidden sm:inline">
+        {open ? "Aberta" : "Fechada"}
+      </span>
+    </Button>
+  );
+}
+}
