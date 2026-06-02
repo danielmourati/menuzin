@@ -159,6 +159,15 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
           />
         </div>
 
+        {!tenant.open && (
+          <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-center">
+            <p className="text-sm font-semibold text-destructive">Loja fechada no momento</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              O cardápio está disponível para visualização, mas novos pedidos estão temporariamente indisponíveis.
+            </p>
+          </div>
+        )}
+
         <div className="mt-4 -mx-4 overflow-x-auto px-4 scrollbar-hide">
           <div className="flex gap-2">
             {["Todos", ...categories.map((c) => c.name)].map((c) => (
@@ -175,7 +184,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
           </div>
         </div>
 
-        <div className="mt-6 space-y-8">
+        <div className={`mt-6 space-y-8 ${!tenant.open ? "opacity-60" : ""}`}>
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
               Nenhum produto encontrado.
@@ -189,7 +198,11 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
                     <ProductCard
                       key={p.id}
                       product={p}
-                      onClick={() => { setSelectedProduct(p); setModalOpen(true); }}
+                      onClick={() => {
+                        if (!tenant.open) return;
+                        setSelectedProduct(p);
+                        setModalOpen(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -199,7 +212,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         </div>
       </div>
 
-      {count > 0 && (
+      {tenant.open && count > 0 && (
         <button
           onClick={() => setCartOpen(true)}
           className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between bg-primary px-5 py-3.5 text-primary-foreground shadow-[var(--shadow-pop)]"
@@ -215,8 +228,15 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         </button>
       )}
 
-      <ProductModal product={selectedProduct} open={modalOpen} onOpenChange={setModalOpen} />
-      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      {!tenant.open && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card px-5 py-3 text-center">
+          <p className="text-sm font-semibold text-destructive">Loja fechada — pedidos indisponíveis</p>
+        </div>
+      )}
+
+      <ProductModal product={selectedProduct} open={modalOpen && tenant.open} onOpenChange={setModalOpen} />
+      <CartDrawer open={cartOpen && tenant.open} onOpenChange={setCartOpen} />
     </div>
   );
 }
+
