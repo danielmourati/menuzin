@@ -319,3 +319,35 @@ export const updatePaymentSettings = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return toSafe(row as DbRow);
   });
+
+// Public read by slug — used by the storefront checkout to decide which
+// payment methods to show. Returns only safe (non-secret) fields.
+export const getPublicPaymentSettingsBySlug = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) =>
+    z.object({
+      slug: z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/),
+    }).parse(input),
+  )
+  .handler(async ({ data }): Promise<StorePaymentSettingsSafe | null> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: tenant, error: tErr } = await supabaseAdmin
+      .from("tenants")
+      .select("id")
+      .eq("slug", data.slug)
+      .eq("active", true)
+      .maybeSingle();
+    if (tErr) throw new Error(tErr.message);
+    if (!tenant) return null;
+
+    const { data: row, error } = await supabaseAdmin
+      .from("store_payment_settings")
+      .select(
+        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
+      )
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+    return toSafe(row as DbRow);
+  });
