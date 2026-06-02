@@ -128,6 +128,74 @@ function PrinterSettingsPage() {
   const [testSteps, setTestSteps] = useState<TestStep[] | null>(null);
   const [testBusy, setTestBusy] = useState(false);
 
+  type CertCheck =
+    | { state: "idle" }
+    | { state: "loading" }
+    | {
+        state: "ok";
+        status: number;
+        contentType: string;
+        bytes: number;
+        lines: number;
+        beginLine: string;
+        endLine: string;
+        fingerprint?: string;
+      }
+    | { state: "err"; message: string; status?: number };
+  const [certCheck, setCertCheck] = useState<CertCheck>({ state: "idle" });
+
+  const handleTestCertEndpoint = async () => {
+    setCertCheck({ state: "loading" });
+    try {
+      const res = await fetch("/api/public/qz-cert.crt", { cache: "no-store" });
+      const text = await res.text();
+      const ct = res.headers.get("content-type") || "";
+      if (!res.ok) {
+        setCertCheck({ state: "err", status: res.status, message: text.slice(0, 200) || res.statusText });
+        toast.error(`Cert endpoint retornou ${res.status}.`);
+        return;
+      }
+      const lines = text.split(/\r?\n/).filter((l) => l.length > 0);
+      const begin = lines.find((l) => l.startsWith("-----BEGIN")) || "";
+      const end = lines.find((l) => l.startsWith("-----END")) || "";
+      const looksLikePem =
+        /BEGIN CERTIFICATE/.test(begin) && /END CERTIFICATE/.test(end);
+      if (!looksLikePem) {
+        setCertCheck({
+          state: "err",
+          status: res.status,
+          message: "Resposta não parece um PEM X.509 válido (faltam marcadores BEGIN/END CERTIFICATE).",
+        });
+        toast.error("PEM inválido recebido do endpoint.");
+        return;
+      }
+      // Fingerprint SHA-256 do PEM bruto (referência rápida para checklist).
+      let fingerprint: string | undefined;
+      try {
+        const enc = new TextEncoder().encode(text);
+        const hash = await crypto.subtle.digest("SHA-256", enc);
+        fingerprint = Array.from(new Uint8Array(hash))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(":")
+          .toUpperCase();
+      } catch { /* opcional */ }
+      setCertCheck({
+        state: "ok",
+        status: res.status,
+        contentType: ct,
+        bytes: text.length,
+        lines: lines.length,
+        beginLine: begin,
+        endLine: end,
+        fingerprint,
+      });
+      toast.success("PEM carregado com sucesso.");
+    } catch (e) {
+      setCertCheck({ state: "err", message: (e as Error).message });
+      toast.error((e as Error).message);
+    }
+  };
+
   // Status do cert do servidor — para alertar quando ainda for o cert demo.
   const { data: qzCert, refetch: refetchQzCert } = useQuery({
     queryKey: ["qz-cert"],
@@ -524,6 +592,20 @@ function PrinterSettingsPage() {
                       {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
                       Teste de conexão
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleTestCertEndpoint}
+                      disabled={certCheck.state === "loading"}
+                      title="Faz GET em /api/public/qz-cert.crt e valida o PEM."
+                    >
+                      {certCheck.state === "loading" ? (
+                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-1.5 h-4 w-4" />
+                      )}
+                      Testar /qz-cert.crt
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={handleDownloadDiagnosticReport}>
                       <Download className="mr-1.5 h-4 w-4" />
                       Baixar diagnóstico
@@ -555,6 +637,48 @@ function PrinterSettingsPage() {
                     </ul>
                   </div>
                 )}
+
+                {certCheck.state !== "idle" && (
+                  <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                    <div className="mb-1.5 font-medium text-muted-foreground">
+                      Endpoint <code className="rounded bg-muted px-1 py-0.5">/api/public/qz-cert.crt</code>
+                    </div>
+                    {certCheck.state === "loading" && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando PEM…
+                      </div>
+                    )}
+                    {certCheck.state === "err" && (
+                      <div className="flex items-start gap-2 text-destructive">
+                        <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        <div>
+                          <div>Falha ao carregar o PEM{certCheck.status ? ` (HTTP ${certCheck.status})` : ""}.</div>
+                          <div className="text-muted-foreground">{certCheck.message}</div>
+                        </div>
+                      </div>
+                    )}
+                    {certCheck.state === "ok" && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          PEM válido — {certCheck.bytes} bytes, {certCheck.lines} linhas.
+                        </div>
+                        <div className="text-muted-foreground">
+                          Content-Type: <code>{certCheck.contentType}</code>
+                        </div>
+                        <div className="text-muted-foreground truncate">{certCheck.beginLine}</div>
+                        <div className="text-muted-foreground truncate">{certCheck.endLine}</div>
+                        {certCheck.fingerprint && (
+                          <div className="break-all text-muted-foreground">
+                            SHA-256: <code className="text-[10px]">{certCheck.fingerprint}</code>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+
 
                 {qzTrustState === "prompted" && !isDemoCert && (
                   <div className="space-y-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
