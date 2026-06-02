@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle, Plug } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -20,7 +20,10 @@ import {
 } from "@/lib/printer-types";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
-import { ensureQzConnected, listQzPrinters, printQzTextTest } from "@/lib/qz-tray";
+import {
+  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError,
+} from "@/lib/qz-tray";
+import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: PrinterSettingsPage,
