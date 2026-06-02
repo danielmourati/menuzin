@@ -61,7 +61,7 @@ function PlatformStores() {
                 <p className="text-xs text-muted-foreground">{brl(s.revenue_month)}</p>
               </div>
               <Button asChild size="icon" variant="outline">
-                <Link to="/loja/$slug" params={{ slug: s.slug }} target="_blank"><ExternalLink className="h-4 w-4" /></Link>
+                <Link to="/$slug" params={{ slug: s.slug }} target="_blank"><ExternalLink className="h-4 w-4" /></Link>
               </Button>
               <Button asChild size="icon" variant="outline">
                 <Link to="/admin/dashboard"><Eye className="h-4 w-4" /></Link>

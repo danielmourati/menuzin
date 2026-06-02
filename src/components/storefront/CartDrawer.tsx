@@ -296,7 +296,7 @@ export function CartDrawer({
     onOpenChange(false);
     resetAll();
     navigate({
-      to: "/loja/$slug/pedido-confirmado",
+      to: "/$slug/pedido-confirmado",
       params: { slug: slug || tenant?.slug || "" },
       search: { n: order.number } as never,
     });

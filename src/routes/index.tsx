@@ -36,7 +36,7 @@ function Landing() {
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features">Recursos</a>
             <a href="#plans">Planos</a>
-            {demoSlug && <Link to="/loja/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
+            {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
           </nav>
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm"><Link to="/admin/login">Entrar</Link></Button>
@@ -60,7 +60,7 @@ function Landing() {
             <div className="mt-8 flex flex-wrap gap-3">
               {demoSlug && (
                 <Button asChild size="lg" className="gap-2">
-                  <Link to="/loja/$slug" params={{ slug: demoSlug }}>
+                  <Link to="/$slug" params={{ slug: demoSlug }}>
                     Ver loja demo <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
