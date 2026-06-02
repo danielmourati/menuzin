@@ -127,7 +127,40 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     const startedAt = performance.now();
     try {
+      // 1) Valida o cert do servidor ANTES de tentar conectar — se for demo
+      //    ou estiver ausente, o prompt "Action Required" é inevitável.
+      const fresh = await refetchQzCert();
+      const cert = fresh.data;
+      if (!cert?.configured) {
+        setQzTrustState("unknown");
+        toast.error("Servidor sem cert do QZ Tray. Configure QZ_CERT_PEM/QZ_PRIVATE_KEY_PEM.", {
+          action: { label: "Diagnóstico", onClick: () => setDiagOpen(true) },
+        });
+        setLastAttempt({
+          at: new Date(), ok: false, action: "Detectar (cert)",
+          error: cert?.error || "Cert do servidor não configurado.",
+        });
+        return;
+      }
+      if (cert.subjectCN && /QZ Industries/i.test(cert.subjectCN)) {
+        setQzTrustState("unknown");
+        toast.error("Cert demo detectado no servidor — substitua QZ_CERT_PEM/QZ_PRIVATE_KEY_PEM por um par próprio.", {
+          action: { label: "Diagnóstico", onClick: () => setDiagOpen(true) },
+        });
+        setLastAttempt({
+          at: new Date(), ok: false, action: "Detectar (cert)",
+          error: "Cert demo QZ Industries em uso — Action Required é inevitável.",
+        });
+        return;
+      }
+
+      // 2) Conecta — mede a duração para inferir se houve prompt manual.
+      const connectStart = performance.now();
       await ensureQzConnected();
+      const connectMs = performance.now() - connectStart;
+      const prompted = connectMs > 2000;
+      setQzTrustState(prompted ? "prompted" : "trusted");
+
       const { printers, defaultPrinter } = await listQzPrintersWithDefault();
       setQzPrinters(printers);
       setQzDefaultPrinter(defaultPrinter);
@@ -135,12 +168,18 @@ function PrinterSettingsPage() {
       setLastAttempt({
         at: new Date(), ok: true,
         durationMs: Math.round(performance.now() - startedAt),
-        action: `Detectar (${printers.length} impressora(s))`,
+        action: `Detectar (${printers.length} impressora(s))${prompted ? " · prompt manual" : ""}`,
       });
-      if (printers.length === 0) {
+
+      if (prompted) {
+        toast.warning(
+          `Conectado em ${Math.round(connectMs)}ms — provavelmente o "Action Required" apareceu. Rode o instalador como administrador para suprimir.`,
+          { action: { label: "Baixar instalador", onClick: () => void handleDownloadInstaller() }, duration: 8000 },
+        );
+      } else if (printers.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
-        toast.success(`QZ Tray conectado · ${printers.length} impressora(s) encontrada(s).`);
+        toast.success(`QZ Tray conectado · ${printers.length} impressora(s) · ${Math.round(connectMs)}ms (sem prompt).`);
         const preferred = defaultPrinter || printers[0]?.name;
         if (!form.printer_name && preferred) set("printer_name", preferred);
         setPrinterInputMode("select");
