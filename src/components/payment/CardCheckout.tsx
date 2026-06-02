@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CreditCard, ShieldCheck, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import type { CardPaymentData, PaymentStatus } from "@/lib/payment-types";
 
 interface CardCheckoutProps {
   amount: number;
+  publicKey: string;
   onSubmit: (cardData: {
     cardNumber: string;
     cardholderName: string;
@@ -18,20 +19,85 @@ interface CardCheckoutProps {
     expirationYear: string;
     securityCode: string;
     installments: number;
+    cardToken: string;
   }) => Promise<CardPaymentData>;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function CardCheckout({ amount, onSubmit, onSuccess, onCancel }: CardCheckoutProps) {
+// Minimal types for the Mercado Pago JS SDK v2 surface we use
+interface MpSdkInstance {
+  createCardToken: (input: {
+    cardNumber: string;
+    cardholderName: string;
+    cardExpirationMonth: string;
+    cardExpirationYear: string;
+    securityCode: string;
+    identificationType: string;
+    identificationNumber: string;
+  }) => Promise<{ id: string }>;
+}
+type MpConstructor = new (publicKey: string, options?: { locale?: string }) => MpSdkInstance;
+
+declare global {
+  interface Window {
+    MercadoPago?: MpConstructor;
+  }
+}
+
+const MP_SDK_URL = "https://sdk.mercadopago.com/js/v2";
+
+function loadMpSdk(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.MercadoPago) return Promise.resolve();
+  const existing = document.querySelector<HTMLScriptElement>(`script[src="${MP_SDK_URL}"]`);
+  if (existing) {
+    return new Promise((resolve, reject) => {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Falha ao carregar SDK MP")));
+    });
+  }
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = MP_SDK_URL;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Falha ao carregar SDK MP"));
+    document.head.appendChild(s);
+  });
+}
+
+export function CardCheckout({ amount, publicKey, onSubmit, onCancel }: CardCheckoutProps) {
   const [cardNumber, setCardNumber] = useState("");
   const [cardholderName, setCardholderName] = useState("");
   const [expiration, setExpiration] = useState("");
   const [cvv, setCvv] = useState("");
+  const [docNumber, setDocNumber] = useState("");
   const [installments, setInstallments] = useState("1");
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<PaymentStatus | "form">("form");
   const [errorMsg, setErrorMsg] = useState("");
+  const [sdkReady, setSdkReady] = useState(false);
+  const mpRef = useRef<MpSdkInstance | null>(null);
+
+  useEffect(() => {
+    if (!publicKey) return;
+    let cancelled = false;
+    loadMpSdk()
+      .then(() => {
+        if (cancelled) return;
+        if (!window.MercadoPago) throw new Error("SDK MP indisponível");
+        mpRef.current = new window.MercadoPago(publicKey, { locale: "pt-BR" });
+        setSdkReady(true);
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error("Não foi possível carregar o checkout do cartão. Tente novamente.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [publicKey]);
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\D/g, "");
@@ -79,12 +145,33 @@ export function CardCheckout({ amount, onSubmit, onSuccess, onCancel }: CardChec
       toast.error("Validade do cartão incorreta (MM/AA).");
       return;
     }
+    if (!sdkReady || !mpRef.current) {
+      toast.error("Checkout ainda carregando — tente novamente em instantes.");
+      return;
+    }
+    const cpfDigits = docNumber.replace(/\D/g, "");
+    if (cpfDigits.length < 11) {
+      toast.error("Informe o CPF do titular (11 dígitos).");
+      return;
+    }
 
     setIsLoading(true);
     setStatus("processing");
     setErrorMsg("");
 
     try {
+      // 1) Tokenize card with MP SDK (PCI-safe — raw PAN never touches our backend)
+      const tokenResult = await mpRef.current.createCardToken({
+        cardNumber: cardNumber.replace(/\s/g, ""),
+        cardholderName,
+        cardExpirationMonth: month,
+        cardExpirationYear: `20${year}`,
+        securityCode: cvv,
+        identificationType: "CPF",
+        identificationNumber: cpfDigits,
+      });
+
+      // 2) Submit token to backend
       const response = await onSubmit({
         cardNumber: cardNumber.replace(/\s/g, ""),
         cardholderName,
@@ -92,14 +179,15 @@ export function CardCheckout({ amount, onSubmit, onSuccess, onCancel }: CardChec
         expirationYear: `20${year}`,
         securityCode: cvv,
         installments: parseInt(installments, 10),
+        cardToken: tokenResult.id,
       });
 
       if (response.payment_status === "approved") {
         setStatus("approved");
         toast.success("Pagamento via Cartão aprovado!");
         setTimeout(() => {
-          onSuccess();
-        }, 2000);
+          // onSuccess is invoked by parent after status set
+        }, 1200);
       } else {
         setStatus("rejected");
         setErrorMsg(
@@ -107,13 +195,16 @@ export function CardCheckout({ amount, onSubmit, onSuccess, onCancel }: CardChec
             ? "Os dados do cartão estão inválidos. Verifique e tente novamente."
             : response.status_detail === "cc_rejected_insufficient_amount"
             ? "Saldo insuficiente na conta do cartão."
+            : response.status_detail
+            ? `Pagamento recusado: ${response.status_detail}`
             : "Pagamento recusado pelo emissor do cartão."
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setStatus("rejected");
-      setErrorMsg("Ocorreu um erro no processamento do cartão.");
+      const msg = err instanceof Error ? err.message : "Ocorreu um erro no processamento do cartão.";
+      setErrorMsg(msg);
     } finally {
       setIsLoading(false);
     }
