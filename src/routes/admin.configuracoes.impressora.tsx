@@ -449,7 +449,9 @@ function PrinterSettingsPage() {
                     <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
                     <SelectContent>
                       {qzPrinters.map((p) => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.name}{p.isDefault ? " (padrão)" : ""}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
