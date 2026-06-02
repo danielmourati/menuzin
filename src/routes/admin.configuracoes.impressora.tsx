@@ -347,16 +347,39 @@ function PrinterSettingsPage() {
                 </div>
 
                 {qzTrustState === "prompted" && !isDemoCert && (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold">O QZ Tray pediu confirmação nesta máquina.</div>
-                      <p className="mt-0.5">
-                        Para suprimir o "Action Required" nas próximas conexões, rode o instalador
-                        abaixo como <strong>administrador</strong> nesta máquina. Em outras máquinas,
-                        repita o processo.
-                      </p>
+                  <div className="space-y-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-semibold">O QZ Tray pediu confirmação nesta máquina.</div>
+                        <p className="mt-0.5">
+                          Baixe o <strong>instalador v2</strong> abaixo e rode como <strong>administrador</strong>.
+                          Ele agora grava o certificado no caminho correto
+                          (<code>%PROGRAMDATA%\qz\data\certificates\allowed.pem</code>) e remove o cert de
+                          <code> blocked.pem</code> caso você tenha clicado em "Block" antes.
+                        </p>
+                      </div>
                     </div>
+                    <div className="flex flex-wrap gap-2 pl-6">
+                      <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
+                        {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                        Baixar instalador v2
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setQzTrustState("unknown")}>
+                        Dispensar aviso
+                      </Button>
+                    </div>
+                    <details className="pl-6">
+                      <summary className="cursor-pointer select-none font-medium">
+                        Se o aviso continuar após rodar o instalador, remova o bloqueio manualmente
+                      </summary>
+                      <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+                        <li>Clique no ícone do QZ Tray na bandeja do Windows (ao lado do relógio).</li>
+                        <li>Abra <strong>Advanced → Site Manager</strong>.</li>
+                        <li>Na aba <strong>Blocked</strong>, selecione a entrada do Menuzin e clique em <strong>Remove</strong>.</li>
+                        <li>Feche e abra o QZ Tray novamente; volte aqui e clique em <strong>Detectar</strong>.</li>
+                      </ol>
+                    </details>
                   </div>
                 )}
 
