@@ -351,3 +351,319 @@ export const getPublicPaymentSettingsBySlug = createServerFn({ method: "GET" })
     if (!row) return null;
     return toSafe(row as DbRow);
   });
+
+// ============================================================
+// Transparent checkout (Pix + Card) — public, no auth required
+// ============================================================
+
+type MpPaymentResponse = {
+  id?: number | string;
+  status?: string;
+  status_detail?: string;
+  date_of_expiration?: string;
+  point_of_interaction?: {
+    transaction_data?: {
+      qr_code?: string;
+      qr_code_base64?: string;
+      ticket_url?: string;
+    };
+  };
+  message?: string;
+  error?: string;
+  cause?: Array<{ code?: string | number; description?: string }>;
+};
+
+function mapMpStatus(
+  s?: string,
+): "pending" | "approved" | "rejected" | "refunded" | "manual" {
+  if (s === "approved") return "approved";
+  if (s === "rejected" || s === "cancelled") return "rejected";
+  if (s === "refunded" || s === "charged_back") return "refunded";
+  return "pending";
+}
+
+const PayerSchema = z.object({
+  email: z.string().email().max(200),
+  first_name: z.string().min(1).max(120),
+  last_name: z.string().min(1).max(120),
+  identification: z
+    .object({
+      type: z.enum(["CPF", "CNPJ"]),
+      number: z.string().min(8).max(20),
+    })
+    .optional(),
+});
+
+const CreateTransparentPaymentInput = z.object({
+  store_slug: z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/),
+  order_id: z.string().uuid(),
+  payment_method: z.enum(["pix_online", "credit_card", "debit_card"]),
+  card_token: z.string().min(4).max(200).optional(),
+  installments: z.number().int().min(1).max(24).optional(),
+  payer: PayerSchema,
+});
+
+export const createTransparentPayment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    CreateTransparentPaymentInput.parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+
+    // 1. Resolve tenant by slug
+    const { data: tenant, error: tErr } = await supabaseAdmin
+      .from("tenants")
+      .select("id, name")
+      .eq("slug", data.store_slug)
+      .eq("active", true)
+      .maybeSingle();
+    if (tErr) throw new Error(tErr.message);
+    if (!tenant) throw new Error("Loja não encontrada");
+
+    // 2. Load order, ensure it belongs to the tenant
+    const { data: order, error: oErr } = await supabaseAdmin
+      .from("orders")
+      .select("id, tenant_id, number, total, payment_status")
+      .eq("id", data.order_id)
+      .maybeSingle();
+    if (oErr) throw new Error(oErr.message);
+    if (!order) throw new Error("Pedido não encontrado");
+    if (order.tenant_id !== tenant.id) {
+      throw new Error("Pedido não pertence a esta loja");
+    }
+
+    // 3. Load tenant payment settings + decrypt access token
+    const { data: settings, error: sErr } = await supabaseAdmin
+      .from("store_payment_settings")
+      .select(
+        "mp_connected, mp_access_token_encrypted, pix_enabled, credit_card_enabled, debit_card_enabled",
+      )
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+    if (sErr) throw new Error(sErr.message);
+    if (!settings || !settings.mp_connected || !settings.mp_access_token_encrypted) {
+      throw new Error("Mercado Pago não está conectado nesta loja");
+    }
+    if (data.payment_method === "pix_online" && !settings.pix_enabled) {
+      throw new Error("Pix Online não está habilitado");
+    }
+    if (data.payment_method === "credit_card" && !settings.credit_card_enabled) {
+      throw new Error("Cartão de crédito online não está habilitado");
+    }
+    if (data.payment_method === "debit_card" && !settings.debit_card_enabled) {
+      throw new Error("Cartão de débito online não está habilitado");
+    }
+
+    let accessToken: string;
+    try {
+      accessToken = await decryptToken(settings.mp_access_token_encrypted);
+    } catch (e) {
+      console.error("Failed to decrypt MP token:", e);
+      throw new Error("Falha ao descriptografar credenciais da loja");
+    }
+
+    // 4. Insert pending payment row first (so failures are tracked)
+    const { data: paymentRow, error: pErr } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        tenant_id: tenant.id,
+        order_id: order.id,
+        provider: "mercadopago",
+        amount: Number(order.total),
+        payment_method: data.payment_method,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (pErr || !paymentRow) {
+      throw new Error(pErr?.message || "Falha ao registrar pagamento");
+    }
+    const paymentRowId = paymentRow.id as string;
+
+    // 5. Build MP body
+    const body: Record<string, unknown> = {
+      transaction_amount: Number(order.total),
+      description: `Pedido #${order.number} - ${tenant.name}`,
+      external_reference: order.id,
+      payer: {
+        email: data.payer.email,
+        first_name: data.payer.first_name,
+        last_name: data.payer.last_name,
+        ...(data.payer.identification && {
+          identification: data.payer.identification,
+        }),
+      },
+    };
+    if (data.payment_method === "pix_online") {
+      body.payment_method_id = "pix";
+    } else {
+      if (!data.card_token) {
+        await supabaseAdmin
+          .from("payments")
+          .update({ status: "rejected", status_detail: "missing_card_token" })
+          .eq("id", paymentRowId);
+        throw new Error("Token do cartão ausente");
+      }
+      body.token = data.card_token;
+      body.installments = data.installments ?? 1;
+    }
+
+    // 6. Call Mercado Pago
+    let mpJson: MpPaymentResponse;
+    let mpStatusOk = false;
+    try {
+      const mpRes = await fetch("https://api.mercadopago.com/v1/payments", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `order_${order.id}_${data.payment_method}`,
+        },
+        body: JSON.stringify(body),
+      });
+      mpStatusOk = mpRes.ok;
+      mpJson = (await mpRes.json()) as MpPaymentResponse;
+    } catch (err) {
+      console.error("MP request failed:", err);
+      await supabaseAdmin
+        .from("payments")
+        .update({
+          status: "rejected",
+          status_detail: "network_error",
+          raw_response: { error: String(err) },
+        })
+        .eq("id", paymentRowId);
+      throw new Error("Falha de rede ao contatar o Mercado Pago");
+    }
+
+    if (!mpStatusOk) {
+      const cause =
+        Array.isArray(mpJson.cause) && mpJson.cause.length
+          ? mpJson.cause.map((c) => c.description).filter(Boolean).join("; ")
+          : undefined;
+      const msg = cause || mpJson.message || mpJson.error || "Erro no gateway";
+      await supabaseAdmin
+        .from("payments")
+        .update({
+          status: "rejected",
+          status_detail: msg.slice(0, 200),
+          raw_response: JSON.parse(JSON.stringify(mpJson)),
+        })
+        .eq("id", paymentRowId);
+      throw new Error(`Mercado Pago: ${msg}`);
+    }
+
+    const mappedStatus = mapMpStatus(mpJson.status);
+    const mpPaymentId = String(mpJson.id ?? "");
+
+    // 7. Persist payment + order status
+    await supabaseAdmin
+      .from("payments")
+      .update({
+        provider_payment_id: mpPaymentId,
+        status: mappedStatus,
+        status_detail: mpJson.status_detail ?? null,
+        raw_response: JSON.parse(JSON.stringify(mpJson)),
+      })
+      .eq("id", paymentRowId);
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        payment_status: mappedStatus,
+        mp_payment_id: mpPaymentId,
+        mp_status: mpJson.status ?? null,
+        mp_status_detail: mpJson.status_detail ?? null,
+      })
+      .eq("id", order.id);
+
+    if (data.payment_method === "pix_online") {
+      const tx = mpJson.point_of_interaction?.transaction_data;
+      return {
+        type: "pix" as const,
+        data: {
+          qr_code: tx?.qr_code ?? "",
+          qr_code_base64: tx?.qr_code_base64 ?? "",
+          ticket_url: tx?.ticket_url,
+          expires_at: mpJson.date_of_expiration,
+          payment_id: mpPaymentId,
+          payment_status: mappedStatus,
+        },
+      };
+    }
+    return {
+      type: "card" as const,
+      data: {
+        payment_id: mpPaymentId,
+        payment_status: mappedStatus,
+        status_detail: mpJson.status_detail ?? undefined,
+        order_id: order.id,
+      },
+    };
+  });
+
+const GetPaymentStatusInput = z.object({
+  store_slug: z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/),
+  payment_id: z.string().min(1).max(64),
+});
+
+export const getPaymentStatus = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => GetPaymentStatusInput.parse(input))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants")
+      .select("id")
+      .eq("slug", data.store_slug)
+      .eq("active", true)
+      .maybeSingle();
+    if (!tenant) throw new Error("Loja não encontrada");
+
+    const { data: settings } = await supabaseAdmin
+      .from("store_payment_settings")
+      .select("mp_access_token_encrypted")
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+    if (!settings?.mp_access_token_encrypted) {
+      return { status: "pending" as const };
+    }
+    const accessToken = await decryptToken(settings.mp_access_token_encrypted);
+
+    const res = await fetch(
+      `https://api.mercadopago.com/v1/payments/${encodeURIComponent(data.payment_id)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) return { status: "pending" as const };
+    const json = (await res.json()) as MpPaymentResponse & {
+      external_reference?: string;
+    };
+    const mapped = mapMpStatus(json.status);
+
+    // Best-effort sync with our tables
+    if (json.external_reference) {
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          payment_status: mapped,
+          mp_status: json.status ?? null,
+          mp_status_detail: json.status_detail ?? null,
+        })
+        .eq("id", json.external_reference)
+        .eq("tenant_id", tenant.id);
+      await supabaseAdmin
+        .from("payments")
+        .update({
+          status: mapped,
+          status_detail: json.status_detail ?? null,
+        })
+        .eq("provider_payment_id", String(json.id ?? data.payment_id))
+        .eq("tenant_id", tenant.id);
+    }
+
+    return { status: mapped, status_detail: json.status_detail };
+  });

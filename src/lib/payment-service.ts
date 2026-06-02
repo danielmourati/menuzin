@@ -7,6 +7,8 @@ import {
   disconnectMercadoPago as _disconnectMercadoPago,
   updatePaymentSettings as _updatePaymentSettings,
   getPublicPaymentSettingsBySlug as _getPublicPaymentSettingsBySlug,
+  createTransparentPayment as _createTransparentPayment,
+  getPaymentStatus as _getPaymentStatus,
 } from "./payments.functions";
 import type {
   StorePaymentSettingsSafe,
@@ -85,29 +87,58 @@ export async function getPaymentSettingsBySlug(
 }
 
 export async function createPixPayment(
-  _params: Extract<CreatePaymentRequest, { payment_method: "pix_online" }>,
+  params: Extract<CreatePaymentRequest, { payment_method: "pix_online" }>,
 ): Promise<Extract<CreatePaymentResponse, { type: "pix" }>> {
-  throw new Error("Checkout transparente ainda não implementado.");
+  const res = await _createTransparentPayment({
+    data: {
+      store_slug: params.store_slug,
+      order_id: params.order_id,
+      payment_method: "pix_online",
+      payer: params.payer,
+    },
+  });
+  if (res.type !== "pix") throw new Error("Resposta inesperada do gateway");
+  return res as Extract<CreatePaymentResponse, { type: "pix" }>;
 }
 
 export async function createCardPayment(
-  _params: Extract<CreatePaymentRequest, { payment_method: "credit_card" | "debit_card" }>,
+  params: Extract<CreatePaymentRequest, { payment_method: "credit_card" | "debit_card" }>,
 ): Promise<Extract<CreatePaymentResponse, { type: "card" }>> {
-  throw new Error("Checkout transparente ainda não implementado.");
+  const res = await _createTransparentPayment({
+    data: {
+      store_slug: params.store_slug,
+      order_id: params.order_id,
+      payment_method: params.payment_method,
+      card_token: params.card_token,
+      installments: params.installments,
+      payer: params.payer,
+    },
+  });
+  if (res.type !== "card") throw new Error("Resposta inesperada do gateway");
+  return res as Extract<CreatePaymentResponse, { type: "card" }>;
 }
 
 export async function testPayment(_storeId?: string): Promise<{ success: boolean; message: string }> {
   return {
     success: false,
-    message: "Teste de pagamento será habilitado quando o checkout transparente estiver pronto.",
+    message: "Use o checkout público para testar pagamentos reais.",
   };
 }
 
 export async function pollPaymentStatus(
-  _paymentId: string,
+  paymentId: string,
   _attempt = 0,
+  storeSlug?: string,
 ): Promise<PaymentStatus> {
-  return "pending";
+  if (!storeSlug) return "pending";
+  try {
+    const res = await _getPaymentStatus({
+      data: { store_slug: storeSlug, payment_id: paymentId },
+    });
+    return res.status as PaymentStatus;
+  } catch {
+    return "pending";
+  }
 }
 
 // Re-export PixPaymentData / CardPaymentData for components that import from here

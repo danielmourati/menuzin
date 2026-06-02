@@ -52,6 +52,10 @@ export function CartDrawer({
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
   const [cardData, setCardData] = useState<CardPaymentData | null>(null);
 
+  // Persisted order (created before online payment, reused in finalize)
+  const [dbOrderId, setDbOrderId] = useState<string | null>(null);
+  const [dbOrderNumber, setDbOrderNumber] = useState<number | null>(null);
+
   // customer
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -111,6 +115,8 @@ export function CartDrawer({
   };
   const resetAll = () => {
     setStep("cart"); setHistory([]);
+    setDbOrderId(null); setDbOrderNumber(null);
+    setPixData(null); setCardData(null); setSelectedMethod(null);
   };
 
   const modeLabelMap: Record<Mode, string> = {
@@ -122,15 +128,20 @@ export function CartDrawer({
     setMode(m);
     if (m === "entrega") goTo("mode-address");
     else if (m === "consumo_local") goTo("mode-table");
-    else goTo("payment-when"); // retirada → segue direto
+    else goTo("customer"); // retirada → collect customer info next
   };
 
   const confirmAddress = () => {
     if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
-    goTo("payment-when");
+    goTo("customer");
   };
   const confirmTable = () => {
     if (!table) return toast.error("Informe a mesa/comanda");
+    goTo("customer");
+  };
+
+  const confirmCustomer = () => {
+    if (!name || !phone) return toast.error("Informe nome e telefone");
     goTo("payment-when");
   };
 
@@ -140,10 +151,46 @@ export function CartDrawer({
     goTo("payment-method");
   };
 
+  // Persist a draft order if not already created (used before online MP call).
+  // Returns the orderId.
+  const ensureOrder = async (methodLabel: string): Promise<string> => {
+    if (dbOrderId) return dbOrderId;
+    const { createOrder } = await import("@/lib/orders.functions");
+    const res = await createOrder({
+      data: {
+        tenant_slug: slug || "",
+        customer_name: name,
+        whatsapp: phone.replace(/\D/g, ""),
+        mode: mode!,
+        payment_label: `${paymentWhenLabel} · ${methodLabel}`,
+        delivery_fee: deliveryFee,
+        address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
+        table_label: mode === "consumo_local" ? table : null,
+        note: generalNote || null,
+        items: items.map((i) => {
+          const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
+          const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
+          const groupLabels = (i.groupOptions ?? []).map((o) => ({ name: `${o.groupName}: ${o.name}`, price: Number(o.price) }));
+          const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
+          return {
+            product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
+            name_snapshot: i.product.name,
+            qty: i.qty,
+            unit_price: computeUnitPrice(i),
+            addons: [...sizeLabel, ...flavorLabels, ...groupLabels, ...legacyAddons],
+            note: i.note ?? null,
+          };
+        }),
+      },
+    });
+    setDbOrderId(res.order.id);
+    setDbOrderNumber(res.order.number);
+    return res.order.id;
+  };
+
   const handleSelectMethod = async (m: PaymentMethod) => {
     setSelectedMethod(m);
-    
-    // Mapear labels visíveis
+
     const methodLabels: Record<PaymentMethod, string> = {
       pix_online: "Pix Online (Mercado Pago)",
       credit_card: "Cartão de Crédito Online (Mercado Pago)",
@@ -155,11 +202,12 @@ export function CartDrawer({
     setPaymentMethod(methodLabels[m]);
 
     if (m === "pix_online") {
+      const toastId = toast.loading("Gerando transação Pix segura...");
       try {
-        toast.loading("Gerando transação Pix segura...");
+        const orderId = await ensureOrder(methodLabels[m]);
         const res = await createPixPayment({
-          store_slug: slug || "burger-prime",
-          order_id: `o_${Date.now()}`,
+          store_slug: slug || "",
+          order_id: orderId,
           payment_method: "pix_online",
           payer: {
             email: email || "comprador@teste.com",
@@ -167,19 +215,27 @@ export function CartDrawer({
             last_name: name.split(" ").slice(1).join(" ") || "Menuzin",
           },
         });
-        toast.dismiss();
+        toast.dismiss(toastId);
         setPixData(res.data);
         goTo("payment-online-pix");
       } catch (err) {
-        toast.dismiss();
-        toast.error("Erro ao gerar pagamento Pix. Tente novamente.");
+        toast.dismiss(toastId);
+        const msg = err instanceof Error ? err.message : "Erro ao gerar pagamento Pix.";
+        toast.error(msg);
       }
     } else if (m === "credit_card" || m === "debit_card") {
-      goTo("payment-online-card");
+      // Ensure order exists so CardCheckout has a real order_id to bind
+      try {
+        await ensureOrder(methodLabels[m]);
+        goTo("payment-online-card");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Falha ao iniciar pagamento.";
+        toast.error(msg);
+      }
     } else if (m === "pix_manual") {
       goTo("payment-pix");
     } else {
-      goTo("customer");
+      goTo("review");
     }
   };
 
@@ -190,91 +246,58 @@ export function CartDrawer({
     expirationYear: string;
     securityCode: string;
     installments: number;
+    cardToken: string;
   }) => {
-    // Simula a criação do pagamento transparente via Cartão
+    const orderId = await ensureOrder(paymentMethod);
     const res = await createCardPayment({
-      store_slug: slug || "burger-prime",
-      order_id: `o_${Date.now()}`,
+      store_slug: slug || "",
+      order_id: orderId,
       payment_method: selectedMethod === "debit_card" ? "debit_card" : "credit_card",
-      card_token: `tok_${Math.random().toString(36).substring(7)}`,
+      card_token: cardInfo.cardToken,
       installments: cardInfo.installments,
       payer: {
         email: email || "comprador@teste.com",
         first_name: cardInfo.cardholderName.split(" ")[0] || "Titular",
         last_name: cardInfo.cardholderName.split(" ").slice(1).join(" ") || "Card",
-        identification: { type: "CPF", number: doc || "111.111.111-11" },
+        identification: { type: "CPF", number: (doc || "11111111111").replace(/\D/g, "") },
       },
     });
     setCardData(res.data);
     return res.data;
   };
 
-  const confirmCustomer = () => {
-    if (!name || !phone) return toast.error("Informe nome e telefone");
-    goTo("review");
-  };
-
   const finalize = async () => {
-    // Definir status de pagamento e pedido baseado no método
+    // Status mapping
     let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
-    let finalOrderStatus: string = "new";
     let mpPaymentId: string | undefined = undefined;
 
     if (selectedMethod === "pix_online") {
       finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
-      finalOrderStatus = (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment";
       mpPaymentId = pixData?.payment_id;
     } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
       finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
-      finalOrderStatus = (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment";
       mpPaymentId = cardData?.payment_id;
     } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
       finalPaymentStatus = "manual";
     }
 
-    // Persiste no banco (DB) via server fn
-    const { createOrder } = await import("@/lib/orders.functions");
-    let dbOrderNumber: number | null = null;
-    let dbOrderId: string | null = null;
-    try {
-      const res = await createOrder({
-        data: {
-          tenant_slug: slug || "burger-prime",
-          customer_name: name,
-          whatsapp: phone.replace(/\D/g, ""),
-          mode: mode!,
-          payment_label: `${paymentWhenLabel} · ${paymentMethod}`,
-          delivery_fee: deliveryFee,
-          address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
-          table_label: mode === "consumo_local" ? table : null,
-          note: generalNote || null,
-          items: items.map((i) => {
-            const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
-            const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
-            const groupLabels = (i.groupOptions ?? []).map((o) => ({ name: `${o.groupName}: ${o.name}`, price: Number(o.price) }));
-            const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
-            return {
-              product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
-              name_snapshot: i.product.name,
-              qty: i.qty,
-              unit_price: computeUnitPrice(i),
-              addons: [...sizeLabel, ...flavorLabels, ...groupLabels, ...legacyAddons],
-              note: i.note ?? null,
-            };
-          }),
-        },
-      });
-      dbOrderNumber = res.order.number;
-      dbOrderId = res.order.id;
-    } catch (err) {
-      console.error("Falha ao persistir pedido no banco:", err);
-      toast.error("Não foi possível registrar o pedido. Tente novamente.");
-      return;
+    // Ensure order persisted (for offline methods that skipped the online flow)
+    let orderId = dbOrderId;
+    let orderNumber = dbOrderNumber;
+    if (!orderId) {
+      try {
+        orderId = await ensureOrder(paymentMethod);
+        orderNumber = dbOrderNumber; // updated inside ensureOrder
+      } catch (err) {
+        console.error("Falha ao persistir pedido no banco:", err);
+        toast.error("Não foi possível registrar o pedido. Tente novamente.");
+        return;
+      }
     }
 
     const order = {
-      number: dbOrderNumber ?? 1000 + Math.floor(Math.random() * 9000),
-      id: dbOrderId,
+      number: orderNumber ?? 1000 + Math.floor(Math.random() * 9000),
+      id: orderId,
       customerName: name,
       whatsapp: phone.replace(/\D/g, ""),
       email,
@@ -283,7 +306,7 @@ export function CartDrawer({
       payment: `${paymentWhenLabel} · ${paymentMethod}`,
       paymentMethod: selectedMethod,
       paymentStatus: finalPaymentStatus,
-      orderStatus: finalOrderStatus,
+      orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
       mpPaymentId,
       items: items.map((i) => ({
         name: i.product.name,
@@ -312,6 +335,7 @@ export function CartDrawer({
       search: { n: order.number } as never,
     });
   };
+
 
   // ----- UI building blocks -----
   const Header = ({ title, right }: { title: string; right?: ReactNode }) => (
@@ -506,7 +530,8 @@ export function CartDrawer({
               <PixCheckout
                 pixData={pixData}
                 amount={total}
-                onSuccess={() => goTo("customer")}
+                storeSlug={slug || ""}
+                onSuccess={() => goTo("review")}
                 onCancel={() => {
                   setPixData(null);
                   setSelectedMethod(null);
@@ -525,8 +550,9 @@ export function CartDrawer({
             <div className="flex-1 overflow-y-auto bg-card">
               <CardCheckout
                 amount={total}
+                publicKey={settings?.mp_public_key || ""}
                 onSubmit={handleCardSubmit}
-                onSuccess={() => goTo("customer")}
+                onSuccess={() => goTo("review")}
                 onCancel={() => {
                   setCardData(null);
                   setSelectedMethod(null);

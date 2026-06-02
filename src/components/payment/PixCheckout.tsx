@@ -10,11 +10,12 @@ import { pollPaymentStatus } from "@/lib/payment-service";
 interface PixCheckoutProps {
   pixData: PixPaymentData;
   amount: number;
+  storeSlug: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function PixCheckout({ pixData, amount, onSuccess, onCancel }: PixCheckoutProps) {
+export function PixCheckout({ pixData, amount, storeSlug, onSuccess, onCancel }: PixCheckoutProps) {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<PaymentStatus>("pending");
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutos em segundos
@@ -41,7 +42,7 @@ export function PixCheckout({ pixData, amount, onSuccess, onCancel }: PixCheckou
     setProgress((timeLeft / 900) * 100);
   }, [timeLeft]);
 
-  // Simular e monitorar o status do pagamento via polling mockado
+  // Poll real MP status via server fn
   useEffect(() => {
     if (status !== "pending") return;
 
@@ -49,22 +50,23 @@ export function PixCheckout({ pixData, amount, onSuccess, onCancel }: PixCheckou
     const interval = setInterval(async () => {
       attempt++;
       try {
-        const nextStatus = await pollPaymentStatus(pixData.payment_id, attempt);
+        const nextStatus = await pollPaymentStatus(pixData.payment_id, attempt, storeSlug);
         if (nextStatus === "approved") {
           setStatus("approved");
           clearInterval(interval);
-          toast.success("Pagamento via Pix aprovado instantaneamente!");
-          setTimeout(() => {
-            onSuccess();
-          }, 2000);
+          toast.success("Pagamento via Pix aprovado!");
+          setTimeout(() => onSuccess(), 1500);
+        } else if (nextStatus === "rejected" || nextStatus === "cancelled") {
+          setStatus("rejected");
+          clearInterval(interval);
         }
       } catch (err) {
-        console.error("Erro no pooling de pagamento", err);
+        console.error("Erro no polling de pagamento", err);
       }
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [status, pixData.payment_id, onSuccess]);
+  }, [status, pixData.payment_id, storeSlug, onSuccess]);
 
   const handleCopy = () => {
     if (navigator.clipboard) {
