@@ -7,6 +7,7 @@ type Profile = {
   tenant_id: string | null;
   full_name: string;
   email: string | null;
+  must_change_password: boolean;
 };
 
 type AuthRole = "owner" | "admin" | "staff" | "platform_admin";
