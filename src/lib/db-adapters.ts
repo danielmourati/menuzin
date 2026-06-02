@@ -32,7 +32,9 @@ export function dbProductToUi(p: DbProduct, categoryName: string): Product {
       priceDelta: Number(f.price_delta), available: f.available, sortOrder: f.sort_order,
     })),
     addonGroups: (p.addonGroups ?? []).map<AddonGroup>((g) => ({
-      id: g.id, name: g.name, required: g.required,
+      id: g.id, name: g.name,
+      kind: (g.kind ?? "adicional"),
+      required: g.required,
       minSelect: g.min_select, maxSelect: g.max_select, sortOrder: g.sort_order,
       options: (g.options ?? []).map<AddonOption>((o) => ({
         id: o.id, name: o.name, price: Number(o.price), sortOrder: o.sort_order,

@@ -175,9 +175,10 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Grupos de complementos */}
+          {/* Grupos de adicionais / observações */}
           {(product.addonGroups ?? []).map((g) => {
             const selected = groupSelections[g.id] ?? [];
+            const isObs = g.kind === "observacao";
             const hint = g.maxSelect > 1
               ? `Escolha até ${g.maxSelect}${g.minSelect > 0 ? ` (mín. ${g.minSelect})` : ""} (${selected.length}/${g.maxSelect})`
               : "Escolha 1";
@@ -192,7 +193,7 @@ export function ProductModal({
                           <Checkbox checked={checked} onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)} />
                           <span className="text-sm">{o.name}</span>
                         </div>
-                        {o.price > 0 && <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>}
+                        {!isObs && o.price > 0 && <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>}
                       </label>
                     );
                   })}

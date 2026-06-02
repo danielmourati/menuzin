@@ -18,7 +18,7 @@ const items = [
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { to: "/admin/produtos", label: "Produtos", icon: Package },
   { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
-  { to: "/admin/complementos", label: "Complementos", icon: Layers },
+  { to: "/admin/adicionais", label: "Adicionais", icon: Layers },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
 ] as const;

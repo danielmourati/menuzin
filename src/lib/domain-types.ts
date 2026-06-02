@@ -15,9 +15,12 @@ export type ProductFlavor = {
 
 export type AddonOption = { id: string; name: string; price: number; sortOrder: number };
 
+export type AddonGroupKind = "adicional" | "observacao";
+
 export type AddonGroup = {
   id: string;
   name: string;
+  kind: AddonGroupKind;
   required: boolean;
   minSelect: number;
   maxSelect: number;
