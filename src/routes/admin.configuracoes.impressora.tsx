@@ -1058,7 +1058,7 @@ function PrinterSettingsPage() {
                   borderRadius: "12px",
                   border: "1px solid hsl(var(--border))",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                  maxWidth: form.paper_width === "58mm" ? "320px" : "440px",
+                  maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
                   maxHeight: "70vh",
                 }}
               >
