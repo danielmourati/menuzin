@@ -82,8 +82,10 @@ function PrinterSettingsPage() {
   const browserSupportsUsb = typeof navigator !== "undefined" && "usb" in navigator;
 
   const [qzBusy, setQzBusy] = useState(false);
-  const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+  const [qzPrinters, setQzPrinters] = useState<QzPrinter[]>([]);
+  const [qzDefaultPrinter, setQzDefaultPrinter] = useState<string | null>(null);
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
 
   const handleQzError = (e: unknown) => {
@@ -102,14 +104,17 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     try {
       await ensureQzConnected();
-      const list = await listQzPrinters();
-      setQzPrinters(list);
+      const { printers, defaultPrinter } = await listQzPrintersWithDefault();
+      setQzPrinters(printers);
+      setQzDefaultPrinter(defaultPrinter);
       setQzStatus("connected");
-      if (list.length === 0) {
+      if (printers.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
-        toast.success(`QZ Tray conectado · ${list.length} impressora(s) encontrada(s).`);
-        if (!form.printer_name && list[0]) set("printer_name", list[0]);
+        toast.success(`QZ Tray conectado · ${printers.length} impressora(s) encontrada(s).`);
+        const preferred = defaultPrinter || printers[0]?.name;
+        if (!form.printer_name && preferred) set("printer_name", preferred);
+        setPrinterInputMode("select");
       }
     } catch (e) {
       handleQzError(e);
