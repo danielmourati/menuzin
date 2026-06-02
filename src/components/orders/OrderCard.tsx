@@ -180,7 +180,7 @@ export function OrderCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground md:hidden"
+            className="h-8 w-8 text-muted-foreground xl:hidden"
             onClick={() => setExpanded((v) => !v)}
             title={expanded ? "Recolher" : "Expandir"}
           >
@@ -189,9 +189,9 @@ export function OrderCard({
         </div>
       </div>
 
-      {/* ── LINHA EXPANDIDA (mobile: itens detalhados) ─────────────────── */}
+      {/* ── LINHA EXPANDIDA (itens detalhados) ─────────────────── */}
       {expanded && (
-        <div className="pl-4 pr-3 pb-3 border-t border-dashed mx-3 pt-2 md:hidden animate-fade-in">
+        <div className="pl-4 pr-3 pb-3 border-t border-dashed mx-3 pt-2 xl:hidden animate-fade-in">
           <p className="text-[11px] text-muted-foreground">
             <span className="font-semibold text-foreground/80">Itens: </span>
             {order.items.map((i) => `${i.qty}x ${i.name}`).join(" · ")}
