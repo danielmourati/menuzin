@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft, RefreshCw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
+import { useActiveTenantId } from "@/lib/active-tenant";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
   component: AdminPaymentSettingsPage,
