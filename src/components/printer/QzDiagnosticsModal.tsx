@@ -290,7 +290,7 @@ async function analyzeCertificate(pem: string): Promise<Partial<CertInfo>> {
     const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
     const der = base64ToBytes(b64);
     if (typeof crypto !== "undefined" && crypto.subtle) {
-      const hash = await crypto.subtle.digest("SHA-256", der);
+      const hash = await crypto.subtle.digest("SHA-256", der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer);
       out.fingerprintSha256 = bytesToHex(new Uint8Array(hash)).match(/.{2}/g)!.join(":").toUpperCase();
     }
     const ascii = Array.from(der, (b) => (b >= 32 && b < 127 ? String.fromCharCode(b) : " ")).join("");
