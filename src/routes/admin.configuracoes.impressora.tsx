@@ -272,7 +272,29 @@ function PrinterSettingsPage() {
             {/* Status do QZ Tray */}
             <Card>
               <CardHeader className="flex-row items-center justify-between gap-2">
-                <CardTitle className="text-base">Status do QZ Tray</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">Status do QZ Tray</CardTitle>
+                  <span
+                    title={certBadge.tooltip}
+                    className={
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium " +
+                      (certBadge.tone === "ok"
+                        ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+                        : certBadge.tone === "warn"
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                          : "bg-destructive/10 text-destructive")
+                    }
+                  >
+                    {certBadge.tone === "ok" ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : certBadge.tone === "warn" ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {certBadge.label}
+                  </span>
+                </div>
                 <div className="flex items-center gap-1">
                   <Button size="sm" variant="ghost" onClick={() => setDiagOpen(true)}>
                     <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
@@ -288,7 +310,14 @@ function PrinterSettingsPage() {
                     {qzStatus === "connected" ? (
                       <>
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span>Conectado — impressão sem prompts.</span>
+                        <span>
+                          Conectado
+                          {qzTrustState === "trusted"
+                            ? " — sem prompts."
+                            : qzTrustState === "prompted"
+                              ? " — mas exigiu confirmação manual."
+                              : "."}
+                        </span>
                       </>
                     ) : qzStatus === "offline" ? (
                       <>
@@ -307,6 +336,20 @@ function PrinterSettingsPage() {
                     Detectar
                   </Button>
                 </div>
+
+                {qzTrustState === "prompted" && !isDemoCert && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">O QZ Tray pediu confirmação nesta máquina.</div>
+                      <p className="mt-0.5">
+                        Para suprimir o "Action Required" nas próximas conexões, rode o instalador
+                        abaixo como <strong>administrador</strong> nesta máquina. Em outras máquinas,
+                        repita o processo.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {isDemoCert && (
                   <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 p-3 text-xs text-destructive">
