@@ -151,6 +151,40 @@ function PrinterSettingsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <div className="space-y-4">
+            {/* Status do QZ Tray */}
+            <Card>
+              <CardHeader className="flex-row items-center justify-between gap-2">
+                <CardTitle className="text-base">Status do QZ Tray</CardTitle>
+                <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
+                  <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
+                </Button>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  {qzStatus === "connected" ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <span>Conectado — impressão sem prompts.</span>
+                    </>
+                  ) : qzStatus === "offline" ? (
+                    <>
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <span>QZ Tray não encontrado. Instale e abra o aplicativo.</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plug className="h-4 w-4 text-muted-foreground" />
+                      <span>Clique em <strong>Detectar</strong> para verificar.</span>
+                    </>
+                  )}
+                </div>
+                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
+                  {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
+                  Detectar
+                </Button>
+              </CardContent>
+            </Card>
+
             {/* Bloco 1 — Impressora */}
             <Card>
               <CardHeader><CardTitle className="text-base">Impressora</CardTitle></CardHeader>
