@@ -1,5 +1,6 @@
 import { brl, formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
+import { parseAddonLabel } from "@/lib/product-selection";
 
 interface PrintableOrderProps {
   order: Order;
