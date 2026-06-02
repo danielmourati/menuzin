@@ -9,7 +9,9 @@ import {
   getPublicPaymentSettingsBySlug as _getPublicPaymentSettingsBySlug,
   createTransparentPayment as _createTransparentPayment,
   getPaymentStatus as _getPaymentStatus,
+  testMpCredentials as _testMpCredentials,
 } from "./payments.functions";
+
 import type {
   StorePaymentSettingsSafe,
   CreatePaymentRequest,
