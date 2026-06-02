@@ -191,7 +191,11 @@ function PrinterSettingsPage() {
                     </>
                   )}
                 </div>
-                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
+                <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={certBusy} className="ml-auto">
+                  {certBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                  Baixar cert.pem
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy}>
                   {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
                   Detectar
                 </Button>
