@@ -1,67 +1,130 @@
-## Diagnóstico
+## Escopo
 
-O instalador atual grava `allowed.pem` em `<install>\override\allowed.pem` e `%APPDATA%\qz\override\allowed.pem`. **Esses não são os caminhos que o QZ Tray 2.2 Community lê** para confiança automática.
+Implementar os itens 3, 4 e 5 da comparação com o plano de referência, mantendo o que já funciona hoje (rota `/api/public/qz` continua válida, fluxo on-demand continua suportado).
 
-O QZ Tray Community carrega a lista de certificados confiáveis de:
+---
 
-- **Per-user:** `%APPDATA%\qz\data\certificates\allowed.pem`
-- **System-wide (shared):** `%PROGRAMDATA%\qz\data\certificates\allowed.pem`
+## 3) Servir `qz-cert.crt` como arquivo estático em `/qz-cert.crt`
 
-Além disso, se o usuário já clicou em **Block** alguma vez no prompt, o cert ficou em `blocked.pem` no mesmo diretório — e `blocked` sempre vence `allowed`. Por isso "Action Required" continua aparecendo mesmo depois do instalador rodar como admin.
+**Problema:** hoje o cert só vem via `GET /api/public/qz` (JSON `{cert, configured, subjectCN}`). O plano de referência espera um arquivo PEM cru em `/qz-cert.crt` — útil para:
+- Configurar `override.crt` no QZ Tray sem precisar fazer parse de JSON.
+- Permitir `curl https://menuzin.lovable.app/qz-cert.crt -o override.crt` direto no instalador `.bat`.
+- Compatibilidade com docs/scripts terceiros que esperam esse caminho.
 
-## Plano definitivo
+**Por que não usar `public/qz-cert.crt`:** o cert vem de `QZ_CERT_PEM` (env), não está versionado. Tem que ser gerado em runtime.
 
-### 1. Corrigir caminhos no instalador `.bat` (`src/lib/qz-tray.ts → QZ_INSTALL_PS1`)
+**Implementação:**
+- Nova rota server: `src/routes/api.public.qz-cert[.]crt.ts` (colchetes escapam o ponto no nome do arquivo gerado).
+  - Caminho final: `/api/public/qz-cert.crt`.
+  - `GET` retorna `cfg.cert` (do `getConfig()` já existente em `api.public.qz.ts`) com `Content-Type: application/x-pem-file` e `Content-Disposition: attachment; filename="qz-cert.crt"`.
+  - Se `!cfg.ok`, retorna `503` com texto explicativo (não JSON — clientes esperam PEM).
+- Para evitar duplicar `getConfig()`, **extrair** essa função e `normalizePem`/`extractCN` para `src/lib/qz-config.server.ts` e importar nas duas rotas (`api.public.qz.ts` e `api.public.qz-cert[.]crt.ts`).
+- Atualizar o instalador `.bat` em `src/lib/qz-tray.ts` (`QZ_INSTALL_PS1`) para baixar o cert via `Invoke-WebRequest` em `/api/public/qz-cert.crt` em vez do JSON.
+- Atualizar `QzInstallGuide.tsx` (passo manual) para mencionar o link direto `/api/public/qz-cert.crt`.
 
-Trocar a escrita atual por:
+**Fora de escopo:** mudar o caminho `/api/public/qz` — continua existindo para o cliente JS que precisa do JSON.
 
-```text
-# System-wide (vale para todos os usuários da máquina)
-%PROGRAMDATA%\qz\data\certificates\allowed.pem
+---
 
-# Per-user, varrendo C:\Users\*\AppData\Roaming
-%APPDATA%\qz\data\certificates\allowed.pem
-```
+## 4) Edge Function `qz-sign` em paralelo à rota TanStack
 
-Deixar de gravar em `<install>\override\` e em `%APPDATA%\qz\override\` (caminhos errados que nunca tiveram efeito).
+**Decisão:** **NÃO migrar**, **adicionar como fallback opcional**.
 
-### 2. Remover o cert de `blocked.pem`
+**Por quê:**
+- A rota TanStack `/api/public/qz` funciona, valida par cert/chave, bloqueia cert demo e está com logs. Migrar tudo para Edge Function é regressão (perde o `getConfig()` cacheado, perde validação de par cert/chave).
+- O plano de referência cita Edge Function porque assume Supabase puro. Aqui temos TanStack Start — a rota TanStack é o equivalente nativo.
+- Mas alguns deploys (ex.: cliente roda QZ Tray em rede que bloqueia o domínio `lovable.app` mas não `*.supabase.co`) podem precisar de URL alternativa.
 
-Em cada diretório `data\certificates\`:
-- Se existir `blocked.pem`, ler, remover qualquer bloco PEM cujo fingerprint bata com o nosso cert, e regravar.
-- Se ficar vazio, apagar o arquivo.
+**Implementação mínima:**
+- Criar `supabase/functions/qz-sign/index.ts` espelhando `api.public.qz.ts`:
+  - `GET` → `{cert, configured, subjectCN}` (mesma shape).
+  - `POST {request}` → `{signature, configured}`.
+  - Usa `Deno.env.get("QZ_CERT_PEM" | "QZ_PRIVATE_KEY_PEM")`.
+  - `crypto.subtle.importKey('pkcs8', …)` + `sign('RSASSA-PKCS1-v1_5'+SHA-512)`.
+  - Mesma validação de cert demo e de par cert/chave.
+  - CORS aberto (precisa para chamada cross-origin do front).
+- Adicionar bloco no `supabase/config.toml`:
+  ```toml
+  [functions.qz-sign]
+  verify_jwt = false
+  ```
+- **Não trocar** o client (`src/lib/qz-tray.ts`) para usar Edge Function por padrão. Adicionar uma constante `QZ_SIGN_ENDPOINT` em `src/lib/qz-tray.ts` apontando para `/api/public/qz` (default) — se no futuro precisarmos trocar, é uma linha.
+- Documentar no header da Edge Function que ela existe como fallback e que a rota TanStack é a primária.
 
-Sem isso, mesmo com `allowed.pem` correto, o QZ continua bloqueando.
+**Risco:** chave privada duplicada em dois endpoints. Mitigação: mesmo secret `QZ_PRIVATE_KEY_PEM`, sem segredo novo, sem nova superfície de ataque.
 
-### 3. Garantir restart do QZ Tray
+---
 
-Já está implementado; manter. Adicionar `Start-Sleep 1500` antes de relançar para evitar lock no `allowed.pem`.
+## 5) `PrintServerContext` + auto-conexão pós-login
 
-### 4. Marcar versão do instalador
+**Decisão:** criar `PrintServerProvider` global, mas **com opt-in por tenant**.
 
-Acrescentar `set "INSTALLER_VERSION=2"` no topo do `.bat` e logar no console PowerShell — assim conseguimos pedir ao usuário pra confirmar que rodou a versão nova.
+**Por quê:**
+- Hoje a conexão é on-demand em 2 lugares (`admin.configuracoes.impressora.tsx` e `PrintOrderButton`). Cada uso refaz handshake (~300-800ms sem prompt, ~3s com prompt) — ruim quando o admin imprime vários pedidos seguidos no Kanban.
+- Auto-conectar todo mundo no login é exagero: nem todo tenant tem impressora térmica, nem todo admin que loga vai imprimir.
+- Solução: provider global, mas só conecta se `printer_settings.auto_connect === true` (nova flag, default `false`).
 
-### 5. UI: validação pós-conexão (em `src/routes/admin.configuracoes.impressora.tsx`)
+**Implementação:**
 
-Já temos a heurística de >2s = "exigiu prompt". Adicionar:
+**a) Tipo + migração:**
+- Adicionar coluna `auto_connect boolean not null default false` em `printer_settings` (migração).
+- Adicionar `auto_connect: boolean` em `PrinterSettings` (`src/lib/printer-types.ts`) e `DEFAULT_PRINTER_SETTINGS`.
+- Adicionar toggle "Conectar automaticamente ao QZ Tray ao logar" em `admin.configuracoes.impressora.tsx`.
 
-- Se `qzTrustState === "prompted"`, mostrar callout com **2 botões**:
-  1. **"Baixar instalador v2"** — usa `downloadQzWindowsInstaller()` (já versionado pela mudança 4).
-  2. **"Como remover do bloqueio manual"** — abre o `QzInstallGuide` em uma nova aba/seção explicando: abrir QZ Tray → ícone na bandeja → Site Manager → aba "Blocked" → remover entrada → reiniciar.
-- Persistir `qzTrustState === "prompted"` em `localStorage` (chave `qz:last-prompt`) pra que o callout não suma ao recarregar a página antes do usuário rodar o instalador novo.
+**b) Context:**
+- Novo arquivo `src/lib/print-server-context.tsx`:
+  ```tsx
+  type PrintServerState = {
+    status: "idle" | "connecting" | "connected" | "error" | "prompted";
+    error?: string;
+    lastConnectMs?: number;
+    fingerprint?: string;
+    connect: () => Promise<void>;
+    disconnect: () => Promise<void>;
+    ensureConnected: () => Promise<void>; // idempotente, usado pelo PrintOrderButton
+  };
+  ```
+- `PrintServerProvider`:
+  - Lê `printer_settings` via `useQuery` (mesma queryKey `["printer-settings"]` já usada — cache compartilhado).
+  - Se `isAuthenticated && settings.auto_connect && status === "idle"`, dispara `connect()` em `useEffect`.
+  - `connect()` chama `ensureQzConnection()` (já existe em `src/lib/qz-tray.ts`), mede latência, atualiza `qz:trust-state` no localStorage (chave já usada no diagnóstico), atualiza `status`.
+  - `disconnect()` chama `qz.websocket.disconnect()` ao deslogar (`onAuthStateChange` SIGNED_OUT).
+  - `ensureConnected()`: se já `connected`, no-op; senão chama `connect()`.
 
-### 6. Diagnóstico (em `src/components/printer/QzDiagnosticsModal.tsx`)
+**c) Wiring:**
+- Envolver `<PrintServerProvider>` dentro de `<AuthProvider>` no `__root.tsx` (ou onde `AuthProvider` for montado).
+- `PrintOrderButton`: trocar chamada direta de `ensureQzConnection` por `usePrintServer().ensureConnected()` antes de imprimir — assim reusa a conexão aberta.
+- `admin.configuracoes.impressora.tsx`: substituir estado local de conexão pelo context (`status`, `lastConnectMs`, `fingerprint`), mantendo todos os botões existentes (Detectar, Teste de conexão, Resolver prompt, Diagnóstico, etc.).
+- O modal de diagnóstico (`QzDiagnosticsModal`) passa a ler `status` do context em tempo real.
 
-Adicionar uma seção "Caminhos verificados pelo QZ Tray" com os 2 caminhos corretos (read-only, copiável), pra o admin checar manualmente se precisar.
+**d) Não-regressão:**
+- Tenants existentes ficam com `auto_connect = false` → comportamento idêntico ao atual (on-demand).
+- Nenhuma rota muda. Nenhum endpoint novo no backend (além do item 3/4).
+
+---
 
 ## Detalhes técnicos
 
-- **Por que `data\certificates\` e não `override\`?** No QZ 2.2 Community, `SiteManager` lê `FileUtilities.getDataDirectory() + "/certificates/allowed.pem"`. `override\` só é usado quando `qz-tray.properties` define `override.crt`, fluxo legado e mais frágil.
-- **Por que `%PROGRAMDATA%` e não `<install>`?** O QZ Tray roda como o usuário logado, não como SYSTEM; ele resolve `shared-dir` para `%PROGRAMDATA%\qz` no Windows. Gravar dentro de `Program Files\QZ Tray\` não tem efeito sobre a confiança.
-- **Fingerprint match em `blocked.pem`:** comparar pelo SHA-256 do DER do cert (`X509Certificate2::GetCertHashString('SHA256')` em PowerShell) é suficiente — não precisa de parser PEM completo.
-- **Sem mudança no backend** (`api.public.qz.ts`, `qz-sign.functions.ts`): cert/chave já estão corretos; o problema é puramente de distribuição no Windows.
+| Item | Arquivo novo | Arquivos editados |
+|---|---|---|
+| 3 | `src/routes/api.public.qz-cert[.]crt.ts`, `src/lib/qz-config.server.ts` | `src/routes/api.public.qz.ts` (usar helper), `src/lib/qz-tray.ts` (instalador `.bat`), `src/components/printer/QzInstallGuide.tsx` |
+| 4 | `supabase/functions/qz-sign/index.ts` | `supabase/config.toml` (bloco `[functions.qz-sign]`), `src/lib/qz-tray.ts` (constante `QZ_SIGN_ENDPOINT`) |
+| 5 | `src/lib/print-server-context.tsx` + migração SQL (`auto_connect`) | `src/lib/printer-types.ts`, `src/routes/__root.tsx`, `src/routes/admin.configuracoes.impressora.tsx`, `src/components/orders/PrintOrderButton.tsx`, `src/components/printer/QzDiagnosticsModal.tsx` |
+
+**Migração SQL (item 5):**
+```sql
+alter table public.printer_settings
+  add column if not exists auto_connect boolean not null default false;
+```
+(sem mudança de RLS — coluna nova na tabela já existente.)
+
+**Segurança:** nada muda. `/api/public/qz` e `/api/public/qz-cert.crt` permanecem públicos por design (QZ Tray precisa do cert; assinatura usa chave privada que nunca sai do servidor). A questão de proteger POST `/api/public/qz` com auth ficou fora deste plano (era item 1 da divergência).
+
+---
 
 ## Fora de escopo
 
-- macOS/Linux installers (focar Windows, que é o caso reportado).
-- Trocar par cert/chave atual — está válido (não-demo, SHA512, match).
+- Item 1 (proteger POST `/api/public/qz` com Bearer/tenant).
+- Item 2 (docs OpenSSL no repo).
+- macOS/Linux installer.
+- Trocar par cert/chave atual.
