@@ -40,7 +40,6 @@ import {
   adminDeleteTenant,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
-import { maskPhone } from "@/lib/masks";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
 
