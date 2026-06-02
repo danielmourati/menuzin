@@ -207,6 +207,42 @@ export async function printQzTextTest(
   await qz.print(config, [text + "\n\n\n"]);
 }
 
+/**
+ * Envia um cupom (texto monoespaçado já formatado por `buildReceipt`)
+ * direto para a impressora térmica via QZ Tray, sem prévia em HTML nem
+ * caixa de diálogo do navegador. Inclui feed final e corte ESC/POS
+ * opcional.
+ */
+export async function printQzReceipt(
+  printerName: string | undefined,
+  text: string,
+  opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" },
+): Promise<{ printer: string }> {
+  const qz = await ensureQzConnected();
+  let target = printerName?.trim();
+  if (!target) {
+    try {
+      target = await qz.printers.getDefault();
+    } catch {
+      throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+    }
+  }
+  if (!target) throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+
+  const feed = Math.max(0, opts?.feedLines ?? 3);
+  const cut =
+    opts?.cutType === "full"
+      ? "\x1DV\x00"
+      : opts?.cutType === "partial"
+        ? "\x1Dm"
+        : "";
+
+  const payload = text + "\n".repeat(feed) + cut;
+  const config = qz.configs.create(target, { encoding: "CP860" });
+  await qz.print(config, [payload]);
+  return { printer: target };
+}
+
 /** Faz o download do cert.pem servido pelo backend. */
 export async function downloadQzCertificate(): Promise<void> {
   const { cert, configured } = await fetchQzCertificate();
