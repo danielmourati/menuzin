@@ -4,8 +4,6 @@
 // `authcert.override=cert.pem` no QZ Tray do cliente, e a assinatura é feita
 // no servidor (server function) com a chave privada correspondente.
 
-import { getQzCertificate, signQzRequest } from "@/lib/qz-sign.functions";
-
 type QZ = {
   websocket: {
     isActive: () => boolean;
@@ -36,6 +34,7 @@ declare global {
 }
 
 const QZ_CDN = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js";
+const QZ_API = "/api/public/qz";
 
 /** Erro tipado para a UI distinguir “QZ Tray não está aberto” de outros erros. */
 export class QzNotRunningError extends Error {
@@ -56,16 +55,55 @@ function configureSecurity(qz: QZ) {
     /* ignore — versões antigas usam SHA1 por padrão */
   }
   qz.security.setCertificatePromise((resolve, reject) => {
-    getQzCertificate()
-      .then(({ cert }) => resolve(cert ?? ""))
+    fetchQzCertificate()
+      .then(({ cert, configured }) => {
+        if (!configured || !cert) {
+          reject(new Error("Certificado do QZ Tray não configurado no servidor."));
+          return;
+        }
+        resolve(cert);
+      })
       .catch(reject);
   });
   qz.security.setSignaturePromise((toSign) => (resolve, reject) => {
-    signQzRequest({ data: { request: toSign } })
-      .then(({ signature }) => resolve(signature ?? ""))
+    signQzPayload(toSign)
+      .then(({ signature, configured }) => {
+        if (!configured || !signature) {
+          reject(new Error("Assinatura do QZ Tray não configurada no servidor."));
+          return;
+        }
+        resolve(signature);
+      })
       .catch(reject);
   });
   securityConfigured = true;
+}
+
+async function fetchQzCertificate(): Promise<{ cert: string; configured: boolean }> {
+  const response = await fetch(QZ_API, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  return parseQzApiResponse(response, "Não foi possível obter o certificado do QZ Tray.");
+}
+
+async function signQzPayload(request: string): Promise<{ signature: string; configured: boolean }> {
+  const response = await fetch(QZ_API, {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ request }),
+    cache: "no-store",
+  });
+  return parseQzApiResponse(response, "Não foi possível assinar a requisição do QZ Tray.");
+}
+
+async function parseQzApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
+  const payload = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) {
+    throw new Error(payload?.error || fallbackMessage);
+  }
+  return payload as T;
 }
 
 function loadQzScript(): Promise<QZ> {
@@ -141,7 +179,7 @@ export async function printQzTextTest(
 
 /** Faz o download do cert.pem servido pelo backend. */
 export async function downloadQzCertificate(): Promise<void> {
-  const { cert, configured } = await getQzCertificate();
+  const { cert, configured } = await fetchQzCertificate();
   if (!configured || !cert) {
     throw new Error(
       "O certificado do QZ Tray ainda não foi configurado no servidor. Contate o administrador.",
@@ -251,7 +289,7 @@ export function buildQzWindowsInstaller(certPem: string): string {
 
 /** Baixa o instalador .bat (Windows) com o cert.pem embutido. */
 export async function downloadQzWindowsInstaller(): Promise<void> {
-  const { cert, configured } = await getQzCertificate();
+  const { cert, configured } = await fetchQzCertificate();
   if (!configured || !cert) {
     throw new Error(
       "O certificado do QZ Tray ainda não foi configurado no servidor. Contate o administrador.",
