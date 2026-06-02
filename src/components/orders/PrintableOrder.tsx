@@ -92,12 +92,20 @@ export function PrintableOrder({
               </div>
               {item.addons && item.addons.length > 0 && (
                 <div className={`${fontSmall} pl-3 text-zinc-700 space-y-0.5`}>
-                  {item.addons.map((addon) => (
-                    <div key={addon.id} className="flex justify-between">
-                      <span>+ {addon.name}</span>
-                      <span>{brl(addon.price)}</span>
-                    </div>
-                  ))}
+                  {item.addons.map((addon) => {
+                    const parsed = parseAddonLabel(addon.name);
+                    const prefix =
+                      parsed.kind === "size" ? "Tamanho:" :
+                      parsed.kind === "flavor" ? "Sabor:" :
+                      parsed.kind === "group" ? `${parsed.groupName}:` :
+                      "+";
+                    return (
+                      <div key={addon.id} className="flex justify-between">
+                        <span>{prefix} {parsed.label}</span>
+                        {Number(addon.price) > 0 && <span>{brl(addon.price)}</span>}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               {item.note && (
