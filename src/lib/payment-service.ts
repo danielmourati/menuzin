@@ -7,6 +7,8 @@ import {
   disconnectMercadoPago as _disconnectMercadoPago,
   updatePaymentSettings as _updatePaymentSettings,
   getPublicPaymentSettingsBySlug as _getPublicPaymentSettingsBySlug,
+  createTransparentPayment as _createTransparentPayment,
+  getPaymentStatus as _getPaymentStatus,
 } from "./payments.functions";
 import type {
   StorePaymentSettingsSafe,
