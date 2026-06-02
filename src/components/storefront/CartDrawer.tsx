@@ -530,7 +530,8 @@ export function CartDrawer({
               <PixCheckout
                 pixData={pixData}
                 amount={total}
-                onSuccess={() => goTo("customer")}
+                storeSlug={slug || ""}
+                onSuccess={() => goTo("review")}
                 onCancel={() => {
                   setPixData(null);
                   setSelectedMethod(null);
@@ -549,8 +550,9 @@ export function CartDrawer({
             <div className="flex-1 overflow-y-auto bg-card">
               <CardCheckout
                 amount={total}
+                publicKey={settings?.mp_public_key || ""}
                 onSubmit={handleCardSubmit}
-                onSuccess={() => goTo("customer")}
+                onSuccess={() => goTo("review")}
                 onCancel={() => {
                   setCardData(null);
                   setSelectedMethod(null);
