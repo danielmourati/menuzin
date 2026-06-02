@@ -41,12 +41,11 @@ type CertInfo = {
 };
 
 const CERT_PATHS = [
-  "C:\\ProgramData\\QZ Tray\\cert.pem",
-  "%APPDATA%\\qz\\cert.pem",
-  "C:\\Program Files\\QZ Tray\\cert.pem",
-  "C:\\Program Files (x86)\\QZ Tray\\cert.pem",
-  "/Applications/QZ Tray.app/Contents/Resources/cert.pem (macOS)",
-  "~/.qz/cert.pem (Linux/macOS)",
+  "C:\\Program Files\\QZ Tray\\override\\allowed.pem",
+  "C:\\Program Files (x86)\\QZ Tray\\override\\allowed.pem",
+  "%APPDATA%\\qz\\override\\allowed.pem",
+  "/Applications/QZ Tray.app/Contents/Resources/override/allowed.pem (macOS)",
+  "~/.qz/override/allowed.pem (Linux/macOS)",
 ];
 
 export function QzDiagnosticsModal({
@@ -61,14 +60,19 @@ export function QzDiagnosticsModal({
     (async () => {
       setCert((c) => ({ ...c, loading: true, error: undefined }));
       try {
-        const { cert: pem, configured } = await fetchQzCertificate();
+        const { cert: pem, configured, subjectCN, error } = await fetchQzCertificate();
         if (cancelled) return;
         if (!configured || !pem) {
-          setCert({ loading: false, configured: false });
+          setCert({ loading: false, configured: false, error, subjectCN });
           return;
         }
         const info = await analyzeCertificate(pem);
-        setCert({ loading: false, configured: true, ...info });
+        setCert({
+          loading: false,
+          configured: true,
+          ...info,
+          subjectCN: subjectCN || info.subjectCN,
+        });
       } catch (e) {
         if (cancelled) return;
         setCert({
@@ -82,6 +86,10 @@ export function QzDiagnosticsModal({
       cancelled = true;
     };
   }, [open]);
+
+  const isDemoCert =
+    !!cert.subjectCN && /QZ Industries/i.test(cert.subjectCN);
+  const isServerDemoError = !cert.configured && !!cert.error && /demonstra/i.test(cert.error);
 
   const copy = (label: string, value: string) => {
     void navigator.clipboard?.writeText(value).then(
@@ -179,6 +187,20 @@ export function QzDiagnosticsModal({
 
           {/* Certificado */}
           <Section title="Certificado (cert.pem)">
+            {(isDemoCert || isServerDemoError) && (
+              <div className="mb-2 flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 p-2.5 text-xs text-destructive">
+                <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold">Certificado de demonstração detectado.</div>
+                  <p className="mt-0.5">
+                    O segredo do servidor está usando o cert demo do QZ Tray (CN = QZ Industries).
+                    Esse cert é hard-coded como <em>untrusted</em> pelo QZ Tray — o prompt
+                    "Action Required" vai aparecer em toda conexão, mesmo com instalador.
+                    Gere um cert próprio e atualize <code>QZ_CERT_PEM</code>/<code>QZ_PRIVATE_KEY_PEM</code>.
+                  </p>
+                </div>
+              </div>
+            )}
             <Row label="Servidor">
               {cert.loading ? (
                 <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">

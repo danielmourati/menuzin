@@ -21,7 +21,8 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
 import {
-  ensureQzConnected, listQzPrintersWithDefault, printQzTextTest, QzNotRunningError, downloadQzCertificate, downloadQzWindowsInstaller,
+  ensureQzConnected, listQzPrintersWithDefault, printQzTextTest, QzNotRunningError,
+  downloadQzCertificate, downloadQzWindowsInstaller, fetchQzCertificate,
   type QzPrinter,
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
@@ -90,6 +91,15 @@ function PrinterSettingsPage() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
+
+  // Status do cert do servidor — para alertar quando ainda for o cert demo.
+  const { data: qzCert } = useQuery({
+    queryKey: ["qz-cert"],
+    queryFn: () => fetchQzCertificate(),
+    staleTime: 60_000,
+  });
+  const isDemoCert = !!qzCert?.subjectCN && /QZ Industries/i.test(qzCert.subjectCN);
+  const serverCertReady = !!qzCert?.configured && !isDemoCert;
 
   const handleQzError = (e: unknown) => {
     if (e instanceof QzNotRunningError) {
@@ -249,15 +259,37 @@ function PrinterSettingsPage() {
                   </Button>
                 </div>
 
+                {isDemoCert && (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 p-3 text-xs text-destructive">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">Certificado de demonstração ativo no servidor.</div>
+                      <p className="mt-0.5">
+                        O QZ Tray recusa esse cert permanentemente — o prompt "Action Required"
+                        sempre aparece. Atualize <code>QZ_CERT_PEM</code> e <code>QZ_PRIVATE_KEY_PEM</code> com um par próprio.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-lg border bg-muted/40 p-3">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="text-sm">
-                      <div className="font-medium">Configurar automaticamente (Windows)</div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Baixa um instalador que copia o certificado e ajusta o QZ Tray para imprimir sem prompts. Após baixar, clique direito → <strong>Executar como administrador</strong>.
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium">Configurar confiança permanente (Windows)</div>
+                        {serverCertReady ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" /> Cert próprio: {qzCert?.subjectCN}
+                          </span>
+                        ) : null}
+                      </div>
+                      <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs text-muted-foreground">
+                        <li>Baixe o instalador abaixo.</li>
+                        <li>Clique direito → <strong>Executar como administrador</strong>.</li>
+                        <li>Volte aqui e clique em <strong>Detectar</strong>. O prompt não deve mais aparecer.</li>
+                      </ol>
                     </div>
-                    <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
+                    <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy || isDemoCert}>
                       {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
                       Baixar instalador
                     </Button>

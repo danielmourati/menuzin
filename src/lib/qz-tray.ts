@@ -81,7 +81,12 @@ function configureSecurity(qz: QZ) {
   securityConfigured = true;
 }
 
-export async function fetchQzCertificate(): Promise<{ cert: string; configured: boolean }> {
+export async function fetchQzCertificate(): Promise<{
+  cert: string;
+  configured: boolean;
+  subjectCN?: string;
+  error?: string;
+}> {
   const response = await fetch(QZ_API, {
     method: "GET",
     headers: { Accept: "application/json" },
@@ -219,15 +224,17 @@ export function downloadQzProperties(): void {
 }
 
 /**
- * Monta um instalador .bat para Windows que delega o trabalho pesado a um
- * bloco PowerShell (passado via -EncodedCommand para evitar problemas de
- * escape no cmd). O script:
- *   - grava cert.pem em %ProgramData%\QZ Tray\cert.pem (caminho estável)
- *   - grava cópia em cada pasta de instalação detectada e em
- *     %APPDATA%\qz de TODOS os perfis de usuário (Windows)
- *   - escreve `authcert.override=<caminho absoluto>` em todos os
- *     qz-tray.properties correspondentes
- *   - reinicia o QZ Tray
+ * Monta um instalador .bat para Windows que grava o cert em `override/allowed.pem`
+ * — caminho first-class de _persistent trust_ do QZ Tray 2.2 Community.
+ *
+ * Estratégia:
+ *   - Grava `override/allowed.pem` em CADA pasta de instalação do QZ Tray
+ *     detectada (Program Files, Program Files (x86), LocalAppData).
+ *   - Grava em `%APPDATA%\qz\override\allowed.pem` para TODOS os perfis de
+ *     usuário em C:\Users.
+ *   - QZ Tray confia automaticamente em qualquer cert listado lá, sem prompt.
+ *     NÃO mexemos em qz-tray.properties (não é necessário).
+ *   - Reinicia o QZ Tray ao final.
  */
 export function buildQzWindowsInstaller(certPem: string): string {
   const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
@@ -260,8 +267,7 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "  echo Houve uma falha na configuracao. Codigo: %ERR%",
     ") else (",
     "  echo Configuracao concluida. Volte ao Menuzin e clique em Detectar.",
-    "  echo Se o QZ Tray ainda exibir o aviso 'Untrusted website' na primeira",
-    "  echo conexao, marque 'Remember this decision' e clique em Allow uma unica vez.",
+    "  echo O prompt 'Action Required' nao deve mais aparecer.",
     ")",
     "echo.",
     "pause",
@@ -271,30 +277,27 @@ export function buildQzWindowsInstaller(certPem: string): string {
   ].join("\r\n");
 }
 
-/** Script PowerShell que faz a instalação propriamente dita. */
+/** Script PowerShell que grava o cert em override/allowed.pem. */
 const QZ_INSTALL_PS1 = `
 $ErrorActionPreference = 'Stop'
 try {
   $certBytes = [Convert]::FromBase64String($env:CERT_B64)
+  $certText  = [Text.Encoding]::UTF8.GetString($certBytes)
 
-  # Pasta central estável (sempre legível, mesmo de outro usuário).
-  $centralDir = Join-Path $env:ProgramData 'QZ Tray'
-  New-Item -ItemType Directory -Path $centralDir -Force | Out-Null
-  $centralCert = Join-Path $centralDir 'cert.pem'
-  [IO.File]::WriteAllBytes($centralCert, $certBytes)
-
-  function Set-QzProperties([string]$propsPath, [string]$certPath) {
-    $dir = Split-Path $propsPath
-    if ($dir) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $lines = @()
-    if (Test-Path -LiteralPath $propsPath) {
-      $lines = Get-Content -LiteralPath $propsPath | Where-Object { $_ -notmatch '^\\s*authcert\\.override\\s*=' }
-    }
-    $lines += "authcert.override=$certPath"
-    Set-Content -LiteralPath $propsPath -Value $lines -Encoding ascii
+  function Write-AllowedPem([string]$overrideDir) {
+    try {
+      New-Item -ItemType Directory -Path $overrideDir -Force | Out-Null
+      $target = Join-Path $overrideDir 'allowed.pem'
+      if (Test-Path -LiteralPath $target) {
+        $existing = Get-Content -LiteralPath $target -Raw -ErrorAction SilentlyContinue
+        if ($existing -and ($existing.Contains($certText.Trim()))) { return }
+      }
+      [IO.File]::WriteAllText($target, $certText)
+      Write-Host ("Confiado: " + $target)
+    } catch { Write-Host ("Aviso em " + $overrideDir + ": " + $_.Exception.Message) }
   }
 
-  # 1) Pastas de instalação do QZ Tray (cobre Program Files, x86, LocalAppData).
+  # 1) Pastas de instalacao do QZ Tray (Program Files, x86, LocalAppData).
   $candidates = @()
   foreach ($p in @($env:ProgramW6432, $env:ProgramFiles, \${env:ProgramFiles(x86)}, "$env:SystemDrive\\Program Files", "$env:SystemDrive\\Program Files (x86)", "$env:LocalAppData\\Programs")) {
     if ($p) { $candidates += (Join-Path $p 'QZ Tray') }
@@ -311,32 +314,20 @@ try {
   $installDirs = $candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
 
   foreach ($dir in $installDirs) {
-    try {
-      [IO.File]::WriteAllBytes((Join-Path $dir 'cert.pem'), $certBytes)
-      Set-QzProperties (Join-Path $dir 'qz-tray.properties') $centralCert
-      Write-Host ("Configurado: " + $dir)
-    } catch { Write-Host ("Aviso em " + $dir + ": " + $_.Exception.Message) }
+    Write-AllowedPem (Join-Path $dir 'override')
   }
 
-  # 2) Properties machine-wide em %ProgramData%\QZ Tray.
-  Set-QzProperties (Join-Path $centralDir 'qz-tray.properties') $centralCert
-
-  # 3) Per-user (%APPDATA%\qz) para TODOS os perfis presentes em C:\\Users.
+  # 2) Per-user %APPDATA%\\qz\\override\\allowed.pem para TODOS os perfis em C:\\Users.
   $usersRoot = Join-Path $env:SystemDrive 'Users'
   if (Test-Path -LiteralPath $usersRoot) {
     Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue |
       Where-Object { $_.Name -notin @('Public','Default','Default User','All Users') -and (Test-Path -LiteralPath (Join-Path $_.FullName 'AppData\\Roaming')) } |
       ForEach-Object {
-        $qzDir = Join-Path $_.FullName 'AppData\\Roaming\\qz'
-        try {
-          New-Item -ItemType Directory -Path $qzDir -Force | Out-Null
-          [IO.File]::WriteAllBytes((Join-Path $qzDir 'cert.pem'), $certBytes)
-          Set-QzProperties (Join-Path $qzDir 'qz-tray.properties') $centralCert
-        } catch {}
+        Write-AllowedPem (Join-Path $_.FullName 'AppData\\Roaming\\qz\\override')
       }
   }
 
-  # 4) Reinicia o QZ Tray.
+  # 3) Reinicia o QZ Tray.
   Get-Process -Name 'QZ Tray','qz-tray' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Milliseconds 800
   $exe = $null
