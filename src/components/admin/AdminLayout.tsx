@@ -1,7 +1,7 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminNotificationsBell } from "@/components/admin/AdminNotificationsBell";
 import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListener";
 import { useAuth } from "@/lib/auth-context";
-import { getMyTenant, claimNewTenant } from "@/lib/tenants.functions";
+import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
 import { toast } from "sonner";
 
@@ -252,6 +252,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
             </Sheet>
             <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
+              <StoreOpenToggle />
               <AdminNotificationsBell />
               {action}
             </div>
@@ -292,5 +293,60 @@ function ImpersonationBanner() {
         <X className="mr-1 h-4 w-4" /> Sair da loja
       </Button>
     </div>
+  );
+}
+
+function StoreOpenToggle() {
+  const { profile, isPlatformAdmin } = useAuth();
+  const activeTenantId = useActiveTenantId();
+  const qc = useQueryClient();
+  const tenantKey = activeTenantId ?? profile?.tenant_id ?? "none";
+  const { data } = useQuery({
+    queryKey: ["my-tenant", tenantKey],
+    queryFn: () => getMyTenant(),
+    enabled: !!(profile?.tenant_id || activeTenantId),
+  });
+  const tenant = data?.tenant;
+
+  const canToggle = !!tenant && (isPlatformAdmin || !!profile?.tenant_id);
+
+  const mut = useMutation({
+    mutationFn: (open: boolean) => updateMyTenant({ data: { open } }),
+    onSuccess: (_r, open) => {
+      toast.success(open ? "Atendimento aberto" : "Atendimento fechado");
+      qc.invalidateQueries({ queryKey: ["my-tenant"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (!canToggle) return null;
+  const open = !!tenant?.open;
+
+  return (
+    <Button
+      size="sm"
+      variant={open ? "default" : "outline"}
+      onClick={() => mut.mutate(!open)}
+      disabled={mut.isPending}
+      className={
+        open
+          ? "bg-success text-success-foreground hover:bg-success/90"
+          : "border-destructive text-destructive hover:bg-destructive/10"
+      }
+      title={
+        open
+          ? "Clique para fechar/bloquear o atendimento agora (ignora os horários)"
+          : "Clique para abrir o atendimento agora (ignora os horários)"
+      }
+    >
+      {mut.isPending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Power className="h-4 w-4" />
+      )}
+      <span className="ml-1.5 hidden sm:inline">
+        {open ? "Aberta" : "Fechada"}
+      </span>
+    </Button>
   );
 }
