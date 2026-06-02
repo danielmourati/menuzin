@@ -82,6 +82,20 @@ function PrinterSettingsPage() {
 
   const [qzBusy, setQzBusy] = useState(false);
   const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+  const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  const handleQzError = (e: unknown) => {
+    if (e instanceof QzNotRunningError) {
+      setQzStatus("offline");
+      setGuideOpen(true);
+      toast.error(e.message, {
+        action: { label: "Como instalar", onClick: () => setGuideOpen(true) },
+      });
+      return;
+    }
+    toast.error((e as Error).message || "Erro ao se comunicar com o QZ Tray.");
+  };
 
   const handleDetectQz = async () => {
     setQzBusy(true);
@@ -89,6 +103,7 @@ function PrinterSettingsPage() {
       await ensureQzConnected();
       const list = await listQzPrinters();
       setQzPrinters(list);
+      setQzStatus("connected");
       if (list.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
@@ -96,7 +111,7 @@ function PrinterSettingsPage() {
         if (!form.printer_name && list[0]) set("printer_name", list[0]);
       }
     } catch (e) {
-      toast.error((e as Error).message || "Erro ao conectar ao QZ Tray.");
+      handleQzError(e);
     } finally {
       setQzBusy(false);
     }
@@ -106,10 +121,10 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     try {
       await printQzTextTest(form.printer_name, previewText);
+      setQzStatus("connected");
       toast.success("Teste de impressão enviado com sucesso.");
     } catch (e) {
-      const msg = (e as Error).message || "Erro ao enviar teste de impressão.";
-      toast.error(msg);
+      handleQzError(e);
     } finally {
       setQzBusy(false);
     }
