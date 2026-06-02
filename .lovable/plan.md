@@ -1,41 +1,39 @@
-# Remover o prefixo `/loja` do slug do tenant
+# Habilitar métodos online no checkout público
 
-## Situação atual
+## Diagnóstico
 
-A migração já foi feita parcialmente:
+Na aba admin, o tenant `burgerprime` já está corretamente configurado:
+- Mercado Pago conectado (credenciais manuais salvas e criptografadas)
+- Pix Online ativado
 
-- As rotas públicas novas já vivem na raiz: `src/routes/$slug.tsx`, `$slug.pedido-confirmado.tsx`, `$slug.acompanhar.$orderId.tsx`.
-- As rotas antigas `src/routes/loja.$slug*.tsx` ainda existem, mas funcionam apenas como **redirect 301** para `/$slug` (compatibilidade com links antigos).
-- `src/lib/reserved-slugs.ts` já reserva `"loja"` como slug proibido para novos tenants.
+Porém, ao tentar pagar no checkout da loja pública, aparece "Nenhum método online ativado". Isso **não tem relação com sandbox vs produção** das credenciais do Mercado Pago — o problema está antes disso.
 
-O que **não** foi atualizado e ainda mostra `/loja/...`:
+`src/components/storefront/CartDrawer.tsx` chama `getPaymentSettingsBySlug(slug)` para carregar as configurações da loja. Hoje essa função em `src/lib/payment-service.ts` é um stub:
 
-1. `src/routes/platform.tenants.novo.tsx` (linha 62) — preview do slug exibe `seudominio.com.br/loja/{slug}`.
-2. `src/components/admin/AdminLayout.tsx` (linha 206) — onboarding mostra `menuzin.app/loja/` antes do input.
-3. As rotas legadas `loja.$slug*.tsx` continuam ocupando espaço no route tree.
+```ts
+export async function getPaymentSettingsBySlug(_slug: string) {
+  return null; // ← sempre null
+}
+```
 
-## O que fazer
+Com `settings = null`, o `PaymentMethodSelector` usa o fallback padrão (`mp_connected: false`, `pix_enabled: false`, etc.) e por isso esconde todos os métodos online.
 
-### 1. Atualizar previews de URL na UI
-- Em `platform.tenants.novo.tsx`, trocar `seudominio.com.br/loja/${slug}` por `seudominio.com.br/${slug}` (e o placeholder equivalente).
-- Em `AdminLayout.tsx` (onboarding de criação de loja), trocar o prefixo `menuzin.app/loja/` por `menuzin.app/`.
-- Conferir outros pontos que ainda mencionem `/loja/` na UI (toasts, copy de configurações, links "Ver loja pública") e ajustar para a URL nova.
+## O que será feito
 
-### 2. Decidir o destino das rotas legadas
-Recomendado: **manter** os três arquivos `loja.$slug*.tsx` apenas como redirects, pois links antigos compartilhados por clientes/WhatsApp continuam funcionando. Eles já não geram UI nem custo perceptível.
+### 1. Server function pública por slug
+Criar `getPublicPaymentSettingsBySlug` em `src/lib/payments.functions.ts` (sem `requireSupabaseAuth`, usando `supabaseAdmin`), que:
+- Recebe `{ slug }`
+- Resolve `tenant_id` em `tenants` pelo `slug` (apenas tenants ativos)
+- Lê `store_payment_settings` daquele tenant
+- Retorna **somente os campos seguros** já tipados como `StorePaymentSettingsSafe` (flags `mp_connected`, `cash_enabled`, `pix_manual_enabled`, `card_on_delivery_enabled`, `pix_enabled`, `credit_card_enabled`, `debit_card_enabled`, e dados do Pix manual). Nunca expor `mp_access_token_encrypted` nem chaves cruas.
+- Valida input com Zod (`slug` regex curto).
 
-Alternativa (se preferir limpar): deletar `loja.$slug.tsx`, `loja.$slug.pedido-confirmado.tsx`, `loja.$slug.acompanhar.$orderId.tsx`. Links antigos passam a cair em 404.
+### 2. Plugar no client wrapper
+Atualizar `getPaymentSettingsBySlug` em `src/lib/payment-service.ts` para chamar a nova server fn em vez de retornar `null`.
 
-→ **Pergunta para você:** manter os redirects de compatibilidade ou remover de vez?
+### 3. Verificação
+Abrir a loja `/burgerprime`, ir ao checkout, escolher "Pagar agora" e confirmar que o Pix Online aparece. Cartão crédito/débito permanecem ocultos enquanto estiverem desligados no admin — comportamento esperado.
 
-### 3. Validação rápida
-- Abrir `/platform/tenants/novo` e confirmar que o preview mostra `seudominio.com.br/{slug}`.
-- Abrir o onboarding de criação de loja e confirmar o prefixo novo.
-- Acessar uma loja existente em `/{slug}` e (se mantidos) em `/loja/{slug}` para confirmar o redirect.
+## Sobre sandbox vs produção
 
-## Arquivos afetados
-- `src/routes/platform.tenants.novo.tsx` (edit)
-- `src/components/admin/AdminLayout.tsx` (edit)
-- Opcional: deletar `src/routes/loja.$slug.tsx`, `src/routes/loja.$slug.pedido-confirmado.tsx`, `src/routes/loja.$slug.acompanhar.$orderId.tsx`.
-
-Sem mudanças de banco, server functions ou lógica de negócio.
+Trocar as credenciais para produção **não** resolveria esse erro, porque o checkout sequer chega a falar com o Mercado Pago — ele para antes, na leitura das configurações da loja. A decisão sandbox vs produção é independente e só afeta a geração real de cobranças Pix/cartão quando o checkout transparente for executado.
