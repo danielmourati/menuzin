@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Menu, Loader2 } from "lucide-react";
+import { LayoutDashboard, Store, Menu, Loader2, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { clearActiveTenant } from "@/lib/active-tenant";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -20,7 +22,7 @@ const navItems = [
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { loading, isAuthenticated, isPlatformAdmin } = useAuth();
+  const { loading, isAuthenticated, isPlatformAdmin, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -37,6 +39,16 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
       </div>
     );
   }
+  const handleLogout = async () => {
+    try {
+      clearActiveTenant();
+      await signOut();
+      toast.success("Sessão encerrada.");
+      navigate({ to: "/admin/login" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao sair");
+    }
+  };
   const Inner = ({ onNav }: { onNav?: () => void }) => (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="border-b border-sidebar-border px-5 py-4">
@@ -58,6 +70,15 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
           );
         })}
       </nav>
+      <div className="border-t border-sidebar-border p-3">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+          onClick={() => { onNav?.(); handleLogout(); }}
+        >
+          <LogOut className="h-4 w-4" /> Sair
+        </Button>
+      </div>
     </div>
   );
   return (
@@ -70,6 +91,11 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
             <SheetContent side="left" className="w-72 p-0"><Inner onNav={() => setOpen(false)} /></SheetContent>
           </Sheet>
           <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
+          <div className="ml-auto">
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" /> Sair
+            </Button>
+          </div>
         </header>
         <main className="flex-1 p-4 lg:p-8">{children}</main>
       </div>
