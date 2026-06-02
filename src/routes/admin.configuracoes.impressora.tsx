@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -25,6 +25,7 @@ import {
   type QzPrinter,
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
+import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: PrinterSettingsPage,
@@ -87,6 +88,8 @@ function PrinterSettingsPage() {
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
   const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
 
   const handleQzError = (e: unknown) => {
     if (e instanceof QzNotRunningError) {
@@ -102,12 +105,18 @@ function PrinterSettingsPage() {
 
   const handleDetectQz = async () => {
     setQzBusy(true);
+    const startedAt = performance.now();
     try {
       await ensureQzConnected();
       const { printers, defaultPrinter } = await listQzPrintersWithDefault();
       setQzPrinters(printers);
       setQzDefaultPrinter(defaultPrinter);
       setQzStatus("connected");
+      setLastAttempt({
+        at: new Date(), ok: true,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: `Detectar (${printers.length} impressora(s))`,
+      });
       if (printers.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
@@ -117,6 +126,12 @@ function PrinterSettingsPage() {
         setPrinterInputMode("select");
       }
     } catch (e) {
+      setLastAttempt({
+        at: new Date(), ok: false,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: "Detectar",
+        error: (e as Error).message,
+      });
       handleQzError(e);
     } finally {
       setQzBusy(false);
@@ -151,11 +166,23 @@ function PrinterSettingsPage() {
 
   const handleTestPrint = async () => {
     setQzBusy(true);
+    const startedAt = performance.now();
     try {
       await printQzTextTest(form.printer_name, previewText);
       setQzStatus("connected");
+      setLastAttempt({
+        at: new Date(), ok: true,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: `Teste de impressão${form.printer_name ? ` → ${form.printer_name}` : ""}`,
+      });
       toast.success("Teste de impressão enviado com sucesso.");
     } catch (e) {
+      setLastAttempt({
+        at: new Date(), ok: false,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: "Teste de impressão",
+        error: (e as Error).message,
+      });
       handleQzError(e);
     } finally {
       setQzBusy(false);
@@ -187,9 +214,14 @@ function PrinterSettingsPage() {
             <Card>
               <CardHeader className="flex-row items-center justify-between gap-2">
                 <CardTitle className="text-base">Status do QZ Tray</CardTitle>
-                <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
-                  <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setDiagOpen(true)}>
+                    <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
+                    <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -525,6 +557,18 @@ function PrinterSettingsPage() {
         open={guideOpen}
         onOpenChange={setGuideOpen}
         onRetry={handleDetectQz}
+        retrying={qzBusy}
+      />
+
+      <QzDiagnosticsModal
+        open={diagOpen}
+        onOpenChange={setDiagOpen}
+        selectedPrinter={form.printer_name}
+        defaultPrinter={qzDefaultPrinter}
+        qzPrinters={qzPrinters}
+        qzStatus={qzStatus}
+        lastAttempt={lastAttempt}
+        onRetryDetect={handleDetectQz}
         retrying={qzBusy}
       />
     </AdminLayout>
