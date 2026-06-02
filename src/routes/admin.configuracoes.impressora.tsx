@@ -87,20 +87,46 @@ function PrinterSettingsPage() {
   const [qzPrinters, setQzPrinters] = useState<QzPrinter[]>([]);
   const [qzDefaultPrinter, setQzDefaultPrinter] = useState<string | null>(null);
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
-  const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">(() => {
-    if (typeof window === "undefined") return "unknown";
-    const v = window.localStorage.getItem("qz:last-prompt");
-    return v === "prompted" || v === "trusted" ? v : "unknown";
-  });
+
+  // Persistência por tenant (localStorage já é por máquina/navegador).
+  const tenantId = (tenantData?.tenant as { id?: string } | null | undefined)?.id ?? null;
+  const trustStorageKey = tenantId ? `qz:trust:${tenantId}` : "qz:trust:default";
+  const lastAttemptStorageKey = tenantId ? `qz:last-attempt:${tenantId}` : "qz:last-attempt:default";
+
+  const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">("unknown");
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (qzTrustState === "unknown") window.localStorage.removeItem("qz:last-prompt");
-    else window.localStorage.setItem("qz:last-prompt", qzTrustState);
-  }, [qzTrustState]);
+    const v = window.localStorage.getItem(trustStorageKey);
+    setQzTrustState(v === "prompted" || v === "trusted" ? v : "unknown");
+  }, [trustStorageKey]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (qzTrustState === "unknown") window.localStorage.removeItem(trustStorageKey);
+    else window.localStorage.setItem(trustStorageKey, qzTrustState);
+  }, [qzTrustState, trustStorageKey]);
   const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
+  // Hidrata última tentativa do tenant atual
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(lastAttemptStorageKey);
+    if (!raw) { setLastAttempt(null); return; }
+    try {
+      const parsed = JSON.parse(raw) as Omit<QzConnectionAttempt, "at"> & { at: string };
+      setLastAttempt({ ...parsed, at: new Date(parsed.at) });
+    } catch { setLastAttempt(null); }
+  }, [lastAttemptStorageKey]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!lastAttempt) { window.localStorage.removeItem(lastAttemptStorageKey); return; }
+    window.localStorage.setItem(lastAttemptStorageKey, JSON.stringify({ ...lastAttempt, at: lastAttempt.at.toISOString() }));
+  }, [lastAttempt, lastAttemptStorageKey]);
+
+  type TestStep = { label: string; status: "pending" | "ok" | "err"; detail?: string };
+  const [testSteps, setTestSteps] = useState<TestStep[] | null>(null);
+  const [testBusy, setTestBusy] = useState(false);
 
   // Status do cert do servidor — para alertar quando ainda for o cert demo.
   const { data: qzCert, refetch: refetchQzCert } = useQuery({
@@ -257,6 +283,155 @@ function PrinterSettingsPage() {
     }
   };
 
+  // Caminhos onde o QZ Tray 2.2 lê o cert confiável, por SO.
+  const certPathsByOs: Array<{ os: string; label: string; path: string }> = [
+    { os: "Windows", label: "System-wide (recomendado)", path: "%PROGRAMDATA%\\qz\\data\\certificates\\allowed.pem" },
+    { os: "Windows", label: "Por usuário", path: "%APPDATA%\\qz\\data\\certificates\\allowed.pem" },
+    { os: "macOS", label: "System-wide", path: "/Library/Application Support/qz/data/certificates/allowed.pem" },
+    { os: "macOS", label: "Por usuário", path: "~/Library/Application Support/qz/data/certificates/allowed.pem" },
+    { os: "Linux", label: "System-wide", path: "/etc/qz/data/certificates/allowed.pem" },
+    { os: "Linux", label: "Por usuário", path: "~/.qz/data/certificates/allowed.pem" },
+  ];
+
+  const copyToClipboard = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copiado.`);
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
+
+  // "Teste de conexão": revalida cert do servidor e confirma conexão sem prompt,
+  // mostrando cada passo em tempo real.
+  const handleTestConnection = async () => {
+    setTestBusy(true);
+    const steps: TestStep[] = [
+      { label: "Validando certificado do servidor", status: "pending" },
+      { label: "Conectando ao QZ Tray", status: "pending" },
+      { label: "Listando impressoras", status: "pending" },
+    ];
+    setTestSteps([...steps]);
+    const update = (i: number, patch: Partial<TestStep>) => {
+      steps[i] = { ...steps[i], ...patch };
+      setTestSteps([...steps]);
+    };
+    const startedAt = performance.now();
+    try {
+      const fresh = await refetchQzCert();
+      const cert = fresh.data;
+      if (!cert?.configured) {
+        update(0, { status: "err", detail: cert?.error || "Cert não configurado no servidor." });
+        setLastAttempt({ at: new Date(), ok: false, action: "Teste de conexão", error: "Cert não configurado." });
+        return;
+      }
+      if (cert.subjectCN && /QZ Industries/i.test(cert.subjectCN)) {
+        update(0, { status: "err", detail: `Cert demo (CN=${cert.subjectCN}). Action Required é inevitável.` });
+        setLastAttempt({ at: new Date(), ok: false, action: "Teste de conexão", error: "Cert demo em uso." });
+        return;
+      }
+      update(0, { status: "ok", detail: `CN=${cert.subjectCN}` });
+
+      const connectStart = performance.now();
+      await ensureQzConnected();
+      const connectMs = Math.round(performance.now() - connectStart);
+      const prompted = connectMs > 2000;
+      setQzTrustState(prompted ? "prompted" : "trusted");
+      update(1, {
+        status: prompted ? "err" : "ok",
+        detail: `${connectMs}ms · ${prompted ? "PROMPT manual detectado" : "sem prompt"}`,
+      });
+
+      const { printers, defaultPrinter } = await listQzPrintersWithDefault();
+      setQzPrinters(printers);
+      setQzDefaultPrinter(defaultPrinter);
+      setQzStatus("connected");
+      update(2, { status: "ok", detail: `${printers.length} impressora(s)` });
+
+      setLastAttempt({
+        at: new Date(), ok: !prompted,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: prompted ? "Teste de conexão (com prompt)" : "Teste de conexão (sem prompt)",
+        error: prompted ? "QZ Tray exigiu confirmação manual." : undefined,
+      });
+      if (prompted) {
+        toast.warning("Conectou, mas com prompt manual. Rode o instalador v2.");
+      } else {
+        toast.success(`Tudo certo · ${connectMs}ms · ${printers.length} impressora(s).`);
+      }
+    } catch (e) {
+      const idx = steps.findIndex((s) => s.status === "pending");
+      if (idx >= 0) update(idx, { status: "err", detail: (e as Error).message });
+      setLastAttempt({
+        at: new Date(), ok: false,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: "Teste de conexão",
+        error: (e as Error).message,
+      });
+      handleQzError(e);
+    } finally {
+      setTestBusy(false);
+    }
+  };
+
+  // Exporta JSON com status atual para o usuário enviar ao suporte.
+  const handleDownloadDiagnosticReport = async () => {
+    try {
+      let fingerprint: string | null = null;
+      if (qzCert?.cert && typeof crypto !== "undefined" && crypto.subtle) {
+        try {
+          const b64 = qzCert.cert.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+          const bin = atob(b64);
+          const der = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i);
+          const hash = await crypto.subtle.digest("SHA-256", der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer);
+          fingerprint = Array.from(new Uint8Array(hash))
+            .map((b) => b.toString(16).padStart(2, "0")).join(":").toUpperCase();
+        } catch { /* ignore */ }
+      }
+      const report = {
+        generatedAt: new Date().toISOString(),
+        tenantId,
+        tenantName: (tenantData?.tenant as { name?: string } | null | undefined)?.name ?? null,
+        machine: {
+          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+          platform: typeof navigator !== "undefined" ? (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform : null,
+          language: typeof navigator !== "undefined" ? navigator.language : null,
+        },
+        qz: {
+          status: qzStatus,
+          trustState: qzTrustState,
+          detectedPrinters: qzPrinters.map((p) => p.name),
+          defaultPrinter: qzDefaultPrinter,
+          selectedPrinter: form.printer_name || null,
+        },
+        cert: {
+          configured: qzCert?.configured ?? false,
+          subjectCN: qzCert?.subjectCN ?? null,
+          isDemo: isDemoCert,
+          error: qzCert?.error ?? null,
+          fingerprintSha256: fingerprint,
+        },
+        certPaths: certPathsByOs,
+        lastAttempt: lastAttempt ? { ...lastAttempt, at: lastAttempt.at.toISOString() } : null,
+        lastTestSteps: testSteps,
+      };
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      a.href = url;
+      a.download = `qz-diagnostico-${tenantId ?? "tenant"}-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Relatório de diagnóstico baixado.");
+    } catch (e) {
+      toast.error((e as Error).message || "Falha ao gerar relatório.");
+    }
+  };
+
   return (
     <AdminLayout
       title="Impressora de Cupom"
@@ -340,48 +515,104 @@ function PrinterSettingsPage() {
                       </>
                     )}
                   </div>
-                  <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
-                    {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
-                    Detectar
-                  </Button>
+                  <div className="ml-auto flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy || testBusy}>
+                      {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
+                      Detectar
+                    </Button>
+                    <Button size="sm" variant="default" onClick={handleTestConnection} disabled={qzBusy || testBusy}>
+                      {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
+                      Teste de conexão
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={handleDownloadDiagnosticReport}>
+                      <Download className="mr-1.5 h-4 w-4" />
+                      Baixar diagnóstico
+                    </Button>
+                  </div>
                 </div>
+
+                {testSteps && (
+                  <div className="rounded-md border bg-muted/30 p-3">
+                    <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                      Teste de conexão {testBusy ? "em andamento…" : "concluído"}
+                    </div>
+                    <ul className="space-y-1 text-xs">
+                      {testSteps.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          {s.status === "ok" ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                          ) : s.status === "err" ? (
+                            <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                          ) : (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+                          )}
+                          <span>
+                            <strong>{s.label}</strong>
+                            {s.detail && <span className="text-muted-foreground"> — {s.detail}</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {qzTrustState === "prompted" && !isDemoCert && (
                   <div className="space-y-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                       <div>
-                        <div className="font-semibold">O QZ Tray pediu confirmação nesta máquina.</div>
+                        <div className="font-semibold">Resolver prompt — o QZ Tray pediu confirmação nesta máquina.</div>
                         <p className="mt-0.5">
-                          Baixe o <strong>instalador v2</strong> abaixo e rode como <strong>administrador</strong>.
-                          Ele agora grava o certificado no caminho correto
-                          (<code>%PROGRAMDATA%\qz\data\certificates\allowed.pem</code>) e remove o cert de
-                          <code> blocked.pem</code> caso você tenha clicado em "Block" antes.
+                          Siga o passo-a-passo abaixo. Após rodar o instalador <strong>v2</strong> como administrador,
+                          clique em <strong>Teste de conexão</strong> — o resultado aparece em tempo real acima.
                         </p>
                       </div>
                     </div>
+
+                    <ol className="ml-6 list-decimal space-y-1">
+                      <li>
+                        <strong>Baixe o instalador v2</strong> e execute como administrador.
+                        <div className="mt-1">
+                          <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
+                            {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                            Baixar instalador v2
+                          </Button>
+                        </div>
+                      </li>
+                      <li>
+                        <strong>Ou cole o cert manualmente</strong> em um destes caminhos do seu sistema operacional
+                        (use o botão Copiar):
+                        <ul className="mt-1 space-y-1">
+                          {certPathsByOs.map((p) => (
+                            <li key={`${p.os}-${p.path}`} className="flex items-center gap-2 rounded border bg-background/70 px-2 py-1">
+                              <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{p.os}</span>
+                              <code className="flex-1 truncate text-[11px]">{p.path}</code>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]"
+                                onClick={() => copyToClipboard(`Caminho ${p.os}`, p.path)}>
+                                Copiar
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                      <li>
+                        <strong>Se já clicou em "Block" antes</strong>, abra o QZ Tray na bandeja →
+                        <strong> Advanced → Site Manager → aba Blocked</strong> e remova a entrada do Menuzin.
+                      </li>
+                      <li>
+                        Volte aqui e clique em <strong>Teste de conexão</strong>.
+                        Deve ficar <span className="font-semibold text-emerald-700">verde · sem prompt</span>.
+                      </li>
+                    </ol>
+
                     <div className="flex flex-wrap gap-2 pl-6">
-                      <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
-                        {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-                        Baixar instalador v2
-                      </Button>
                       <Button size="sm" variant="outline" onClick={() => setQzTrustState("unknown")}>
                         Dispensar aviso
                       </Button>
                     </div>
-                    <details className="pl-6">
-                      <summary className="cursor-pointer select-none font-medium">
-                        Se o aviso continuar após rodar o instalador, remova o bloqueio manualmente
-                      </summary>
-                      <ol className="mt-1 list-decimal space-y-0.5 pl-4">
-                        <li>Clique no ícone do QZ Tray na bandeja do Windows (ao lado do relógio).</li>
-                        <li>Abra <strong>Advanced → Site Manager</strong>.</li>
-                        <li>Na aba <strong>Blocked</strong>, selecione a entrada do Menuzin e clique em <strong>Remove</strong>.</li>
-                        <li>Feche e abra o QZ Tray novamente; volte aqui e clique em <strong>Detectar</strong>.</li>
-                      </ol>
-                    </details>
                   </div>
                 )}
+
 
                 {isDemoCert && (
                   <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 p-3 text-xs text-destructive">
