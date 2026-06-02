@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -21,7 +21,7 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
 import {
-  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError,
+  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError, downloadQzCertificate,
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 
@@ -117,6 +117,19 @@ function PrinterSettingsPage() {
     }
   };
 
+  const [certBusy, setCertBusy] = useState(false);
+  const handleDownloadCert = async () => {
+    setCertBusy(true);
+    try {
+      await downloadQzCertificate();
+      toast.success("cert.pem baixado. Coloque-o na pasta de instalação do QZ Tray.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setCertBusy(false);
+    }
+  };
+
   const handleTestPrint = async () => {
     setQzBusy(true);
     try {
@@ -178,7 +191,11 @@ function PrinterSettingsPage() {
                     </>
                   )}
                 </div>
-                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
+                <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={certBusy} className="ml-auto">
+                  {certBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                  Baixar cert.pem
+                </Button>
+                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy}>
                   {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
                   Detectar
                 </Button>
