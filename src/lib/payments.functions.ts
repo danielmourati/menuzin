@@ -549,7 +549,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
         .update({
           status: "rejected",
           status_detail: msg.slice(0, 200),
-          raw_response: mpJson as unknown as Record<string, unknown>,
+          raw_response: JSON.parse(JSON.stringify(mpJson)),
         })
         .eq("id", paymentRowId);
       throw new Error(`Mercado Pago: ${msg}`);
@@ -565,7 +565,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
         provider_payment_id: mpPaymentId,
         status: mappedStatus,
         status_detail: mpJson.status_detail ?? null,
-        raw_response: mpJson as unknown as Record<string, unknown>,
+        raw_response: JSON.parse(JSON.stringify(mpJson)),
       })
       .eq("id", paymentRowId);
 
