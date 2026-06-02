@@ -41,11 +41,12 @@ type CertInfo = {
 };
 
 const CERT_PATHS = [
-  "C:\\Program Files\\QZ Tray\\override\\allowed.pem",
-  "C:\\Program Files (x86)\\QZ Tray\\override\\allowed.pem",
-  "%APPDATA%\\qz\\override\\allowed.pem",
-  "/Applications/QZ Tray.app/Contents/Resources/override/allowed.pem (macOS)",
-  "~/.qz/override/allowed.pem (Linux/macOS)",
+  "%PROGRAMDATA%\\qz\\data\\certificates\\allowed.pem (Windows, system-wide)",
+  "%APPDATA%\\qz\\data\\certificates\\allowed.pem (Windows, per-user)",
+  "/Library/Application Support/qz/data/certificates/allowed.pem (macOS, system-wide)",
+  "~/Library/Application Support/qz/data/certificates/allowed.pem (macOS, per-user)",
+  "/etc/qz/data/certificates/allowed.pem (Linux, system-wide)",
+  "~/.qz/data/certificates/allowed.pem (Linux, per-user)",
 ];
 
 export function QzDiagnosticsModal({
