@@ -88,6 +88,8 @@ function PrinterSettingsPage() {
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
   const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
 
   const handleQzError = (e: unknown) => {
     if (e instanceof QzNotRunningError) {
