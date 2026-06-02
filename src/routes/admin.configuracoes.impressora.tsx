@@ -185,33 +185,56 @@ function PrinterSettingsPage() {
                   <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
                 </Button>
               </CardHeader>
-              <CardContent className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  {qzStatus === "connected" ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      <span>Conectado — impressão sem prompts.</span>
-                    </>
-                  ) : qzStatus === "offline" ? (
-                    <>
-                      <XCircle className="h-4 w-4 text-destructive" />
-                      <span>QZ Tray não encontrado. Instale e abra o aplicativo.</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plug className="h-4 w-4 text-muted-foreground" />
-                      <span>Clique em <strong>Detectar</strong> para verificar.</span>
-                    </>
-                  )}
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2 text-sm">
+                    {qzStatus === "connected" ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <span>Conectado — impressão sem prompts.</span>
+                      </>
+                    ) : qzStatus === "offline" ? (
+                      <>
+                        <XCircle className="h-4 w-4 text-destructive" />
+                        <span>QZ Tray não encontrado. Instale e abra o aplicativo.</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plug className="h-4 w-4 text-muted-foreground" />
+                        <span>Clique em <strong>Detectar</strong> para verificar.</span>
+                      </>
+                    )}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
+                    {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
+                    Detectar
+                  </Button>
                 </div>
-                <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={certBusy} className="ml-auto">
-                  {certBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-                  Baixar cert.pem
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy}>
-                  {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
-                  Detectar
-                </Button>
+
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="text-sm">
+                      <div className="font-medium">Configurar automaticamente (Windows)</div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Baixa um instalador que copia o certificado e ajusta o QZ Tray para imprimir sem prompts. Após baixar, clique direito → <strong>Executar como administrador</strong>.
+                      </p>
+                    </div>
+                    <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
+                      {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                      Baixar instalador
+                    </Button>
+                  </div>
+                </div>
+
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer select-none">Instalação manual (avançado / macOS / Linux)</summary>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={certBusy}>
+                      {certBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                      Baixar cert.pem
+                    </Button>
+                  </div>
+                </details>
               </CardContent>
             </Card>
 
