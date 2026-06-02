@@ -9,7 +9,9 @@ import {
   getPublicPaymentSettingsBySlug as _getPublicPaymentSettingsBySlug,
   createTransparentPayment as _createTransparentPayment,
   getPaymentStatus as _getPaymentStatus,
+  testMpCredentials as _testMpCredentials,
 } from "./payments.functions";
+
 import type {
   StorePaymentSettingsSafe,
   CreatePaymentRequest,
@@ -119,11 +121,15 @@ export async function createCardPayment(
 }
 
 export async function testPayment(_storeId?: string): Promise<{ success: boolean; message: string }> {
-  return {
-    success: false,
-    message: "Use o checkout público para testar pagamentos reais.",
-  };
+  try {
+    const res = await _testMpCredentials();
+    return { success: res.success, message: res.message };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, message: `Erro ao executar teste: ${msg}` };
+  }
 }
+
 
 export async function pollPaymentStatus(
   paymentId: string,
