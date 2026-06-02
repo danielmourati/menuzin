@@ -106,14 +106,9 @@ function toSafe(row: DbRow): StorePaymentSettingsSafe {
 }
 
 async function resolveTenantId(supabase: any, userId: string): Promise<string> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("tenant_id")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data?.tenant_id) throw new Error("Usuário não está vinculado a uma loja.");
-  return data.tenant_id as string;
+  const { resolveEffectiveTenantId } = await import("@/lib/active-tenant.server");
+  const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
+  return tenantId;
 }
 
 // ---------- Server Functions ----------

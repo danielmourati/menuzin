@@ -16,7 +16,7 @@ export const Route = createFileRoute("/admin/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, isPlatformAdmin } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -25,9 +25,9 @@ function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate({ to: "/admin/dashboard" });
+      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/dashboard" });
     }
-  }, [loading, isAuthenticated, navigate]);
+  }, [loading, isAuthenticated, isPlatformAdmin, navigate]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +47,7 @@ function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
         if (error) throw error;
         toast.success("Bem-vindo!");
-        navigate({ to: "/admin/dashboard" });
+        // Não navega aqui — o useEffect cuida com base no papel quando o contexto atualizar.
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha no login");
@@ -60,15 +60,15 @@ function LoginPage() {
     setSubmitting(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/admin/dashboard`,
+        redirect_uri: `${window.location.origin}/admin/login`,
       });
       if (result.error) {
         toast.error("Falha ao entrar com Google");
         setSubmitting(false);
         return;
       }
-      if (result.redirected) return; // navega para Google
-      navigate({ to: "/admin/dashboard" });
+      if (result.redirected) return;
+      // Pós-OAuth o useEffect redireciona com base no papel.
     } catch {
       toast.error("Erro inesperado");
       setSubmitting(false);

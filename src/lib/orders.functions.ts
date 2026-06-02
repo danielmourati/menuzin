@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import type { DbOrder, DbOrderItem, DbHistoryRow } from "@/lib/db-types";
 
 const AddonSchema = z.object({ name: z.string().max(120), price: z.number().min(0) });
@@ -136,13 +137,12 @@ export const listOrdersForMyTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase
-      .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
-    if (!profile?.tenant_id) return { orders: [] };
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) return { orders: [] };
 
     const { data: orders, error } = await supabase
       .from("orders").select("*")
-      .eq("tenant_id", profile.tenant_id)
+      .eq("tenant_id", resolved.tenantId)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);

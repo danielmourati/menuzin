@@ -1,7 +1,7 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { AdminNotificationsBell } from "@/components/admin/AdminNotificationsBel
 import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListener";
 import { useAuth } from "@/lib/auth-context";
 import { getMyTenant, claimNewTenant } from "@/lib/tenants.functions";
+import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
 import { toast } from "sonner";
 
 const items = [
@@ -48,10 +49,11 @@ function Nav({ onClick }: { onClick?: () => void }) {
 
 function SidebarInner({ onNav }: { onNav?: () => void }) {
   const { signOut, profile } = useAuth();
+  const activeTenantId = useActiveTenantId();
   const { data } = useQuery({
-    queryKey: ["my-tenant"],
+    queryKey: ["my-tenant", activeTenantId ?? profile?.tenant_id ?? "none"],
     queryFn: () => getMyTenant(),
-    enabled: !!profile?.tenant_id,
+    enabled: !!(profile?.tenant_id || activeTenantId),
   });
   const tenant = data?.tenant;
   const navigate = useNavigate();
@@ -95,7 +97,8 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
 }
 
 function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, isAuthenticated, profile } = useAuth();
+  const { loading, isAuthenticated, profile, isPlatformAdmin } = useAuth();
+  const activeTenantId = useActiveTenantId();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -112,8 +115,33 @@ function AuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!isAuthenticated) return null;
-  if (!profile?.tenant_id) return <OnboardingClaim />;
+
+  const hasOwnTenant = !!profile?.tenant_id;
+  if (!hasOwnTenant && !activeTenantId) {
+    if (isPlatformAdmin) return <PlatformAdminEmptyState />;
+    return <OnboardingClaim />;
+  }
   return <>{children}</>;
+}
+
+function PlatformAdminEmptyState() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-muted/30 p-4">
+      <div className="w-full max-w-md rounded-2xl border bg-card p-6 text-center shadow-[var(--shadow-soft)]">
+        <Store className="mx-auto h-10 w-10 text-muted-foreground" />
+        <h1 className="mt-3 text-xl font-bold">Selecione uma loja</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Como administrador da plataforma, escolha uma loja em <strong>Lojas</strong> para acessar o painel correspondente.
+        </p>
+        <Button asChild className="mt-5 h-11 w-full">
+          <Link to="/platform/lojas">Ir para Lojas</Link>
+        </Button>
+        <Button asChild variant="ghost" className="mt-2 h-11 w-full">
+          <Link to="/platform/dashboard">Voltar ao painel da plataforma</Link>
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function OnboardingClaim() {
@@ -194,6 +222,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
           <SidebarInner />
         </aside>
         <div className="flex flex-1 flex-col">
+          <ImpersonationBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -213,5 +242,37 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
         </div>
       </div>
     </AuthGate>
+  );
+}
+
+function ImpersonationBanner() {
+  const { isPlatformAdmin } = useAuth();
+  const activeTenantId = useActiveTenantId();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { data } = useQuery({
+    queryKey: ["my-tenant", activeTenantId ?? "none"],
+    queryFn: () => getMyTenant(),
+    enabled: !!activeTenantId,
+  });
+  if (!isPlatformAdmin || !activeTenantId) return null;
+  const name = data?.tenant?.name ?? "loja";
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2 text-sm lg:px-8">
+      <span className="truncate">
+        <strong>Modo admin:</strong> acessando o painel de <strong>{name}</strong>
+      </span>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          clearActiveTenant();
+          qc.invalidateQueries();
+          navigate({ to: "/platform/lojas" });
+        }}
+      >
+        <X className="mr-1 h-4 w-4" /> Sair da loja
+      </Button>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Store, Menu, Loader2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { brl } from "@/lib/format";
 import { listPlatformStores, getPlatformGrowth } from "@/lib/platform.functions";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/platform/dashboard")({ component: PlatformDashboard });
 
@@ -19,7 +20,23 @@ const navItems = [
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const { loading, isAuthenticated, isPlatformAdmin } = useAuth();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated) { navigate({ to: "/admin/login" }); return; }
+    if (!isPlatformAdmin) { navigate({ to: "/admin/dashboard" }); }
+  }, [loading, isAuthenticated, isPlatformAdmin, navigate]);
+
+  if (loading || !isAuthenticated || !isPlatformAdmin) {
+    return (
+      <div className="grid min-h-screen place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
   const Inner = ({ onNav }: { onNav?: () => void }) => (
     <div className="flex h-full flex-col bg-sidebar">
       <div className="border-b border-sidebar-border px-5 py-4">

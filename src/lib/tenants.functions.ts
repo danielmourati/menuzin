@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveEffectiveTenantId, tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 
 const SlugSchema = z
@@ -64,11 +65,12 @@ export const getMyTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase
-      .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
-    if (!profile?.tenant_id) return { tenant: null };
-    const { data: tenant } = await supabase
-      .from("tenants").select("*").eq("id", profile.tenant_id).maybeSingle();
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) return { tenant: null };
+    // Usa admin para garantir leitura mesmo quando platform_admin
+    // está impersonando uma loja sem registro em user_roles.
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants").select("*").eq("id", resolved.tenantId).maybeSingle();
     return { tenant };
   });
 
@@ -108,21 +110,21 @@ export const updateMyTenant = createServerFn({ method: "POST" })
   .inputValidator((d) => UpdateTenantInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase
-      .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
-    if (!profile?.tenant_id) throw new Error("Usuário sem loja vinculada.");
+    const { tenantId, isPlatformAdmin } = await resolveEffectiveTenantId(supabase, userId);
 
-    // Verifica role no tenant (defesa em camadas — RLS também restringe)
-    const { data: roles } = await supabase
-      .from("user_roles").select("role")
-      .eq("user_id", userId).eq("tenant_id", profile.tenant_id);
-    const allowed = new Set(["owner", "admin", "platform_admin"]);
-    if (!(roles ?? []).some((r) => allowed.has(r.role as string))) {
-      throw new Error("Sem permissão para editar esta loja.");
+    if (!isPlatformAdmin) {
+      const { data: roles } = await supabase
+        .from("user_roles").select("role")
+        .eq("user_id", userId).eq("tenant_id", tenantId);
+      const allowed = new Set(["owner", "admin"]);
+      if (!(roles ?? []).some((r) => allowed.has(r.role as string))) {
+        throw new Error("Sem permissão para editar esta loja.");
+      }
     }
 
-    const { error } = await supabase
-      .from("tenants").update(data as never).eq("id", profile.tenant_id);
+    const client = isPlatformAdmin ? supabaseAdmin : supabase;
+    const { error } = await client
+      .from("tenants").update(data as never).eq("id", tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

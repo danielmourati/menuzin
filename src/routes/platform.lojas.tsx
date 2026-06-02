@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,6 +42,7 @@ import {
 } from "@/lib/platform.functions";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
+import { setActiveTenantId } from "@/lib/active-tenant";
 
 export const Route = createFileRoute("/platform/lojas")({ component: PlatformStores });
 
@@ -53,6 +54,12 @@ const statusTone: Record<string, string> = {
 
 function PlatformStores() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const accessStore = (id: string) => {
+    setActiveTenantId(id);
+    qc.invalidateQueries();
+    navigate({ to: "/admin/dashboard" });
+  };
   const { data, isLoading, error } = useQuery({
     queryKey: ["platform", "stores"],
     queryFn: () => listPlatformStores(),
@@ -128,10 +135,8 @@ function PlatformStores() {
                     <ExternalLink className="h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="icon" variant="outline" title="Painel">
-                  <Link to="/admin/dashboard">
-                    <Eye className="h-4 w-4" />
-                  </Link>
+                <Button size="icon" variant="outline" title="Acessar painel desta loja" onClick={() => accessStore(s.id)}>
+                  <Eye className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon"
