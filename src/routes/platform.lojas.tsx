@@ -314,6 +314,3 @@ function EditTenantDialog({
     </Dialog>
   );
 }
-
-// suprimir aviso de import não utilizado em ambientes sem tree-shaking
-void maskPhone;
