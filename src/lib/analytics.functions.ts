@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 
 const Input = z.object({ days: z.number().int().min(1).max(90).default(7) });
 
@@ -21,9 +22,8 @@ export const getMyTenantAnalytics = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d ?? {}))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: profile } = await supabase
-      .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
-    const tenantId = profile?.tenant_id as string | undefined;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    const tenantId = resolved?.tenantId;
     if (!tenantId) {
       return {
         salesByDay: [] as SalesPoint[],

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import type { Database } from "@/integrations/supabase/types";
 import type {
   DbCategory, DbProduct, DbAddon,
@@ -11,16 +12,13 @@ import type {
 type SB = SupabaseClient<Database>;
 
 async function getAuthorizedTenantId(supabase: SB, userId: string): Promise<string> {
-  const { data: profile, error: pErr } = await supabase
-    .from("profiles").select("tenant_id").eq("id", userId).maybeSingle();
-  if (pErr) throw new Error(`Falha ao ler perfil: ${pErr.message}`);
-  const tenantId = profile?.tenant_id as string | null | undefined;
-  if (!tenantId) throw new Error("Usuário sem loja vinculada.");
+  const { tenantId, isPlatformAdmin } = await resolveEffectiveTenantId(supabase, userId);
+  if (isPlatformAdmin) return tenantId;
 
   const { data: roles, error: rErr } = await supabase
     .from("user_roles").select("role").eq("user_id", userId).eq("tenant_id", tenantId);
   if (rErr) throw new Error(`Falha ao verificar permissões: ${rErr.message}`);
-  const allowed = new Set(["owner", "admin", "staff", "platform_admin"]);
+  const allowed = new Set(["owner", "admin", "staff"]);
   const ok = (roles ?? []).some((r) => allowed.has(r.role as string));
   if (!ok) throw new Error("Sem permissão para gerenciar este catálogo.");
 
