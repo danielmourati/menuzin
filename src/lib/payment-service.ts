@@ -6,6 +6,7 @@ import {
   saveMpCredentials as _saveMpCredentials,
   disconnectMercadoPago as _disconnectMercadoPago,
   updatePaymentSettings as _updatePaymentSettings,
+  getPublicPaymentSettingsBySlug as _getPublicPaymentSettingsBySlug,
 } from "./payments.functions";
 import type {
   StorePaymentSettingsSafe,
@@ -78,10 +79,9 @@ export async function simulateMpConnectSuccess(_storeId?: string): Promise<void>
 }
 
 export async function getPaymentSettingsBySlug(
-  _slug: string,
+  slug: string,
 ): Promise<StorePaymentSettingsSafe | null> {
-  // Public read by slug — to be implemented when checkout transparente is built.
-  return null;
+  return _getPublicPaymentSettingsBySlug({ data: { slug } });
 }
 
 export async function createPixPayment(
