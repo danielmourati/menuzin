@@ -515,48 +515,104 @@ function PrinterSettingsPage() {
                       </>
                     )}
                   </div>
-                  <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy} className="ml-auto">
-                    {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
-                    Detectar
-                  </Button>
+                  <div className="ml-auto flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy || testBusy}>
+                      {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
+                      Detectar
+                    </Button>
+                    <Button size="sm" variant="default" onClick={handleTestConnection} disabled={qzBusy || testBusy}>
+                      {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
+                      Teste de conexão
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={handleDownloadDiagnosticReport}>
+                      <Download className="mr-1.5 h-4 w-4" />
+                      Baixar diagnóstico
+                    </Button>
+                  </div>
                 </div>
+
+                {testSteps && (
+                  <div className="rounded-md border bg-muted/30 p-3">
+                    <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                      Teste de conexão {testBusy ? "em andamento…" : "concluído"}
+                    </div>
+                    <ul className="space-y-1 text-xs">
+                      {testSteps.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          {s.status === "ok" ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                          ) : s.status === "err" ? (
+                            <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                          ) : (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+                          )}
+                          <span>
+                            <strong>{s.label}</strong>
+                            {s.detail && <span className="text-muted-foreground"> — {s.detail}</span>}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {qzTrustState === "prompted" && !isDemoCert && (
                   <div className="space-y-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                       <div>
-                        <div className="font-semibold">O QZ Tray pediu confirmação nesta máquina.</div>
+                        <div className="font-semibold">Resolver prompt — o QZ Tray pediu confirmação nesta máquina.</div>
                         <p className="mt-0.5">
-                          Baixe o <strong>instalador v2</strong> abaixo e rode como <strong>administrador</strong>.
-                          Ele agora grava o certificado no caminho correto
-                          (<code>%PROGRAMDATA%\qz\data\certificates\allowed.pem</code>) e remove o cert de
-                          <code> blocked.pem</code> caso você tenha clicado em "Block" antes.
+                          Siga o passo-a-passo abaixo. Após rodar o instalador <strong>v2</strong> como administrador,
+                          clique em <strong>Teste de conexão</strong> — o resultado aparece em tempo real acima.
                         </p>
                       </div>
                     </div>
+
+                    <ol className="ml-6 list-decimal space-y-1">
+                      <li>
+                        <strong>Baixe o instalador v2</strong> e execute como administrador.
+                        <div className="mt-1">
+                          <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
+                            {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                            Baixar instalador v2
+                          </Button>
+                        </div>
+                      </li>
+                      <li>
+                        <strong>Ou cole o cert manualmente</strong> em um destes caminhos do seu sistema operacional
+                        (use o botão Copiar):
+                        <ul className="mt-1 space-y-1">
+                          {certPathsByOs.map((p) => (
+                            <li key={`${p.os}-${p.path}`} className="flex items-center gap-2 rounded border bg-background/70 px-2 py-1">
+                              <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{p.os}</span>
+                              <code className="flex-1 truncate text-[11px]">{p.path}</code>
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]"
+                                onClick={() => copyToClipboard(`Caminho ${p.os}`, p.path)}>
+                                Copiar
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                      <li>
+                        <strong>Se já clicou em "Block" antes</strong>, abra o QZ Tray na bandeja →
+                        <strong> Advanced → Site Manager → aba Blocked</strong> e remova a entrada do Menuzin.
+                      </li>
+                      <li>
+                        Volte aqui e clique em <strong>Teste de conexão</strong>.
+                        Deve ficar <span className="font-semibold text-emerald-700">verde · sem prompt</span>.
+                      </li>
+                    </ol>
+
                     <div className="flex flex-wrap gap-2 pl-6">
-                      <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
-                        {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-                        Baixar instalador v2
-                      </Button>
                       <Button size="sm" variant="outline" onClick={() => setQzTrustState("unknown")}>
                         Dispensar aviso
                       </Button>
                     </div>
-                    <details className="pl-6">
-                      <summary className="cursor-pointer select-none font-medium">
-                        Se o aviso continuar após rodar o instalador, remova o bloqueio manualmente
-                      </summary>
-                      <ol className="mt-1 list-decimal space-y-0.5 pl-4">
-                        <li>Clique no ícone do QZ Tray na bandeja do Windows (ao lado do relógio).</li>
-                        <li>Abra <strong>Advanced → Site Manager</strong>.</li>
-                        <li>Na aba <strong>Blocked</strong>, selecione a entrada do Menuzin e clique em <strong>Remove</strong>.</li>
-                        <li>Feche e abra o QZ Tray novamente; volte aqui e clique em <strong>Detectar</strong>.</li>
-                      </ol>
-                    </details>
                   </div>
                 )}
+
 
                 {isDemoCert && (
                   <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 p-3 text-xs text-destructive">
