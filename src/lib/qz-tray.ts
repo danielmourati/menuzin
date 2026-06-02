@@ -224,18 +224,24 @@ export function downloadQzProperties(): void {
 }
 
 /**
- * Monta um instalador .bat para Windows que grava o cert em `override/allowed.pem`
- * — caminho first-class de _persistent trust_ do QZ Tray 2.2 Community.
+ * Monta um instalador .bat para Windows que grava o cert em
+ * `data/certificates/allowed.pem` — caminho oficial de _persistent trust_ do
+ * QZ Tray 2.2 Community (SiteManager).
  *
- * Estratégia:
- *   - Grava `override/allowed.pem` em CADA pasta de instalação do QZ Tray
- *     detectada (Program Files, Program Files (x86), LocalAppData).
- *   - Grava em `%APPDATA%\qz\override\allowed.pem` para TODOS os perfis de
- *     usuário em C:\Users.
- *   - QZ Tray confia automaticamente em qualquer cert listado lá, sem prompt.
- *     NÃO mexemos em qz-tray.properties (não é necessário).
+ * Estratégia (v2):
+ *   - Grava system-wide em `%PROGRAMDATA%\qz\data\certificates\allowed.pem`
+ *     (vale para todos os usuários da máquina).
+ *   - Grava per-user em `%APPDATA%\qz\data\certificates\allowed.pem` para
+ *     CADA perfil em C:\Users.
+ *   - Remove o nosso cert de `blocked.pem` (caso o usuário tenha clicado em
+ *     "Block" — blocked vence allowed).
  *   - Reinicia o QZ Tray ao final.
+ *
+ * O caminho legado `override/allowed.pem` (usado na v1) NÃO é lido pelo QZ
+ * Tray Community — por isso o prompt continuava aparecendo mesmo executando
+ * como administrador.
  */
+export const QZ_INSTALLER_VERSION = 2;
 export function buildQzWindowsInstaller(certPem: string): string {
   const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
   const certB64 = encodeBase64Utf8(cleanedCert);
