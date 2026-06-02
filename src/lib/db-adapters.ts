@@ -1,13 +1,16 @@
-// Conversores entre os tipos do banco (DbProduct/DbTenant) e os tipos de UI
-// pré-existentes (Product/Tenant em domain-types.ts) para minimizar refactor.
+// Conversores entre tipos do banco e tipos de UI.
 import type { DbProduct, DbTenant } from "./db-types";
-import type { Product, ProductAddon, Tenant, Category } from "./domain-types";
+import type {
+  Product, ProductAddon, Tenant, Category,
+  ProductSize, ProductFlavor, AddonGroup, AddonOption,
+} from "./domain-types";
 
 export function dbProductToUi(p: DbProduct, categoryName: string): Product {
   return {
     id: p.id,
     name: p.name,
     category: categoryName,
+    categoryId: p.category_id,
     description: p.description ?? "",
     price: Number(p.price),
     promoPrice: p.promo_price != null ? Number(p.promo_price) : undefined,
@@ -15,8 +18,25 @@ export function dbProductToUi(p: DbProduct, categoryName: string): Product {
     available: p.available,
     featured: p.featured,
     prepTime: p.prep_time ?? undefined,
-    addons: p.addons.map<ProductAddon>((a) => ({
+    type: (p.type ?? "standard") as "standard" | "pizza",
+    maxFlavors: p.max_flavors ?? undefined,
+    allowObservations: p.allow_observations ?? true,
+    addons: (p.addons ?? []).map<ProductAddon>((a) => ({
       id: a.id, name: a.name, price: Number(a.price),
+    })),
+    sizes: (p.sizes ?? []).map<ProductSize>((s) => ({
+      id: s.id, name: s.name, price: Number(s.price), sortOrder: s.sort_order,
+    })),
+    flavors: (p.flavors ?? []).map<ProductFlavor>((f) => ({
+      id: f.id, name: f.name, description: f.description ?? "",
+      priceDelta: Number(f.price_delta), available: f.available, sortOrder: f.sort_order,
+    })),
+    addonGroups: (p.addonGroups ?? []).map<AddonGroup>((g) => ({
+      id: g.id, name: g.name, required: g.required,
+      minSelect: g.min_select, maxSelect: g.max_select, sortOrder: g.sort_order,
+      options: (g.options ?? []).map<AddonOption>((o) => ({
+        id: o.id, name: o.name, price: Number(o.price), sortOrder: o.sort_order,
+      })),
     })),
   };
 }
