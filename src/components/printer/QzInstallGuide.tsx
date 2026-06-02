@@ -5,7 +5,9 @@ import {
 } from "@/components/ui/dialog";
 import { Download, ExternalLink, FileText, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { downloadQzCertificate, downloadQzProperties } from "@/lib/qz-tray";
+import {
+  downloadQzCertificate, downloadQzProperties, downloadQzWindowsInstaller,
+} from "@/lib/qz-tray";
 
 interface QzInstallGuideProps {
   open: boolean;
@@ -16,7 +18,20 @@ interface QzInstallGuideProps {
 }
 
 export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInstallGuideProps) {
+  const [installing, setInstalling] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadInstaller = async () => {
+    setInstalling(true);
+    try {
+      await downloadQzWindowsInstaller();
+      toast.success("Instalador baixado.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   const handleDownloadCert = async () => {
     setDownloading(true);
@@ -36,8 +51,8 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
         <DialogHeader>
           <DialogTitle>Configurar QZ Tray</DialogTitle>
           <DialogDescription>
-            Para imprimir sem o pop-up de aceite a cada impressão, instale o QZ Tray
-            e marque o certificado da Menuzin como confiável seguindo os passos abaixo.
+            Para imprimir sem o pop-up de aceite a cada impressão, basta instalar o QZ Tray
+            e rodar o instalador da Menuzin. Tudo é feito em dois cliques.
           </DialogDescription>
         </DialogHeader>
 
@@ -54,53 +69,80 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
           </li>
           <li>
             <div className="flex flex-wrap items-center gap-2">
-              <span>Baixe o certificado da Menuzin:</span>
-              <Button size="sm" onClick={handleDownloadCert} disabled={downloading}>
-                {downloading ? (
+              <span>Baixe o instalador da Menuzin (Windows):</span>
+              <Button size="sm" onClick={handleDownloadInstaller} disabled={installing}>
+                {installing ? (
                   <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Download className="mr-1.5 h-3.5 w-3.5" />
                 )}
-                cert.pem
+                menuzin-qz-setup.bat
               </Button>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Salve o arquivo na pasta de instalação do QZ Tray:
-              <br />
-              <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
-                C:\Program Files\QZ Tray
-              </code>{" "}
-              (Windows) ·{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
-                /Applications/QZ Tray.app/Contents/Resources
-              </code>{" "}
-              (macOS) ·{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
-                /opt/QZ Tray
-              </code>{" "}
-              (Linux).
+              Clique com o botão direito no arquivo baixado e escolha{" "}
+              <strong>Executar como administrador</strong>. Se o Windows mostrar um aviso azul (SmartScreen),
+              clique em <em>Mais informações → Executar assim mesmo</em>. O instalador copia o certificado
+              para a pasta do QZ Tray e ajusta as configurações automaticamente.
             </p>
           </li>
-          <li>
-            <div className="flex flex-wrap items-center gap-2">
-              <span>
-                Edite o arquivo{" "}
-                <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
-                  qz-tray.properties
-                </code>{" "}
-                e adicione a linha:
-              </span>
-              <Button size="sm" variant="outline" onClick={downloadQzProperties}>
-                <FileText className="mr-1.5 h-3.5 w-3.5" /> exemplo
-              </Button>
-            </div>
-            <pre className="mt-1 rounded bg-muted px-2 py-1 text-[11px]">
-              authcert.override=cert.pem
-            </pre>
-          </li>
-          <li>Reinicie o QZ Tray (clique direito no ícone da bandeja → Sair → abrir de novo).</li>
           <li>Volte aqui e clique em <strong>Tentar novamente</strong>.</li>
         </ol>
+
+        <details className="text-xs">
+          <summary className="cursor-pointer select-none text-muted-foreground">
+            Prefiro fazer manualmente (macOS, Linux ou avançado)
+          </summary>
+          <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm">
+            <li>
+              <div className="flex flex-wrap items-center gap-2">
+                <span>Baixe o certificado:</span>
+                <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={downloading}>
+                  {downloading ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  cert.pem
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Salve na pasta do QZ Tray:
+                <br />
+                <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                  C:\Program Files\QZ Tray
+                </code>{" "}
+                (Windows) ·{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                  /Applications/QZ Tray.app/Contents/Resources
+                </code>{" "}
+                (macOS) ·{" "}
+                <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                  /opt/QZ Tray
+                </code>{" "}
+                (Linux).
+              </p>
+            </li>
+            <li>
+              <div className="flex flex-wrap items-center gap-2">
+                <span>
+                  Edite o arquivo{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-[11px]">
+                    qz-tray.properties
+                  </code>{" "}
+                  e adicione:
+                </span>
+                <Button size="sm" variant="outline" onClick={downloadQzProperties}>
+                  <FileText className="mr-1.5 h-3.5 w-3.5" /> exemplo
+                </Button>
+              </div>
+              <pre className="mt-1 rounded bg-muted px-2 py-1 text-[11px]">
+                authcert.override=cert.pem
+              </pre>
+            </li>
+            <li>Reinicie o QZ Tray (clique direito no ícone da bandeja → Sair → abrir de novo).</li>
+          </ol>
+        </details>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
