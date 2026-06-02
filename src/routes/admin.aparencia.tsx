@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Loader2 } from "lucide-react";
+import { ImageUploader } from "@/components/ui/image-uploader";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 
@@ -24,16 +24,18 @@ function AppearancePage() {
 
   const [color, setColor] = useState(palette[0]);
   const [dark, setDark] = useState(false);
-  const [bannerText, setBannerText] = useState("Combo especial da semana — Burger + Refri por R$ 29,90");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (tenant?.theme_from) setColor(tenant.theme_from);
-  }, [tenant?.theme_from]);
+    setLogoUrl(tenant?.logo_url ?? null);
+  }, [tenant?.theme_from, tenant?.logo_url]);
 
   const save = useMutation({
-    mutationFn: () => updateMyTenant({ data: { theme_from: color, theme_to: color } }),
+    mutationFn: () => updateMyTenant({ data: { theme_from: color, theme_to: color, logo_url: logoUrl } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
+      qc.invalidateQueries({ queryKey: ["catalog"] });
       toast.success("Aparência salva");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -54,27 +56,22 @@ function AppearancePage() {
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           <Card><CardContent className="space-y-6 p-6">
-            <div>
-              <Label>Logo</Label>
-              <button className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed text-muted-foreground hover:bg-muted/50">
-                <Upload className="h-5 w-5" /> Enviar logo (em breve)
-              </button>
-            </div>
-            <div>
-              <Label>Banner</Label>
-              <button className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed text-muted-foreground hover:bg-muted/50">
-                <Upload className="h-5 w-5" /> Enviar banner (em breve)
-              </button>
-            </div>
-            <div>
-              <Label>Texto promocional do banner</Label>
-              <Input value={bannerText} onChange={(e) => setBannerText(e.target.value)} className="mt-1.5" />
-            </div>
+            <ImageUploader
+              label="Logo do estabelecimento"
+              value={logoUrl}
+              onChange={setLogoUrl}
+              folder="logos"
+              previewHeight="h-36"
+            />
+            <p className="-mt-3 text-xs text-muted-foreground">
+              A logo aparece no topo do cardápio público da sua loja.
+            </p>
+
             <div>
               <Label>Cor principal</Label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {palette.map((c) => (
-                  <button key={c} onClick={() => setColor(c)} className={`h-10 w-10 rounded-full border-2 transition ${color === c ? "border-foreground scale-110" : "border-transparent"}`} style={{ background: c }} />
+                  <button key={c} type="button" onClick={() => setColor(c)} className={`h-10 w-10 rounded-full border-2 transition ${color === c ? "border-foreground scale-110" : "border-transparent"}`} style={{ background: c }} />
                 ))}
               </div>
             </div>
@@ -90,16 +87,15 @@ function AppearancePage() {
           <Card><CardContent className="p-0 overflow-hidden">
             <div className="border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">Preview da loja</div>
             <div className={dark ? "dark bg-background" : "bg-background"}>
-              <div className="h-32 w-full" style={{ background: `linear-gradient(135deg, ${color}, ${color}99)` }}>
-                <div className="flex h-full items-end p-3">
-                  <p className="rounded-full bg-white/20 backdrop-blur px-3 py-1 text-xs text-white">{bannerText}</p>
-                </div>
-              </div>
               <div className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-xl text-lg font-bold text-white" style={{ background: color }}>
-                    {tenant?.logo_letter || tenant?.name?.[0]?.toUpperCase() || "L"}
-                  </div>
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="h-16 w-16 rounded-xl object-contain" />
+                  ) : (
+                    <div className="grid h-16 w-16 place-items-center rounded-xl text-2xl font-bold text-white" style={{ background: color }}>
+                      {tenant?.logo_letter || tenant?.name?.[0]?.toUpperCase() || "L"}
+                    </div>
+                  )}
                   <div>
                     <p className="font-bold">{tenant?.name ?? "Sua loja"}</p>
                     <p className="text-xs text-success">● {tenant?.open ? "Aberta" : "Fechada"}</p>

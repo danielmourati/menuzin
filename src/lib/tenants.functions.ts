@@ -100,6 +100,7 @@ const UpdateTenantInput = z.object({
   theme_from: z.string().max(40).optional(),
   theme_to: z.string().max(40).optional(),
   social: z.record(z.string().max(40), z.string().max(200)).optional(),
+  pos_paper_width: z.enum(["55mm", "80mm"]).optional(),
 });
 
 export const updateMyTenant = createServerFn({ method: "POST" })
