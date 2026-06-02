@@ -65,7 +65,7 @@ function ConfirmedPage() {
     );
   }
 
-  const waMessage = `Olá ${tenant.name}! Acabei de fazer o pedido #${order.number}.`;
+  const waMessage = buildWhatsAppOrderMessage(order, tenant.name);
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,11 +82,31 @@ function ConfirmedPage() {
           <div className="mt-6 rounded-2xl border bg-muted/30 p-4 text-left">
             <p className="text-sm text-muted-foreground">Modalidade</p>
             <p className="font-semibold">{modeLabel[order.mode]}</p>
-            <div className="mt-3 space-y-1 text-sm">
+            <div className="mt-3 space-y-3 text-sm">
               {order.items.map((i, idx) => (
-                <div key={idx} className="flex justify-between">
-                  <span>{i.qty}x {i.name}</span>
-                  <span className="text-muted-foreground">{brl(i.unitPrice * i.qty)}</span>
+                <div key={idx}>
+                  <div className="flex justify-between">
+                    <span className="font-medium">{i.qty}x {i.name}</span>
+                    <span className="text-muted-foreground">{brl(i.unitPrice * i.qty)}</span>
+                  </div>
+                  {i.addons && i.addons.length > 0 && (
+                    <ul className="mt-1 space-y-0.5 pl-3 text-xs text-muted-foreground">
+                      {i.addons.map((a) => {
+                        const p = parseAddonLabel(a.name);
+                        const prefix =
+                          p.kind === "size" ? "Tamanho:" :
+                          p.kind === "flavor" ? "Sabor:" :
+                          p.kind === "group" ? `${p.groupName}:` : "+";
+                        return (
+                          <li key={a.id} className="flex justify-between gap-2">
+                            <span>{prefix} {p.label}</span>
+                            {Number(a.price) > 0 && <span>+ {brl(a.price)}</span>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  {i.note && <p className="mt-1 pl-3 text-xs italic text-muted-foreground">Obs: {i.note}</p>}
                 </div>
               ))}
             </div>
