@@ -29,6 +29,12 @@ interface MercadoPagoStatusProps {
   expiresAt?: string;
   connectedPublicKey?: string; // masked key shown when connected via manual
   connectedVia?: "oauth" | "manual"; // how was it connected
+  /** Tipo da conta MP conectada — usado para alertar incoerência com mp_live_mode. */
+  accountKind?: "test_user" | "production";
+  /** Modo configurado no banco — usado em conjunto com accountKind. */
+  liveModeSaved?: boolean;
+  /** ID da conta MP, para exibir junto do tipo. */
+  mpUserId?: string;
 }
 
 export function MercadoPagoStatus({
@@ -40,6 +46,9 @@ export function MercadoPagoStatus({
   expiresAt,
   connectedPublicKey,
   connectedVia,
+  accountKind,
+  liveModeSaved,
+  mpUserId,
 }: MercadoPagoStatusProps) {
   const [testing, setTesting] = useState(false);
 
