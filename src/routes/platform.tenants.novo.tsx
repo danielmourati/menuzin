@@ -153,6 +153,16 @@ function NewTenantPage() {
             <Switch checked={active} onCheckedChange={setActive} />
           </div>
 
+          <div className="flex items-center justify-between rounded-2xl border p-4">
+            <div>
+              <p className="font-medium">Clonar catálogo do Burger Prime</p>
+              <p className="text-xs text-muted-foreground">
+                Copia categorias, produtos, tamanhos, sabores e grupos de complementos como ponto de partida.
+              </p>
+            </div>
+            <Switch checked={cloneBurger} onCheckedChange={setCloneBurger} />
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => navigate({ to: "/platform/lojas" })}>Cancelar</Button>
             <Button disabled={!canSubmit || createMut.isPending} onClick={handleSubmit}>
