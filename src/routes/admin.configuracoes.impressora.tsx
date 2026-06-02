@@ -867,7 +867,7 @@ function PrinterSettingsPage() {
                     <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="generic">Genérico ESC/POS</SelectItem>
-                      <SelectItem value="mini_bt_58">Mini Bluetooth 58mm</SelectItem>
+                      <SelectItem value="mini_bt_58">Mini Bluetooth 55mm</SelectItem>
                       <SelectItem value="generic_80">80mm Genérica</SelectItem>
                       <SelectItem value="elgin_i8_i9">ELGIN i8 / i9 compatível</SelectItem>
                     </SelectContent>
@@ -904,7 +904,7 @@ function PrinterSettingsPage() {
               <CardHeader><CardTitle className="text-base">Papel</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  {(["58mm", "80mm"] as const).map((w) => (
+                  {(["55mm", "80mm"] as const).map((w) => (
                     <Button
                       key={w}
                       type="button"
@@ -1058,7 +1058,7 @@ function PrinterSettingsPage() {
                   borderRadius: "12px",
                   border: "1px solid hsl(var(--border))",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                  maxWidth: form.paper_width === "58mm" ? "320px" : "440px",
+                  maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
                   maxHeight: "70vh",
                 }}
               >

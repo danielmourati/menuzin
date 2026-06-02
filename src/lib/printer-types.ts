@@ -1,6 +1,6 @@
 // Tipos compartilhados para configuração de impressora térmica.
 
-export type PaperWidth = "58mm" | "80mm";
+export type PaperWidth = "55mm" | "80mm";
 export type ConnectionType = "bluetooth" | "usb" | "network" | "browser";
 export type EscPosProfile = "generic" | "mini_bt_58" | "generic_80" | "elgin_i8_i9";
 export type FontSize = "normal" | "compact";
@@ -56,4 +56,4 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
 };
 
 
-export const columnsFor = (w: PaperWidth) => (w === "58mm" ? 32 : 48);
+export const columnsFor = (w: PaperWidth) => (w === "55mm" ? 30 : 48);

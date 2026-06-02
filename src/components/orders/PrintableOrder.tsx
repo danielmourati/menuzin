@@ -1,6 +1,6 @@
 import type { Order } from "@/lib/domain-types";
 import type { PrinterSettings } from "@/lib/printer-types";
-import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
+import { DEFAULT_PRINTER_SETTINGS, columnsFor } from "@/lib/printer-types";
 import { buildReceipt } from "@/lib/receipt-builder";
 
 interface PrintableOrderProps {
@@ -12,7 +12,7 @@ interface PrintableOrderProps {
   storeInstagram?: string;
   storePixKey?: string;
   /** Largura do papel térmico. Se `settings` for fornecido, sua largura prevalece. */
-  paperWidth?: "55mm" | "58mm" | "80mm";
+  paperWidth?: "55mm" | "80mm";
   /** Configurações de impressão por tenant (layout, separador, visibilidade...). */
   settings?: PrinterSettings;
 }
@@ -29,13 +29,14 @@ export function PrintableOrder({
   settings,
 }: PrintableOrderProps) {
   const s = settings ?? DEFAULT_PRINTER_SETTINGS;
-  const widthRaw = paperWidth ?? s.paper_width;
-  const isNarrow = widthRaw === "55mm" || widthRaw === "58mm";
-  const cols = isNarrow ? 32 : 48;
-  const fontSize =
-    s.font_size === "compact" ? (isNarrow ? "9px" : "10px") : (isNarrow ? "10px" : "12px");
-  const widthClass = isNarrow ? "max-w-[58mm]" : "max-w-[80mm]";
-  const pageSize = isNarrow ? "58mm" : "80mm";
+  const width = paperWidth ?? s.paper_width;
+  const isNarrow = width === "55mm";
+  const cols = columnsFor(width);
+  const fontSize = isNarrow
+    ? (s.font_size === "compact" ? "8px" : "9px")
+    : (s.font_size === "compact" ? "10px" : "11px");
+  const widthClass = isNarrow ? "max-w-[55mm]" : "max-w-[80mm]";
+  const pageMargin = isNarrow ? "1mm" : "2mm";
 
   const text = buildReceipt(order, cols, s, {
     storeName,
@@ -47,14 +48,20 @@ export function PrintableOrder({
   });
 
   return (
-    <div className={`printable-order-receipt mx-auto w-full ${widthClass} bg-white text-black p-2 select-none`}>
-      <style>{`@media print { @page { size: ${pageSize} auto; margin: 2mm; } }`}</style>
+    <div className={`printable-order-receipt mx-auto w-full ${widthClass} bg-white text-black p-1 select-none`}>
+      <style>{`
+        @media print {
+          @page { size: ${width} auto; margin: ${pageMargin}; }
+          html, body { margin: 0; padding: 0; background: #fff; }
+          .printable-order-receipt { width: 100%; max-width: ${width}; padding: 0; }
+        }
+      `}</style>
       <pre
-        className="font-mono leading-tight whitespace-pre"
+        className="font-mono whitespace-pre"
         style={{
           fontFamily: '"Courier New", Courier, monospace',
           fontSize,
-          lineHeight: 1.15,
+          lineHeight: 1.1,
           margin: 0,
           letterSpacing: 0,
           fontWeight: s.use_bold_titles ? 500 : 400,

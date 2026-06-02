@@ -23,7 +23,6 @@ interface OrderCardProps {
 export function OrderCard({
   order,
   onViewDetails,
-  onAccept,
   onCancel,
   onUpdateStatus,
 }: OrderCardProps) {
@@ -77,47 +76,51 @@ export function OrderCard({
         </span>
       )}
 
-      {/* ── LINHA PRINCIPAL ────────────────────────────────────────────── */}
-      <div className="pl-4 pr-3 py-3 flex items-center gap-3 flex-wrap sm:flex-nowrap">
-
-        {/* Número + Modo + Status */}
-        <div className="flex items-center gap-2 shrink-0 min-w-[120px]">
-          <span className="font-bold text-sm text-foreground">#{order.number}</span>
-          <Badge variant="outline" className="font-medium text-[10px] px-1.5 py-0 h-5">
-            {modeLabel[order.mode]}
-          </Badge>
-          <OrderStatusBadge status={order.status} className="text-[10px] px-1.5 py-0 h-5" />
-        </div>
-
-        {/* Tempo */}
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium shrink-0 min-w-[60px]">
+      {/* ── HEADER STRIP: meta (id, modo, status, tempo) ──────────────── */}
+      <div className="pl-3 pr-3 pt-2 flex items-center gap-2 flex-wrap min-w-0">
+        <span className="font-bold text-xs text-foreground shrink-0">#{order.number}</span>
+        <Badge variant="outline" className="font-medium text-[10px] px-1.5 py-0 h-5 whitespace-nowrap">
+          {modeLabel[order.mode]}
+        </Badge>
+        <OrderStatusBadge status={order.status} className="text-[10px] px-1.5 py-0 h-5 whitespace-nowrap" />
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium shrink-0 ml-auto">
           <Clock className="h-3 w-3" />
           <span>{elapsed}</span>
         </div>
+      </div>
 
-        {/* Cliente + Endereço */}
-        <div className="flex-1 min-w-0 basis-[180px] flex flex-col gap-0.5">
-          <span className="font-semibold text-sm text-foreground truncate" title={order.customerName}>
+      {/* ── LINHA PRINCIPAL: cliente em destaque + total + ações ──────── */}
+      <div className="pl-3 pr-2 pb-2.5 pt-1.5 flex items-center gap-3 flex-wrap sm:flex-nowrap min-w-0">
+        {/* Cliente — destaque visual */}
+        <div className="flex-1 min-w-0 basis-full sm:basis-[180px] flex flex-col gap-0.5">
+          <span
+            className="font-bold text-base text-foreground truncate leading-tight"
+            title={order.customerName}
+          >
             {order.customerName || "Sem nome"}
           </span>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground min-w-0">
-            <span className="truncate">{order.whatsapp}</span>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground min-w-0">
+            {order.whatsapp && (
+              <span className="truncate max-w-[150px]">{order.whatsapp}</span>
+            )}
             {order.mode === "entrega" && order.address && (
-              <span className="flex items-center gap-0.5 shrink-0 truncate">
-                <MapPin className="h-2.5 w-2.5" />
-                {order.address.street}, {order.address.number}
+              <span className="flex items-center gap-0.5 truncate min-w-0">
+                <MapPin className="h-2.5 w-2.5 shrink-0" />
+                <span className="truncate">
+                  {order.address.street}, {order.address.number}
+                </span>
               </span>
             )}
             {order.mode === "consumo_local" && order.table && (
               <span className="flex items-center gap-0.5 font-semibold text-primary shrink-0">
                 <Utensils className="h-2.5 w-2.5" />
-                {order.table}
+                Mesa {order.table}
               </span>
             )}
           </div>
         </div>
 
-        {/* Itens resumidos — só em telas largas para não roubar espaço do cliente */}
+        {/* Itens resumidos — só em telas largas */}
         <div className="hidden xl:block flex-1 min-w-0 basis-[220px]">
           <p className="text-[11px] text-muted-foreground line-clamp-1">
             <span className="font-semibold text-foreground/80">Itens: </span>
@@ -126,16 +129,19 @@ export function OrderCard({
         </div>
 
         {/* Total + Pagamento */}
-        <div className="text-right shrink-0">
-          <div className="font-bold text-sm text-foreground">{brl(order.total)}</div>
-          <div className="flex items-center justify-end gap-1 mt-0.5">
-            <span className="text-[10px] text-muted-foreground">{order.payment}</span>
-            <PaymentStatusBadge status={order.paymentStatus} className="text-[9px] px-1 py-0 h-4" />
+        <div className="text-right shrink-0 min-w-[88px]">
+          <div className="font-bold text-sm text-foreground whitespace-nowrap">{brl(order.total)}</div>
+          <div className="flex items-center justify-end gap-1 mt-0.5 min-w-0">
+            <span className="text-[10px] text-muted-foreground truncate max-w-[70px]">{order.payment}</span>
+            <PaymentStatusBadge
+              status={order.paymentStatus}
+              className="text-[9px] px-1 py-0 h-4 whitespace-nowrap shrink-0"
+            />
           </div>
         </div>
 
         {/* Botões de ação rápida */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0 flex-nowrap">
           <Button
             variant="ghost"
             size="icon"
@@ -152,12 +158,12 @@ export function OrderCard({
             asChild
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+            className="hidden sm:inline-flex h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
           >
             <a
               href={whatsappLink(
                 order.whatsapp,
-                `Olá ${order.customerName}, sobre seu pedido #${order.number} na Burger Prime...`
+                `Olá ${order.customerName}, sobre seu pedido #${order.number}...`
               )}
               target="_blank"
               rel="noreferrer"
@@ -167,7 +173,6 @@ export function OrderCard({
             </a>
           </Button>
 
-          {/* Ações de status (inline) */}
           <OrderStatusActions
             order={order}
             onUpdateStatus={onUpdateStatus}
@@ -176,7 +181,6 @@ export function OrderCard({
             compact
           />
 
-          {/* Expandir itens no mobile */}
           <Button
             variant="ghost"
             size="icon"
@@ -192,7 +196,7 @@ export function OrderCard({
       {/* ── LINHA EXPANDIDA (itens detalhados) ─────────────────── */}
       {expanded && (
         <div className="pl-4 pr-3 pb-3 border-t border-dashed mx-3 pt-2 xl:hidden animate-fade-in">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground break-words">
             <span className="font-semibold text-foreground/80">Itens: </span>
             {order.items.map((i) => `${i.qty}x ${i.name}`).join(" · ")}
           </p>
