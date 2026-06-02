@@ -29,6 +29,12 @@ interface MercadoPagoStatusProps {
   expiresAt?: string;
   connectedPublicKey?: string; // masked key shown when connected via manual
   connectedVia?: "oauth" | "manual"; // how was it connected
+  /** Tipo da conta MP conectada — usado para alertar incoerência com mp_live_mode. */
+  accountKind?: "test_user" | "production";
+  /** Modo configurado no banco — usado em conjunto com accountKind. */
+  liveModeSaved?: boolean;
+  /** ID da conta MP, para exibir junto do tipo. */
+  mpUserId?: string;
 }
 
 export function MercadoPagoStatus({
@@ -40,6 +46,9 @@ export function MercadoPagoStatus({
   expiresAt,
   connectedPublicKey,
   connectedVia,
+  accountKind,
+  liveModeSaved,
+  mpUserId,
 }: MercadoPagoStatusProps) {
   const [testing, setTesting] = useState(false);
 
@@ -185,6 +194,41 @@ export function MercadoPagoStatus({
                 A plataforma não cobra comissão por transação.
               </p>
             </div>
+
+            {/* Account kind + mismatch warning */}
+            {accountKind && (
+              <div
+                className={`rounded-lg border px-3.5 py-2.5 text-xs ${
+                  (liveModeSaved && accountKind === "test_user") ||
+                  (!liveModeSaved && accountKind === "production")
+                    ? "border-destructive/40 bg-destructive/5 text-destructive"
+                    : "border-emerald-500/30 bg-emerald-500/5 text-muted-foreground"
+                }`}
+              >
+                <span className="font-medium text-foreground">Conta MP: </span>
+                {accountKind === "test_user" ? "Usuário de Teste" : "Produção"}
+                {mpUserId ? ` (#${mpUserId})` : ""}
+                {liveModeSaved && accountKind === "test_user" && (
+                  <div className="mt-1.5 font-medium">
+                    ⚠ Modo Produção ativo com credenciais de Teste — pagamentos serão rejeitados pelo MP.
+                  </div>
+                )}
+                {!liveModeSaved && accountKind === "production" && (
+                  <div className="mt-1.5 font-medium">
+                    ⚠ Modo Teste ativo com credenciais de Produção — o MP vai rejeitar com "Unauthorized use of live credentials". Reconecte com credenciais de um{" "}
+                    <a
+                      href="https://www.mercadopago.com.br/developers/panel/test-users"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline font-semibold"
+                    >
+                      Usuário de Teste
+                    </a>
+                    .
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Connection method info */}
             {connectedVia === "manual" && connectedPublicKey && (
@@ -374,8 +418,8 @@ export function MercadoPagoStatus({
                       <p className="text-xs font-semibold">Modo Produção (Live)</p>
                       <p className="text-[11px] text-muted-foreground">
                         {liveMode
-                          ? "Transações reais. Use credenciais APP_USR-... de produção."
-                          : "Modo Sandbox/Testes. Use credenciais TEST-..."}
+                          ? "Transações reais. Use credenciais da sua conta real do Mercado Pago."
+                          : "Modo Teste. Use credenciais de um Usuário de Teste criado no painel do MP."}
                       </p>
                     </div>
                     <Switch
@@ -384,6 +428,26 @@ export function MercadoPagoStatus({
                       onCheckedChange={setLiveMode}
                     />
                   </div>
+
+                  {/* Test mode explainer */}
+                  {!liveMode && (
+                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-3.5 py-2.5 text-[11px] text-muted-foreground leading-relaxed">
+                      <strong className="text-foreground">Para testar com cartões e Pix de sandbox</strong> você
+                      precisa usar as credenciais de um <strong>Usuário de Teste</strong> do MP, não da sua conta
+                      real. Crie um em{" "}
+                      <a
+                        href="https://www.mercadopago.com.br/developers/panel/test-users"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline font-semibold text-blue-600"
+                      >
+                        Contas de teste
+                      </a>{" "}
+                      e copie as credenciais dele aqui. Caso contrário o MP retornará{" "}
+                      <code className="font-mono">Unauthorized use of live credentials</code>.
+                    </div>
+                  )}
+
 
                   {/* Validation Error */}
                   {validationError && (

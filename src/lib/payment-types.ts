@@ -62,6 +62,9 @@ export interface StorePaymentSettings {
   mp_token_expires_at?: string; // ISO timestamp
   mp_connected: boolean;
   mp_live_mode: boolean;
+  /** "test_user" se as credenciais pertencem a um Usuário de Teste do MP;
+   *  "production" se pertencem a uma conta real. Preenchido em saveMpCredentials. */
+  mp_account_kind?: "test_user" | "production";
   // Manual payment methods
   pix_manual_key?: string;
   pix_manual_key_type?: "cpf" | "cnpj" | "email" | "phone" | "random";

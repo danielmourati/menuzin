@@ -68,6 +68,7 @@ type DbRow = {
   mp_live_mode: boolean;
   mp_connected: boolean;
   mp_last_validated_at: string | null;
+  mp_account_kind: string | null;
   cash_enabled: boolean;
   pix_manual_enabled: boolean;
   card_on_delivery_enabled: boolean;
@@ -82,6 +83,9 @@ type DbRow = {
 };
 
 function toSafe(row: DbRow): StorePaymentSettingsSafe {
+  const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
+    ? row.mp_account_kind
+    : undefined;
   return {
     id: row.id,
     store_id: row.tenant_id,
@@ -90,6 +94,7 @@ function toSafe(row: DbRow): StorePaymentSettingsSafe {
     mp_public_key: row.mp_public_key ?? undefined,
     mp_connected: row.mp_connected,
     mp_live_mode: row.mp_live_mode,
+    mp_account_kind: kind,
     mp_token_expires_at: row.mp_last_validated_at ?? undefined,
     cash_enabled: row.cash_enabled,
     pix_manual_enabled: row.pix_manual_enabled,
@@ -161,6 +166,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
 
     // Validate against MP API
     let mpUserId: string;
+    let mpAccountKind: "test_user" | "production" = "production";
     try {
       const res = await fetch("https://api.mercadopago.com/users/me", {
         headers: { Authorization: `Bearer ${data.mp_access_token}` },
@@ -214,7 +220,13 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
           message: `Mercado Pago rejeitou as credenciais (HTTP ${res.status}): ${detail}${causeText}. ${suggestion}`,
         };
       }
-      const me = (await res.json()) as { id?: number | string; site_id?: string };
+      const me = (await res.json()) as {
+        id?: number | string;
+        site_id?: string;
+        tags?: string[];
+        email?: string;
+        nickname?: string;
+      };
       if (!me.id) {
         return {
           success: false as const,
@@ -223,6 +235,31 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
         };
       }
       mpUserId = String(me.id);
+
+      // Detect test user — MP marks accounts created via Test Users API with
+      // tags: ["test_user", ...] (sometimes also "normal"). Real seller
+      // accounts never include "test_user". The nickname pattern
+      // "TESTUSER..." or email "@testuser.com" is an extra hint.
+      const tags = Array.isArray(me.tags) ? me.tags.map((t) => String(t).toLowerCase()) : [];
+      const isTestNickname = typeof me.nickname === "string" && /^testuser/i.test(me.nickname);
+      const isTestEmail = typeof me.email === "string" && /@testuser\.com$/i.test(me.email);
+      mpAccountKind = tags.includes("test_user") || isTestNickname || isTestEmail ? "test_user" : "production";
+
+      // Coherence check: live mode flag vs actual account kind
+      if (data.mp_live_mode && mpAccountKind === "test_user") {
+        return {
+          success: false as const,
+          message:
+            "Você marcou Modo Produção, mas as credenciais informadas são de um Usuário de Teste. Use credenciais da sua conta real do Mercado Pago, ou desligue o Modo Produção para usar o sandbox.",
+        };
+      }
+      if (!data.mp_live_mode && mpAccountKind === "production") {
+        return {
+          success: false as const,
+          message:
+            "As credenciais informadas são de Produção, mas o Modo Teste está ativado. Para testar com cartões e Pix de sandbox, crie um Usuário de Teste em https://www.mercadopago.com.br/developers/panel/test-users e use as credenciais dele. Caso queira receber pagamentos reais, ative o Modo Produção.",
+        };
+      }
     } catch (err) {
       console.error("MP validation error:", err);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -231,6 +268,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
         message: `Não foi possível conectar ao Mercado Pago: ${errMsg}. Verifique sua conexão e tente novamente.`,
       };
     }
+
 
 
     const tenantId = await resolveTenantId(supabase, userId);
@@ -246,6 +284,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
           mp_access_token_encrypted: encrypted,
           mp_user_id: mpUserId,
           mp_live_mode: data.mp_live_mode,
+          mp_account_kind: mpAccountKind,
           mp_connected: true,
           mp_last_validated_at: new Date().toISOString(),
         },
@@ -262,9 +301,10 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
       ? parts.map((p, i) => (i === 1 || i === 2 ? "****" : p)).join("-")
       : data.mp_public_key.slice(0, 8) + "****" + data.mp_public_key.slice(-4);
 
+    const kindLabel = mpAccountKind === "test_user" ? "Usuário de Teste" : "Produção";
     return {
       success: true as const,
-      message: `Credenciais validadas com sucesso! Conectado como MP user ${mpUserId}.`,
+      message: `Credenciais validadas! Conta MP #${mpUserId} (${kindLabel}).`,
       mp_public_key_masked: masked,
       mp_user_id: mpUserId,
     };
@@ -343,7 +383,7 @@ export const getPublicPaymentSettingsBySlug = createServerFn({ method: "GET" })
     const { data: row, error } = await supabaseAdmin
       .from("store_payment_settings")
       .select(
-        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
+        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
       )
       .eq("tenant_id", tenant.id)
       .maybeSingle();
@@ -438,7 +478,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     const { data: settings, error: sErr } = await supabaseAdmin
       .from("store_payment_settings")
       .select(
-        "mp_connected, mp_access_token_encrypted, pix_enabled, credit_card_enabled, debit_card_enabled",
+        "mp_connected, mp_access_token_encrypted, mp_live_mode, mp_account_kind, pix_enabled, credit_card_enabled, debit_card_enabled",
       )
       .eq("tenant_id", tenant.id)
       .maybeSingle();
@@ -455,6 +495,28 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     if (data.payment_method === "debit_card" && !settings.debit_card_enabled) {
       throw new Error("Cartão de débito online não está habilitado");
     }
+
+    // 3b. Coherence check — prevents MP "Unauthorized use of live credentials"
+    // before the request even reaches the gateway.
+    if (settings.mp_live_mode === false && settings.mp_account_kind === "production") {
+      throw new Error(
+        "Esta loja está em Modo Teste, mas as credenciais salvas são de Produção. O Mercado Pago vai rejeitar com 'Unauthorized use of live credentials'. Reconecte em Admin → Pagamentos usando credenciais de um Usuário de Teste do MP, ou ative o Modo Produção.",
+      );
+    }
+    if (settings.mp_live_mode === true && settings.mp_account_kind === "test_user") {
+      throw new Error(
+        "Esta loja está em Modo Produção, mas as credenciais salvas são de um Usuário de Teste. Reconecte em Admin → Pagamentos usando as credenciais da sua conta real do Mercado Pago.",
+      );
+    }
+
+    // 3c. In sandbox/test mode, the payer email should be a @testuser.com to
+    // avoid MP rejecting the payment as suspicious. Log a warning if it isn't.
+    if (settings.mp_live_mode === false && !/@testuser\.com$/i.test(data.payer.email)) {
+      console.warn(
+        `[MP] Loja em Modo Teste mas payer.email "${data.payer.email}" não é @testuser.com — MP pode rejeitar.`,
+      );
+    }
+
 
     let accessToken: string;
     try {

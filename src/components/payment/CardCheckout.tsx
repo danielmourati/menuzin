@@ -201,8 +201,22 @@ export function CardCheckout({ amount, publicKey, onSubmit, onSuccess, onCancel 
     } catch (err: unknown) {
       console.error(err);
       setStatus("rejected");
-      const msg = err instanceof Error ? err.message : "Ocorreu um erro no processamento do cartão.";
-      setErrorMsg(msg);
+      const rawMsg = err instanceof Error ? err.message : String(err);
+
+      // Friendly remediation for the classic credentials-mismatch error.
+      const looksLikeCredMismatch =
+        /unauthorized use of live credentials/i.test(rawMsg) ||
+        /cc_rejected_high_risk/i.test(rawMsg) ||
+        /credenciais.*produção.*modo teste/i.test(rawMsg) ||
+        /credenciais.*usuário de teste.*modo produção/i.test(rawMsg);
+
+      if (looksLikeCredMismatch) {
+        setErrorMsg(
+          "Credenciais do Mercado Pago incompatíveis com o cartão usado. Se você está testando, peça ao lojista para reconectar a loja em Admin → Pagamentos com credenciais de um Usuário de Teste do MP. Se já é produção, use um cartão real.",
+        );
+      } else {
+        setErrorMsg(rawMsg || "Ocorreu um erro no processamento do cartão.");
+      }
     } finally {
       setIsLoading(false);
     }
