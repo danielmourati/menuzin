@@ -383,7 +383,7 @@ export const getPublicPaymentSettingsBySlug = createServerFn({ method: "GET" })
     const { data: row, error } = await supabaseAdmin
       .from("store_payment_settings")
       .select(
-        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
+        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
       )
       .eq("tenant_id", tenant.id)
       .maybeSingle();
@@ -478,7 +478,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     const { data: settings, error: sErr } = await supabaseAdmin
       .from("store_payment_settings")
       .select(
-        "mp_connected, mp_access_token_encrypted, pix_enabled, credit_card_enabled, debit_card_enabled",
+        "mp_connected, mp_access_token_encrypted, mp_live_mode, mp_account_kind, pix_enabled, credit_card_enabled, debit_card_enabled",
       )
       .eq("tenant_id", tenant.id)
       .maybeSingle();
@@ -495,6 +495,28 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     if (data.payment_method === "debit_card" && !settings.debit_card_enabled) {
       throw new Error("Cartão de débito online não está habilitado");
     }
+
+    // 3b. Coherence check — prevents MP "Unauthorized use of live credentials"
+    // before the request even reaches the gateway.
+    if (settings.mp_live_mode === false && settings.mp_account_kind === "production") {
+      throw new Error(
+        "Esta loja está em Modo Teste, mas as credenciais salvas são de Produção. O Mercado Pago vai rejeitar com 'Unauthorized use of live credentials'. Reconecte em Admin → Pagamentos usando credenciais de um Usuário de Teste do MP, ou ative o Modo Produção.",
+      );
+    }
+    if (settings.mp_live_mode === true && settings.mp_account_kind === "test_user") {
+      throw new Error(
+        "Esta loja está em Modo Produção, mas as credenciais salvas são de um Usuário de Teste. Reconecte em Admin → Pagamentos usando as credenciais da sua conta real do Mercado Pago.",
+      );
+    }
+
+    // 3c. In sandbox/test mode, the payer email should be a @testuser.com to
+    // avoid MP rejecting the payment as suspicious. Log a warning if it isn't.
+    if (settings.mp_live_mode === false && !/@testuser\.com$/i.test(data.payer.email)) {
+      console.warn(
+        `[MP] Loja em Modo Teste mas payer.email "${data.payer.email}" não é @testuser.com — MP pode rejeitar.`,
+      );
+    }
+
 
     let accessToken: string;
     try {
