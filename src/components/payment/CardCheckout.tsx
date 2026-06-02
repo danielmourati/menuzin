@@ -323,6 +323,21 @@ export function CardCheckout({ amount, publicKey, onSubmit, onCancel }: CardChec
             </div>
 
             <div>
+              <Label htmlFor="docNumber">CPF do titular</Label>
+              <Input
+                id="docNumber"
+                value={docNumber}
+                onChange={(e) => setDocNumber(e.target.value.replace(/\D/g, ""))}
+                maxLength={14}
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                className="mt-1 h-11 rounded-xl"
+                required
+              />
+            </div>
+
+
+            <div>
               <Label htmlFor="installments">Parcelamento</Label>
               <Select value={installments} onValueChange={setInstallments}>
                 <SelectTrigger id="installments" className="mt-1 h-11 rounded-xl">
