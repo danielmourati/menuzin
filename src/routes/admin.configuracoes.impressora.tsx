@@ -87,19 +87,29 @@ function PrinterSettingsPage() {
   const [qzPrinters, setQzPrinters] = useState<QzPrinter[]>([]);
   const [qzDefaultPrinter, setQzDefaultPrinter] = useState<string | null>(null);
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">("unknown");
   const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
 
   // Status do cert do servidor — para alertar quando ainda for o cert demo.
-  const { data: qzCert } = useQuery({
+  const { data: qzCert, refetch: refetchQzCert } = useQuery({
     queryKey: ["qz-cert"],
     queryFn: () => fetchQzCertificate(),
     staleTime: 60_000,
   });
   const isDemoCert = !!qzCert?.subjectCN && /QZ Industries/i.test(qzCert.subjectCN);
   const serverCertReady = !!qzCert?.configured && !isDemoCert;
+
+  type CertTone = "ok" | "warn" | "err";
+  const certBadge: { label: string; tone: CertTone; tooltip: string } = !qzCert
+    ? { label: "Verificando…", tone: "warn", tooltip: "Consultando cert do servidor." }
+    : !qzCert.configured
+      ? { label: "Cert não configurado", tone: "err", tooltip: qzCert.error || "QZ_CERT_PEM/QZ_PRIVATE_KEY_PEM ausentes." }
+      : isDemoCert
+        ? { label: "Cert: demo", tone: "err", tooltip: `CN=${qzCert.subjectCN} — substitua por um cert próprio.` }
+        : { label: `Cert: ${qzCert.subjectCN}`, tone: "ok", tooltip: `CN=${qzCert.subjectCN} · assinatura RSA-SHA512 ativa.` };
 
   const handleQzError = (e: unknown) => {
     if (e instanceof QzNotRunningError) {
