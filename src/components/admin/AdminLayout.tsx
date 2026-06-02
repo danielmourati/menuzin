@@ -203,7 +203,7 @@ function OnboardingClaim() {
           <div>
             <Label>Endereço público (slug) *</Label>
             <div className="mt-1.5 flex items-center rounded-md border bg-background">
-              <span className="px-3 text-sm text-muted-foreground">menuzin.app/loja/</span>
+              <span className="px-3 text-sm text-muted-foreground">menuzin.app/</span>
               <input
                 value={slug}
                 onChange={(e) => setSlug(slugify(e.target.value))}
