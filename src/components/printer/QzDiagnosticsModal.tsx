@@ -250,7 +250,7 @@ export function QzDiagnosticsModal({
 
             <div className="mt-2">
               <div className="mb-1 text-xs font-medium text-muted-foreground">
-                Caminhos esperados do <code>cert.pem</code> no cliente
+                Caminhos verificados pelo QZ Tray (cole o cert nestes caminhos se necessário)
               </div>
               <ul className="space-y-1">
                 {CERT_PATHS.map((p) => (
@@ -269,6 +269,43 @@ export function QzDiagnosticsModal({
               </ul>
             </div>
           </Section>
+
+          {/* Checklist Site Manager */}
+          <Section title="Checklist do Site Manager (QZ Tray)">
+            <p className="text-xs text-muted-foreground">
+              Abra o QZ Tray pela bandeja do sistema → <strong>Advanced → Site Manager</strong> e confira cada aba:
+            </p>
+            <ol className="mt-1 space-y-1.5 text-xs">
+              <li className="rounded border bg-muted/30 p-2">
+                <div className="font-medium">1. Aba <span className="text-emerald-700 dark:text-emerald-400">Allowed</span></div>
+                <div className="text-muted-foreground">
+                  Deve listar o cert do Menuzin (mesmo CN/fingerprint mostrado acima). Se não aparecer,
+                  o cert não foi instalado nos caminhos corretos — rode o instalador v2 como admin.
+                </div>
+              </li>
+              <li className="rounded border bg-muted/30 p-2">
+                <div className="font-medium">2. Aba <span className="text-emerald-700 dark:text-emerald-400">Trusted</span></div>
+                <div className="text-muted-foreground">
+                  O cert deve constar como <em>Strictly permitted</em>. Se aparecer como <em>Untrusted</em>,
+                  significa que está usando o cert demo do QZ Industries no servidor.
+                </div>
+              </li>
+              <li className="rounded border bg-muted/30 p-2">
+                <div className="font-medium">3. Aba <span className="text-destructive">Blocked</span></div>
+                <div className="text-muted-foreground">
+                  Deve estar vazia para o Menuzin. Se houver entrada, selecione e clique em <strong>Remove</strong> —
+                  enquanto estiver bloqueada, vence a aba Allowed.
+                </div>
+              </li>
+              <li className="rounded border bg-muted/30 p-2">
+                <div className="font-medium">4. Volte aqui e clique em <strong>Tentar conectar novamente</strong></div>
+                <div className="text-muted-foreground">
+                  O resultado aparece automaticamente em "Última tentativa" acima.
+                </div>
+              </li>
+            </ol>
+          </Section>
+
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
