@@ -87,19 +87,29 @@ function PrinterSettingsPage() {
   const [qzPrinters, setQzPrinters] = useState<QzPrinter[]>([]);
   const [qzDefaultPrinter, setQzDefaultPrinter] = useState<string | null>(null);
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">("unknown");
   const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
 
   // Status do cert do servidor — para alertar quando ainda for o cert demo.
-  const { data: qzCert } = useQuery({
+  const { data: qzCert, refetch: refetchQzCert } = useQuery({
     queryKey: ["qz-cert"],
     queryFn: () => fetchQzCertificate(),
     staleTime: 60_000,
   });
   const isDemoCert = !!qzCert?.subjectCN && /QZ Industries/i.test(qzCert.subjectCN);
   const serverCertReady = !!qzCert?.configured && !isDemoCert;
+
+  type CertTone = "ok" | "warn" | "err";
+  const certBadge: { label: string; tone: CertTone; tooltip: string } = !qzCert
+    ? { label: "Verificando…", tone: "warn", tooltip: "Consultando cert do servidor." }
+    : !qzCert.configured
+      ? { label: "Cert não configurado", tone: "err", tooltip: qzCert.error || "QZ_CERT_PEM/QZ_PRIVATE_KEY_PEM ausentes." }
+      : isDemoCert
+        ? { label: "Cert: demo", tone: "err", tooltip: `CN=${qzCert.subjectCN} — substitua por um cert próprio.` }
+        : { label: `Cert: ${qzCert.subjectCN}`, tone: "ok", tooltip: `CN=${qzCert.subjectCN} · assinatura RSA-SHA512 ativa.` };
 
   const handleQzError = (e: unknown) => {
     if (e instanceof QzNotRunningError) {
@@ -117,7 +127,40 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     const startedAt = performance.now();
     try {
+      // 1) Valida o cert do servidor ANTES de tentar conectar — se for demo
+      //    ou estiver ausente, o prompt "Action Required" é inevitável.
+      const fresh = await refetchQzCert();
+      const cert = fresh.data;
+      if (!cert?.configured) {
+        setQzTrustState("unknown");
+        toast.error("Servidor sem cert do QZ Tray. Configure QZ_CERT_PEM/QZ_PRIVATE_KEY_PEM.", {
+          action: { label: "Diagnóstico", onClick: () => setDiagOpen(true) },
+        });
+        setLastAttempt({
+          at: new Date(), ok: false, action: "Detectar (cert)",
+          error: cert?.error || "Cert do servidor não configurado.",
+        });
+        return;
+      }
+      if (cert.subjectCN && /QZ Industries/i.test(cert.subjectCN)) {
+        setQzTrustState("unknown");
+        toast.error("Cert demo detectado no servidor — substitua QZ_CERT_PEM/QZ_PRIVATE_KEY_PEM por um par próprio.", {
+          action: { label: "Diagnóstico", onClick: () => setDiagOpen(true) },
+        });
+        setLastAttempt({
+          at: new Date(), ok: false, action: "Detectar (cert)",
+          error: "Cert demo QZ Industries em uso — Action Required é inevitável.",
+        });
+        return;
+      }
+
+      // 2) Conecta — mede a duração para inferir se houve prompt manual.
+      const connectStart = performance.now();
       await ensureQzConnected();
+      const connectMs = performance.now() - connectStart;
+      const prompted = connectMs > 2000;
+      setQzTrustState(prompted ? "prompted" : "trusted");
+
       const { printers, defaultPrinter } = await listQzPrintersWithDefault();
       setQzPrinters(printers);
       setQzDefaultPrinter(defaultPrinter);
@@ -125,12 +168,18 @@ function PrinterSettingsPage() {
       setLastAttempt({
         at: new Date(), ok: true,
         durationMs: Math.round(performance.now() - startedAt),
-        action: `Detectar (${printers.length} impressora(s))`,
+        action: `Detectar (${printers.length} impressora(s))${prompted ? " · prompt manual" : ""}`,
       });
-      if (printers.length === 0) {
+
+      if (prompted) {
+        toast.warning(
+          `Conectado em ${Math.round(connectMs)}ms — provavelmente o "Action Required" apareceu. Rode o instalador como administrador para suprimir.`,
+          { action: { label: "Baixar instalador", onClick: () => void handleDownloadInstaller() }, duration: 8000 },
+        );
+      } else if (printers.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
-        toast.success(`QZ Tray conectado · ${printers.length} impressora(s) encontrada(s).`);
+        toast.success(`QZ Tray conectado · ${printers.length} impressora(s) · ${Math.round(connectMs)}ms (sem prompt).`);
         const preferred = defaultPrinter || printers[0]?.name;
         if (!form.printer_name && preferred) set("printer_name", preferred);
         setPrinterInputMode("select");
@@ -223,7 +272,29 @@ function PrinterSettingsPage() {
             {/* Status do QZ Tray */}
             <Card>
               <CardHeader className="flex-row items-center justify-between gap-2">
-                <CardTitle className="text-base">Status do QZ Tray</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">Status do QZ Tray</CardTitle>
+                  <span
+                    title={certBadge.tooltip}
+                    className={
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium " +
+                      (certBadge.tone === "ok"
+                        ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+                        : certBadge.tone === "warn"
+                          ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                          : "bg-destructive/10 text-destructive")
+                    }
+                  >
+                    {certBadge.tone === "ok" ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : certBadge.tone === "warn" ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    {certBadge.label}
+                  </span>
+                </div>
                 <div className="flex items-center gap-1">
                   <Button size="sm" variant="ghost" onClick={() => setDiagOpen(true)}>
                     <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
@@ -239,7 +310,14 @@ function PrinterSettingsPage() {
                     {qzStatus === "connected" ? (
                       <>
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span>Conectado — impressão sem prompts.</span>
+                        <span>
+                          Conectado
+                          {qzTrustState === "trusted"
+                            ? " — sem prompts."
+                            : qzTrustState === "prompted"
+                              ? " — mas exigiu confirmação manual."
+                              : "."}
+                        </span>
                       </>
                     ) : qzStatus === "offline" ? (
                       <>
@@ -258,6 +336,20 @@ function PrinterSettingsPage() {
                     Detectar
                   </Button>
                 </div>
+
+                {qzTrustState === "prompted" && !isDemoCert && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/30 dark:text-amber-100">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">O QZ Tray pediu confirmação nesta máquina.</div>
+                      <p className="mt-0.5">
+                        Para suprimir o "Action Required" nas próximas conexões, rode o instalador
+                        abaixo como <strong>administrador</strong> nesta máquina. Em outras máquinas,
+                        repita o processo.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {isDemoCert && (
                   <div className="flex items-start gap-2 rounded-md border border-destructive bg-destructive/10 p-3 text-xs text-destructive">
