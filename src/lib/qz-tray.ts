@@ -159,6 +159,94 @@ export function downloadQzProperties(): void {
   triggerTextDownload("qz-tray.properties", content);
 }
 
+/**
+ * Monta o conteúdo de um instalador .bat para Windows que:
+ *  - detecta a pasta de instalação do QZ Tray
+ *  - escreve cert.pem dentro dela (a partir do conteúdo embutido)
+ *  - adiciona/atualiza a linha authcert.override=cert.pem em qz-tray.properties
+ *  - reinicia o QZ Tray
+ * O usuário só precisa rodar como Administrador (clique direito → "Executar como administrador").
+ */
+export function buildQzWindowsInstaller(certPem: string): string {
+  // Normaliza para LF e remove eventuais aspas simples que quebrariam o here-string do PowerShell.
+  const cleanCert = certPem.replace(/\r\n/g, "\n").trim();
+  return [
+    "@echo off",
+    "setlocal EnableExtensions EnableDelayedExpansion",
+    "chcp 65001 >nul",
+    "title Menuzin - Configurar QZ Tray",
+    "",
+    ":: Detecta a pasta de instalacao do QZ Tray",
+    'set "QZ_DIR=%ProgramFiles%\\QZ Tray"',
+    'if not exist "%QZ_DIR%\\qz-tray.properties" set "QZ_DIR=%ProgramFiles(x86)%\\QZ Tray"',
+    'if not exist "%QZ_DIR%\\qz-tray.properties" (',
+    "  echo.",
+    "  echo QZ Tray nao foi encontrado.",
+    "  echo Instale primeiro em https://qz.io/download/ e rode este arquivo novamente.",
+    "  echo.",
+    "  pause",
+    "  exit /b 1",
+    ")",
+    "",
+    ":: Verifica privilegios de administrador",
+    "net session >nul 2>&1",
+    "if errorlevel 1 (",
+    "  echo.",
+    '  echo Este instalador precisa ser executado como Administrador.',
+    '  echo Feche esta janela, clique com o botao direito no arquivo e escolha',
+    '  echo "Executar como administrador".',
+    "  echo.",
+    "  pause",
+    "  exit /b 1",
+    ")",
+    "",
+    'echo Configurando QZ Tray em "%QZ_DIR%"...',
+    "",
+    ":: Escreve cert.pem usando PowerShell (preserva quebras de linha)",
+    'powershell -NoProfile -ExecutionPolicy Bypass -Command "$c = @\'',
+    cleanCert,
+    "'@; Set-Content -LiteralPath \\\"$env:QZ_DIR\\cert.pem\\\" -Value $c -Encoding ascii\"",
+    "",
+    ":: Garante a linha authcert.override=cert.pem em qz-tray.properties",
+    'powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Join-Path $env:QZ_DIR \'qz-tray.properties\'; $lines = if (Test-Path $p) { Get-Content $p } else { @() }; $lines = $lines | Where-Object { $_ -notmatch \'^\\s*authcert\\.override\\s*=\' }; $lines += \'authcert.override=cert.pem\'; Set-Content -LiteralPath $p -Value $lines -Encoding ascii"',
+    "",
+    ":: Reinicia o QZ Tray",
+    'taskkill /IM "QZ Tray.exe" /F >nul 2>&1',
+    'start "" "%QZ_DIR%\\QZ Tray.exe"',
+    "",
+    "echo.",
+    "echo Configuracao concluida com sucesso.",
+    "echo Volte ao Menuzin e clique em Detectar.",
+    "echo.",
+    "pause",
+    "endlocal",
+    "",
+  ].join("\r\n");
+}
+
+/** Baixa o instalador .bat (Windows) com o cert.pem embutido. */
+export async function downloadQzWindowsInstaller(): Promise<void> {
+  const { cert, configured } = await getQzCertificate();
+  if (!configured || !cert) {
+    throw new Error(
+      "O certificado do QZ Tray ainda não foi configurado no servidor. Contate o administrador.",
+    );
+  }
+  // PowerShell here-string '@... '@ — antes de fechar precisa estar em sua própria linha.
+  // O builder já trim() o cert, então a linha de fechamento fica isolada.
+  const bat = buildQzWindowsInstaller(cert);
+  // .bat precisa de encoding ANSI/ASCII para o cmd interpretar corretamente.
+  const blob = new Blob([bat], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "menuzin-qz-setup.bat";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function triggerTextDownload(filename: string, content: string) {
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
