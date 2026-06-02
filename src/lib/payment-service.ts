@@ -6,6 +6,7 @@ import {
   saveMpCredentials as _saveMpCredentials,
   disconnectMercadoPago as _disconnectMercadoPago,
   updatePaymentSettings as _updatePaymentSettings,
+  getPublicPaymentSettingsBySlug as _getPublicPaymentSettingsBySlug,
 } from "./payments.functions";
 import type {
   StorePaymentSettingsSafe,
