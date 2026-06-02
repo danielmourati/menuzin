@@ -7,6 +7,7 @@ type Profile = {
   tenant_id: string | null;
   full_name: string;
   email: string | null;
+  must_change_password: boolean;
 };
 
 type AuthRole = "owner" | "admin" | "staff" | "platform_admin";
@@ -27,7 +28,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 async function loadProfileAndRoles(userId: string): Promise<{ profile: Profile | null; roles: AuthRole[] }> {
   const [{ data: profile }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("id, tenant_id, full_name, email").eq("id", userId).maybeSingle(),
+    supabase.from("profiles").select("id, tenant_id, full_name, email, must_change_password").eq("id", userId).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
   ]);
   return {

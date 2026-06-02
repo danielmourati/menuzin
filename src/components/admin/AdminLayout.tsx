@@ -100,12 +100,24 @@ function AuthGate({ children }: { children: ReactNode }) {
   const { loading, isAuthenticated, profile, isPlatformAdmin } = useAuth();
   const activeTenantId = useActiveTenantId();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate({ to: "/admin/login" });
     }
   }, [loading, isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (
+      !loading &&
+      isAuthenticated &&
+      profile?.must_change_password &&
+      pathname !== "/admin/trocar-senha"
+    ) {
+      navigate({ to: "/admin/trocar-senha", replace: true });
+    }
+  }, [loading, isAuthenticated, profile?.must_change_password, pathname, navigate]);
 
   if (loading) {
     return (
@@ -115,6 +127,12 @@ function AuthGate({ children }: { children: ReactNode }) {
     );
   }
   if (!isAuthenticated) return null;
+
+  // Quando precisa trocar a senha, renderiza apenas a página de troca (sem sidebar/tenant gate).
+  if (profile?.must_change_password && pathname === "/admin/trocar-senha") {
+    return <>{children}</>;
+  }
+  if (profile?.must_change_password) return null;
 
   const hasOwnTenant = !!profile?.tenant_id;
   if (!hasOwnTenant && !activeTenantId) {
