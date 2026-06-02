@@ -253,6 +253,9 @@ export type Database = {
           delivery_fee: number
           id: string
           mode: Database["public"]["Enums"]["order_mode"]
+          mp_payment_id: string | null
+          mp_status: string | null
+          mp_status_detail: string | null
           note: string | null
           number: number
           payment_label: string
@@ -278,6 +281,9 @@ export type Database = {
           delivery_fee?: number
           id?: string
           mode: Database["public"]["Enums"]["order_mode"]
+          mp_payment_id?: string | null
+          mp_status?: string | null
+          mp_status_detail?: string | null
           note?: string | null
           number: number
           payment_label?: string
@@ -303,6 +309,9 @@ export type Database = {
           delivery_fee?: number
           id?: string
           mode?: Database["public"]["Enums"]["order_mode"]
+          mp_payment_id?: string | null
+          mp_status?: string | null
+          mp_status_detail?: string | null
           note?: string | null
           number?: number
           payment_label?: string
@@ -319,6 +328,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          order_id: string
+          payment_method: string
+          provider: string
+          provider_payment_id: string | null
+          raw_response: Json | null
+          status: string
+          status_detail: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          order_id: string
+          payment_method: string
+          provider?: string
+          provider_payment_id?: string | null
+          raw_response?: Json | null
+          status?: string
+          status_detail?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          order_id?: string
+          payment_method?: string
+          provider?: string
+          provider_payment_id?: string | null
+          raw_response?: Json | null
+          status?: string
+          status_detail?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
