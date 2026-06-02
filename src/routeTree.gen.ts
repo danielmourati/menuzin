@@ -30,6 +30,7 @@ import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenan
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
+import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
@@ -141,6 +142,12 @@ const AdminConfiguracoesPagamentosRoute =
     path: '/pagamentos',
     getParentRoute: () => AdminConfiguracoesRoute,
   } as any)
+const AdminConfiguracoesImpressoraRoute =
+  AdminConfiguracoesImpressoraRouteImport.update({
+    id: '/impressora',
+    path: '/impressora',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
 const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
   id: '/acompanhar/$orderId',
   path: '/acompanhar/$orderId',
@@ -171,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/platform/lojas': typeof PlatformLojasRoute
   '/admin/': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
+  '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -195,6 +203,7 @@ export interface FileRoutesByTo {
   '/platform/lojas': typeof PlatformLojasRoute
   '/admin': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
+  '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -221,6 +230,7 @@ export interface FileRoutesById {
   '/platform/lojas': typeof PlatformLojasRoute
   '/admin/': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
+  '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/platform/lojas'
     | '/admin/'
     | '/$slug/acompanhar/$orderId'
+    | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/loja/$slug/pedido-confirmado'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/platform/lojas'
     | '/admin'
     | '/$slug/acompanhar/$orderId'
+    | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/loja/$slug/pedido-confirmado'
@@ -297,6 +309,7 @@ export interface FileRouteTypes {
     | '/platform/lojas'
     | '/admin/'
     | '/$slug/acompanhar/$orderId'
+    | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/loja/$slug/pedido-confirmado'
@@ -473,6 +486,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesPagamentosRouteImport
       parentRoute: typeof AdminConfiguracoesRoute
     }
+    '/admin/configuracoes/impressora': {
+      id: '/admin/configuracoes/impressora'
+      path: '/impressora'
+      fullPath: '/admin/configuracoes/impressora'
+      preLoaderRoute: typeof AdminConfiguracoesImpressoraRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
     '/$slug/acompanhar/$orderId': {
       id: '/$slug/acompanhar/$orderId'
       path: '/acompanhar/$orderId'
@@ -503,12 +523,14 @@ const SlugRouteChildren: SlugRouteChildren = {
 const SlugRouteWithChildren = SlugRoute._addFileChildren(SlugRouteChildren)
 
 interface AdminConfiguracoesRouteChildren {
+  AdminConfiguracoesImpressoraRoute: typeof AdminConfiguracoesImpressoraRoute
   AdminConfiguracoesPagamentosRoute: typeof AdminConfiguracoesPagamentosRoute
   AdminConfiguracoesPedidosRoute: typeof AdminConfiguracoesPedidosRoute
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
 }
 
 const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
+  AdminConfiguracoesImpressoraRoute: AdminConfiguracoesImpressoraRoute,
   AdminConfiguracoesPagamentosRoute: AdminConfiguracoesPagamentosRoute,
   AdminConfiguracoesPedidosRoute: AdminConfiguracoesPedidosRoute,
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,

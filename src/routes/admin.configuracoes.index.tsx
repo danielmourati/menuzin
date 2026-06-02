@@ -95,6 +95,7 @@ function SettingsPage() {
               <TabsTrigger value="horarios">Horários</TabsTrigger>
               <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
               <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+              <TabsTrigger value="impressora">Impressora</TabsTrigger>
               <TabsTrigger value="entrega">Entrega</TabsTrigger>
               <TabsTrigger value="redes">Redes sociais</TabsTrigger>
               <TabsTrigger value="link">Link público</TabsTrigger>
@@ -156,6 +157,21 @@ function SettingsPage() {
                 <div className="pt-2">
                   <Button asChild className="h-11 px-6 rounded-xl font-semibold">
                     <Link to="/admin/configuracoes/pedidos">Configurar alertas</Link>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="impressora" className="mt-6 space-y-4">
+              <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
+                <h3 className="text-lg font-bold tracking-tight">Impressora de Cupom</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Configure sua impressora térmica não fiscal (58mm ou 80mm), Bluetooth, USB ou rede,
+                  com perfis ESC/POS para mini impressoras e modelos ELGIN i8/i9.
+                </p>
+                <div className="pt-2">
+                  <Button asChild className="h-11 px-6 rounded-xl font-semibold">
+                    <Link to="/admin/configuracoes/impressora">Configurar impressora</Link>
                   </Button>
                 </div>
               </div>
