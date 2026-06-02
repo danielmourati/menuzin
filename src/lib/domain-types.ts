@@ -1,12 +1,35 @@
 // Tipos de domínio compartilhados entre UI, server functions e adapters.
-// NÃO contém dados — apenas o contrato de UI sobre as tabelas do banco.
 
 export type ProductAddon = { id: string; name: string; price: number };
+
+export type ProductSize = { id: string; name: string; price: number; sortOrder: number };
+
+export type ProductFlavor = {
+  id: string;
+  name: string;
+  description: string;
+  priceDelta: number;
+  available: boolean;
+  sortOrder: number;
+};
+
+export type AddonOption = { id: string; name: string; price: number; sortOrder: number };
+
+export type AddonGroup = {
+  id: string;
+  name: string;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  sortOrder: number;
+  options: AddonOption[];
+};
 
 export type Product = {
   id: string;
   name: string;
   category: string;
+  categoryId?: string | null;
   description: string;
   price: number;
   promoPrice?: number;
@@ -14,7 +37,13 @@ export type Product = {
   available: boolean;
   featured: boolean;
   prepTime?: string;
+  type: "standard" | "pizza";
+  maxFlavors?: number;
+  allowObservations: boolean;
   addons?: ProductAddon[];
+  sizes?: ProductSize[];
+  flavors?: ProductFlavor[];
+  addonGroups?: AddonGroup[];
 };
 
 export type Category = {

@@ -41,6 +41,52 @@ export type DbAddon = {
   price: number;
 };
 
+export type DbProductSize = {
+  id: string;
+  product_id: string;
+  name: string;
+  price: number;
+  sort_order: number;
+};
+
+export type DbProductFlavor = {
+  id: string;
+  product_id: string;
+  name: string;
+  description: string;
+  price_delta: number;
+  available: boolean;
+  sort_order: number;
+};
+
+export type DbAddonOption = {
+  id: string;
+  group_id: string;
+  name: string;
+  price: number;
+  active: boolean;
+  sort_order: number;
+};
+
+export type DbAddonGroup = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  required: boolean;
+  min_select: number;
+  max_select: number;
+  active: boolean;
+  sort_order: number;
+  options: DbAddonOption[];
+};
+
+export type DbAddonGroupTarget = {
+  id: string;
+  group_id: string;
+  category_id: string | null;
+  product_id: string | null;
+};
+
 export type DbProduct = {
   id: string;
   tenant_id: string;
@@ -54,7 +100,13 @@ export type DbProduct = {
   featured: boolean;
   prep_time: string | null;
   sort_order: number;
+  type: "standard" | "pizza";
+  max_flavors: number | null;
+  allow_observations: boolean;
   addons: DbAddon[];
+  sizes?: DbProductSize[];
+  flavors?: DbProductFlavor[];
+  addonGroups?: DbAddonGroup[];
   // legacy compat
   category?: string;
 };

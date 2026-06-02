@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2 } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ const items = [
   { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { to: "/admin/produtos", label: "Produtos", icon: Package },
   { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
+  { to: "/admin/complementos", label: "Complementos", icon: Layers },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
 ] as const;

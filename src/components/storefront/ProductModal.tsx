@@ -1,34 +1,134 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Minus, Plus, ArrowLeft } from "lucide-react";
 import { brl } from "@/lib/format";
-import type { Product, ProductAddon } from "@/lib/domain-types";
-import { useCart } from "@/lib/cart-context";
+import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonOption } from "@/lib/domain-types";
+import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
 import { toast } from "sonner";
-
 
 export function ProductModal({
   product, open, onOpenChange,
 }: { product: Product | null; open: boolean; onOpenChange: (v: boolean) => void }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
-  const [selected, setSelected] = useState<ProductAddon[]>([]);
+  const [legacyAddons, setLegacyAddons] = useState<ProductAddon[]>([]);
+  const [sizeId, setSizeId] = useState<string | null>(null);
+  const [flavorIds, setFlavorIds] = useState<string[]>([]);
+  const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
   const [note, setNote] = useState("");
 
   useEffect(() => {
-    if (open) { setQty(1); setSelected([]); setNote(""); }
+    if (open && product) {
+      setQty(1);
+      setLegacyAddons([]);
+      setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
+      setFlavorIds([]);
+      setGroupSelections({});
+      setNote("");
+    }
   }, [open, product?.id]);
 
   if (!product) return null;
-  const base = product.promoPrice ?? product.price;
-  const addonSum = selected.reduce((s, a) => s + a.price, 0);
-  const total = (base + addonSum) * qty;
 
-  const toggle = (a: ProductAddon) =>
-    setSelected((p) => (p.find((x) => x.id === a.id) ? p.filter((x) => x.id !== a.id) : [...p, a]));
+  const isPizza = product.type === "pizza";
+  const maxFlavors = product.maxFlavors ?? 1;
+  const selectedSize: ProductSize | undefined = product.sizes?.find((s) => s.id === sizeId);
+  const selectedFlavors: ProductFlavor[] = (product.flavors ?? []).filter((f) => flavorIds.includes(f.id));
+
+  // preço base: tamanho (se houver) ou preço do produto
+  const baseFromProduct = product.promoPrice ?? product.price;
+  const baseFromSize = selectedSize ? selectedSize.price : baseFromProduct;
+
+  // pizza: somar média dos price_delta dos sabores selecionados
+  const flavorDelta = isPizza && selectedFlavors.length
+    ? selectedFlavors.reduce((s, f) => s + f.priceDelta, 0) / selectedFlavors.length
+    : 0;
+  const basePrice = baseFromSize + flavorDelta;
+
+  const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
+    const out: CartSelectedGroupOption[] = [];
+    for (const g of product.addonGroups ?? []) {
+      const ids = groupSelections[g.id] ?? [];
+      for (const o of g.options) {
+        if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
+      }
+    }
+    return out;
+  }, [product.addonGroups, groupSelections]);
+
+  const addonsSum = legacyAddons.reduce((s, a) => s + a.price, 0);
+  const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
+  const total = (basePrice + addonsSum + groupSum) * qty;
+
+  // ===== Validação =====
+  const validations: string[] = [];
+  if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+    validations.push("Escolha um tamanho");
+  }
+  if (isPizza) {
+    if (selectedFlavors.length < 1) {
+      validations.push("Escolha ao menos 1 sabor");
+    } else if (selectedFlavors.length > maxFlavors) {
+      validations.push(`Máximo ${maxFlavors} sabor${maxFlavors > 1 ? "es" : ""}`);
+    }
+  }
+  for (const g of product.addonGroups ?? []) {
+    const ids = groupSelections[g.id] ?? [];
+    if (g.required && ids.length < Math.max(1, g.minSelect)) {
+      validations.push(`${g.name}: selecione ${g.minSelect > 1 ? g.minSelect : 1}`);
+    } else if (ids.length > g.maxSelect) {
+      validations.push(`${g.name}: máximo ${g.maxSelect}`);
+    } else if (ids.length > 0 && g.minSelect > 0 && ids.length < g.minSelect) {
+      validations.push(`${g.name}: mínimo ${g.minSelect}`);
+    }
+  }
+  const canAdd = validations.length === 0 && product.available;
+
+  const toggleFlavor = (f: ProductFlavor) => {
+    setFlavorIds((prev) => {
+      if (prev.includes(f.id)) return prev.filter((id) => id !== f.id);
+      if (prev.length >= maxFlavors) {
+        // substitui o último selecionado para respeitar o máximo
+        return [...prev.slice(0, maxFlavors - 1), f.id];
+      }
+      return [...prev, f.id];
+    });
+  };
+
+  const toggleGroupOption = (groupId: string, optId: string, maxSelect: number) => {
+    setGroupSelections((prev) => {
+      const cur = prev[groupId] ?? [];
+      if (maxSelect === 1) return { ...prev, [groupId]: cur.includes(optId) ? [] : [optId] };
+      if (cur.includes(optId)) return { ...prev, [groupId]: cur.filter((x) => x !== optId) };
+      if (cur.length >= maxSelect) return prev;
+      return { ...prev, [groupId]: [...cur, optId] };
+    });
+  };
+
+  const onAdd = () => {
+    if (!canAdd) {
+      toast.error(validations[0] ?? "Selecione as opções obrigatórias");
+      return;
+    }
+    add({
+      product,
+      qty,
+      addons: legacyAddons,
+      size: selectedSize,
+      flavors: selectedFlavors.length ? selectedFlavors : undefined,
+      groupOptions: groupOptionsSelected.length ? groupOptionsSelected : undefined,
+      basePrice,
+      note: note || undefined,
+    });
+    toast.success("Adicionado ao carrinho", { description: `${qty}x ${product.name}` });
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,11 +137,9 @@ export function ProductModal({
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
-        {/* Image area with floating back */}
         <div className="relative shrink-0 bg-card pt-4">
           <Button
-            size="icon"
-            variant="secondary"
+            size="icon" variant="secondary"
             onClick={() => onOpenChange(false)}
             className="absolute left-3 top-3 z-10 h-10 w-10 rounded-xl bg-card text-primary shadow-md hover:bg-card"
           >
@@ -52,13 +150,12 @@ export function ProductModal({
           </div>
         </div>
 
-        {/* Content scroll */}
         <div className="flex-1 overflow-y-auto bg-card px-5 pt-5">
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
           <p className="mt-1 text-base">
-            <span className="font-bold">{brl(base)}</span>
+            <span className="font-bold">{brl(basePrice)}</span>
             <span className="text-sm text-muted-foreground">/UN</span>
-            {product.promoPrice && (
+            {product.promoPrice && !selectedSize && (
               <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
             )}
           </p>
@@ -66,36 +163,118 @@ export function ProductModal({
             <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
           )}
 
+          {/* Tamanhos */}
+          {product.sizes && product.sizes.length > 0 && (
+            <Section title="Tamanho" required>
+              <RadioGroup value={sizeId ?? ""} onValueChange={setSizeId} className="mt-2 space-y-2">
+                {product.sizes.map((s) => (
+                  <label key={s.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={s.id} id={`size-${s.id}`} />
+                      <Label htmlFor={`size-${s.id}`} className="cursor-pointer text-sm">{s.name}</Label>
+                    </div>
+                    <span className="text-sm font-semibold text-primary">{brl(s.price)}</span>
+                  </label>
+                ))}
+              </RadioGroup>
+            </Section>
+          )}
+
+          {/* Sabores (pizza) */}
+          {isPizza && product.flavors && product.flavors.length > 0 && (
+            <Section
+              title={`Sabores`}
+              required
+              hint={`Escolha até ${maxFlavors} (${selectedFlavors.length}/${maxFlavors})`}
+            >
+              <div className="mt-2 space-y-2">
+                {product.flavors.map((f) => {
+                  const checked = flavorIds.includes(f.id);
+                  return (
+                    <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                      <div className="flex items-start gap-3">
+                        <Checkbox checked={checked} onCheckedChange={() => toggleFlavor(f)} className="mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">{f.name}</p>
+                          {f.description && <p className="mt-0.5 text-xs text-muted-foreground">{f.description}</p>}
+                        </div>
+                      </div>
+                      {f.priceDelta > 0 && (
+                        <span className="text-xs font-semibold text-primary">+ {brl(f.priceDelta)}</span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
+          {/* Grupos de complementos */}
+          {(product.addonGroups ?? []).map((g) => {
+            const selected = groupSelections[g.id] ?? [];
+            const hint = g.maxSelect > 1
+              ? `Escolha até ${g.maxSelect}${g.minSelect > 0 ? ` (mín. ${g.minSelect})` : ""} (${selected.length}/${g.maxSelect})`
+              : "Escolha 1";
+            return (
+              <Section key={g.id} title={g.name} required={g.required} hint={hint}>
+                <div className="mt-2 space-y-2">
+                  {g.options.map((o: AddonOption) => {
+                    const checked = selected.includes(o.id);
+                    return (
+                      <label key={o.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                        <div className="flex items-center gap-3">
+                          <Checkbox checked={checked} onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)} />
+                          <span className="text-sm">{o.name}</span>
+                        </div>
+                        {o.price > 0 && <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+              </Section>
+            );
+          })}
+
+          {/* Adicionais legados (product_addons) */}
           {product.addons && product.addons.length > 0 && (
-            <div className="mt-6">
-              <h4 className="text-base font-bold">Adicionais</h4>
+            <Section title="Adicionais">
               <div className="mt-2 space-y-2">
                 {product.addons.map((a) => (
                   <label key={a.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
-                      <Checkbox checked={!!selected.find((x) => x.id === a.id)} onCheckedChange={() => toggle(a)} />
+                      <Checkbox
+                        checked={!!legacyAddons.find((x) => x.id === a.id)}
+                        onCheckedChange={() =>
+                          setLegacyAddons((p) => (p.find((x) => x.id === a.id) ? p.filter((x) => x.id !== a.id) : [...p, a]))
+                        }
+                      />
                       <span className="text-sm">{a.name}</span>
                     </div>
                     <span className="text-sm font-semibold text-primary">+ {brl(a.price)}</span>
                   </label>
                 ))}
               </div>
-            </div>
+            </Section>
           )}
 
-          <div className="mt-6 pb-6">
-            <h4 className="text-base font-bold">Observações</h4>
-            <Textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Digite alguma observação"
-              className="mt-2 min-h-[110px] resize-none rounded-xl bg-card"
-            />
-          </div>
+          {product.allowObservations && (
+            <Section title="Observações">
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Digite alguma observação"
+                className="mt-2 min-h-[110px] resize-none rounded-xl bg-card"
+              />
+            </Section>
+          )}
+
+          <div className="pb-6" />
         </div>
 
-        {/* Sticky footer */}
         <div className="shrink-0 border-t bg-card px-4 py-3">
+          {validations.length > 0 && (
+            <p className="mb-2 text-center text-xs font-medium text-destructive">{validations[0]}</p>
+          )}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 rounded-lg bg-muted px-2 py-1">
               <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground" onClick={() => setQty((q) => Math.max(1, q - 1))}>
@@ -112,11 +291,8 @@ export function ProductModal({
             </div>
             <Button
               className="h-12 min-w-[140px] rounded-xl text-base font-semibold"
-              onClick={() => {
-                add({ product, qty, addons: selected, note: note || undefined });
-                toast.success("Adicionado ao carrinho", { description: `${qty}x ${product.name}` });
-                onOpenChange(false);
-              }}
+              onClick={onAdd}
+              disabled={!canAdd}
             >
               Adicionar
             </Button>
@@ -124,5 +300,20 @@ export function ProductModal({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Section({ title, hint, required, children }: { title: string; hint?: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="mt-6">
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-base font-bold">
+          {title}
+          {required && <Badge variant="secondary" className="ml-2 text-[10px] uppercase">Obrigatório</Badge>}
+        </h4>
+        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+      </div>
+      {children}
+    </div>
   );
 }

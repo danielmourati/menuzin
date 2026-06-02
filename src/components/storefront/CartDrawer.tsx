@@ -10,7 +10,7 @@ import {
   Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
   User, Mail, Phone, MapPin, Pencil, Home, Map,
 } from "lucide-react";
-import { useCart } from "@/lib/cart-context";
+import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
@@ -248,14 +248,20 @@ export function CartDrawer({
           address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
           table_label: mode === "consumo_local" ? table : null,
           note: generalNote || null,
-          items: items.map((i) => ({
-            product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
-            name_snapshot: i.product.name,
-            qty: i.qty,
-            unit_price: i.product.promoPrice ?? i.product.price,
-            addons: i.addons.map((a) => ({ name: a.name, price: a.price })),
-            note: i.note ?? null,
-          })),
+          items: items.map((i) => {
+            const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
+            const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
+            const groupLabels = (i.groupOptions ?? []).map((o) => ({ name: `${o.groupName}: ${o.name}`, price: Number(o.price) }));
+            const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
+            return {
+              product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
+              name_snapshot: i.product.name,
+              qty: i.qty,
+              unit_price: computeUnitPrice(i),
+              addons: [...sizeLabel, ...flavorLabels, ...groupLabels, ...legacyAddons],
+              note: i.note ?? null,
+            };
+          }),
         },
       });
       dbOrderNumber = res.order.number;
@@ -282,8 +288,13 @@ export function CartDrawer({
       items: items.map((i) => ({
         name: i.product.name,
         qty: i.qty,
-        unitPrice: i.product.promoPrice ?? i.product.price,
-        addons: i.addons,
+        unitPrice: computeUnitPrice(i),
+        addons: [
+          ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
+          ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
+          ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
+          ...i.addons,
+        ],
         note: i.note,
       })),
       subtotal, deliveryFee, total,
@@ -372,14 +383,19 @@ export function CartDrawer({
               ) : (
                 <div className="divide-y bg-card">
                   {items.map((i) => {
-                    const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
+                    const unit = computeUnitPrice(i);
+                    const detailParts: string[] = [];
+                    if (i.size) detailParts.push(i.size.name);
+                    if (i.flavors && i.flavors.length) detailParts.push(i.flavors.map((f) => f.name).join(" + "));
+                    if (i.groupOptions && i.groupOptions.length) detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
+                    if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
                     return (
                       <div key={i.uid} className="px-4 py-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold leading-tight">{i.product.name}</p>
-                            {i.addons.length > 0 && (
-                              <p className="mt-0.5 text-xs text-muted-foreground">+ {i.addons.map(a => a.name).join(", ")}</p>
+                            {detailParts.length > 0 && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">{detailParts.join(" · ")}</p>
                             )}
                             <p className="mt-2 font-bold">{brl(unit * i.qty)}</p>
                           </div>
@@ -641,7 +657,7 @@ export function CartDrawer({
                 </div>
                 <div className="mt-3 space-y-2 text-sm">
                   {items.map((i) => {
-                    const unit = (i.product.promoPrice ?? i.product.price) + i.addons.reduce((s, a) => s + a.price, 0);
+                    const unit = computeUnitPrice(i);
                     return (
                       <div key={i.uid} className="flex justify-between gap-3">
                         <span><span className="font-semibold">{i.qty}x</span> {i.product.name}</span>
