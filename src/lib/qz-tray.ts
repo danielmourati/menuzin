@@ -81,7 +81,7 @@ function configureSecurity(qz: QZ) {
   securityConfigured = true;
 }
 
-async function fetchQzCertificate(): Promise<{ cert: string; configured: boolean }> {
+export async function fetchQzCertificate(): Promise<{ cert: string; configured: boolean }> {
   const response = await fetch(QZ_API, {
     method: "GET",
     headers: { Accept: "application/json" },
