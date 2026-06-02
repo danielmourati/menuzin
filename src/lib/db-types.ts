@@ -68,10 +68,13 @@ export type DbAddonOption = {
   sort_order: number;
 };
 
+export type AddonGroupKind = "adicional" | "observacao";
+
 export type DbAddonGroup = {
   id: string;
   tenant_id: string;
   name: string;
+  kind: AddonGroupKind;
   required: boolean;
   min_select: number;
   max_select: number;
