@@ -27,6 +27,8 @@ type QZ = {
   };
 };
 
+export type QzPrinter = { name: string; isDefault: boolean };
+
 declare global {
   interface Window {
     qz?: QZ;
@@ -159,6 +161,25 @@ export async function listQzPrinters(): Promise<string[]> {
   return arr.filter(Boolean);
 }
 
+export async function listQzPrintersWithDefault(): Promise<{
+  printers: QzPrinter[];
+  defaultPrinter: string | null;
+}> {
+  const qz = await ensureQzConnected();
+  const res = await qz.printers.find();
+  const arr = (Array.isArray(res) ? res : [res]).filter(Boolean) as string[];
+  let def: string | null = null;
+  try {
+    def = (await qz.printers.getDefault()) || null;
+  } catch {
+    def = null;
+  }
+  return {
+    printers: arr.map((name) => ({ name, isDefault: !!def && name === def })),
+    defaultPrinter: def,
+  };
+}
+
 export async function printQzTextTest(
   printerName: string | undefined,
   text: string,
@@ -198,42 +219,26 @@ export function downloadQzProperties(): void {
 }
 
 /**
- * Monta o conteúdo de um instalador .bat para Windows que:
- *  - detecta a pasta de instalação do QZ Tray
- *  - escreve cert.pem dentro dela (a partir do conteúdo embutido)
- *  - adiciona/atualiza a linha authcert.override=cert.pem em qz-tray.properties
- *  - reinicia o QZ Tray
- * O usuário só precisa rodar como Administrador (clique direito → "Executar como administrador").
+ * Monta um instalador .bat para Windows que delega o trabalho pesado a um
+ * bloco PowerShell (passado via -EncodedCommand para evitar problemas de
+ * escape no cmd). O script:
+ *   - grava cert.pem em %ProgramData%\QZ Tray\cert.pem (caminho estável)
+ *   - grava cópia em cada pasta de instalação detectada e em
+ *     %APPDATA%\qz de TODOS os perfis de usuário (Windows)
+ *   - escreve `authcert.override=<caminho absoluto>` em todos os
+ *     qz-tray.properties correspondentes
+ *   - reinicia o QZ Tray
  */
 export function buildQzWindowsInstaller(certPem: string): string {
-  // Embute o cert.pem como base64 (single-line) — cmd não passa multi-line para o powershell.
-  const certB64 =
-    typeof btoa === "function"
-      ? btoa(unescape(encodeURIComponent(certPem.replace(/\r\n/g, "\n").trim() + "\n")))
-      : Buffer.from(certPem.replace(/\r\n/g, "\n").trim() + "\n", "utf-8").toString("base64");
+  const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
+  const certB64 = encodeBase64Utf8(cleanedCert);
+  const psB64 = encodeBase64Utf16Le(QZ_INSTALL_PS1);
   return [
     "@echo off",
-    "setlocal EnableExtensions EnableDelayedExpansion",
+    "setlocal EnableExtensions",
     "chcp 65001 >nul",
     "title Menuzin - Configurar QZ Tray",
     "",
-    ":: Detecta a pasta de instalacao do QZ Tray (cobre Windows PT-BR, 32/64 bits e instalacoes customizadas).",
-    ":: As variaveis %ProgramFiles%, %ProgramW6432% e %ProgramFiles(x86)% retornam o caminho real,",
-    ":: mesmo em sistemas onde o Explorer mostra \"Arquivos de Programas\".",
-    'set "QZ_DIR="',
-    'for %%D in ("%ProgramW6432%\\QZ Tray" "%ProgramFiles%\\QZ Tray" "%ProgramFiles(x86)%\\QZ Tray" "%SystemDrive%\\Program Files\\QZ Tray" "%SystemDrive%\\Program Files (x86)\\QZ Tray" "%SystemDrive%\\Arquivos de Programas\\QZ Tray" "%LocalAppData%\\Programs\\QZ Tray") do if not defined QZ_DIR if exist "%%~D\\qz-tray.properties" set "QZ_DIR=%%~D"',
-    ":: Fallback: pergunta ao PowerShell pelo caminho registrado no Uninstall do Windows.",
-    'if not defined QZ_DIR for /f "usebackq delims=" %%R in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$keys = @(\'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\',\'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\',\'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*\'); $p = Get-ItemProperty $keys -ErrorAction SilentlyContinue ^| Where-Object { $_.DisplayName -like \'QZ Tray*\' -and $_.InstallLocation } ^| Select-Object -First 1 -ExpandProperty InstallLocation; if ($p) { $p.TrimEnd([char]92) }"`) do set "QZ_DIR=%%R"',
-    'if not defined QZ_DIR (',
-    "  echo.",
-    "  echo QZ Tray nao foi encontrado.",
-    "  echo Instale primeiro em https://qz.io/download/ e rode este arquivo novamente.",
-    "  echo.",
-    "  pause",
-    "  exit /b 1",
-    ")",
-    "",
-    ":: Verifica privilegios de administrador",
     "net session >nul 2>&1",
     "if errorlevel 1 (",
     "  echo.",
@@ -245,46 +250,133 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "  exit /b 1",
     ")",
     "",
-    'echo Configurando QZ Tray em "%QZ_DIR%"...',
-    "",
     `set "CERT_B64=${certB64}"`,
     "",
-    ":: Escreve cert.pem (conteudo embutido em base64)",
-    'powershell -NoProfile -ExecutionPolicy Bypass -Command "[IO.File]::WriteAllBytes((Join-Path $env:QZ_DIR \'cert.pem\'), [Convert]::FromBase64String($env:CERT_B64))"',
-    "if errorlevel 1 (",
-    "  echo Falha ao escrever cert.pem.",
-    "  pause",
-    "  exit /b 1",
-    ")",
-    "",
-    ":: Garante a linha authcert.override=cert.pem em qz-tray.properties",
-    'powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Join-Path $env:QZ_DIR \'qz-tray.properties\'; $lines = if (Test-Path $p) { Get-Content $p } else { @() }; $lines = $lines | Where-Object { $_ -notmatch \'^\\s*authcert\\.override\\s*=\' }; $lines += \'authcert.override=cert.pem\'; Set-Content -LiteralPath $p -Value $lines -Encoding ascii"',
-    "if errorlevel 1 (",
-    "  echo Falha ao atualizar qz-tray.properties.",
-    "  pause",
-    "  exit /b 1",
-    ")",
-    "",
-    ":: Reinicia o QZ Tray (o executavel pode se chamar 'QZ Tray.exe' ou 'qz-tray.exe' dependendo da versao).",
-    'taskkill /IM "QZ Tray.exe" /F >nul 2>&1',
-    'taskkill /IM "qz-tray.exe" /F /T >nul 2>&1',
-    'set "QZ_EXE="',
-    'for %%E in ("%QZ_DIR%\\QZ Tray.exe" "%QZ_DIR%\\qz-tray.exe") do if not defined QZ_EXE if exist "%%~E" set "QZ_EXE=%%~E"',
-    'if defined QZ_EXE (',
-    '  start "" "%QZ_EXE%"',
-    ') else (',
-    '  echo Atencao: nao encontrei o executavel do QZ Tray em "%QZ_DIR%".',
-    '  echo Abra o QZ Tray manualmente pelo Menu Iniciar.',
-    ')',
+    `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${psB64}`,
+    "set ERR=%ERRORLEVEL%",
     "",
     "echo.",
-    "echo Configuracao concluida com sucesso.",
-    "echo Volte ao Menuzin e clique em Detectar.",
+    "if %ERR% NEQ 0 (",
+    "  echo Houve uma falha na configuracao. Codigo: %ERR%",
+    ") else (",
+    "  echo Configuracao concluida. Volte ao Menuzin e clique em Detectar.",
+    "  echo Se o QZ Tray ainda exibir o aviso 'Untrusted website' na primeira",
+    "  echo conexao, marque 'Remember this decision' e clique em Allow uma unica vez.",
+    ")",
     "echo.",
     "pause",
     "endlocal",
+    "exit /b %ERR%",
     "",
   ].join("\r\n");
+}
+
+/** Script PowerShell que faz a instalação propriamente dita. */
+const QZ_INSTALL_PS1 = `
+$ErrorActionPreference = 'Stop'
+try {
+  $certBytes = [Convert]::FromBase64String($env:CERT_B64)
+
+  # Pasta central estável (sempre legível, mesmo de outro usuário).
+  $centralDir = Join-Path $env:ProgramData 'QZ Tray'
+  New-Item -ItemType Directory -Path $centralDir -Force | Out-Null
+  $centralCert = Join-Path $centralDir 'cert.pem'
+  [IO.File]::WriteAllBytes($centralCert, $certBytes)
+
+  function Set-QzProperties([string]$propsPath, [string]$certPath) {
+    $dir = Split-Path $propsPath
+    if ($dir) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $lines = @()
+    if (Test-Path -LiteralPath $propsPath) {
+      $lines = Get-Content -LiteralPath $propsPath | Where-Object { $_ -notmatch '^\\s*authcert\\.override\\s*=' }
+    }
+    $lines += "authcert.override=$certPath"
+    Set-Content -LiteralPath $propsPath -Value $lines -Encoding ascii
+  }
+
+  # 1) Pastas de instalação do QZ Tray (cobre Program Files, x86, LocalAppData).
+  $candidates = @()
+  foreach ($p in @($env:ProgramW6432, $env:ProgramFiles, \${env:ProgramFiles(x86)}, "$env:SystemDrive\\Program Files", "$env:SystemDrive\\Program Files (x86)", "$env:LocalAppData\\Programs")) {
+    if ($p) { $candidates += (Join-Path $p 'QZ Tray') }
+  }
+  try {
+    $regKeys = @(
+      'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+      'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+    )
+    Get-ItemProperty $regKeys -ErrorAction SilentlyContinue |
+      Where-Object { $_.DisplayName -like 'QZ Tray*' -and $_.InstallLocation } |
+      ForEach-Object { $candidates += $_.InstallLocation.TrimEnd('\\') }
+  } catch {}
+  $installDirs = $candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
+
+  foreach ($dir in $installDirs) {
+    try {
+      [IO.File]::WriteAllBytes((Join-Path $dir 'cert.pem'), $certBytes)
+      Set-QzProperties (Join-Path $dir 'qz-tray.properties') $centralCert
+      Write-Host ("Configurado: " + $dir)
+    } catch { Write-Host ("Aviso em " + $dir + ": " + $_.Exception.Message) }
+  }
+
+  # 2) Properties machine-wide em %ProgramData%\QZ Tray.
+  Set-QzProperties (Join-Path $centralDir 'qz-tray.properties') $centralCert
+
+  # 3) Per-user (%APPDATA%\qz) para TODOS os perfis presentes em C:\\Users.
+  $usersRoot = Join-Path $env:SystemDrive 'Users'
+  if (Test-Path -LiteralPath $usersRoot) {
+    Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -notin @('Public','Default','Default User','All Users') -and (Test-Path -LiteralPath (Join-Path $_.FullName 'AppData\\Roaming')) } |
+      ForEach-Object {
+        $qzDir = Join-Path $_.FullName 'AppData\\Roaming\\qz'
+        try {
+          New-Item -ItemType Directory -Path $qzDir -Force | Out-Null
+          [IO.File]::WriteAllBytes((Join-Path $qzDir 'cert.pem'), $certBytes)
+          Set-QzProperties (Join-Path $qzDir 'qz-tray.properties') $centralCert
+        } catch {}
+      }
+  }
+
+  # 4) Reinicia o QZ Tray.
+  Get-Process -Name 'QZ Tray','qz-tray' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Milliseconds 800
+  $exe = $null
+  foreach ($dir in $installDirs) {
+    foreach ($name in @('QZ Tray.exe','qz-tray.exe')) {
+      $p = Join-Path $dir $name
+      if ((-not $exe) -and (Test-Path -LiteralPath $p)) { $exe = $p }
+    }
+  }
+  if ($exe) {
+    try { Start-Process -FilePath $exe } catch { Write-Host ("Nao foi possivel iniciar o QZ Tray automaticamente: " + $_.Exception.Message) }
+  } else {
+    Write-Host 'Atencao: nao encontrei o executavel do QZ Tray. Abra-o manualmente pelo Menu Iniciar.'
+  }
+
+  exit 0
+} catch {
+  Write-Host ('Erro: ' + $_.Exception.Message)
+  exit 1
+}
+`;
+
+function encodeBase64Utf8(s: string): string {
+  if (typeof btoa === "function") {
+    return btoa(unescape(encodeURIComponent(s)));
+  }
+  return Buffer.from(s, "utf-8").toString("base64");
+}
+
+function encodeBase64Utf16Le(s: string): string {
+  const bytes = new Uint8Array(s.length * 2);
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    bytes[i * 2] = c & 0xff;
+    bytes[i * 2 + 1] = (c >> 8) & 0xff;
+  }
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  if (typeof btoa === "function") return btoa(bin);
+  return Buffer.from(bin, "binary").toString("base64");
 }
 
 /** Baixa o instalador .bat (Windows) com o cert.pem embutido. */

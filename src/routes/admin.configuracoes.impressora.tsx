@@ -21,7 +21,8 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
 import {
-  ensureQzConnected, listQzPrinters, printQzTextTest, QzNotRunningError, downloadQzCertificate, downloadQzWindowsInstaller,
+  ensureQzConnected, listQzPrintersWithDefault, printQzTextTest, QzNotRunningError, downloadQzCertificate, downloadQzWindowsInstaller,
+  type QzPrinter,
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 
@@ -81,8 +82,10 @@ function PrinterSettingsPage() {
   const browserSupportsUsb = typeof navigator !== "undefined" && "usb" in navigator;
 
   const [qzBusy, setQzBusy] = useState(false);
-  const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+  const [qzPrinters, setQzPrinters] = useState<QzPrinter[]>([]);
+  const [qzDefaultPrinter, setQzDefaultPrinter] = useState<string | null>(null);
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
 
   const handleQzError = (e: unknown) => {
@@ -101,14 +104,17 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     try {
       await ensureQzConnected();
-      const list = await listQzPrinters();
-      setQzPrinters(list);
+      const { printers, defaultPrinter } = await listQzPrintersWithDefault();
+      setQzPrinters(printers);
+      setQzDefaultPrinter(defaultPrinter);
       setQzStatus("connected");
-      if (list.length === 0) {
+      if (printers.length === 0) {
         toast.warning("Nenhuma impressora encontrada.");
       } else {
-        toast.success(`QZ Tray conectado · ${list.length} impressora(s) encontrada(s).`);
-        if (!form.printer_name && list[0]) set("printer_name", list[0]);
+        toast.success(`QZ Tray conectado · ${printers.length} impressora(s) encontrada(s).`);
+        const preferred = defaultPrinter || printers[0]?.name;
+        if (!form.printer_name && preferred) set("printer_name", preferred);
+        setPrinterInputMode("select");
       }
     } catch (e) {
       handleQzError(e);
@@ -243,13 +249,47 @@ function PrinterSettingsPage() {
               <CardHeader><CardTitle className="text-base">Impressora</CardTitle></CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label>Nome da impressora</Label>
-                  <Input
-                    value={form.printer_name}
-                    onChange={(e) => set("printer_name", e.target.value)}
-                    placeholder="Ex: Balcão"
-                    className="mt-1.5"
-                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Nome da impressora</Label>
+                    {qzPrinters.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPrinterInputMode((m) => (m === "select" ? "manual" : "select"))}
+                        className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                      >
+                        {printerInputMode === "select" ? "Digitar manualmente" : "Escolher da lista"}
+                      </button>
+                    )}
+                  </div>
+                  {qzPrinters.length > 0 && printerInputMode === "select" ? (
+                    <Select
+                      value={form.printer_name || ""}
+                      onValueChange={(v) => set("printer_name", v)}
+                    >
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Selecione a impressora detectada" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {qzPrinters.map((p) => (
+                          <SelectItem key={p.name} value={p.name}>
+                            {p.name}{p.isDefault ? " (padrão)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={form.printer_name}
+                      onChange={(e) => set("printer_name", e.target.value)}
+                      placeholder={qzDefaultPrinter || "Ex: Balcão"}
+                      className="mt-1.5"
+                    />
+                  )}
+                  {qzPrinters.length === 0 && qzStatus !== "connected" && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Clique em <strong>Detectar</strong> acima para listar impressoras do sistema.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label>Modelo</Label>
@@ -443,7 +483,9 @@ function PrinterSettingsPage() {
                     <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
                     <SelectContent>
                       {qzPrinters.map((p) => (
-                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                        <SelectItem key={p.name} value={p.name}>
+                          {p.name}{p.isDefault ? " (padrão)" : ""}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
