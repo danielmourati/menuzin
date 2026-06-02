@@ -222,6 +222,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
           <SidebarInner />
         </aside>
         <div className="flex flex-1 flex-col">
+          <ImpersonationBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -241,5 +242,39 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
         </div>
       </div>
     </AuthGate>
+  );
+}
+
+function ImpersonationBanner() {
+  const { isPlatformAdmin } = useAuth();
+  const activeTenantId = useActiveTenantId();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { data } = useQuery({
+    queryKey: ["my-tenant", activeTenantId ?? "none"],
+    queryFn: () => getMyTenant(),
+    enabled: !!activeTenantId,
+  });
+  if (!isPlatformAdmin || !activeTenantId) return null;
+  const name = data?.tenant?.name ?? "loja";
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-warning/40 bg-warning/15 px-4 py-2 text-sm lg:px-8">
+      <span className="truncate">
+        <strong>Modo admin:</strong> acessando o painel de <strong>{name}</strong>
+      </span>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          clearActiveTenant();
+          qc.invalidateQueries();
+          navigate({ to: "/platform/lojas" });
+        }}
+      >
+        <X className="mr-1 h-4 w-4" /> Sair da loja
+      </Button>
+    </div>
+  );
+}
   );
 }
