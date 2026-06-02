@@ -8,6 +8,8 @@ import { OrderStatusActions } from "./OrderStatusActions";
 import { PrintOrderButton } from "./PrintOrderButton";
 import { Eye, Clock, MapPin, MessageCircle, Utensils, ChevronDown, ChevronUp } from "lucide-react";
 import { whatsappLink } from "@/lib/whatsapp";
+import { useQuery } from "@tanstack/react-query";
+import { getMyTenant } from "@/lib/tenants.functions";
 
 interface OrderCardProps {
   order: Order;
@@ -132,7 +134,7 @@ export function OrderCard({
             <Eye className="h-3.5 w-3.5" />
           </Button>
 
-          <PrintOrderButton order={order} size="icon" className="h-8 w-8" />
+          <PrintOrderButton order={order} size="icon" className="h-8 w-8" paperWidth={paperWidth} />
 
           <Button
             asChild
