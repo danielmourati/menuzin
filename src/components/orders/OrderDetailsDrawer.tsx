@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, modeLabel, formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
+import { parseAddonLabel } from "@/lib/product-selection";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { OrderStatusActions } from "./OrderStatusActions";
