@@ -69,12 +69,24 @@ export function OrderDetailsDrawer({
     lines.push("*Itens:*");
     order.items.forEach((item) => {
       lines.push(`• ${item.qty}x ${item.name} (${brl(item.unitPrice)})`);
-      if (item.addons && item.addons.length > 0) {
-        lines.push(`  + Adicionais: ${item.addons.map((a) => a.name).join(", ")}`);
+      const sizes: string[] = [];
+      const flavors: string[] = [];
+      const groups: Record<string, string[]> = {};
+      const extras: string[] = [];
+      for (const a of item.addons ?? []) {
+        const p = parseAddonLabel(a.name);
+        const suffix = Number(a.price) > 0 ? ` (+${brl(a.price)})` : "";
+        if (p.kind === "size") sizes.push(p.label);
+        else if (p.kind === "flavor") flavors.push(p.label);
+        else if (p.kind === "group" && p.groupName) {
+          (groups[p.groupName] ||= []).push(p.label + suffix);
+        } else extras.push(p.label + suffix);
       }
-      if (item.note) {
-        lines.push(`  Obs item: ${item.note}`);
-      }
+      if (sizes.length) lines.push(`   Tamanho: ${sizes.join(", ")}`);
+      if (flavors.length) lines.push(`   Sabores: ${flavors.join(" + ")}`);
+      for (const [g, opts] of Object.entries(groups)) lines.push(`   ${g}: ${opts.join(", ")}`);
+      if (extras.length) lines.push(`   Adicionais: ${extras.join(", ")}`);
+      if (item.note) lines.push(`   Obs: ${item.note}`);
     });
 
     lines.push("");
