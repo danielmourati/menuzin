@@ -10,7 +10,7 @@ import {
   Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
   User, Mail, Phone, MapPin, Pencil, Home, Map,
 } from "lucide-react";
-import { useCart } from "@/lib/cart-context";
+import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
@@ -248,14 +248,20 @@ export function CartDrawer({
           address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
           table_label: mode === "consumo_local" ? table : null,
           note: generalNote || null,
-          items: items.map((i) => ({
-            product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
-            name_snapshot: i.product.name,
-            qty: i.qty,
-            unit_price: i.product.promoPrice ?? i.product.price,
-            addons: i.addons.map((a) => ({ name: a.name, price: a.price })),
-            note: i.note ?? null,
-          })),
+          items: items.map((i) => {
+            const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
+            const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
+            const groupLabels = (i.groupOptions ?? []).map((o) => ({ name: `${o.groupName}: ${o.name}`, price: Number(o.price) }));
+            const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
+            return {
+              product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
+              name_snapshot: i.product.name,
+              qty: i.qty,
+              unit_price: computeUnitPrice(i),
+              addons: [...sizeLabel, ...flavorLabels, ...groupLabels, ...legacyAddons],
+              note: i.note ?? null,
+            };
+          }),
         },
       });
       dbOrderNumber = res.order.number;
@@ -282,8 +288,13 @@ export function CartDrawer({
       items: items.map((i) => ({
         name: i.product.name,
         qty: i.qty,
-        unitPrice: i.product.promoPrice ?? i.product.price,
-        addons: i.addons,
+        unitPrice: computeUnitPrice(i),
+        addons: [
+          ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
+          ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
+          ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
+          ...i.addons,
+        ],
         note: i.note,
       })),
       subtotal, deliveryFee, total,
