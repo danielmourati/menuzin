@@ -30,6 +30,9 @@ function NewTenantPage() {
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
   const [cloneBurger, setCloneBurger] = useState(true);
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerPassword, setOwnerPassword] = useState("");
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
@@ -40,7 +43,20 @@ function NewTenantPage() {
     staleTime: 0,
   });
   const slugOk = computedSlug.length >= 3 && !!slugCheck?.available;
-  const canSubmit = name.trim().length >= 2 && slugOk && whatsapp.trim().length >= 8;
+
+  const pwdChecks = {
+    len: ownerPassword.length >= 8,
+    upper: /[A-Z]/.test(ownerPassword),
+    lower: /[a-z]/.test(ownerPassword),
+    num: /[0-9]/.test(ownerPassword),
+    special: /[^A-Za-z0-9]/.test(ownerPassword),
+  };
+  const pwdStrong = Object.values(pwdChecks).every(Boolean);
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail.trim());
+  const ownerOk = emailValid && pwdStrong;
+
+  const canSubmit =
+    name.trim().length >= 2 && slugOk && whatsapp.trim().length >= 8 && ownerOk;
 
   const previewUrl = useMemo(
     () => (computedSlug ? `seudominio.com.br/loja/${computedSlug}` : "seudominio.com.br/loja/sua-loja"),
@@ -64,11 +80,14 @@ function NewTenantPage() {
           theme_from: themeFrom,
           theme_to: themeTo,
           active,
+          owner_email: ownerEmail.trim().toLowerCase(),
+          owner_password: ownerPassword,
+          owner_name: ownerName.trim() || null,
           clone_from_slug: cloneBurger ? "burgerprime" : null,
         },
       }),
     onSuccess: () => {
-      toast.success(`Loja "${name.trim()}" cadastrada!`);
+      toast.success(`Loja "${name.trim()}" cadastrada! O dono fará a troca de senha no primeiro acesso.`);
       navigate({ to: "/platform/lojas" });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -76,7 +95,7 @@ function NewTenantPage() {
 
   const handleSubmit = () => {
     if (!canSubmit) {
-      toast.error("Preencha os campos obrigatórios e escolha um slug válido.");
+      toast.error("Preencha os campos obrigatórios, defina email/senha do dono e use uma senha forte.");
       return;
     }
     createMut.mutate();
