@@ -135,10 +135,8 @@ function PlatformStores() {
                     <ExternalLink className="h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="icon" variant="outline" title="Painel">
-                  <Link to="/admin/dashboard">
-                    <Eye className="h-4 w-4" />
-                  </Link>
+                <Button size="icon" variant="outline" title="Acessar painel desta loja" onClick={() => accessStore(s.id)}>
+                  <Eye className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon"
