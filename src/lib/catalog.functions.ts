@@ -45,7 +45,7 @@ export const getCatalog = createServerFn({ method: "POST" })
 
     const cats = (categories ?? []) as DbCategory[];
     const catNameById = new Map(cats.map((c) => [c.id, c.name]));
-    const prodList = (products ?? []) as DbProduct[];
+    const prodList = ((products ?? []) as unknown) as DbProduct[];
     const prodIds = prodList.map((p) => p.id);
 
     // Sizes / flavors apenas dos produtos do tenant
@@ -57,7 +57,7 @@ export const getCatalog = createServerFn({ method: "POST" })
       : [{ data: [] }, { data: [] }];
 
     // Addon options + targets dos grupos ativos
-    const groups = (groupsRaw ?? []) as DbAddonGroup[];
+    const groups = ((groupsRaw ?? []) as unknown) as DbAddonGroup[];
     const groupIds = groups.map((g) => g.id);
     const [{ data: opts }, { data: targets }] = groupIds.length
       ? await Promise.all([
