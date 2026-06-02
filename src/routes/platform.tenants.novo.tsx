@@ -29,6 +29,7 @@ function NewTenantPage() {
   const [themeFrom, setThemeFrom] = useState("#FF6A1F");
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
+  const [cloneBurger, setCloneBurger] = useState(true);
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
