@@ -87,7 +87,16 @@ function PrinterSettingsPage() {
   const [qzPrinters, setQzPrinters] = useState<QzPrinter[]>([]);
   const [qzDefaultPrinter, setQzDefaultPrinter] = useState<string | null>(null);
   const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
-  const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">("unknown");
+  const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">(() => {
+    if (typeof window === "undefined") return "unknown";
+    const v = window.localStorage.getItem("qz:last-prompt");
+    return v === "prompted" || v === "trusted" ? v : "unknown";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (qzTrustState === "unknown") window.localStorage.removeItem("qz:last-prompt");
+    else window.localStorage.setItem("qz:last-prompt", qzTrustState);
+  }, [qzTrustState]);
   const [printerInputMode, setPrinterInputMode] = useState<"select" | "manual">("select");
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
