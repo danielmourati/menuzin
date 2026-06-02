@@ -283,7 +283,155 @@ function PrinterSettingsPage() {
     }
   };
 
-  return (
+  // Caminhos onde o QZ Tray 2.2 lê o cert confiável, por SO.
+  const certPathsByOs: Array<{ os: string; label: string; path: string }> = [
+    { os: "Windows", label: "System-wide (recomendado)", path: "%PROGRAMDATA%\\qz\\data\\certificates\\allowed.pem" },
+    { os: "Windows", label: "Por usuário", path: "%APPDATA%\\qz\\data\\certificates\\allowed.pem" },
+    { os: "macOS", label: "System-wide", path: "/Library/Application Support/qz/data/certificates/allowed.pem" },
+    { os: "macOS", label: "Por usuário", path: "~/Library/Application Support/qz/data/certificates/allowed.pem" },
+    { os: "Linux", label: "System-wide", path: "/etc/qz/data/certificates/allowed.pem" },
+    { os: "Linux", label: "Por usuário", path: "~/.qz/data/certificates/allowed.pem" },
+  ];
+
+  const copyToClipboard = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copiado.`);
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
+
+  // "Teste de conexão": revalida cert do servidor e confirma conexão sem prompt,
+  // mostrando cada passo em tempo real.
+  const handleTestConnection = async () => {
+    setTestBusy(true);
+    const steps: TestStep[] = [
+      { label: "Validando certificado do servidor", status: "pending" },
+      { label: "Conectando ao QZ Tray", status: "pending" },
+      { label: "Listando impressoras", status: "pending" },
+    ];
+    setTestSteps([...steps]);
+    const update = (i: number, patch: Partial<TestStep>) => {
+      steps[i] = { ...steps[i], ...patch };
+      setTestSteps([...steps]);
+    };
+    const startedAt = performance.now();
+    try {
+      const fresh = await refetchQzCert();
+      const cert = fresh.data;
+      if (!cert?.configured) {
+        update(0, { status: "err", detail: cert?.error || "Cert não configurado no servidor." });
+        setLastAttempt({ at: new Date(), ok: false, action: "Teste de conexão", error: "Cert não configurado." });
+        return;
+      }
+      if (cert.subjectCN && /QZ Industries/i.test(cert.subjectCN)) {
+        update(0, { status: "err", detail: `Cert demo (CN=${cert.subjectCN}). Action Required é inevitável.` });
+        setLastAttempt({ at: new Date(), ok: false, action: "Teste de conexão", error: "Cert demo em uso." });
+        return;
+      }
+      update(0, { status: "ok", detail: `CN=${cert.subjectCN}` });
+
+      const connectStart = performance.now();
+      await ensureQzConnected();
+      const connectMs = Math.round(performance.now() - connectStart);
+      const prompted = connectMs > 2000;
+      setQzTrustState(prompted ? "prompted" : "trusted");
+      update(1, {
+        status: prompted ? "err" : "ok",
+        detail: `${connectMs}ms · ${prompted ? "PROMPT manual detectado" : "sem prompt"}`,
+      });
+
+      const { printers, defaultPrinter } = await listQzPrintersWithDefault();
+      setQzPrinters(printers);
+      setQzDefaultPrinter(defaultPrinter);
+      setQzStatus("connected");
+      update(2, { status: "ok", detail: `${printers.length} impressora(s)` });
+
+      setLastAttempt({
+        at: new Date(), ok: !prompted,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: prompted ? "Teste de conexão (com prompt)" : "Teste de conexão (sem prompt)",
+        error: prompted ? "QZ Tray exigiu confirmação manual." : undefined,
+      });
+      if (prompted) {
+        toast.warning("Conectou, mas com prompt manual. Rode o instalador v2.");
+      } else {
+        toast.success(`Tudo certo · ${connectMs}ms · ${printers.length} impressora(s).`);
+      }
+    } catch (e) {
+      const idx = steps.findIndex((s) => s.status === "pending");
+      if (idx >= 0) update(idx, { status: "err", detail: (e as Error).message });
+      setLastAttempt({
+        at: new Date(), ok: false,
+        durationMs: Math.round(performance.now() - startedAt),
+        action: "Teste de conexão",
+        error: (e as Error).message,
+      });
+      handleQzError(e);
+    } finally {
+      setTestBusy(false);
+    }
+  };
+
+  // Exporta JSON com status atual para o usuário enviar ao suporte.
+  const handleDownloadDiagnosticReport = async () => {
+    try {
+      let fingerprint: string | null = null;
+      if (qzCert?.cert && typeof crypto !== "undefined" && crypto.subtle) {
+        try {
+          const b64 = qzCert.cert.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+          const bin = atob(b64);
+          const der = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i);
+          const hash = await crypto.subtle.digest("SHA-256", der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer);
+          fingerprint = Array.from(new Uint8Array(hash))
+            .map((b) => b.toString(16).padStart(2, "0")).join(":").toUpperCase();
+        } catch { /* ignore */ }
+      }
+      const report = {
+        generatedAt: new Date().toISOString(),
+        tenantId,
+        tenantName: (tenantData?.tenant as { name?: string } | null | undefined)?.name ?? null,
+        machine: {
+          userAgent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+          platform: typeof navigator !== "undefined" ? (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform : null,
+          language: typeof navigator !== "undefined" ? navigator.language : null,
+        },
+        qz: {
+          status: qzStatus,
+          trustState: qzTrustState,
+          detectedPrinters: qzPrinters.map((p) => p.name),
+          defaultPrinter: qzDefaultPrinter,
+          selectedPrinter: form.printer_name || null,
+        },
+        cert: {
+          configured: qzCert?.configured ?? false,
+          subjectCN: qzCert?.subjectCN ?? null,
+          isDemo: isDemoCert,
+          error: qzCert?.error ?? null,
+          fingerprintSha256: fingerprint,
+        },
+        certPaths: certPathsByOs,
+        lastAttempt: lastAttempt ? { ...lastAttempt, at: lastAttempt.at.toISOString() } : null,
+        lastTestSteps: testSteps,
+      };
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      a.href = url;
+      a.download = `qz-diagnostico-${tenantId ?? "tenant"}-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Relatório de diagnóstico baixado.");
+    } catch (e) {
+      toast.error((e as Error).message || "Falha ao gerar relatório.");
+    }
+  };
+
     <AdminLayout
       title="Impressora de Cupom"
       action={
