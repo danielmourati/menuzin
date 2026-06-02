@@ -185,9 +185,7 @@ export function CardCheckout({ amount, publicKey, onSubmit, onSuccess, onCancel 
       if (response.payment_status === "approved") {
         setStatus("approved");
         toast.success("Pagamento via Cartão aprovado!");
-        setTimeout(() => {
-          // onSuccess is invoked by parent after status set
-        }, 1200);
+        setTimeout(() => onSuccess(), 1500);
       } else {
         setStatus("rejected");
         setErrorMsg(
