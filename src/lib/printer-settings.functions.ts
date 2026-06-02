@@ -41,7 +41,7 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     tenant_id: row.tenant_id as string,
     printer_name: (row.printer_name as string) ?? "",
     printer_model: (row.printer_model as string) ?? DEFAULT_PRINTER_SETTINGS.printer_model,
-    paper_width: (row.paper_width as PrinterSettings["paper_width"]) ?? "80mm",
+    paper_width: ((row.paper_width as string) === "58mm" ? "55mm" : (row.paper_width as PrinterSettings["paper_width"])) ?? "80mm",
     connection_type: (row.connection_type as PrinterSettings["connection_type"]) ?? "browser",
     escpos_profile: (row.escpos_profile as PrinterSettings["escpos_profile"]) ?? "generic",
     font_size: (row.font_size as PrinterSettings["font_size"]) ?? "normal",
