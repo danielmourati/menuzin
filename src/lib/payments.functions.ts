@@ -729,3 +729,122 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
 
     return { status: mapped, status_detail: json.status_detail };
   });
+
+// ============================================================
+// Test credentials — creates a R$ 1,00 Pix and cancels it
+// ============================================================
+export const testMpCredentials = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const tenantId = await resolveTenantId(supabase, userId);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("store_payment_settings")
+      .select("mp_connected, mp_access_token_encrypted, mp_live_mode, mp_account_kind, mp_user_id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (error) return { success: false as const, message: error.message };
+    if (!row || !row.mp_connected || !row.mp_access_token_encrypted) {
+      return { success: false as const, message: "Conecte o Mercado Pago antes de testar." };
+    }
+
+    const liveMode = !!row.mp_live_mode;
+    const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
+      ? row.mp_account_kind
+      : null;
+
+    if (liveMode && kind === "test_user") {
+      return {
+        success: false as const,
+        message: "Modo Produção ativo com credenciais de Usuário de Teste. Reconecte com credenciais reais ou desligue o Modo Produção.",
+      };
+    }
+    if (!liveMode && kind === "production") {
+      return {
+        success: false as const,
+        message: "Modo Teste ativo com credenciais de Produção. Reconecte com um Usuário de Teste (https://www.mercadopago.com.br/developers/panel/test-users) ou ative o Modo Produção.",
+      };
+    }
+
+    let accessToken: string;
+    try {
+      accessToken = await decryptToken(row.mp_access_token_encrypted);
+    } catch (e) {
+      return { success: false as const, message: "Falha ao decifrar o Access Token salvo. Reconecte o Mercado Pago." };
+    }
+
+    const idempotencyKey = `menuzin-test-${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const payerEmail = kind === "test_user"
+      ? `test_user_${Date.now()}@testuser.com`
+      : "teste@menuzin.app";
+
+    let createRes: Response;
+    try {
+      createRes = await fetch("https://api.mercadopago.com/v1/payments", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify({
+          transaction_amount: 1.0,
+          payment_method_id: "pix",
+          description: "Teste de credenciais Menuzin",
+          payer: { email: payerEmail },
+        }),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false as const, message: `Falha de rede ao chamar Mercado Pago: ${msg}` };
+    }
+
+    const rawBody = await createRes.text();
+    let parsed: MpPaymentResponse = {};
+    try { parsed = JSON.parse(rawBody) as MpPaymentResponse; } catch { /* keep empty */ }
+
+    if (!createRes.ok || !parsed.id) {
+      const detail = parsed.message || parsed.error || rawBody.slice(0, 200) || "Sem detalhes.";
+      const causeText = Array.isArray(parsed.cause) && parsed.cause.length > 0
+        ? ` (causa: ${parsed.cause.map((c) => [c.code, c.description].filter(Boolean).join(": ")).join("; ")})`
+        : "";
+      let hint = "";
+      if (/unauthorized use of live credentials/i.test(detail + causeText)) {
+        hint = " Verifique se o par Public Key + Access Token e o Modo (Teste/Produção) estão coerentes.";
+      } else if (createRes.status === 401) {
+        hint = " Access Token inválido ou expirado. Reconecte o Mercado Pago.";
+      }
+      return {
+        success: false as const,
+        message: `Mercado Pago rejeitou o teste (HTTP ${createRes.status}): ${detail}${causeText}.${hint}`,
+      };
+    }
+
+    // Best-effort cancel to avoid leaving a pending Pix charge
+    let cancelOk = true;
+    try {
+      const cancelRes = await fetch(`https://api.mercadopago.com/v1/payments/${parsed.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": `${idempotencyKey}-cancel`,
+        },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      cancelOk = cancelRes.ok;
+    } catch {
+      cancelOk = false;
+    }
+
+    const kindLabel = kind === "test_user" ? "Usuário de Teste" : "Produção";
+    const cancelNote = cancelOk
+      ? "Cobrança Pix cancelada automaticamente."
+      : "Atenção: ficou uma cobrança Pix de R$ 1,00 pendente — cancele manualmente na sua conta MP.";
+    return {
+      success: true as const,
+      message: `Credenciais OK! Conta ${kindLabel} #${row.mp_user_id ?? "?"}, pagamento de teste #${parsed.id}. ${cancelNote}`,
+    };
+  });
