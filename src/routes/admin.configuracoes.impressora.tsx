@@ -117,6 +117,19 @@ function PrinterSettingsPage() {
     }
   };
 
+  const [certBusy, setCertBusy] = useState(false);
+  const handleDownloadCert = async () => {
+    setCertBusy(true);
+    try {
+      await downloadQzCertificate();
+      toast.success("cert.pem baixado. Coloque-o na pasta de instalação do QZ Tray.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setCertBusy(false);
+    }
+  };
+
   const handleTestPrint = async () => {
     setQzBusy(true);
     try {
