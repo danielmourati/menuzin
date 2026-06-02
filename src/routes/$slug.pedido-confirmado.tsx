@@ -9,6 +9,8 @@ import { getTenantBySlug } from "@/lib/catalog.functions";
 import { dbOrderToUi, dbHistoryToUi } from "@/lib/order-adapters";
 import { dbTenantToUi } from "@/lib/db-adapters";
 import { useCustomerOrder } from "@/hooks/useCustomerOrder";
+import { parseAddonLabel } from "@/lib/product-selection";
+import type { Order } from "@/lib/domain-types";
 
 export const Route = createFileRoute("/$slug/pedido-confirmado")({
   validateSearch: (s: Record<string, unknown>) => ({ n: Number(s.n) || 0 }),
