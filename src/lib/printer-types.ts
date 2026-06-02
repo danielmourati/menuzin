@@ -56,4 +56,4 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
 };
 
 
-export const columnsFor = (w: PaperWidth) => (w === "58mm" ? 32 : 48);
+export const columnsFor = (w: PaperWidth) => (w === "55mm" ? 30 : 48);
