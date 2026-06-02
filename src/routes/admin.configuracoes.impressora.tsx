@@ -21,7 +21,8 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
 import {
-  ensureQzConnected, listQzPrintersWithDefault, printQzTextTest, QzNotRunningError, downloadQzCertificate, downloadQzWindowsInstaller,
+  ensureQzConnected, listQzPrintersWithDefault, printQzTextTest, QzNotRunningError,
+  downloadQzCertificate, downloadQzWindowsInstaller, fetchQzCertificate,
   type QzPrinter,
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
@@ -90,6 +91,15 @@ function PrinterSettingsPage() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
+
+  // Status do cert do servidor — para alertar quando ainda for o cert demo.
+  const { data: qzCert } = useQuery({
+    queryKey: ["qz-cert"],
+    queryFn: () => fetchQzCertificate(),
+    staleTime: 60_000,
+  });
+  const isDemoCert = !!qzCert?.subjectCN && /QZ Industries/i.test(qzCert.subjectCN);
+  const serverCertReady = !!qzCert?.configured && !isDemoCert;
 
   const handleQzError = (e: unknown) => {
     if (e instanceof QzNotRunningError) {
