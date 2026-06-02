@@ -108,6 +108,25 @@ function PrinterSettingsPage() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [diagOpen, setDiagOpen] = useState(false);
   const [lastAttempt, setLastAttempt] = useState<QzConnectionAttempt | null>(null);
+  // Hidrata última tentativa do tenant atual
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(lastAttemptStorageKey);
+    if (!raw) { setLastAttempt(null); return; }
+    try {
+      const parsed = JSON.parse(raw) as Omit<QzConnectionAttempt, "at"> & { at: string };
+      setLastAttempt({ ...parsed, at: new Date(parsed.at) });
+    } catch { setLastAttempt(null); }
+  }, [lastAttemptStorageKey]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!lastAttempt) { window.localStorage.removeItem(lastAttemptStorageKey); return; }
+    window.localStorage.setItem(lastAttemptStorageKey, JSON.stringify({ ...lastAttempt, at: lastAttempt.at.toISOString() }));
+  }, [lastAttempt, lastAttemptStorageKey]);
+
+  type TestStep = { label: string; status: "pending" | "ok" | "err"; detail?: string };
+  const [testSteps, setTestSteps] = useState<TestStep[] | null>(null);
+  const [testBusy, setTestBusy] = useState(false);
 
   // Status do cert do servidor — para alertar quando ainda for o cert demo.
   const { data: qzCert, refetch: refetchQzCert } = useQuery({
