@@ -47,15 +47,7 @@ export function ProductModal({
   const selectedSize: ProductSize | undefined = product.sizes?.find((s) => s.id === sizeId);
   const selectedFlavors: ProductFlavor[] = (product.flavors ?? []).filter((f) => flavorIds.includes(f.id));
 
-  // preço base: tamanho (se houver) ou preço do produto
-  const baseFromProduct = product.promoPrice ?? product.price;
-  const baseFromSize = selectedSize ? selectedSize.price : baseFromProduct;
-
-  // pizza: somar média dos price_delta dos sabores selecionados
-  const flavorDelta = isPizza && selectedFlavors.length
-    ? selectedFlavors.reduce((s, f) => s + f.priceDelta, 0) / selectedFlavors.length
-    : 0;
-  const basePrice = baseFromSize + flavorDelta;
+  const basePrice = computeBasePrice(product, selectedSize, selectedFlavors);
 
   const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
     const out: CartSelectedGroupOption[] = [];
@@ -73,48 +65,15 @@ export function ProductModal({
   const total = (basePrice + addonsSum + groupSum) * qty;
 
   // ===== Validação =====
-  const validations: string[] = [];
-  if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-    validations.push("Escolha um tamanho");
-  }
-  if (isPizza) {
-    if (selectedFlavors.length < 1) {
-      validations.push("Escolha ao menos 1 sabor");
-    } else if (selectedFlavors.length > maxFlavors) {
-      validations.push(`Máximo ${maxFlavors} sabor${maxFlavors > 1 ? "es" : ""}`);
-    }
-  }
-  for (const g of product.addonGroups ?? []) {
-    const ids = groupSelections[g.id] ?? [];
-    if (g.required && ids.length < Math.max(1, g.minSelect)) {
-      validations.push(`${g.name}: selecione ${g.minSelect > 1 ? g.minSelect : 1}`);
-    } else if (ids.length > g.maxSelect) {
-      validations.push(`${g.name}: máximo ${g.maxSelect}`);
-    } else if (ids.length > 0 && g.minSelect > 0 && ids.length < g.minSelect) {
-      validations.push(`${g.name}: mínimo ${g.minSelect}`);
-    }
-  }
+  const validations = validateSelection({ product, sizeId, flavorIds, groupSelections });
   const canAdd = validations.length === 0 && product.available;
 
   const toggleFlavor = (f: ProductFlavor) => {
-    setFlavorIds((prev) => {
-      if (prev.includes(f.id)) return prev.filter((id) => id !== f.id);
-      if (prev.length >= maxFlavors) {
-        // substitui o último selecionado para respeitar o máximo
-        return [...prev.slice(0, maxFlavors - 1), f.id];
-      }
-      return [...prev, f.id];
-    });
+    setFlavorIds((prev) => toggleFlavorId(prev, f.id, maxFlavors));
   };
 
   const toggleGroupOption = (groupId: string, optId: string, maxSelect: number) => {
-    setGroupSelections((prev) => {
-      const cur = prev[groupId] ?? [];
-      if (maxSelect === 1) return { ...prev, [groupId]: cur.includes(optId) ? [] : [optId] };
-      if (cur.includes(optId)) return { ...prev, [groupId]: cur.filter((x) => x !== optId) };
-      if (cur.length >= maxSelect) return prev;
-      return { ...prev, [groupId]: [...cur, optId] };
-    });
+    setGroupSelections((prev) => ({ ...prev, [groupId]: toggleGroupOptionId(prev[groupId], optId, maxSelect) }));
   };
 
   const onAdd = () => {
