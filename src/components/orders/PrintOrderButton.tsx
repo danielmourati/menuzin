@@ -1,23 +1,23 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Printer, X } from "lucide-react";
 import type { Order } from "@/lib/domain-types";
 import { PrintableOrder } from "./PrintableOrder";
 import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
+import { useAuth } from "@/lib/auth-context";
+import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
 
 interface PrintOrderButtonProps {
   order: Order;
   storeName?: string;
   storePhone?: string;
   storeAddress?: string;
+  /** Compat. Se as configurações de impressora existirem, prevalecem. */
   paperWidth?: "55mm" | "80mm";
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary" | "ghost";
@@ -25,20 +25,26 @@ interface PrintOrderButtonProps {
 }
 
 export function PrintOrderButton({
-  order,
-  storeName,
-  storePhone,
-  storeAddress,
-  paperWidth = "55mm",
-  size = "default",
-  variant = "outline",
-  className = "",
+  order, storeName, storePhone, storeAddress,
+  paperWidth, size = "default", variant = "outline", className = "",
 }: PrintOrderButtonProps) {
+  const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [printing, setPrinting] = useState(false);
-  // Force 58mm preview regardless of selected paperWidth, so admin sees exact
-  // alignment that will hit a thermal 58mm printer.
-  const previewWidth: "55mm" | "80mm" = paperWidth === "80mm" ? "80mm" : "55mm";
+
+  const { data } = useQuery({
+    queryKey: ["printer-settings"],
+    queryFn: () => getMyPrinterSettings(),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const settings = data?.settings ?? DEFAULT_PRINTER_SETTINGS;
+
+  // Largura efetiva: configuração da impressora > prop legada > default
+  const effectiveWidth: "58mm" | "80mm" =
+    settings.paper_width ??
+    (paperWidth === "55mm" ? "58mm" : paperWidth === "80mm" ? "80mm" : "80mm");
 
   const handlePrint = () => {
     setPrinting(true);
@@ -55,12 +61,7 @@ export function PrintOrderButton({
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant={variant}
-            size={size}
-            className={className}
-            title="Imprimir pedido"
-          >
+          <Button variant={variant} size={size} className={className} title="Imprimir pedido">
             <Printer className={size === "icon" ? "h-3.5 w-3.5" : "mr-2 h-4 w-4"} />
             {size !== "icon" && "Imprimir"}
           </Button>
@@ -69,7 +70,7 @@ export function PrintOrderButton({
         <DialogContent className="max-w-md p-0 gap-0">
           <DialogHeader className="px-4 pt-4 pb-2">
             <DialogTitle className="text-base">
-              Prévia do cupom · {previewWidth === "55mm" ? "58mm" : "80mm"}
+              Prévia do cupom · {effectiveWidth}
             </DialogTitle>
           </DialogHeader>
 
@@ -80,7 +81,8 @@ export function PrintOrderButton({
                 storeName={storeName}
                 storePhone={storePhone}
                 storeAddress={storeAddress}
-                paperWidth={previewWidth === "55mm" ? "58mm" : "80mm"}
+                paperWidth={effectiveWidth}
+                settings={settings}
               />
             </div>
           </div>
@@ -105,7 +107,8 @@ export function PrintOrderButton({
               storeName={storeName}
               storePhone={storePhone}
               storeAddress={storeAddress}
-              paperWidth={previewWidth === "55mm" ? "58mm" : "80mm"}
+              paperWidth={effectiveWidth}
+              settings={settings}
             />
           </div>,
           document.body,
