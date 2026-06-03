@@ -131,7 +131,7 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
     const tenantId = await resolveTenantId(supabase, userId);
     const { data, error } = await supabase
       .from("store_payment_settings")
-      .select("*")
+      .select(SAFE_SETTINGS_COLUMNS)
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (error) throw new Error(error.message);
