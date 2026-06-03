@@ -67,22 +67,32 @@ export function useOrdersRealtime() {
 
   useEffect(() => { refetch(); }, [refetch]);
 
-  // realtime subscription — canal único por instância para evitar
-  // "cannot add postgres_changes callbacks after subscribe()" quando
-  // múltiplos componentes montam o hook simultaneamente.
+  // Atualização por polling periódico. A publicação Realtime das tabelas
+  // `orders` e `order_status_history` foi removida por segurança (evita que
+  // staff de uma loja receba eventos de outra loja), então recarregamos a
+  // lista a cada 10s. O som de novo pedido toca quando aparece um pedido
+  // mais recente do que o último visto.
+  const lastSeenIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const channelName = `orders-changes:${instanceId}:${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
-        refetch();
-        if (payload.eventType === "INSERT" && soundEnabledRef.current) {
-          playNotificationSound();
-        }
-      })
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [refetch, instanceId]);
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await listOrdersForMyTenant();
+        if (cancelled) return;
+        const ui = res.orders.map((o) => dbOrderToUi(o));
+        const known = lastSeenIdsRef.current;
+        const hasNew = known.size > 0 && ui.some((o) => !known.has(o.id));
+        ui.forEach((o) => known.add(o.id));
+        setOrders(ui);
+        if (hasNew && soundEnabledRef.current) playNotificationSound();
+      } catch (err) {
+        console.error("Falha ao recarregar pedidos:", err);
+      }
+    };
+    void tick();
+    const id = window.setInterval(tick, 10000);
+    return () => { cancelled = true; window.clearInterval(id); };
+  }, [instanceId]);
 
   // bridge para listeners locais (notificações)
   useEffect(() => {
