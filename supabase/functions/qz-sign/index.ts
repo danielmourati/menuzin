@@ -129,6 +129,25 @@ Deno.serve(async (req) => {
   }
 
   if (req.method === "POST") {
+    // SECURITY: a assinatura usa a chave privada do servidor — exigimos JWT
+    // válido do Supabase (admin logado) antes de assinar qualquer payload.
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+    if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
+      return json({ error: "Não autorizado." }, 401);
+    }
+    const token = authHeader.slice(7).trim();
+    const supaUrl = Deno.env.get("SUPABASE_URL");
+    const supaKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY");
+    if (!supaUrl || !supaKey) {
+      return json({ error: "Auth não configurado no servidor." }, 500);
+    }
+    const userRes = await fetch(`${supaUrl}/auth/v1/user`, {
+      headers: { apikey: supaKey, Authorization: `Bearer ${token}` },
+    });
+    if (!userRes.ok) {
+      return json({ error: "Não autorizado." }, 401);
+    }
+
     if (!cfg.ok) return json({ signature: "", configured: false, error: cfg.reason });
     let body: { request?: unknown };
     try {
