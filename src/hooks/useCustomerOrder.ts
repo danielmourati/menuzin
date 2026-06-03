@@ -1,6 +1,4 @@
-import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { getOrder, getOrderByNumber } from "@/lib/orders.functions";
 import { dbOrderToUi, dbHistoryToUi } from "@/lib/order-adapters";
 import type { Order } from "@/lib/domain-types";
@@ -18,16 +16,16 @@ async function fetchOrder(lookup: Lookup) {
 }
 
 /**
- * Hook público (sem auth) que busca um pedido e assina mudanças em tempo real
- * tanto na linha `orders` (mudanças de status/pagamento) quanto em novas
- * entradas em `order_status_history`.
+ * Hook público (sem auth) que busca um pedido e mantém o estado atualizado
+ * por polling. Não usamos Supabase Realtime aqui porque a tabela `orders`
+ * agora é restrita à equipe do tenant via RLS — o cliente acessa o pedido
+ * apenas através de uma server function que carrega pelo id privado.
  */
 export function useCustomerOrder(lookup: Lookup | null): {
   order: Order | null;
   isLoading: boolean;
   error: Error | null;
 } {
-  const queryClient = useQueryClient();
   const queryKey = lookup
     ? ["customer-order", lookup.kind === "id" ? lookup.id : `${lookup.tenantSlug}:${lookup.number}`]
     : ["customer-order", "none"];
@@ -37,27 +35,9 @@ export function useCustomerOrder(lookup: Lookup | null): {
     queryFn: () => fetchOrder(lookup!),
     enabled: !!lookup,
     staleTime: 5_000,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   });
-
-  const orderId = data?.id ?? null;
-
-  useEffect(() => {
-    if (!orderId) return;
-    const channel = supabase
-      .channel(`order:${orderId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        () => { queryClient.invalidateQueries({ queryKey }); },
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "order_status_history", filter: `order_id=eq.${orderId}` },
-        () => { queryClient.invalidateQueries({ queryKey }); },
-      )
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [orderId, queryClient, queryKey]);
 
   return {
     order: data ?? null,
