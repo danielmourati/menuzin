@@ -1066,7 +1066,7 @@ function PrinterSettingsPage() {
                   <div
                     className="receipt-preview mx-auto"
                     style={{
-                      background: "#fff",
+                      background: "#E8D69F",
                       color: "#111",
                       fontFamily: '"Courier New", Courier, monospace',
                       fontSize: form.font_size === "compact" ? "12px" : "13px",
