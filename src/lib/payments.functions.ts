@@ -360,7 +360,7 @@ export const updatePaymentSettings = createServerFn({ method: "POST" })
       .from("store_payment_settings")
       .update(data)
       .eq("tenant_id", tenantId)
-      .select("*")
+      .select(SAFE_SETTINGS_COLUMNS)
       .single();
     if (error) throw new Error(error.message);
     return toSafe(row as DbRow);
