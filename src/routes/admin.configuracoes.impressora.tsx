@@ -909,28 +909,6 @@ function PrinterSettingsPage() {
             </Card>
 
 
-            {/* Bloco 2 — Papel */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Papel</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {(["55mm", "80mm"] as const).map((w) => (
-                    <Button
-                      key={w}
-                      type="button"
-                      variant={form.paper_width === w ? "default" : "outline"}
-                      onClick={() => set("paper_width", w)}
-                    >
-                      {w}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Largura: <strong>{form.paper_width}</strong> · Colunas calculadas: <strong>{cols}</strong>
-                </p>
-              </CardContent>
-            </Card>
-
             {/* Bloco 3 — Layout do cupom */}
             <Card>
               <CardHeader><CardTitle className="text-base">Layout do cupom</CardTitle></CardHeader>
