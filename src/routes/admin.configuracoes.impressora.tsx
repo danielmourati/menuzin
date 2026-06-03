@@ -45,6 +45,7 @@ function PrinterSettingsPage() {
   });
 
   const [form, setForm] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
+  const [previewOpen, setPreviewOpen] = useState(true);
   useEffect(() => {
     if (data?.settings) setForm(data.settings);
   }, [data]);
