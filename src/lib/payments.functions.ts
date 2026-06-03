@@ -140,7 +140,7 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
       const { data: created, error: insErr } = await supabase
         .from("store_payment_settings")
         .insert({ tenant_id: tenantId, provider: "mercadopago" })
-        .select("*")
+        .select(SAFE_SETTINGS_COLUMNS)
         .single();
       if (insErr) throw new Error(insErr.message);
       return toSafe(created as DbRow);
