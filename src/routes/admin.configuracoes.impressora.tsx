@@ -548,11 +548,8 @@ function PrinterSettingsPage() {
                     {certBadge.label}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setDiagOpen(true)}>
-                    <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" onClick={() => setGuideOpen(true)}>
                     <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
                   </Button>
                 </div>
