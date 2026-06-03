@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download, Stethoscope } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download, Stethoscope, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -45,6 +45,7 @@ function PrinterSettingsPage() {
   });
 
   const [form, setForm] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
+  const [previewOpen, setPreviewOpen] = useState(true);
   useEffect(() => {
     if (data?.settings) setForm(data.settings);
   }, [data]);
@@ -547,11 +548,8 @@ function PrinterSettingsPage() {
                     {certBadge.label}
                   </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setDiagOpen(true)}>
-                    <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setGuideOpen(true)}>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" onClick={() => setGuideOpen(true)}>
                     <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
                   </Button>
                 </div>
@@ -592,6 +590,18 @@ function PrinterSettingsPage() {
                       {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
                       Teste de conexão
                     </Button>
+                  </div>
+                </div>
+
+                <details className="group rounded-md border bg-muted/20 px-3 py-2 text-xs">
+                  <summary className="flex cursor-pointer select-none items-center gap-1.5 font-medium text-muted-foreground">
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                    Ajuda &amp; solução de problemas
+                  </summary>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" onClick={() => setDiagOpen(true)}>
+                      <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -611,7 +621,7 @@ function PrinterSettingsPage() {
                       Baixar diagnóstico
                     </Button>
                   </div>
-                </div>
+                </details>
 
                 {testSteps && (
                   <div className="rounded-md border bg-muted/30 p-3">
@@ -899,28 +909,6 @@ function PrinterSettingsPage() {
             </Card>
 
 
-            {/* Bloco 2 — Papel */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Papel</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {(["55mm", "80mm"] as const).map((w) => (
-                    <Button
-                      key={w}
-                      type="button"
-                      variant={form.paper_width === w ? "default" : "outline"}
-                      onClick={() => set("paper_width", w)}
-                    >
-                      {w}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Largura: <strong>{form.paper_width}</strong> · Colunas calculadas: <strong>{cols}</strong>
-                </p>
-              </CardContent>
-            </Card>
-
             {/* Bloco 3 — Layout do cupom */}
             <Card>
               <CardHeader><CardTitle className="text-base">Layout do cupom</CardTitle></CardHeader>
@@ -1006,25 +994,40 @@ function PrinterSettingsPage() {
             </Card>
           </div>
 
-          {/* Bloco 4 — Teste / Prévia */}
+          {/* Bloco 4 — Papel + Prévia */}
           <Card className="lg:sticky lg:top-4 self-start">
             <CardHeader className="flex-row items-center justify-between gap-2">
               <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
-              <div className="flex gap-1.5">
-                <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy}>
-                  <Plug className="mr-1.5 h-4 w-4" /> Detectar
-                </Button>
-                <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
-                  {qzBusy ? (
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Printer className="mr-1.5 h-4 w-4" />
-                  )}
-                  Testar impressão
-                </Button>
-              </div>
+              <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
+                {qzBusy ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Printer className="mr-1.5 h-4 w-4" />
+                )}
+                Testar impressão
+              </Button>
             </CardHeader>
             <CardContent className="space-y-3">
+              <div>
+                <Label className="text-xs">Tamanho do papel</Label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {(["55mm", "80mm"] as const).map((w) => (
+                    <Button
+                      key={w}
+                      type="button"
+                      size="sm"
+                      variant={form.paper_width === w ? "default" : "outline"}
+                      onClick={() => set("paper_width", w)}
+                    >
+                      {w}
+                    </Button>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {cols} colunas calculadas
+                </p>
+              </div>
+
               {qzPrinters.length > 0 && (
                 <div>
                   <Label className="text-xs">Impressora QZ Tray</Label>
@@ -1044,30 +1047,47 @@ function PrinterSettingsPage() {
                 </div>
               )}
 
-              <div
-                className="receipt-preview mx-auto"
-                style={{
-                  background: "#fff",
-                  color: "#111",
-                  fontFamily: '"Courier New", Courier, monospace',
-                  fontSize: form.font_size === "compact" ? "12px" : "13px",
-                  lineHeight: 1.35,
-                  whiteSpace: "pre",
-                  overflowX: "auto",
-                  padding: "16px",
-                  borderRadius: "12px",
-                  border: "1px solid hsl(var(--border))",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                  maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
-                  maxHeight: "70vh",
-                }}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-center"
+                onClick={() => setPreviewOpen((v) => !v)}
               >
-                {previewText}
-              </div>
+                {previewOpen ? (
+                  <><EyeOff className="mr-1.5 h-4 w-4" /> Ocultar prévia do cupom</>
+                ) : (
+                  <><Eye className="mr-1.5 h-4 w-4" /> Mostrar prévia do cupom</>
+                )}
+              </Button>
 
-              <p className="text-xs text-muted-foreground">
-                Prévia em texto puro · {columnsFor(form.paper_width)} colunas. A impressão real é enviada via QZ Tray para a impressora selecionada.
-              </p>
+              {previewOpen && (
+                <>
+                  <div
+                    className="receipt-preview mx-auto"
+                    style={{
+                      background: "#fff",
+                      color: "#111",
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontSize: form.font_size === "compact" ? "12px" : "13px",
+                      lineHeight: 1.35,
+                      whiteSpace: "pre",
+                      overflowX: "auto",
+                      padding: "16px",
+                      borderRadius: "12px",
+                      border: "1px solid hsl(var(--border))",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                      maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
+                      maxHeight: "70vh",
+                    }}
+                  >
+                    {previewText}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Prévia em texto puro · {columnsFor(form.paper_width)} colunas.
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
