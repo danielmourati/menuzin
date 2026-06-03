@@ -35,7 +35,7 @@ declare global {
   }
 }
 
-const QZ_CDN = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js";
+const QZ_CDN = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.6/qz-tray.js";
 /** Endpoint primário (TanStack server route, Node runtime). */
 const QZ_API = "/api/public/qz";
 /** URL pública do cert PEM cru — usada pelo instalador .bat e por docs. */
