@@ -100,9 +100,24 @@ export async function fetchQzCertificate(): Promise<{
 }
 
 async function signQzPayload(request: string): Promise<{ signature: string; configured: boolean }> {
+  // O endpoint de assinatura exige sessão autenticada — ele assina com a
+  // chave privada do servidor, então não pode ficar aberto para qualquer
+  // visitante. Pegamos o access_token do Supabase e mandamos como Bearer.
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    /* segue sem header — o servidor vai responder 401 e o QZ Tray cai no prompt manual */
+  }
   const response = await fetch(QZ_API, {
     method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ request }),
     cache: "no-store",
   });

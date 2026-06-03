@@ -82,6 +82,12 @@ type DbRow = {
   updated_at: string;
 };
 
+// Whitelist of columns safe to read from the client (excludes the encrypted
+// access token, which is REVOKED from anon/authenticated at the column level
+// and may only be read server-side via the service role).
+const SAFE_SETTINGS_COLUMNS =
+  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
+
 function toSafe(row: DbRow): StorePaymentSettingsSafe {
   const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
     ? row.mp_account_kind
@@ -125,7 +131,7 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
     const tenantId = await resolveTenantId(supabase, userId);
     const { data, error } = await supabase
       .from("store_payment_settings")
-      .select("*")
+      .select(SAFE_SETTINGS_COLUMNS)
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -134,7 +140,7 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
       const { data: created, error: insErr } = await supabase
         .from("store_payment_settings")
         .insert({ tenant_id: tenantId, provider: "mercadopago" })
-        .select("*")
+        .select(SAFE_SETTINGS_COLUMNS)
         .single();
       if (insErr) throw new Error(insErr.message);
       return toSafe(created as DbRow);
@@ -354,7 +360,7 @@ export const updatePaymentSettings = createServerFn({ method: "POST" })
       .from("store_payment_settings")
       .update(data)
       .eq("tenant_id", tenantId)
-      .select("*")
+      .select(SAFE_SETTINGS_COLUMNS)
       .single();
     if (error) throw new Error(error.message);
     return toSafe(row as DbRow);

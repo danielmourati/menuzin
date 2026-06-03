@@ -43,6 +43,50 @@ async function decryptToken(cipherBase64: string, secretKeyHex: string): Promise
   return new TextDecoder().decode(decrypted);
 }
 
+// Verifica a assinatura HMAC-SHA256 que o Mercado Pago envia em x-signature.
+// Formato do header: "ts=<timestamp>,v1=<hex>". Manifesto:
+//   id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+async function verifyMpSignature(req: Request, payload: any): Promise<boolean> {
+  const secret = Deno.env.get("MP_WEBHOOK_SECRET");
+  if (!secret) {
+    console.error("MP_WEBHOOK_SECRET ausente — rejeitando webhook sem assinatura.");
+    return false;
+  }
+  const sigHeader = req.headers.get("x-signature") || "";
+  const requestId = req.headers.get("x-request-id") || "";
+  const parts = Object.fromEntries(
+    sigHeader.split(",").map((kv) => {
+      const [k, v] = kv.split("=").map((s) => s?.trim());
+      return [k, v ?? ""];
+    }),
+  );
+  const ts = parts.ts;
+  const v1 = parts.v1;
+  if (!ts || !v1 || !requestId) return false;
+
+  const dataId = String(payload?.data?.id ?? payload?.id ?? "");
+  if (!dataId) return false;
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest));
+  const expected = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // Comparação em tempo constante para evitar timing leaks.
+  if (expected.length !== v1.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ v1.charCodeAt(i);
+  return diff === 0;
+}
+
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -51,6 +95,18 @@ serve(async (req) => {
   try {
     const payload = await req.json();
     console.log("MP Webhook notification received:", payload);
+
+    // SECURITY: Mercado Pago assina cada notificação. Recusamos qualquer
+    // chamada cuja assinatura não bata com MP_WEBHOOK_SECRET.
+    const valid = await verifyMpSignature(req, payload);
+    if (!valid) {
+      console.warn("MP webhook signature inválida — rejeitando.");
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
 
     const eventId = payload.id || payload.data?.id;
     const type = payload.type || payload.action;

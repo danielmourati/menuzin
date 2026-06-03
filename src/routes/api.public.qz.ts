@@ -1,11 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createSign } from "crypto";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
 import { getQzConfig } from "@/lib/qz-config.server";
 
 const SignRequestSchema = z.object({
   request: z.string().min(1).max(64_000),
 });
+
+async function requireAuthenticatedCaller(request: Request): Promise<Response | null> {
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
+    return json({ error: "Não autorizado: sessão necessária para assinar." }, 401);
+  }
+  const token = authHeader.slice(7).trim();
+  if (!token) return json({ error: "Não autorizado: token vazio." }, 401);
+
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    console.error("[qz-api] SUPABASE_URL/SUPABASE_PUBLISHABLE_KEY ausentes — não dá pra validar JWT.");
+    return json({ error: "Configuração de autenticação ausente no servidor." }, 500);
+  }
+  const supabase = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+  });
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    return json({ error: "Não autorizado: token inválido." }, 401);
+  }
+  return null;
+}
+
 
 export const Route = createFileRoute("/api/public/qz")({
   server: {
@@ -22,6 +48,12 @@ export const Route = createFileRoute("/api/public/qz")({
         });
       },
       POST: async ({ request }) => {
+        // QZ Tray signing requires an authenticated admin session — the private
+        // key never signs payloads for anonymous callers, otherwise anyone on
+        // the internet could push print jobs to clients trusting our cert.
+        const authErr = await requireAuthenticatedCaller(request);
+        if (authErr) return authErr;
+
         const cfg = getQzConfig();
         if (!cfg.ok) {
           return json({ signature: "", configured: false as const, error: cfg.reason });
