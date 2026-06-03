@@ -48,6 +48,12 @@ export const Route = createFileRoute("/api/public/qz")({
         });
       },
       POST: async ({ request }) => {
+        // QZ Tray signing requires an authenticated admin session — the private
+        // key never signs payloads for anonymous callers, otherwise anyone on
+        // the internet could push print jobs to clients trusting our cert.
+        const authErr = await requireAuthenticatedCaller(request);
+        if (authErr) return authErr;
+
         const cfg = getQzConfig();
         if (!cfg.ok) {
           return json({ signature: "", configured: false as const, error: cfg.reason });
