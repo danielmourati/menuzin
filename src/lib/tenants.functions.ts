@@ -63,6 +63,7 @@ export const claimNewTenant = createServerFn({ method: "POST" })
 
 export const getMyTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => d)
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
