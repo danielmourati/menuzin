@@ -590,6 +590,18 @@ function PrinterSettingsPage() {
                       {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
                       Teste de conexão
                     </Button>
+                  </div>
+                </div>
+
+                <details className="group rounded-md border bg-muted/20 px-3 py-2 text-xs">
+                  <summary className="flex cursor-pointer select-none items-center gap-1.5 font-medium text-muted-foreground">
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+                    Ajuda &amp; solução de problemas
+                  </summary>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" onClick={() => setDiagOpen(true)}>
+                      <Stethoscope className="mr-1.5 h-4 w-4" /> Diagnóstico
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -609,7 +621,7 @@ function PrinterSettingsPage() {
                       Baixar diagnóstico
                     </Button>
                   </div>
-                </div>
+                </details>
 
                 {testSteps && (
                   <div className="rounded-md border bg-muted/30 p-3">
