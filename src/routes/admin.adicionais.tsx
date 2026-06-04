@@ -319,7 +319,7 @@ function OptionsEditor({ groupId, kind, options, onChanged }: {
           <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder={kind === "observacao" ? "Ex.: Sem cebola" : "Nome"} className="mt-1" />
         </div>
         {showPrice && (
-          <div className="w-24"><Label className="text-xs">Preço</Label><Input type="number" step="0.10" value={draft.price} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })} className="mt-1" /></div>
+          <div className="w-28"><Label className="text-xs">Preço</Label><CurrencyInput value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} className="mt-1" /></div>
         )}
         <Button onClick={() => {
           if (!draft.name) return;
