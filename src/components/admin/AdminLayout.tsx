@@ -12,7 +12,9 @@ import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListen
 import { useAuth } from "@/lib/auth-context";
 import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
+import { computeStoreOpen } from "@/lib/store-hours";
 import { toast } from "sonner";
+
 
 const items = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
