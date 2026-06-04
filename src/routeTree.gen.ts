@@ -16,6 +16,7 @@ import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
 import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
+import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -70,6 +71,11 @@ const LojaSlugRoute = LojaSlugRouteImport.update({
 const AdminTrocarSenhaRoute = AdminTrocarSenhaRouteImport.update({
   id: '/admin/trocar-senha',
   path: '/admin/trocar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTaxasEntregaRoute = AdminTaxasEntregaRouteImport.update({
+  id: '/admin/taxas-entrega',
+  path: '/admin/taxas-entrega',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/dashboard': typeof PlatformDashboardRoute
@@ -219,6 +226,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/dashboard': typeof PlatformDashboardRoute
@@ -249,6 +257,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/dashboard': typeof PlatformDashboardRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/pedidos'
     | '/admin/produtos'
+    | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
     | '/platform/dashboard'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/pedidos'
     | '/admin/produtos'
+    | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
     | '/platform/dashboard'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/pedidos'
     | '/admin/produtos'
+    | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
     | '/platform/dashboard'
@@ -366,6 +378,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
+  AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
   AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
   PlatformDashboardRoute: typeof PlatformDashboardRoute
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/trocar-senha'
       fullPath: '/admin/trocar-senha'
       preLoaderRoute: typeof AdminTrocarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/taxas-entrega': {
+      id: '/admin/taxas-entrega'
+      path: '/admin/taxas-entrega'
+      fullPath: '/admin/taxas-entrega'
+      preLoaderRoute: typeof AdminTaxasEntregaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/produtos': {
@@ -625,6 +645,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
+  AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
   AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
   PlatformDashboardRoute: PlatformDashboardRoute,

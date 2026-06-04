@@ -22,6 +22,8 @@ import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
+import { listPublicDeliveryZones, type PublicDeliveryZone } from "@/lib/delivery-zones.functions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 type Step =
@@ -105,7 +107,19 @@ export function CartDrawer({
   const tenantDeliveryFee = Number(tenant?.delivery_fee ?? 0);
   const tenantAddress = tenant?.address ?? "";
 
-  const deliveryFee = mode === "entrega" ? tenantDeliveryFee : 0;
+  // Delivery zones (per-neighborhood fees). When empty, fall back to tenant.delivery_fee.
+  const { data: zonesData } = useQuery({
+    queryKey: ["public-delivery-zones", slug],
+    queryFn: () => slug ? listPublicDeliveryZones({ data: { tenant_slug: slug } }) : Promise.resolve({ zones: [] as PublicDeliveryZone[] }),
+    enabled: !!slug,
+    staleTime: 60_000,
+  });
+  const zones = zonesData?.zones ?? [];
+  const hasZones = zones.length > 0;
+  const selectedZone = hasZones ? zones.find((z) => z.neighborhood === neighborhood) ?? null : null;
+  const zoneFee = selectedZone ? Number(selectedZone.fee) : 0;
+
+  const deliveryFee = mode === "entrega" ? (hasZones ? zoneFee : tenantDeliveryFee) : 0;
   const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
@@ -160,6 +174,12 @@ export function CartDrawer({
 
   const confirmAddress = () => {
     if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
+    if (hasZones && !selectedZone) {
+      return toast.error("Selecione um bairro atendido pela loja");
+    }
+    if (selectedZone && selectedZone.min_order_total > 0 && subtotal < selectedZone.min_order_total) {
+      return toast.error(`Pedido mínimo para ${selectedZone.neighborhood}: ${brl(selectedZone.min_order_total)}`);
+    }
     goTo("customer");
   };
   const confirmTable = () => {
@@ -502,7 +522,30 @@ export function CartDrawer({
                 <div className="col-span-2"><Label>CEP</Label><Input value={cep} onChange={(e) => setCep(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
-                <div><Label>Bairro *</Label><Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div>
+                  <Label>Bairro *</Label>
+                  {hasZones ? (
+                    <>
+                      <Select value={neighborhood} onValueChange={setNeighborhood}>
+                        <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="Selecione o bairro" /></SelectTrigger>
+                        <SelectContent>
+                          {zones.map((z) => (
+                            <SelectItem key={z.id} value={z.neighborhood}>
+                              {z.neighborhood} — {brl(z.fee)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedZone && selectedZone.min_order_total > 0 && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Pedido mínimo: {brl(selectedZone.min_order_total)}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" />
+                  )}
+                </div>
                 <div className="col-span-2"><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div className="col-span-2"><Label>Ponto de referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1.5 h-11" /></div>
               </div>
