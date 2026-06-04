@@ -471,3 +471,122 @@ export const setAddonGroupTargets = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+// ===== Simplified Addon Items (flat: 1 group = 1 option) =====
+
+export type AddonItem = {
+  id: string;            // group id
+  optionId: string | null;
+  name: string;
+  kind: "adicional" | "observacao";
+  price: number;
+  active: boolean;
+  categoryIds: string[];
+  sortOrder: number;
+};
+
+export const listAddonItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const { data: groups, error } = await sb
+      .from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order");
+    if (error) throw new Error(error.message);
+    const ids = (groups ?? []).map((g) => g.id as string);
+    if (!ids.length) return { items: [] as AddonItem[] };
+    const [{ data: opts }, { data: targets }] = await Promise.all([
+      sb.from("addon_options").select("*").in("group_id", ids).order("sort_order"),
+      sb.from("addon_group_targets").select("*").in("group_id", ids),
+    ]);
+    const firstOpt = new Map<string, DbAddonOption>();
+    for (const o of (opts ?? []) as DbAddonOption[]) {
+      if (!firstOpt.has(o.group_id)) firstOpt.set(o.group_id, o);
+    }
+    const catsByGroup = new Map<string, string[]>();
+    for (const t of (targets ?? []) as DbAddonGroupTarget[]) {
+      if (!t.category_id) continue;
+      const arr = catsByGroup.get(t.group_id) ?? [];
+      arr.push(t.category_id); catsByGroup.set(t.group_id, arr);
+    }
+    const items: AddonItem[] = ((groups ?? []) as unknown as DbAddonGroup[]).map((g) => {
+      const o = firstOpt.get(g.id);
+      return {
+        id: g.id,
+        optionId: o?.id ?? null,
+        name: g.name,
+        kind: (g.kind ?? "adicional") as "adicional" | "observacao",
+        price: o ? Number(o.price) : 0,
+        active: g.active,
+        categoryIds: catsByGroup.get(g.id) ?? [],
+        sortOrder: g.sort_order,
+      };
+    });
+    return { items };
+  });
+
+const AddonItemInput = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().min(1).max(120),
+  kind: z.enum(["adicional", "observacao"]),
+  price: z.number().min(0).max(99999).default(0),
+  active: z.boolean().default(true),
+  categoryIds: z.array(z.string().uuid()).default([]),
+});
+
+export const saveAddonItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => AddonItemInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const price = data.kind === "observacao" ? 0 : Number(data.price) || 0;
+    let groupId = data.id;
+
+    if (groupId) {
+      const { error } = await sb.from("addon_groups").update({
+        name: data.name, kind: data.kind, required: false,
+        min_select: 0, max_select: 1, active: data.active,
+      }).eq("id", groupId).eq("tenant_id", tenantId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: row, error } = await sb.from("addon_groups").insert({
+        tenant_id: tenantId, name: data.name, kind: data.kind, required: false,
+        min_select: 0, max_select: 1, active: data.active, sort_order: 0,
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      groupId = row.id as string;
+    }
+
+    // Reset options to a single canonical row
+    await sb.from("addon_options").delete().eq("group_id", groupId);
+    const { error: oErr } = await sb.from("addon_options").insert({
+      group_id: groupId, name: data.name, price, active: data.active, sort_order: 0,
+    });
+    if (oErr) throw new Error(oErr.message);
+
+    // Replace category targets (drop any product-level targets too — simplified UI)
+    await sb.from("addon_group_targets").delete().eq("group_id", groupId);
+    if (data.categoryIds.length) {
+      const rows = data.categoryIds.map((cid) => ({
+        group_id: groupId!, category_id: cid, product_id: null,
+      }));
+      const { error: tErr } = await sb.from("addon_group_targets").insert(rows);
+      if (tErr) throw new Error(tErr.message);
+    }
+    return { id: groupId };
+  });
+
+export const deleteAddonItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    await sb.from("addon_options").delete().eq("group_id", data.id);
+    await sb.from("addon_group_targets").delete().eq("group_id", data.id);
+    const { error } = await sb.from("addon_groups").delete()
+      .eq("id", data.id).eq("tenant_id", tenantId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
