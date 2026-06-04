@@ -20,6 +20,9 @@ const norm = (s: string) => stripAccents(s).toLowerCase().trim();
 
 const SELECT = "id, uf, city, neighborhood, cep_start, cep_end";
 
+type RawRow = Omit<CepRangeResult, "rank">;
+type Batch = { rows: RawRow[]; rank: 1 | 2 | 3 | 4 | 5 };
+
 export const searchCepRanges = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
   .handler(async ({ data }): Promise<{ results: CepRangeResult[] }> => {
@@ -27,10 +30,9 @@ export const searchCepRanges = createServerFn({ method: "POST" })
     if (raw.length < 2) return { results: [] };
 
     const digits = raw.replace(/\D/g, "");
-    const isCepish =
-      digits.length >= 5 && /^[\d\s-]+$/.test(raw);
+    const isCepish = digits.length >= 5 && /^[\d\s-]+$/.test(raw);
 
-    // Optional 2-letter UF token detection (start or end)
+    // Optional 2-letter UF token detection
     const tokens = raw.split(/[\s,/]+/).filter(Boolean);
     let uf: string | null = null;
     let textTokens = tokens;
@@ -52,118 +54,68 @@ export const searchCepRanges = createServerFn({ method: "POST" })
     const text = textTokens.join(" ").trim();
     const textNorm = norm(text);
 
-    const withUf = <T extends { eq: (col: string, v: string) => T }>(q: T): T =>
-      uf ? q.eq("uf", uf) : q;
+    const runText = async (
+      col: "neighborhood" | "city",
+      pattern: string,
+      rank: 1 | 2 | 3 | 4,
+      limit: number,
+      requireNotNull = false,
+    ): Promise<Batch> => {
+      let q = supabaseAdmin.from("cep_ranges").select(SELECT);
+      if (requireNotNull) q = q.not("neighborhood", "is", null);
+      q = q.ilike(col, pattern);
+      if (uf) q = q.eq("uf", uf);
+      const { data: rows, error } = await q.order("city").limit(limit);
+      if (error) throw new Error(error.message);
+      return { rows: (rows ?? []) as RawRow[], rank };
+    };
 
-    // Build the parallel queries
-    const promises: Array<
-      Promise<{ rows: Array<Omit<CepRangeResult, "rank">>; rank: 1 | 2 | 3 | 4 | 5 }>
-    > = [];
+    const promises: Promise<Batch>[] = [];
 
     if (text.length >= 2) {
-      // 1: neighborhood exact (ilike full)
-      promises.push(
-        withUf(
-          supabaseAdmin
-            .from("cep_ranges")
-            .select(SELECT)
-            .not("neighborhood", "is", null)
-            .ilike("neighborhood", text)
-            .order("city")
-            .limit(20),
-        ).then(({ data: rows, error }) => {
-          if (error) throw new Error(error.message);
-          return { rows: (rows ?? []) as Array<Omit<CepRangeResult, "rank">>, rank: 1 as const };
-        }),
-      );
-      // 2: neighborhood partial
-      promises.push(
-        withUf(
-          supabaseAdmin
-            .from("cep_ranges")
-            .select(SELECT)
-            .not("neighborhood", "is", null)
-            .ilike("neighborhood", `%${text}%`)
-            .order("city")
-            .limit(30),
-        ).then(({ data: rows, error }) => {
-          if (error) throw new Error(error.message);
-          return { rows: (rows ?? []) as Array<Omit<CepRangeResult, "rank">>, rank: 2 as const };
-        }),
-      );
-      // 3: city exact
-      promises.push(
-        withUf(
-          supabaseAdmin
-            .from("cep_ranges")
-            .select(SELECT)
-            .ilike("city", text)
-            .order("city")
-            .limit(20),
-        ).then(({ data: rows, error }) => {
-          if (error) throw new Error(error.message);
-          return { rows: (rows ?? []) as Array<Omit<CepRangeResult, "rank">>, rank: 3 as const };
-        }),
-      );
-      // 4: city partial
-      promises.push(
-        withUf(
-          supabaseAdmin
-            .from("cep_ranges")
-            .select(SELECT)
-            .ilike("city", `%${text}%`)
-            .order("city")
-            .limit(40),
-        ).then(({ data: rows, error }) => {
-          if (error) throw new Error(error.message);
-          return { rows: (rows ?? []) as Array<Omit<CepRangeResult, "rank">>, rank: 4 as const };
-        }),
-      );
+      promises.push(runText("neighborhood", text, 1, 20, true));
+      promises.push(runText("neighborhood", `%${text}%`, 2, 30, true));
+      promises.push(runText("city", text, 3, 20));
+      promises.push(runText("city", `%${text}%`, 4, 40));
     } else if (uf && !isCepish) {
-      // UF-only query
       promises.push(
-        supabaseAdmin
-          .from("cep_ranges")
-          .select(SELECT)
-          .eq("uf", uf)
-          .order("city")
-          .limit(30)
-          .then(({ data: rows, error }) => {
-            if (error) throw new Error(error.message);
-            return { rows: (rows ?? []) as Array<Omit<CepRangeResult, "rank">>, rank: 3 as const };
-          }),
+        (async (): Promise<Batch> => {
+          const { data: rows, error } = await supabaseAdmin
+            .from("cep_ranges")
+            .select(SELECT)
+            .eq("uf", uf!)
+            .order("city")
+            .limit(30);
+          if (error) throw new Error(error.message);
+          return { rows: (rows ?? []) as RawRow[], rank: 3 };
+        })(),
       );
     }
 
-    // 5: CEP range
     if (isCepish) {
       const padded = digits.padEnd(8, "0").slice(0, 8);
       promises.push(
-        supabaseAdmin
-          .from("cep_ranges")
-          .select(SELECT)
-          .lte("cep_start", padded)
-          .gte("cep_end", padded)
-          .order("city")
-          .limit(20)
-          .then(({ data: rows, error }) => {
-            if (error) throw new Error(error.message);
-            return { rows: (rows ?? []) as Array<Omit<CepRangeResult, "rank">>, rank: 5 as const };
-          }),
+        (async (): Promise<Batch> => {
+          const { data: rows, error } = await supabaseAdmin
+            .from("cep_ranges")
+            .select(SELECT)
+            .lte("cep_start", padded)
+            .gte("cep_end", padded)
+            .order("city")
+            .limit(20);
+          if (error) throw new Error(error.message);
+          return { rows: (rows ?? []) as RawRow[], rank: 5 };
+        })(),
       );
     }
 
     const batches = await Promise.all(promises);
 
-    // Merge by id keeping best (lowest) rank; accent-insensitive narrowing for text
     const byId = new Map<string, CepRangeResult>();
     for (const { rows, rank } of batches) {
       for (const r of rows) {
         if (text && rank <= 4) {
-          const hay =
-            rank <= 2
-              ? norm(r.neighborhood ?? "")
-              : norm(r.city);
+          const hay = rank <= 2 ? norm(r.neighborhood ?? "") : norm(r.city);
           if (!hay.includes(textNorm)) continue;
         }
         const existing = byId.get(r.id);
