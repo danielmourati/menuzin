@@ -91,6 +91,8 @@ export const createOrder = createServerFn({ method: "POST" })
         table_label: data.table_label ?? null,
         pickup_time: data.pickup_time ?? null,
         note: data.note ?? null,
+        delivery_fee_source: data.delivery_fee_source ?? null,
+        delivery_neighborhood_snapshot: data.delivery_neighborhood_snapshot ?? null,
       })
       .select("*")
       .single();
