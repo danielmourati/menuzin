@@ -727,10 +727,18 @@ export function CartDrawer({
                   <button onClick={() => setStep("mode")} className="text-sm font-semibold text-primary">Alterar</button>
                 </div>
                 {mode === "entrega" && (
-                  <div className="mt-3 text-sm">
+                  <div className="mt-3 space-y-1 text-sm">
                     <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
-                    <p className="mt-1">{street}, {number}</p>
-                    <p>{neighborhood}{complement ? ` — ${complement}` : ""}</p>
+                    <p>{street}, {number}{complement ? ` — ${complement}` : ""}</p>
+                    {neighborhood && (
+                      <p><span className="text-muted-foreground">Bairro:</span> <span className="font-semibold">{neighborhood}</span></p>
+                    )}
+                    {deliveryFee > 0 && (
+                      <p><span className="text-muted-foreground">Taxa de entrega:</span> <span className="font-semibold">{brl(deliveryFee)}</span></p>
+                    )}
+                    {selectedZone && selectedZone.min_order_total > 0 && (
+                      <p className="text-xs text-muted-foreground">Pedido mínimo neste bairro: {brl(selectedZone.min_order_total)}</p>
+                    )}
                   </div>
                 )}
                 {mode === "retirada" && (
