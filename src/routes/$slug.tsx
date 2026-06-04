@@ -227,12 +227,45 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
           ) : (
             grouped.map((g) => (
               <section key={g.name}>
-                <h2 className="mb-3 text-lg font-bold">{g.name}</h2>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="text-lg font-bold">{g.name}</h2>
+                  <div className="inline-flex items-center rounded-full border bg-card p-0.5 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("grid")}
+                      aria-label="Visualizar em grade"
+                      aria-pressed={viewMode === "grid"}
+                      className={`grid h-8 w-8 place-items-center rounded-full transition ${
+                        viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode("list")}
+                      aria-label="Visualizar em lista"
+                      aria-pressed={viewMode === "list"}
+                      className={`grid h-8 w-8 place-items-center rounded-full transition ${
+                        viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <List className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 gap-3 md:grid-cols-3"
+                      : "flex flex-col gap-3"
+                  }
+                >
                   {g.items.map((p) => (
                     <ProductCard
                       key={p.id}
                       product={p}
+                      view={viewMode}
                       onClick={() => {
                         if (!storeOpen) return;
                         setSelectedProduct(p);
