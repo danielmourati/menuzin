@@ -315,7 +315,7 @@ function DeliveryZonesPage() {
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle>
             <DialogDescription>
-              Busque por cidade, UF ou CEP para preencher automaticamente a faixa de CEP. O bairro continua sendo usado como nome da área de entrega.
+              Busque pelo nome do bairro (ou por cidade, UF ou CEP) para preencher automaticamente os campos. Você ainda pode ajustar tudo manualmente.
             </DialogDescription>
           </DialogHeader>
           {editing && (
@@ -331,9 +331,22 @@ function DeliveryZonesPage() {
                 />
               </div>
               <div>
-                <Label>Buscar cidade ou CEP</Label>
+                <Label>Buscar bairro, cidade ou CEP</Label>
                 <CepRangeSearch
-                  onSelect={(r) => setEditing({ ...editing, cep_start: maskCep(r.cep_start), cep_end: maskCep(r.cep_end) })}
+                  onSelect={(r) =>
+                    setEditing((prev) => {
+                      if (!prev) return prev;
+                      const next: Editing = {
+                        ...prev,
+                        cep_start: maskCep(r.cep_start),
+                        cep_end: maskCep(r.cep_end),
+                      };
+                      if (r.neighborhood && !prev.neighborhood.trim()) {
+                        next.neighborhood = r.neighborhood;
+                      }
+                      return next;
+                    })
+                  }
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -457,7 +470,7 @@ function CepRangeSearch({ onSelect }: { onSelect: (r: CepRangeResult) => void })
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-8"
-              placeholder="Digite a cidade, UF ou CEP"
+              placeholder="Digite o bairro, cidade ou CEP"
               value={q}
               onChange={(e) => { setQ(e.target.value); setOpen(true); setPicked(null); }}
               onFocus={() => setOpen(true)}
@@ -472,7 +485,9 @@ function CepRangeSearch({ onSelect }: { onSelect: (r: CepRangeResult) => void })
           {isFetching ? (
             <div className="p-3 text-xs text-muted-foreground">Buscando…</div>
           ) : results.length === 0 ? (
-            <div className="p-3 text-xs text-muted-foreground">Nenhuma cidade ou faixa encontrada.</div>
+            <div className="p-3 text-xs text-muted-foreground">
+              Nenhum bairro encontrado. Você pode preencher os dados manualmente.
+            </div>
           ) : (
             <ul className="max-h-72 overflow-auto py-1">
               {results.map((r) => (
@@ -482,10 +497,21 @@ function CepRangeSearch({ onSelect }: { onSelect: (r: CepRangeResult) => void })
                     className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
                     onClick={() => { onSelect(r); setPicked(r); setOpen(false); }}
                   >
-                    <span className="font-semibold">{r.city}/{r.uf}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
-                    </span>
+                    {r.neighborhood ? (
+                      <>
+                        <span className="font-semibold">{r.neighborhood}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {r.city}/{r.uf} — {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-semibold">{r.city}/{r.uf}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Faixa geral da cidade — {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
+                        </span>
+                      </>
+                    )}
                   </button>
                 </li>
               ))}
@@ -495,7 +521,11 @@ function CepRangeSearch({ onSelect }: { onSelect: (r: CepRangeResult) => void })
       </Popover>
       {picked && (
         <p className="text-[11px] text-muted-foreground">
-          Faixa de <strong>{picked.city}/{picked.uf}</strong> aplicada. Você pode ajustar os CEPs abaixo.
+          {picked.neighborhood ? (
+            <>Bairro <strong>{picked.neighborhood}</strong> aplicado. Você pode ajustar os CEPs abaixo.</>
+          ) : (
+            <>Faixa de <strong>{picked.city}/{picked.uf}</strong> aplicada. Informe o nome do bairro ou área de entrega.</>
+          )}
         </p>
       )}
     </div>
