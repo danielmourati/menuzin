@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { computeStoreOpen } from "@/lib/store-hours";
+
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon } from "lucide-react";
