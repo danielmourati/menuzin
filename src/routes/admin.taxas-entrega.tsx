@@ -311,7 +311,7 @@ function DeliveryZonesPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle>
             <DialogDescription>
@@ -319,7 +319,7 @@ function DeliveryZonesPage() {
             </DialogDescription>
           </DialogHeader>
           {editing && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto -mx-6 px-6 flex-1 min-h-0">
               <div>
                 <Label>Bairro *</Label>
                 <Input
