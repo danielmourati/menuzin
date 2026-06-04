@@ -51,11 +51,16 @@ function SettingsPage() {
   const [form, setForm] = useState<FormState>({
     name: "", whatsapp: "", description: "", address: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
+    hours_schedule: defaultSchedule(),
   });
 
   useEffect(() => {
     if (!tenant) return;
-    const t = tenant as typeof tenant & { pos_paper_width?: string };
+    const t = tenant as typeof tenant & {
+      pos_paper_width?: string;
+      hours_schedule?: unknown;
+    };
+    const sched = normalizeSchedule(t.hours_schedule);
     setForm({
       name: tenant.name ?? "",
       whatsapp: tenant.whatsapp ?? "",
@@ -67,8 +72,10 @@ function SettingsPage() {
       min_order: Number(tenant.min_order ?? 0),
       prep_time: tenant.prep_time ?? "",
       pos_paper_width: (t.pos_paper_width === "55mm" ? "55mm" : "80mm"),
+      hours_schedule: sched.some((d) => d.enabled) ? sched : defaultSchedule(),
     });
   }, [tenant]);
+
 
   const saveMut = useMutation({
     mutationFn: () => updateMyTenant({ data: form }),
