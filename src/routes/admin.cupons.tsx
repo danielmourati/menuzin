@@ -232,24 +232,32 @@ function CouponsPage() {
                 </div>
                 <div>
                   <Label>Valor *</Label>
-                  <Input
-                    className="mt-1.5"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={editing.discount_value}
-                    onChange={(e) => setEditing({ ...editing, discount_value: Number(e.target.value) })}
-                  />
+                  {editing.discount_type === "fixed" ? (
+                    <CurrencyInput
+                      className="mt-1.5"
+                      value={editing.discount_value}
+                      onChange={(v) => setEditing({ ...editing, discount_value: v })}
+                    />
+                  ) : (
+                    <Input
+                      className="mt-1.5"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="1"
+                      value={editing.discount_value}
+                      onChange={(e) => setEditing({ ...editing, discount_value: Number(e.target.value) })}
+                    />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Pedido mínimo (R$)</Label>
-                  <Input
+                  <CurrencyInput
                     className="mt-1.5"
-                    type="number" min={0} step="0.01"
                     value={editing.min_order_total}
-                    onChange={(e) => setEditing({ ...editing, min_order_total: Number(e.target.value) })}
+                    onChange={(v) => setEditing({ ...editing, min_order_total: v })}
                   />
                 </div>
                 <div>
