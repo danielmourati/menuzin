@@ -319,7 +319,7 @@ function DeliveryZonesPage() {
             </DialogDescription>
           </DialogHeader>
           {editing && (
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto -mx-6 px-6 flex-1 min-h-0">
               <div>
                 <Label>Bairro *</Label>
                 <Input
