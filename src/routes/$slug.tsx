@@ -227,7 +227,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
             grouped.map((g) => (
               <section key={g.name}>
                 <h2 className="mb-3 text-lg font-bold">{g.name}</h2>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                   {g.items.map((p) => (
                     <ProductCard
                       key={p.id}
