@@ -151,6 +151,62 @@ export type Database = {
           },
         ]
       }
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          id: string
+          max_uses: number | null
+          min_order_total: number
+          tenant_id: string
+          updated_at: string
+          used_count: number
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          id?: string
+          max_uses?: number | null
+          min_order_total?: number
+          tenant_id: string
+          updated_at?: string
+          used_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number
+          id?: string
+          max_uses?: number | null
+          min_order_total?: number
+          tenant_id?: string
+          updated_at?: string
+          used_count?: number
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons: Json
@@ -251,9 +307,11 @@ export type Database = {
           cancelled_at: string | null
           change_for: number | null
           completed_at: string | null
+          coupon_code: string | null
           created_at: string
           customer_name: string
           delivery_fee: number
+          discount_amount: number
           id: string
           mode: Database["public"]["Enums"]["order_mode"]
           mp_payment_id: string | null
@@ -279,9 +337,11 @@ export type Database = {
           cancelled_at?: string | null
           change_for?: number | null
           completed_at?: string | null
+          coupon_code?: string | null
           created_at?: string
           customer_name: string
           delivery_fee?: number
+          discount_amount?: number
           id?: string
           mode: Database["public"]["Enums"]["order_mode"]
           mp_payment_id?: string | null
@@ -307,9 +367,11 @@ export type Database = {
           cancelled_at?: string | null
           change_for?: number | null
           completed_at?: string | null
+          coupon_code?: string | null
           created_at?: string
           customer_name?: string
           delivery_fee?: number
+          discount_amount?: number
           id?: string
           mode?: Database["public"]["Enums"]["order_mode"]
           mp_payment_id?: string | null
@@ -908,6 +970,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "platform_admin"
+      coupon_discount_type: "fixed" | "percent"
       order_mode: "entrega" | "retirada" | "consumo_local"
       order_status:
         | "novo"
@@ -1053,6 +1116,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "admin", "staff", "platform_admin"],
+      coupon_discount_type: ["fixed", "percent"],
       order_mode: ["entrega", "retirada", "consumo_local"],
       order_status: [
         "novo",

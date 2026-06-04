@@ -20,6 +20,7 @@ import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
@@ -89,6 +90,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCuponsRoute = AdminCuponsRouteImport.update({
+  id: '/admin/cupons',
+  path: '/admin/cupons',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
+  '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
+  '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/admin/aparencia'
     | '/admin/categorias'
     | '/admin/configuracoes'
+    | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/categorias'
+    | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/admin/aparencia'
     | '/admin/categorias'
     | '/admin/configuracoes'
+    | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/login'
     | '/admin/pedidos'
@@ -349,6 +361,7 @@ export interface RootRouteChildren {
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
+  AdminCuponsRoute: typeof AdminCuponsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -440,6 +453,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/cupons': {
+      id: '/admin/cupons'
+      path: '/admin/cupons'
+      fullPath: '/admin/cupons'
+      preLoaderRoute: typeof AdminCuponsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/configuracoes': {
@@ -600,6 +620,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
+  AdminCuponsRoute: AdminCuponsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRoute,

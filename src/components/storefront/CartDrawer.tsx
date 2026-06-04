@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ChevronRight,
   Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
-  User, Mail, Phone, MapPin, Pencil, Home, Map,
+  User, Mail, Phone, MapPin, Pencil, Home, Map, Ticket, Loader2, X as XIcon,
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
@@ -21,6 +21,8 @@ import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelecto
 import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
+import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
+
 
 type Step =
   | "cart"
@@ -77,6 +79,11 @@ export function CartDrawer({
   const [paymentMethod, setPaymentMethod] = useState<string>("PIX");
   const [generalNote, setGeneralNote] = useState("");
 
+  // Coupon
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
   // Fetch settings for tenant
   useEffect(() => {
     if (open && slug) {
@@ -99,7 +106,25 @@ export function CartDrawer({
   const tenantAddress = tenant?.address ?? "";
 
   const deliveryFee = mode === "entrega" ? tenantDeliveryFee : 0;
-  const total = subtotal + deliveryFee;
+  const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
+  const total = Math.max(0, subtotal - discount) + deliveryFee;
+
+  const applyCoupon = async () => {
+    if (!couponInput || !slug) return;
+    setCouponLoading(true);
+    try {
+      const res = await validateCoupon({ data: { tenant_slug: slug, code: couponInput.trim(), subtotal } });
+      setAppliedCoupon(res);
+      toast.success(`Cupom ${res.code} aplicado`);
+    } catch (e) {
+      setAppliedCoupon(null);
+      toast.error((e as Error).message || "Cupom inválido");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+  const removeCoupon = () => { setAppliedCoupon(null); setCouponInput(""); };
+
 
   const goTo = (next: Step) => {
     setHistory((h) => [...h, step]);
@@ -117,7 +142,9 @@ export function CartDrawer({
     setStep("cart"); setHistory([]);
     setDbOrderId(null); setDbOrderNumber(null);
     setPixData(null); setCardData(null); setSelectedMethod(null);
+    setAppliedCoupon(null); setCouponInput("");
   };
+
 
   const modeLabelMap: Record<Mode, string> = {
     entrega: "Entrega", retirada: "Retirada no local", consumo_local: "Consumo no local",
@@ -167,6 +194,8 @@ export function CartDrawer({
         address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
         table_label: mode === "consumo_local" ? table : null,
         note: generalNote || null,
+        coupon_code: appliedCoupon?.code ?? null,
+
         items: items.map((i) => {
           const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
           const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
@@ -691,13 +720,53 @@ export function CartDrawer({
                       </div>
                     );
                   })}
+                  <div className="flex justify-between border-t pt-2 text-muted-foreground">
+                    <span>Subtotal</span><span>{brl(subtotal)}</span>
+                  </div>
+                  {discount > 0 && appliedCoupon && (
+                    <div className="flex justify-between text-success">
+                      <span>Cupom {appliedCoupon.code}</span><span>− {brl(discount)}</span>
+                    </div>
+                  )}
                   {deliveryFee > 0 && (
-                    <div className="flex justify-between border-t pt-2 text-muted-foreground">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Cupom */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="mb-2 flex items-center gap-2 font-semibold">
+                  <Ticket className="h-4 w-4" /> Cupom de desconto
+                </div>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/10 px-3 py-2">
+                    <div className="text-sm">
+                      <p className="font-mono font-bold">{appliedCoupon.code}</p>
+                      <p className="text-xs text-success">Desconto de {brl(discount)} aplicado</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={removeCoupon}>
+                      <XIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      placeholder="Digite o código"
+                      className="h-10 uppercase font-mono"
+                      maxLength={40}
+                    />
+                    <Button onClick={applyCoupon} disabled={couponLoading || !couponInput} className="h-10">
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
             </div>
             <StickySubtotal cta="Fazer pedido" onCta={finalize} />
           </>
