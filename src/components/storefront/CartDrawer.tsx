@@ -22,7 +22,7 @@ import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
-import { listPublicDeliveryZones, type PublicDeliveryZone } from "@/lib/delivery-zones.functions";
+import { listPublicDeliveryZones, resolveDeliveryFee, type PublicDeliveryZone, type DeliveryFeeResolution } from "@/lib/delivery-zones.functions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
@@ -104,22 +104,30 @@ export function CartDrawer({
     staleTime: 60_000,
   });
   const tenant = tenantData?.tenant;
-  const tenantDeliveryFee = Number(tenant?.delivery_fee ?? 0);
   const tenantAddress = tenant?.address ?? "";
+  const deliveryMode = (tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
 
-  // Delivery zones (per-neighborhood fees). When empty, fall back to tenant.delivery_fee.
+  // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
   const { data: zonesData } = useQuery({
     queryKey: ["public-delivery-zones", slug],
     queryFn: () => slug ? listPublicDeliveryZones({ data: { tenant_slug: slug } }) : Promise.resolve({ zones: [] as PublicDeliveryZone[] }),
-    enabled: !!slug,
+    enabled: !!slug && deliveryMode === "neighborhood",
     staleTime: 60_000,
   });
   const zones = zonesData?.zones ?? [];
-  const hasZones = zones.length > 0;
-  const selectedZone = hasZones ? zones.find((z) => z.neighborhood === neighborhood) ?? null : null;
-  const zoneFee = selectedZone ? Number(selectedZone.fee) : 0;
 
-  const deliveryFee = mode === "entrega" ? (hasZones ? zoneFee : tenantDeliveryFee) : 0;
+  // Resolve delivery fee from server (single source of truth).
+  const cepDigitsOnly = cep.replace(/\D/g, "");
+  const { data: feeResolution, isFetching: feeLoading } = useQuery<DeliveryFeeResolution>({
+    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood],
+    queryFn: () => resolveDeliveryFee({ data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood } }),
+    enabled: !!slug && mode === "entrega",
+    staleTime: 30_000,
+  });
+
+  const deliveryFee = mode === "entrega" ? Number(feeResolution?.fee ?? 0) : 0;
+  const deliveryAvailable = mode !== "entrega" || (feeResolution?.available ?? false);
+  const deliveryMinOrder = Number(feeResolution?.min_order_total ?? 0);
   const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
@@ -174,11 +182,11 @@ export function CartDrawer({
 
   const confirmAddress = () => {
     if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
-    if (hasZones && !selectedZone) {
-      return toast.error("Selecione um bairro atendido pela loja");
+    if (!deliveryAvailable) {
+      return toast.error(feeResolution?.message || "Endereço fora da área de entrega");
     }
-    if (selectedZone && selectedZone.min_order_total > 0 && subtotal < selectedZone.min_order_total) {
-      return toast.error(`Pedido mínimo para ${selectedZone.neighborhood}: ${brl(selectedZone.min_order_total)}`);
+    if (deliveryMinOrder > 0 && subtotal < deliveryMinOrder) {
+      return toast.error(`Pedido mínimo para esta área: ${brl(deliveryMinOrder)}`);
     }
     goTo("customer");
   };
@@ -211,6 +219,8 @@ export function CartDrawer({
         mode: mode!,
         payment_label: `${paymentWhenLabel} · ${methodLabel}`,
         delivery_fee: deliveryFee,
+        delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
+        delivery_neighborhood_snapshot: mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
         address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
         table_label: mode === "consumo_local" ? table : null,
         note: generalNote || null,
@@ -538,29 +548,47 @@ export function CartDrawer({
             <Header title="Endereço de entrega" />
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2"><Label>CEP</Label><Input value={cep} onChange={(e) => setCep(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div className="col-span-2">
+                  <Label>CEP</Label>
+                  <Input
+                    value={cep}
+                    onChange={(e) => {
+                      const d = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+                      setCep(masked);
+                    }}
+                    onBlur={async () => {
+                      const d = cep.replace(/\D/g, "");
+                      if (d.length !== 8) return;
+                      try {
+                        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+                        const json = await res.json();
+                        if (!json.erro) {
+                          if (json.logradouro && !street) setStreet(json.logradouro);
+                          if (json.bairro && !neighborhood) setNeighborhood(json.bairro);
+                        }
+                      } catch { /* silent */ }
+                    }}
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    className="mt-1.5 h-11"
+                  />
+                </div>
                 <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div>
                   <Label>Bairro *</Label>
-                  {hasZones ? (
-                    <>
-                      <Select value={neighborhood} onValueChange={setNeighborhood}>
-                        <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="Selecione o bairro" /></SelectTrigger>
-                        <SelectContent>
-                          {zones.map((z) => (
-                            <SelectItem key={z.id} value={z.neighborhood}>
-                              {z.neighborhood} — {brl(z.fee)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {selectedZone && selectedZone.min_order_total > 0 && (
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          Pedido mínimo: {brl(selectedZone.min_order_total)}
-                        </p>
-                      )}
-                    </>
+                  {deliveryMode === "neighborhood" && zones.length > 0 ? (
+                    <Select value={neighborhood} onValueChange={setNeighborhood}>
+                      <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="Selecione o bairro" /></SelectTrigger>
+                      <SelectContent>
+                        {zones.map((z) => (
+                          <SelectItem key={z.id} value={z.neighborhood}>
+                            {z.neighborhood} — {brl(z.fee)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" />
                   )}
@@ -568,10 +596,39 @@ export function CartDrawer({
                 <div className="col-span-2"><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div className="col-span-2"><Label>Ponto de referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1.5 h-11" /></div>
               </div>
+
+              {/* Delivery fee feedback */}
+              <div className="mt-4 rounded-lg border bg-card p-3 text-sm">
+                {feeLoading ? (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Calculando taxa de entrega…
+                  </div>
+                ) : feeResolution?.mode === "none" ? (
+                  <div className="flex items-center justify-between">
+                    <span>Taxa de entrega</span>
+                    <span className="font-semibold text-success">Grátis</span>
+                  </div>
+                ) : feeResolution?.available ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span>Taxa de entrega{feeResolution.neighborhood ? ` (${feeResolution.neighborhood})` : ""}</span>
+                      <span className="font-semibold">{brl(feeResolution.fee)}</span>
+                    </div>
+                    {deliveryMinOrder > 0 && (
+                      <p className="text-[11px] text-muted-foreground">Pedido mínimo: {brl(deliveryMinOrder)}</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-destructive text-xs">
+                    {feeResolution?.message || "Informe o CEP ou bairro para calcular a taxa de entrega."}
+                  </p>
+                )}
+              </div>
             </div>
-            <StickySubtotal cta="Confirmar endereço" onCta={confirmAddress} />
+            <StickySubtotal cta="Confirmar endereço" onCta={confirmAddress} disabled={!deliveryAvailable} />
           </>
         )}
+
 
         {/* MODE - TABLE */}
         {step === "mode-table" && (
@@ -742,8 +799,8 @@ export function CartDrawer({
                     {deliveryFee > 0 && (
                       <p><span className="text-muted-foreground">Taxa de entrega:</span> <span className="font-semibold">{brl(deliveryFee)}</span></p>
                     )}
-                    {selectedZone && selectedZone.min_order_total > 0 && (
-                      <p className="text-xs text-muted-foreground">Pedido mínimo neste bairro: {brl(selectedZone.min_order_total)}</p>
+                    {deliveryMinOrder > 0 && (
+                      <p className="text-xs text-muted-foreground">Pedido mínimo nesta área: {brl(deliveryMinOrder)}</p>
                     )}
                   </div>
                 )}

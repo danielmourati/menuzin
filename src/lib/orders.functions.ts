@@ -23,6 +23,8 @@ const CreateOrderInput = z.object({
   payment_label: z.string().max(120).default(""),
   change_for: z.number().min(0).max(99999).nullable().optional(),
   delivery_fee: z.number().min(0).max(9999).default(0),
+  delivery_fee_source: z.enum(["none", "single_fee", "neighborhood_by_cep", "neighborhood_by_name"]).nullable().optional(),
+  delivery_neighborhood_snapshot: z.string().max(120).nullable().optional(),
   address: z.record(z.string(), z.string()).nullable().optional(),
   table_label: z.string().max(50).nullable().optional(),
   pickup_time: z.string().max(50).nullable().optional(),
@@ -89,6 +91,8 @@ export const createOrder = createServerFn({ method: "POST" })
         table_label: data.table_label ?? null,
         pickup_time: data.pickup_time ?? null,
         note: data.note ?? null,
+        delivery_fee_source: data.delivery_fee_source ?? null,
+        delivery_neighborhood_snapshot: data.delivery_neighborhood_snapshot ?? null,
       })
       .select("*")
       .single();
