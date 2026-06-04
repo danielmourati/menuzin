@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ const items = [
   { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
   { to: "/admin/adicionais", label: "Adicionais", icon: Layers },
   { to: "/admin/cupons", label: "Cupons", icon: Ticket },
+  { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
