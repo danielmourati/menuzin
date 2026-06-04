@@ -250,14 +250,19 @@ function OnboardingClaim() {
 
 export function AdminLayout({ children, title, action }: { children?: ReactNode; title?: string; action?: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); // always start collapsed
   return (
     <AuthGate>
       <div className="flex min-h-screen bg-muted/30">
         <OrdersRealtimeListener />
-        <aside className="hidden w-64 shrink-0 border-r border-sidebar-border lg:block">
-          <SidebarInner />
+        <aside
+          className={`hidden shrink-0 border-r border-sidebar-border lg:block transition-[width] duration-200 ${
+            collapsed ? "w-16" : "w-64"
+          }`}
+        >
+          <SidebarInner collapsed={collapsed} />
         </aside>
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0">
           <ImpersonationBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -268,7 +273,16 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
                 <SidebarInner onNav={() => setMobileOpen(false)} />
               </SheetContent>
             </Sheet>
-            <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:inline-flex"
+              onClick={() => setCollapsed((v) => !v)}
+              title={collapsed ? "Expandir menu" : "Recolher menu"}
+            >
+              {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            </Button>
+            <h1 className="text-base font-semibold lg:text-lg truncate">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
               <StoreOpenToggle />
               <AdminNotificationsBell />
