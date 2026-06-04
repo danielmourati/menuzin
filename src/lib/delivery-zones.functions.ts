@@ -13,6 +13,8 @@ export type DeliveryZoneRow = {
   estimated_minutes: number | null;
   cep_start: string | null;
   cep_end: string | null;
+  city: string | null;
+  uf: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
