@@ -194,20 +194,18 @@ function DeliveryZonesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Taxa (R$) *</Label>
-                  <Input
+                  <CurrencyInput
                     className="mt-1.5"
-                    type="number" min={0} step="0.01"
                     value={editing.fee}
-                    onChange={(e) => setEditing({ ...editing, fee: Number(e.target.value) })}
+                    onChange={(v) => setEditing({ ...editing, fee: v })}
                   />
                 </div>
                 <div>
                   <Label>Pedido mínimo (R$)</Label>
-                  <Input
+                  <CurrencyInput
                     className="mt-1.5"
-                    type="number" min={0} step="0.01"
                     value={editing.min_order_total}
-                    onChange={(e) => setEditing({ ...editing, min_order_total: Number(e.target.value) })}
+                    onChange={(v) => setEditing({ ...editing, min_order_total: v })}
                   />
                 </div>
                 <div>
