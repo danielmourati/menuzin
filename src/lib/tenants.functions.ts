@@ -119,6 +119,7 @@ const UpdateTenantInput = z.object({
   accepts_delivery: z.boolean().optional(),
   accepts_takeout: z.boolean().optional(),
   accepts_dinein: z.boolean().optional(),
+  delivery_mode: z.enum(["none", "single", "neighborhood"]).optional(),
 });
 
 
