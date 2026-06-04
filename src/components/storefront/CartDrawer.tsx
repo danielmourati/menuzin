@@ -104,22 +104,30 @@ export function CartDrawer({
     staleTime: 60_000,
   });
   const tenant = tenantData?.tenant;
-  const tenantDeliveryFee = Number(tenant?.delivery_fee ?? 0);
   const tenantAddress = tenant?.address ?? "";
+  const deliveryMode = (tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
 
-  // Delivery zones (per-neighborhood fees). When empty, fall back to tenant.delivery_fee.
+  // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
   const { data: zonesData } = useQuery({
     queryKey: ["public-delivery-zones", slug],
     queryFn: () => slug ? listPublicDeliveryZones({ data: { tenant_slug: slug } }) : Promise.resolve({ zones: [] as PublicDeliveryZone[] }),
-    enabled: !!slug,
+    enabled: !!slug && deliveryMode === "neighborhood",
     staleTime: 60_000,
   });
   const zones = zonesData?.zones ?? [];
-  const hasZones = zones.length > 0;
-  const selectedZone = hasZones ? zones.find((z) => z.neighborhood === neighborhood) ?? null : null;
-  const zoneFee = selectedZone ? Number(selectedZone.fee) : 0;
 
-  const deliveryFee = mode === "entrega" ? (hasZones ? zoneFee : tenantDeliveryFee) : 0;
+  // Resolve delivery fee from server (single source of truth).
+  const cepDigitsOnly = cep.replace(/\D/g, "");
+  const { data: feeResolution, isFetching: feeLoading } = useQuery<DeliveryFeeResolution>({
+    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood],
+    queryFn: () => resolveDeliveryFee({ data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood } }),
+    enabled: !!slug && mode === "entrega",
+    staleTime: 30_000,
+  });
+
+  const deliveryFee = mode === "entrega" ? Number(feeResolution?.fee ?? 0) : 0;
+  const deliveryAvailable = mode !== "entrega" || (feeResolution?.available ?? false);
+  const deliveryMinOrder = Number(feeResolution?.min_order_total ?? 0);
   const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
