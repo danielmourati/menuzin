@@ -797,8 +797,8 @@ export function CartDrawer({
                     {deliveryFee > 0 && (
                       <p><span className="text-muted-foreground">Taxa de entrega:</span> <span className="font-semibold">{brl(deliveryFee)}</span></p>
                     )}
-                    {selectedZone && selectedZone.min_order_total > 0 && (
-                      <p className="text-xs text-muted-foreground">Pedido mínimo neste bairro: {brl(selectedZone.min_order_total)}</p>
+                    {deliveryMinOrder > 0 && (
+                      <p className="text-xs text-muted-foreground">Pedido mínimo nesta área: {brl(deliveryMinOrder)}</p>
                     )}
                   </div>
                 )}
