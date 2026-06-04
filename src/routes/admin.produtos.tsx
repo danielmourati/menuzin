@@ -249,8 +249,8 @@ function ProductsPage() {
                   folder="produtos"
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Preço base</Label><Input type="number" step="0.10" value={editing.price} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} className="mt-1.5" /></div>
-                  <div><Label>Preço promo (opcional)</Label><Input type="number" step="0.10" value={editing.promo_price ?? ""} onChange={(e) => setEditing({ ...editing, promo_price: e.target.value ? Number(e.target.value) : null })} className="mt-1.5" /></div>
+                  <div><Label>Preço base</Label><CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1.5" /></div>
+                  <div><Label>Preço promo (opcional)</Label><CurrencyInput value={editing.promo_price ?? 0} onChange={(v) => setEditing({ ...editing, promo_price: v > 0 ? v : null })} className="mt-1.5" /></div>
                 </div>
                 <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 25 min" /></div>
                 <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
