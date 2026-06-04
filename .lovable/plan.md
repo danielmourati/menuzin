@@ -1,69 +1,74 @@
 
-## Objetivo
+# Fase 1 — UX do admin (Sidebar + Pedidos + Modal + Impressão)
 
-Tornar o cupom térmico mais compacto e bem alinhado em 55mm e 80mm, e reorganizar os cards de pedidos do painel para evitar overflow e destacar o nome do cliente.
+Escopo restrito ao que você marcou. Cupons, relatórios, taxas e motoboys ficam para fases seguintes (planejo cada um depois desta entrega aprovada).
 
-## 1. Cupom — `src/lib/receipt-builder.ts`
+## 1) Sidebar recolhível com rodapé fixo
 
-Reduzir linhas em branco e agrupar informações:
+`src/components/admin/AdminLayout.tsx` hoje usa uma `<aside>` própria com largura fixa `w-64`. Vou trocar pelo componente `shadcn/ui Sidebar` para ganhar collapse nativo + persistência:
 
-- Remover `out.push("")` redundantes entre seções (cabeçalho, cliente, tabela, itens, totais, rodapé). Manter no máximo 1 linha em branco por bloco lógico, e nenhuma quando o separador já marca a divisão.
-- Cabeçalho: juntar `CNPJ` e `WhatsApp` na mesma linha quando ambos couberem em `cols` (ex.: `CNPJ 00.000.000/0001-00  Tel (86) 9...`); fallback para linhas separadas.
-- Aviso fiscal: condensar em uma única linha `*** NAO E DOCUMENTO FISCAL ***` (sem segunda linha "AGUARDE…" — mover para o rodapé só uma vez).
-- Cliente: juntar nome + telefone na mesma linha quando couber (`Cliente: Fulano  (86) 9...`).
-- Itens: remover a linha em branco entre itens; usar separador `-` curto só quando houver adicionais/observação. Aproximar nome do produto da linha de qty/valor (sem newline extra) quando o nome couber junto com `Nx Vu  Vt` na mesma linha.
-- Adicionais: indent de 1 espaço (em vez de 2) no 55mm para ganhar coluna.
-- Totais: omitir linha "Subtotal" quando não houver taxa de entrega (já feito) e remover a linha em branco antes de "Forma de Pagamento".
-- Rodapé: combinar `Data/Hora` + número curto do pedido em uma linha. Mover `feed_lines` para ser respeitado mas com piso 1 e teto 4 (a fonte já dá margem).
-- Substituir uso de `=` duplo por um separador único configurável; em 55mm sempre usar `-` simples para não pesar visualmente.
+- Envolver o admin em `SidebarProvider` com `defaultOpen={false}` (sempre inicia recolhida).
+- Reescrever `SidebarInner` como `<Sidebar collapsible="icon">` com três seções:
+  - `SidebarHeader` — logo Menuzin + card “Loja conectada”.
+  - `SidebarContent` — itens de navegação (mesmos 7 itens atuais).
+  - `SidebarFooter` — “Ver loja pública” + “Sair”, fixos no rodapé.
+- Adicionar `<SidebarTrigger />` no header do admin para abrir/recolher.
+- No modo recolhido, manter somente ícones (com `tooltip` mostrando o label).
+- Manter o `Sheet` mobile já existente, agora alimentando o mesmo conteúdo.
 
-## 2. Suporte real a 55mm
+## 2) Página `/admin/pedidos` em cards retangulares
 
-Hoje o sistema declara `PaperWidth = "58mm" | "80mm"` mas a UI usa `55mm`. Unificar:
+Hoje a tela usa `OrdersKanbanBoard` (linhas horizontais com cards finos) ou lista vertical. Vou substituir a visualização desktop por um **grid de cards quadrados/retangulares** agrupados por status, no estilo dos dashboards de referência:
 
-- `src/lib/printer-types.ts`: trocar `PaperWidth` para `"55mm" | "80mm"` e ajustar `columnsFor` → 55mm = 30 colunas, 80mm = 48 colunas.
-- `src/lib/printer-settings.functions.ts`: trocar enum Zod `PaperWidth` para `["55mm","80mm"]`. Migrar valores antigos `"58mm"` no `rowToSettings` mapeando para `"55mm"`.
-- `PrintableOrder.tsx`: aceitar `55mm | 80mm`; remover branch `58mm`; `@page size: 55mm auto` com `margin: 1mm`.
-- `receipt-builder.ts`: usar `columnsFor` já central; ajustar `addonLine` indent para 1 espaço em 30 colunas.
-- Migração leve no `qz-tray` `printQzReceipt`: nada muda (recebe texto + nome de impressora).
+- Novo componente `OrdersStatusGroups` que renderiza, em ordem:
+  1. **Novos** (status `novo`) — destaque com borda primária e pulsar.
+  2. **Aceitos / Lidos** (`aceito`).
+  3. **Em preparo** (`preparo`).
+  4. **Prontos / Despachados** (`pronto_retirada`, `saiu_entrega`, `servido`).
+  5. **Finalizados / Cancelados** (recolhido por padrão, em accordion).
+- Cada grupo: título + contador + grid `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`.
+- Novo `OrderCard` retangular (substitui o atual “linha”): nº do pedido, modalidade (badge), nome do cliente em destaque, horário relativo + absoluto, total grande, badge de status, e CTA principal contextual: “Ler pedido” (novo), “Abrir” (em preparo), “Aceitar/Cancelar” (novo), botão de impressão como ícone secundário. Sem overflow horizontal; truncamento controlado.
+- Mantém filtros e busca atuais. Visualização Kanban antiga vira opcional via toggle existente (Lista x Cards).
+- Mobile: continua usando `OrdersMobileTabs` mas alimentado pelo novo `OrderCard`.
 
-## 3. Estilos de impressão por largura — `PrintableOrder.tsx`
+## 3) Modal centralizado de detalhes
 
-- `@page` com `size` e `margin` por largura: 55mm → margin 1mm, 80mm → margin 2mm.
-- Fonte: 55mm/normal = 9px, 55mm/compact = 8px, 80mm/normal = 11px, 80mm/compact = 10px; `line-height: 1.1`, `letter-spacing: 0`, `white-space: pre`.
-- Adicionar `@media print { html, body { margin:0; padding:0; } .printable-order-receipt { width: 100%; } }`.
+Hoje `OrderDetailsDrawer` usa `Sheet` (drawer lateral). Vou converter para `Dialog` centralizado:
 
-## 4. Cards de pedidos — `src/components/orders/OrderCard.tsx`
+- Renomear para `OrderDetailsDialog` (mantém o arquivo, reexporta com nome novo; admin.pedidos passa a importar o novo).
+- `DialogContent` com `max-w-3xl`, `max-h-[90vh]`, layout em duas colunas no desktop (esquerda: cliente + itens + observações; direita: timeline + valores + pagamento) e empilhado no mobile.
+- Footer com `OrderStatusActions` (já existe) → aceitar, cancelar, imprimir, marcar pronto, saiu entrega, finalizar. Botão imprimir e WhatsApp continuam.
+- Acionado por “Ler pedido”/“Abrir”/“Aceitar” do card.
 
-Reorganizar a linha principal para que o cliente fique em destaque sem overflow:
+## 4) Atalho “Configurar impressora” na página de pedidos
 
-- Aumentar peso/tamanho do nome do cliente: `text-base font-bold` (era `text-sm font-semibold`).
-- Coluna do cliente passa a ser a primeira após o id; reduzir min-width das outras colunas e usar `min-w-0` + `truncate` em todos os filhos de texto longo.
-- Mover `#número`, modo, status, tempo para uma "header strip" superior compacta (linha 1), e cliente + total + ações para a linha 2 (em telas <md). Em telas ≥md manter linha única, mas com larguras fixas: tempo `w-16`, total `w-24 text-right`, cluster de ações `w-auto`.
-- Endereço/telefone: agrupar em `flex flex-wrap gap-x-2` com `truncate` no telefone e `line-clamp-1` no endereço para evitar quebra dupla.
-- Itens resumidos: subir o breakpoint de `xl:` para continuar escondidos em telas médias (mantém comportamento atual mas só renderizar se `order.items.length>0`).
-- Cluster de botões: garantir `flex-nowrap shrink-0`; aplicar `gap-0.5` em vez de `gap-1`; em <sm, esconder o botão de WhatsApp e WhatsApp/print ficam só no drawer/expand.
-- Adicionar `overflow-hidden` no container externo e `min-w-0` em cada flex child para impedir estouro horizontal.
-- Ajustar paddings: `pl-3 pr-2 py-2.5` para ganhar densidade.
-- Padronizar badges: `OrderStatusBadge` e `PaymentStatusBadge` com `h-5` e `whitespace-nowrap`.
+- No header de `/admin/pedidos` (ao lado de “Simular Pedido”), adicionar botão “Configurar impressora” (ícone `Printer`).
+- Em vez de levar para a rota `/admin/configuracoes/impressora`, vou abrir um **modal** com o painel de configuração:
+  - Extrair o miolo da rota atual `admin.configuracoes.impressora.tsx` para um componente `PrinterSettingsPanel`.
+  - Novo `PrinterSettingsDialog` envolve esse painel em `Dialog` (mantém também a rota dedicada funcionando, sem duplicar lógica).
+  - Tutorial QZ Tray dentro de `<Collapsible>` recolhido por padrão; botão “Salvar” explícito no rodapé do modal.
+- Tipos suportados continuam: térmica via QZ Tray + genérica via `window.print()` (sem mudança de regras).
 
-## 5. Critérios técnicos
+## Detalhes técnicos
 
-- Sem mudança de regra de negócio: apenas formatação visual + montagem de texto.
-- Reusar `buildReceipt` no preview e impressão (já é o caso) — assim 55mm/80mm ficam idênticos byte a byte.
-- Atualizar `sampleOrderForPreview` se necessário para validar visualmente o novo layout em ambas as larguras.
-- Verificar tela `/admin/configuracoes/impressora` continua funcionando com novo enum `55mm`.
+- Sem mudanças de schema, autenticação, tenants ou checkout.
+- Sem novos pacotes — uso `Sidebar`, `Dialog`, `Collapsible`, `Tabs` já presentes.
+- Tokens semânticos (`bg-card`, `border-border`, `text-primary` etc.) — sem hex em componente.
+- `_qz.websocket.connection.sendData` e demais regras de impressão permanecem como estão.
 
-## Arquivos afetados
+## Arquivos previstos
 
-- `src/lib/receipt-builder.ts` (compactação)
-- `src/lib/printer-types.ts` (enum 55mm/80mm + columnsFor)
-- `src/lib/printer-settings.functions.ts` (Zod + migração)
-- `src/components/orders/PrintableOrder.tsx` (estilos print por largura)
-- `src/components/orders/OrderCard.tsx` (layout + destaque cliente)
-- `src/routes/admin.configuracoes.impressora.tsx` (apenas se houver opção 58mm exposta no select — trocar por 55mm)
+- editar `src/components/admin/AdminLayout.tsx` — adotar `Sidebar` + `SidebarProvider defaultOpen={false}` + `SidebarFooter`.
+- criar `src/components/orders/OrdersStatusGroups.tsx` — grid agrupado por status.
+- reescrever `src/components/orders/OrderCard.tsx` — layout retangular.
+- editar `src/components/orders/OrderDetailsDrawer.tsx` → renomear para `OrderDetailsDialog.tsx` (Dialog centralizado, conteúdo 2 colunas).
+- criar `src/components/printer/PrinterSettingsPanel.tsx` — extração do conteúdo da rota.
+- criar `src/components/printer/PrinterSettingsDialog.tsx` — wrapper Dialog.
+- editar `src/routes/admin.configuracoes.impressora.tsx` — passa a renderizar o novo painel.
+- editar `src/routes/admin.pedidos.tsx` — usar `OrdersStatusGroups`, `OrderDetailsDialog`, botão “Configurar impressora”.
 
-## Fora do escopo
+## O que não muda
 
-- Mudanças no fluxo de QZ Tray, autenticação ou no domínio dos pedidos.
-- Novos toggles de layout do cupom (mantém os existentes em `PrinterSettings`).
+- Lógica de `useOrdersRealtime`, polling, RLS, criação de pedidos, impressão QZ.
+- `OrdersKanbanBoard` antigo continua disponível (mantenho como opção via toggle).
+- Demais rotas/admin/menu — apenas a sidebar muda visualmente.
