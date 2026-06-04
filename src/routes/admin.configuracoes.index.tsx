@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
