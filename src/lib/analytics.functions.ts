@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { computeStoreOpen } from "@/lib/store-hours";
+
 
 const Input = z.object({ days: z.number().int().min(1).max(90).default(7) });
 
