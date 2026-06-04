@@ -37,6 +37,9 @@ type FormState = {
   prep_time: string;
   pos_paper_width: "55mm" | "80mm";
   hours_schedule: HoursSchedule;
+  accepts_delivery: boolean;
+  accepts_takeout: boolean;
+  accepts_dinein: boolean;
 };
 
 function SettingsPage() {
@@ -52,6 +55,7 @@ function SettingsPage() {
     name: "", whatsapp: "", description: "", address: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
+    accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
   });
 
   useEffect(() => {
@@ -59,6 +63,9 @@ function SettingsPage() {
     const t = tenant as typeof tenant & {
       pos_paper_width?: string;
       hours_schedule?: unknown;
+      accepts_delivery?: boolean;
+      accepts_takeout?: boolean;
+      accepts_dinein?: boolean;
     };
     const sched = normalizeSchedule(t.hours_schedule);
     setForm({
@@ -73,6 +80,9 @@ function SettingsPage() {
       prep_time: tenant.prep_time ?? "",
       pos_paper_width: (t.pos_paper_width === "55mm" ? "55mm" : "80mm"),
       hours_schedule: sched.some((d) => d.enabled) ? sched : defaultSchedule(),
+      accepts_delivery: t.accepts_delivery ?? true,
+      accepts_takeout: t.accepts_takeout ?? true,
+      accepts_dinein: t.accepts_dinein ?? true,
     });
   }, [tenant]);
 
