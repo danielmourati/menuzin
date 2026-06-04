@@ -174,6 +174,12 @@ export function CartDrawer({
 
   const confirmAddress = () => {
     if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
+    if (hasZones && !selectedZone) {
+      return toast.error("Selecione um bairro atendido pela loja");
+    }
+    if (selectedZone && selectedZone.min_order_total > 0 && subtotal < selectedZone.min_order_total) {
+      return toast.error(`Pedido mínimo para ${selectedZone.neighborhood}: ${brl(selectedZone.min_order_total)}`);
+    }
     goTo("customer");
   };
   const confirmTable = () => {
@@ -516,7 +522,30 @@ export function CartDrawer({
                 <div className="col-span-2"><Label>CEP</Label><Input value={cep} onChange={(e) => setCep(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
-                <div><Label>Bairro *</Label><Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div>
+                  <Label>Bairro *</Label>
+                  {hasZones ? (
+                    <>
+                      <Select value={neighborhood} onValueChange={setNeighborhood}>
+                        <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="Selecione o bairro" /></SelectTrigger>
+                        <SelectContent>
+                          {zones.map((z) => (
+                            <SelectItem key={z.id} value={z.neighborhood}>
+                              {z.neighborhood} — {brl(z.fee)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedZone && selectedZone.min_order_total > 0 && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          Pedido mínimo: {brl(selectedZone.min_order_total)}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" />
+                  )}
+                </div>
                 <div className="col-span-2"><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div className="col-span-2"><Label>Ponto de referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1.5 h-11" /></div>
               </div>
