@@ -1139,6 +1139,20 @@ function PrinterSettingsPage() {
         onRetryDetect={handleDetectQz}
         retrying={qzBusy}
       />
+
+      <QzPrinterWizard
+        open={wizardOpen}
+        onOpenChange={(v) => {
+          setWizardOpen(v);
+          if (!v) markWizardSeen();
+        }}
+        onComplete={() => {
+          markWizardSeen();
+          // Recarrega status do servidor e settings ao concluir o wizard.
+          void refetchQzCert();
+          qc.invalidateQueries({ queryKey: ["printer-settings"] });
+        }}
+      />
     </AdminLayout>
   );
 }
