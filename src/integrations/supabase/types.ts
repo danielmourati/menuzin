@@ -158,6 +158,7 @@ export type Database = {
           city: string
           created_at: string
           id: string
+          neighborhood: string | null
           uf: string
         }
         Insert: {
@@ -166,6 +167,7 @@ export type Database = {
           city: string
           created_at?: string
           id?: string
+          neighborhood?: string | null
           uf: string
         }
         Update: {
@@ -174,6 +176,7 @@ export type Database = {
           city?: string
           created_at?: string
           id?: string
+          neighborhood?: string | null
           uf?: string
         }
         Relationships: []
