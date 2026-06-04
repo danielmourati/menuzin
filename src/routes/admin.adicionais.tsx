@@ -301,8 +301,8 @@ function OptionsEditor({ groupId, kind, options, onChanged }: {
             <Input className="flex-1" defaultValue={o.name}
               onBlur={(e) => e.target.value !== o.name && saveMut.mutate({ id: o.id, group_id: groupId, name: e.target.value, price: Number(o.price), active: o.active, sort_order: o.sort_order })} />
             {showPrice && (
-              <Input className="w-24" type="number" step="0.10" defaultValue={Number(o.price)}
-                onBlur={(e) => Number(e.target.value) !== Number(o.price) && saveMut.mutate({ id: o.id, group_id: groupId, name: o.name, price: Number(e.target.value), active: o.active, sort_order: o.sort_order })} />
+              <CurrencyBlurInput className="w-28" initialValue={Number(o.price)}
+                onCommit={(v) => saveMut.mutate({ id: o.id, group_id: groupId, name: o.name, price: v, active: o.active, sort_order: o.sort_order })} />
             )}
             <Switch checked={o.active}
               onCheckedChange={(v) => saveMut.mutate({ id: o.id, group_id: groupId, name: o.name, price: Number(o.price), active: v, sort_order: o.sort_order })} />
