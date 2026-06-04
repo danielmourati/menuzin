@@ -55,6 +55,8 @@ const UpsertInput = z.object({
   estimated_minutes: z.number().int().min(1).max(600).nullable().optional(),
   cep_start: CepSchema,
   cep_end: CepSchema,
+  city: z.string().max(80).nullable().optional(),
+  uf: z.string().max(2).nullable().optional(),
   active: z.boolean().default(true),
 }).refine(
   (d) => !d.cep_start || !d.cep_end || d.cep_start <= d.cep_end,
@@ -76,6 +78,8 @@ export const upsertDeliveryZone = createServerFn({ method: "POST" })
       estimated_minutes: data.estimated_minutes ?? null,
       cep_start: data.cep_start ?? null,
       cep_end: data.cep_end ?? null,
+      city: data.city?.trim() || null,
+      uf: data.uf?.trim().toUpperCase() || null,
       active: data.active,
     };
     if (data.id) {
