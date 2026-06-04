@@ -1,53 +1,29 @@
+# Otimizar visualização dos produtos no menu público
 
-## Scope
-Frontend-only refactor of the public storefront. No DB/business-logic changes. Cart totals, order flow, tenant scoping, and receipt remain unchanged.
+## Objetivo
+Hoje o menu mostra 1 card por linha no mobile, ocupando muito espaço vertical. Mudar para **grid de 2 colunas no mobile** (e 3 no desktop), mantendo o visual moderno com imagem edge-to-edge.
 
-## Files to change
+## Mudanças
 
-### 1. `src/components/storefront/ProductCard.tsx`
-Rebuild as a vertical card with edge-to-edge hero image:
-- Image on top, full width, `aspect-[4/3]` or `aspect-video`, `object-cover`, no internal padding, rounded matching card radius (top corners only).
-- Content area below image: name, 2-line description, price + promo, "Destaque" badge if `featured`.
-- Bottom-right floating "+" button overlapping image/content.
-- "Indisponível" overlay if unavailable.
-- Preserve existing props (`product`, `onClick`).
+### 1. `src/routes/$slug.tsx`
+- Linha 230: trocar `grid gap-3 md:grid-cols-2` por `grid grid-cols-2 gap-3 md:grid-cols-3`.
+- Resultado: 2 cards lado a lado no mobile, 3 no desktop.
 
-### 2. `src/components/storefront/ProductModal.tsx`
-- Hero image edge-to-edge at top of modal (remove the `max-w-md` and `object-contain` framing; use `object-cover` filling full width, fixed aspect ratio e.g. `aspect-square` on mobile).
-- Floating back button with soft shadow (kept).
-- Improve spacing rhythm between sections (image → title/price → description → groups → bottom bar).
-- Sticky bottom action bar (kept).
-- **Dedupe adicionais/observações:** Currently the modal renders both `product.addonGroups` (looped) AND legacy `product.addons`. After the recent simplification, each addon item is its own single-option group. To avoid showing the same item twice:
-  - Split `product.addonGroups` into `adicionalGroups` (kind !== "observacao") and `observacaoGroups` (kind === "observacao").
-  - Render a single **"Adicionais"** section header, then a flat list of all options from adicional groups (checkbox rows with name + price right-aligned). Selecting still routes through `toggleGroupOption(g.id, o.id, g.maxSelect)` to preserve cart/order behavior.
-  - Render a single **"Observações"** section header (only if any observation groups exist), flat list of options as checkboxes, no price, not required.
-  - Hide the legacy "Adicionais" block (`product.addons`) entirely if `addonGroups` already covers it; keep as fallback only when `addonGroups` is empty.
-  - Drop "Obrigatório" badges and min/max hints for these sections since simplified add-ons are always optional single-option groups.
-- Keep size/flavor sections untouched.
+### 2. `src/components/storefront/ProductCard.tsx`
+Ajustar densidade para caber bem em meia largura de tela:
+- Imagem: manter `aspect-[4/3]` e `object-cover` (edge-to-edge).
+- Texto: reduzir paddings (`p-2.5` em vez de `p-3`), título `text-sm`, descrição `text-xs line-clamp-2`, preço `text-sm font-bold`.
+- Botão "+": reduzir para `h-8 w-8` e reposicionar (`bottom-2 right-2`); área de texto com `pr-10`.
+- Badge "Destaque": fonte/padding levemente menor para não invadir a imagem em telas estreitas.
 
-### 3. `src/routes/$slug.tsx`
-- **Search input:** force white background, stronger border, larger radius, better placeholder contrast (`bg-white text-foreground placeholder:text-muted-foreground border-input shadow-sm`).
-- **Featured scroller:** Add a new section above the category tabs:
-  - Title "Destaques" (only rendered if `products.some(p => p.featured && p.available)`).
-  - Horizontal scroll container (`flex overflow-x-auto snap-x scrollbar-hide`) with larger cards (~260px wide) showing big image, name, short description, price, "Destaque" badge.
-  - Clicking opens the same ProductModal.
-  - Hidden when activeCat !== "Todos" or search is active (to avoid noise), or always visible — pick: keep visible only when `activeCat === "Todos"` and `!search`.
-- Grid below stays the same.
+### 3. `FeaturedScroller` (sem mudança)
+O scroller horizontal de Destaques continua igual — serve como "hero" e não conflita com o grid 2-col abaixo.
 
-### 4. New component `src/components/storefront/FeaturedScroller.tsx`
-Encapsulates the horizontal scroller card UI for featured products. Receives `products` and `onSelect`.
+### 4. Modal e lógica de carrinho
+Sem alterações. Mudança puramente visual no grid e densidade do card.
 
-## Behavior preserved
-- `useCart().add(...)` still receives `groupOptions` derived from `groupSelections`, so totals and order details remain correct.
-- `validateSelection` continues to govern the Add button.
-- Receipt builder, order adapters, cart drawer unchanged.
-
-## Acceptance
-- Product card shows large edge-to-edge image, no padding around it.
-- Modal hero image fills width; no `max-w-md` container around image.
-- Adicionais appear once, under a single "Adicionais" header, with price right-aligned.
-- Observações appear once (when present), under "Observações", checkboxes, no price, optional.
-- Featured horizontal scroller appears at top when there are featured products and no filter/search active.
-- Search input is white with modern styling.
-- Cart totals and order details still reflect selected add-ons correctly.
-- Mobile + desktop layouts both look clean.
+## Critérios de aceite
+- No mobile (≤640px) aparecem 2 cards por linha, encaixados sem corte.
+- No desktop aparecem 3 colunas.
+- Imagem continua edge-to-edge, nome/descrição/preço legíveis, botão "+" acessível.
+- Featured scroller, busca, categorias e modal permanecem iguais.
