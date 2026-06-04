@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Loader2, MapPin, Ban, DollarSign, Map as MapIcon, Check } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, MapPin, Ban, DollarSign, Map as MapIcon, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyDeliveryZones, upsertDeliveryZone, deleteDeliveryZone,
@@ -21,8 +21,9 @@ import {
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { searchCepRanges, type CepRangeResult } from "@/lib/cep-ranges.functions";
 import { brl } from "@/lib/format";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search } from "lucide-react";
+import {
+  lookupByCep, searchByAddress, rankResults, type ViaCepResult, type ViaCepResponse,
+} from "@/lib/viacep";
 
 export const Route = createFileRoute("/admin/taxas-entrega")({
   component: DeliveryZonesPage,
@@ -33,6 +34,8 @@ type Mode = "none" | "single" | "neighborhood";
 type Editing = {
   id?: string;
   neighborhood: string;
+  city: string;
+  uf: string;
   fee: number;
   min_order_total: number;
   estimated_minutes: number | null;
@@ -41,8 +44,10 @@ type Editing = {
   active: boolean;
 };
 
-const empty = (): Editing => ({
+const empty = (defaults?: { city?: string; uf?: string }): Editing => ({
   neighborhood: "",
+  city: defaults?.city ?? "",
+  uf: (defaults?.uf ?? "").toUpperCase(),
   fee: 0,
   min_order_total: 0,
   estimated_minutes: null,
@@ -74,6 +79,9 @@ function DeliveryZonesPage() {
       setSingleFee(Number((tenantData as { delivery_fee?: number }).delivery_fee ?? 0));
     }
   }, [tenantData]);
+
+  const tenantCity = (tenantData as { city?: string } | undefined)?.city ?? "";
+  const tenantUf = ((tenantData as { state?: string } | undefined)?.state ?? "").toUpperCase();
 
   const saveConfigMut = useMutation({
     mutationFn: () =>
@@ -110,6 +118,8 @@ function DeliveryZonesPage() {
           estimated_minutes: input.estimated_minutes,
           cep_start: cepDigits(input.cep_start) || null,
           cep_end: cepDigits(input.cep_end) || null,
+          city: input.city.trim() || null,
+          uf: input.uf.trim().toUpperCase() || null,
           active: input.active,
         },
       }),
@@ -141,6 +151,8 @@ function DeliveryZonesPage() {
           estimated_minutes: z.estimated_minutes,
           cep_start: z.cep_start ?? null,
           cep_end: z.cep_end ?? null,
+          city: z.city ?? null,
+          uf: z.uf ?? null,
           active: !z.active,
         },
       }),
@@ -150,11 +162,13 @@ function DeliveryZonesPage() {
 
   const list = data ?? [];
 
-  const openNew = () => { setEditing(empty()); setOpen(true); };
+  const openNew = () => { setEditing(empty({ city: tenantCity, uf: tenantUf })); setOpen(true); };
   const openEdit = (z: DeliveryZoneRow) => {
     setEditing({
       id: z.id,
       neighborhood: z.neighborhood,
+      city: z.city ?? tenantCity,
+      uf: (z.uf ?? tenantUf).toUpperCase(),
       fee: Number(z.fee),
       min_order_total: Number(z.min_order_total),
       estimated_minutes: z.estimated_minutes,
@@ -169,6 +183,7 @@ function DeliveryZonesPage() {
     if (!editing) return;
     if (!editing.neighborhood.trim()) return toast.error("Informe o bairro");
     if (editing.fee < 0) return toast.error("Taxa inválida");
+    if (editing.uf && editing.uf.trim().length !== 2) return toast.error("UF deve ter 2 letras");
     const cs = cepDigits(editing.cep_start);
     const ce = cepDigits(editing.cep_end);
     if (cs && cs.length !== 8) return toast.error("CEP inicial inválido");
@@ -282,6 +297,9 @@ function DeliveryZonesPage() {
                           {z.estimated_minutes && (
                             <Badge variant="outline">~{z.estimated_minutes} min</Badge>
                           )}
+                          {(z.city || z.uf) && (
+                            <Badge variant="outline">{[z.city, z.uf].filter(Boolean).join("/")}</Badge>
+                          )}
                           {(z.cep_start || z.cep_end) && (
                             <Badge variant="outline">
                               CEP {z.cep_start ? maskCep(z.cep_start) : "?"} → {z.cep_end ? maskCep(z.cep_end) : "?"}
@@ -315,11 +333,42 @@ function DeliveryZonesPage() {
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle>
             <DialogDescription>
-              Busque pelo nome do bairro (ou por cidade, UF ou CEP) para preencher automaticamente os campos. Você ainda pode ajustar tudo manualmente.
+              Busque pelo bairro, cidade, rua ou CEP para preencher automaticamente os campos via ViaCEP. Você ainda pode ajustar tudo manualmente.
             </DialogDescription>
           </DialogHeader>
           {editing && (
             <div className="space-y-4 overflow-y-auto -mx-6 px-6 flex-1 min-h-0">
+              <ViaCepSearch
+                city={editing.city}
+                uf={editing.uf}
+                onSelect={(r) =>
+                  setEditing((prev) => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      neighborhood: r.bairro || prev.neighborhood,
+                      city: r.localidade || prev.city,
+                      uf: (r.uf || prev.uf).toUpperCase(),
+                      cep_start: maskCep(r.cep),
+                      cep_end: maskCep(r.cep),
+                    };
+                  })
+                }
+                onSelectLocal={(r) =>
+                  setEditing((prev) => {
+                    if (!prev) return prev;
+                    return {
+                      ...prev,
+                      neighborhood: r.neighborhood || prev.neighborhood,
+                      city: r.city || prev.city,
+                      uf: (r.uf || prev.uf).toUpperCase(),
+                      cep_start: maskCep(r.cep_start),
+                      cep_end: maskCep(r.cep_end),
+                    };
+                  })
+                }
+              />
+
               <div>
                 <Label>Bairro *</Label>
                 <Input
@@ -330,25 +379,30 @@ function DeliveryZonesPage() {
                   maxLength={120}
                 />
               </div>
-              <div>
-                <Label>Buscar bairro, cidade ou CEP</Label>
-                <CepRangeSearch
-                  onSelect={(r) =>
-                    setEditing((prev) => {
-                      if (!prev) return prev;
-                      const next: Editing = {
-                        ...prev,
-                        cep_start: maskCep(r.cep_start),
-                        cep_end: maskCep(r.cep_end),
-                      };
-                      if (r.neighborhood && !prev.neighborhood.trim()) {
-                        next.neighborhood = r.neighborhood;
-                      }
-                      return next;
-                    })
-                  }
-                />
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Label>Cidade</Label>
+                  <Input
+                    className="mt-1.5"
+                    value={editing.city}
+                    onChange={(e) => setEditing({ ...editing, city: e.target.value })}
+                    placeholder="Ex: Parnaíba"
+                    maxLength={80}
+                  />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input
+                    className="mt-1.5 uppercase"
+                    value={editing.uf}
+                    onChange={(e) => setEditing({ ...editing, uf: e.target.value.toUpperCase().slice(0, 2) })}
+                    placeholder="PI"
+                    maxLength={2}
+                  />
+                </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>CEP inicial</Label>
@@ -442,90 +496,180 @@ function ModeCard({
   );
 }
 
-function CepRangeSearch({ onSelect }: { onSelect: (r: CepRangeResult) => void }) {
+type SearchState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "viacep"; results: ViaCepResult[]; selectedCep?: string }
+  | { kind: "local"; results: CepRangeResult[]; reason: "empty" | "error" }
+  | { kind: "empty" }
+  | { kind: "error" }
+  | { kind: "need-context" };
+
+function ViaCepSearch({
+  city, uf, onSelect, onSelectLocal,
+}: {
+  city: string;
+  uf: string;
+  onSelect: (r: ViaCepResult) => void;
+  onSelectLocal: (r: CepRangeResult) => void;
+}) {
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [open, setOpen] = useState(false);
-  const [picked, setPicked] = useState<CepRangeResult | null>(null);
+  const [state, setState] = useState<SearchState>({ kind: "idle" });
+  const [lastSelected, setLastSelected] = useState<string | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(q.trim()), 250);
+    const t = setTimeout(() => setDebounced(q.trim()), 500);
     return () => clearTimeout(t);
   }, [q]);
 
-  const { data, isFetching } = useQuery({
-    queryKey: ["cep-ranges", debounced],
-    queryFn: async () => (await searchCepRanges({ data: { q: debounced } })).results,
-    enabled: debounced.length >= 2,
-    staleTime: 60_000,
-  });
+  const ctx = useMemo(() => ({ city: city.trim(), uf: uf.trim().toUpperCase() }), [city, uf]);
 
-  const results = data ?? [];
+  useEffect(() => {
+    let cancelled = false;
+    const term = debounced;
+    if (!term) { setState({ kind: "idle" }); return; }
+
+    const digits = term.replace(/\D/g, "");
+    const isCep = digits.length === 8 && /^[\d\s-]+$/.test(term);
+
+    const run = async () => {
+      setState({ kind: "loading" });
+
+      let response: ViaCepResponse;
+      if (isCep) {
+        response = await lookupByCep(digits);
+      } else {
+        if (term.length < 3) { setState({ kind: "idle" }); return; }
+        if (!ctx.uf || ctx.city.length < 3) {
+          setState({ kind: "need-context" });
+          return;
+        }
+        response = await searchByAddress({ uf: ctx.uf, city: ctx.city, street: term });
+      }
+      if (cancelled) return;
+
+      if (response.status === "ok") {
+        const ranked = rankResults(response.results, isCep ? "" : term).slice(0, 10);
+        setState({ kind: "viacep", results: ranked });
+        return;
+      }
+
+      // Fallback to local cep_ranges
+      try {
+        const { results } = await searchCepRanges({ data: { q: term } });
+        if (cancelled) return;
+        if (results.length > 0) {
+          setState({
+            kind: "local",
+            results: results.slice(0, 10),
+            reason: response.status === "error" ? "error" : "empty",
+          });
+          return;
+        }
+        setState({ kind: response.status === "error" ? "error" : "empty" });
+      } catch {
+        if (!cancelled) setState({ kind: response.status === "error" ? "error" : "empty" });
+      }
+    };
+
+    run();
+    return () => { cancelled = true; };
+  }, [debounced, ctx]);
 
   return (
-    <div className="mt-1.5 space-y-1.5">
-      <Popover open={open && debounced.length >= 2} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8"
-              placeholder="Digite o bairro, cidade ou CEP"
-              value={q}
-              onChange={(e) => { setQ(e.target.value); setOpen(true); setPicked(null); }}
-              onFocus={() => setOpen(true)}
-            />
-          </div>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-[--radix-popover-trigger-width] p-0"
-          align="start"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          {isFetching ? (
-            <div className="p-3 text-xs text-muted-foreground">Buscando…</div>
-          ) : results.length === 0 ? (
-            <div className="p-3 text-xs text-muted-foreground">
-              Nenhum bairro encontrado. Você pode preencher os dados manualmente.
-            </div>
-          ) : (
-            <ul className="max-h-72 overflow-auto py-1">
-              {results.map((r) => (
-                <li key={r.id}>
-                  <button
-                    type="button"
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
-                    onClick={() => { onSelect(r); setPicked(r); setOpen(false); }}
-                  >
-                    {r.neighborhood ? (
-                      <>
-                        <span className="font-semibold">{r.neighborhood}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {r.city}/{r.uf} — {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-semibold">{r.city}/{r.uf}</span>
-                        <span className="text-xs text-muted-foreground">
-                          Faixa geral da cidade — {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </PopoverContent>
-      </Popover>
-      {picked && (
+    <div className="space-y-2">
+      <Label>Buscar bairro, cidade, rua ou CEP</Label>
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-8"
+          placeholder="Ex: Nova Parnaíba, Centro, Avenida São Sebastião ou 64200-001"
+          value={q}
+          onChange={(e) => { setQ(e.target.value); setLastSelected(null); }}
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Use a busca para localizar dados pelo ViaCEP. Você poderá ajustar manualmente o bairro e a faixa de CEP antes de salvar.
+      </p>
+
+      {state.kind === "loading" && (
+        <div className="flex items-center gap-2 rounded-md border p-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando no ViaCEP…
+        </div>
+      )}
+
+      {state.kind === "need-context" && (
+        <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+          Informe a cidade e UF para buscar bairros e endereços pelo ViaCEP.
+        </div>
+      )}
+
+      {state.kind === "empty" && (
+        <div className="rounded-md border p-3 text-xs text-muted-foreground">
+          Nenhum resultado encontrado no ViaCEP. Você pode preencher os dados manualmente.
+        </div>
+      )}
+
+      {state.kind === "error" && (
+        <div className="rounded-md border p-3 text-xs text-muted-foreground">
+          Não foi possível consultar o ViaCEP agora. Preencha manualmente ou tente novamente.
+        </div>
+      )}
+
+      {state.kind === "viacep" && state.results.length > 0 && (
+        <ul className="max-h-72 overflow-auto rounded-md border divide-y">
+          {state.results.map((r, i) => (
+            <li key={`${r.cep}-${i}`}>
+              <button
+                type="button"
+                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
+                onClick={() => { onSelect(r); setLastSelected(r.cep); }}
+              >
+                <span className="font-semibold">{r.bairro || "Bairro não informado"}</span>
+                <span className="text-xs text-muted-foreground">
+                  {[r.logradouro, `${r.localidade}/${r.uf}`, maskCep(r.cep)].filter(Boolean).join(" — ")}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {state.kind === "local" && (
+        <div className="space-y-1.5">
+          <p className="text-[11px] text-muted-foreground">
+            {state.reason === "error"
+              ? "ViaCEP indisponível — mostrando resultados da base local."
+              : "Sem resultados no ViaCEP — mostrando resultados da base local."}
+          </p>
+          <ul className="max-h-72 overflow-auto rounded-md border divide-y">
+            {state.results.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
+                  onClick={() => { onSelectLocal(r); setLastSelected(r.id); }}
+                >
+                  <span className="flex items-center gap-2 font-semibold">
+                    {r.neighborhood || `${r.city}/${r.uf}`}
+                    <Badge variant="outline" className="text-[10px]">Base local</Badge>
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {r.city}/{r.uf} — {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {lastSelected && (state.kind === "viacep" || state.kind === "local") && (
         <p className="text-[11px] text-muted-foreground">
-          {picked.neighborhood ? (
-            <>Bairro <strong>{picked.neighborhood}</strong> aplicado. Você pode ajustar os CEPs abaixo.</>
-          ) : (
-            <>Faixa de <strong>{picked.city}/{picked.uf}</strong> aplicada. Informe o nome do bairro ou área de entrega.</>
-          )}
+          {state.kind === "viacep"
+            ? "O ViaCEP retornou um CEP específico. Se a área de entrega cobre uma faixa maior, ajuste o CEP inicial e final."
+            : "Faixa da base local aplicada. Ajuste se necessário."}
         </p>
       )}
     </div>
