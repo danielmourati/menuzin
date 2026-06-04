@@ -5,6 +5,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput, CurrencyBlurInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -300,8 +301,8 @@ function OptionsEditor({ groupId, kind, options, onChanged }: {
             <Input className="flex-1" defaultValue={o.name}
               onBlur={(e) => e.target.value !== o.name && saveMut.mutate({ id: o.id, group_id: groupId, name: e.target.value, price: Number(o.price), active: o.active, sort_order: o.sort_order })} />
             {showPrice && (
-              <Input className="w-24" type="number" step="0.10" defaultValue={Number(o.price)}
-                onBlur={(e) => Number(e.target.value) !== Number(o.price) && saveMut.mutate({ id: o.id, group_id: groupId, name: o.name, price: Number(e.target.value), active: o.active, sort_order: o.sort_order })} />
+              <CurrencyBlurInput className="w-28" initialValue={Number(o.price)}
+                onCommit={(v) => saveMut.mutate({ id: o.id, group_id: groupId, name: o.name, price: v, active: o.active, sort_order: o.sort_order })} />
             )}
             <Switch checked={o.active}
               onCheckedChange={(v) => saveMut.mutate({ id: o.id, group_id: groupId, name: o.name, price: Number(o.price), active: v, sort_order: o.sort_order })} />
@@ -318,7 +319,7 @@ function OptionsEditor({ groupId, kind, options, onChanged }: {
           <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder={kind === "observacao" ? "Ex.: Sem cebola" : "Nome"} className="mt-1" />
         </div>
         {showPrice && (
-          <div className="w-24"><Label className="text-xs">Preço</Label><Input type="number" step="0.10" value={draft.price} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })} className="mt-1" /></div>
+          <div className="w-28"><Label className="text-xs">Preço</Label><CurrencyInput value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} className="mt-1" /></div>
         )}
         <Button onClick={() => {
           if (!draft.name) return;

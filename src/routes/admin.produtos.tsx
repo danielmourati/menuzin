@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput, CurrencyBlurInput } from "@/components/ui/currency-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -248,8 +249,8 @@ function ProductsPage() {
                   folder="produtos"
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Preço base</Label><Input type="number" step="0.10" value={editing.price} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} className="mt-1.5" /></div>
-                  <div><Label>Preço promo (opcional)</Label><Input type="number" step="0.10" value={editing.promo_price ?? ""} onChange={(e) => setEditing({ ...editing, promo_price: e.target.value ? Number(e.target.value) : null })} className="mt-1.5" /></div>
+                  <div><Label>Preço base</Label><CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1.5" /></div>
+                  <div><Label>Preço promo (opcional)</Label><CurrencyInput value={editing.promo_price ?? 0} onChange={(v) => setEditing({ ...editing, promo_price: v > 0 ? v : null })} className="mt-1.5" /></div>
                 </div>
                 <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 25 min" /></div>
                 <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
@@ -318,8 +319,8 @@ function SizesEditor({ productId, sizes, onChanged }: {
           <div key={s.id} className="flex items-center gap-2 rounded-xl border p-2">
             <Input className="flex-1" defaultValue={s.name}
               onBlur={(e) => e.target.value !== s.name && saveMut.mutate({ id: s.id, product_id: productId, name: e.target.value, price: Number(s.price), sort_order: s.sort_order })} />
-            <Input className="w-28" type="number" step="0.10" defaultValue={Number(s.price)}
-              onBlur={(e) => Number(e.target.value) !== Number(s.price) && saveMut.mutate({ id: s.id, product_id: productId, name: s.name, price: Number(e.target.value), sort_order: s.sort_order })} />
+            <CurrencyBlurInput className="w-32" initialValue={Number(s.price)}
+              onCommit={(v) => saveMut.mutate({ id: s.id, product_id: productId, name: s.name, price: v, sort_order: s.sort_order })} />
             <Button size="icon" variant="ghost" className="text-destructive"
               onClick={() => { if (confirm(`Remover "${s.name}"?`)) delMut.mutate(s.id); }}>
               <Trash2 className="h-4 w-4" />
@@ -329,7 +330,7 @@ function SizesEditor({ productId, sizes, onChanged }: {
       </div>
       <div className="flex items-end gap-2 border-t pt-3">
         <div className="flex-1"><Label className="text-xs">Novo tamanho</Label><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ex: Grande" className="mt-1" /></div>
-        <div className="w-28"><Label className="text-xs">Preço</Label><Input type="number" step="0.10" value={draft.price} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })} className="mt-1" /></div>
+        <div className="w-32"><Label className="text-xs">Preço</Label><CurrencyInput value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} className="mt-1" /></div>
         <Button onClick={() => {
           if (!draft.name) return;
           saveMut.mutate({ product_id: productId, name: draft.name, price: draft.price, sort_order: sizes.length });
@@ -366,8 +367,8 @@ function FlavorsEditor({ productId, flavors, onChanged }: {
             <div className="flex items-center gap-2">
               <Input className="flex-1" defaultValue={f.name}
                 onBlur={(e) => e.target.value !== f.name && saveMut.mutate({ id: f.id, product_id: productId, name: e.target.value, description: f.description, price_delta: Number(f.price_delta), available: f.available, sort_order: f.sort_order })} />
-              <Input className="w-28" type="number" step="0.10" defaultValue={Number(f.price_delta)}
-                onBlur={(e) => Number(e.target.value) !== Number(f.price_delta) && saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: Number(e.target.value), available: f.available, sort_order: f.sort_order })} />
+              <CurrencyBlurInput className="w-32" initialValue={Number(f.price_delta)}
+                onCommit={(v) => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: v, available: f.available, sort_order: f.sort_order })} />
               <Switch checked={f.available}
                 onCheckedChange={(v) => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: Number(f.price_delta), available: v, sort_order: f.sort_order })} />
               <Button size="icon" variant="ghost" className="text-destructive"
@@ -385,7 +386,7 @@ function FlavorsEditor({ productId, flavors, onChanged }: {
         <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Nome do sabor" />
         <Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Descrição (opcional)" />
         <div className="flex items-end gap-2">
-          <div className="flex-1"><Label className="text-xs">Acréscimo (R$)</Label><Input type="number" step="0.10" value={draft.price_delta} onChange={(e) => setDraft({ ...draft, price_delta: Number(e.target.value) })} className="mt-1" /></div>
+          <div className="flex-1"><Label className="text-xs">Acréscimo (R$)</Label><CurrencyInput value={draft.price_delta} onChange={(v) => setDraft({ ...draft, price_delta: v })} className="mt-1" /></div>
           <Button onClick={() => {
             if (!draft.name) return;
             saveMut.mutate({ product_id: productId, name: draft.name, description: draft.description, price_delta: draft.price_delta, available: true, sort_order: flavors.length });
