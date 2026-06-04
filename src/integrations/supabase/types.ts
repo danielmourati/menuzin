@@ -210,6 +210,8 @@ export type Database = {
       delivery_zones: {
         Row: {
           active: boolean
+          cep_end: string | null
+          cep_start: string | null
           created_at: string
           estimated_minutes: number | null
           fee: number
@@ -221,6 +223,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          cep_end?: string | null
+          cep_start?: string | null
           created_at?: string
           estimated_minutes?: number | null
           fee?: number
@@ -232,6 +236,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          cep_end?: string | null
+          cep_start?: string | null
           created_at?: string
           estimated_minutes?: number | null
           fee?: number
@@ -355,6 +361,8 @@ export type Database = {
           created_at: string
           customer_name: string
           delivery_fee: number
+          delivery_fee_source: string | null
+          delivery_neighborhood_snapshot: string | null
           discount_amount: number
           id: string
           mode: Database["public"]["Enums"]["order_mode"]
@@ -385,6 +393,8 @@ export type Database = {
           created_at?: string
           customer_name: string
           delivery_fee?: number
+          delivery_fee_source?: string | null
+          delivery_neighborhood_snapshot?: string | null
           discount_amount?: number
           id?: string
           mode: Database["public"]["Enums"]["order_mode"]
@@ -415,6 +425,8 @@ export type Database = {
           created_at?: string
           customer_name?: string
           delivery_fee?: number
+          delivery_fee_source?: string | null
+          delivery_neighborhood_snapshot?: string | null
           discount_amount?: number
           id?: string
           mode?: Database["public"]["Enums"]["order_mode"]
@@ -886,6 +898,7 @@ export type Database = {
           city: string | null
           created_at: string
           delivery_fee: number
+          delivery_mode: string
           description: string | null
           hours: string | null
           hours_schedule: Json
@@ -917,6 +930,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           delivery_fee?: number
+          delivery_mode?: string
           description?: string | null
           hours?: string | null
           hours_schedule?: Json
@@ -948,6 +962,7 @@ export type Database = {
           city?: string | null
           created_at?: string
           delivery_fee?: number
+          delivery_mode?: string
           description?: string | null
           hours?: string | null
           hours_schedule?: Json
