@@ -98,7 +98,7 @@ function AppearancePage() {
                   )}
                   <div>
                     <p className="font-bold">{tenant?.name ?? "Sua loja"}</p>
-                    <p className="text-xs text-success">● {tenant?.open ? "Aberta" : "Fechada"}</p>
+                    <p className="text-xs text-success">● {computeStoreOpen({ openMode: (tenant as { open_mode?: "auto"|"open"|"closed" })?.open_mode, hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule, legacyOpen: tenant?.open }).open ? "Aberta" : "Fechada"}</p>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
