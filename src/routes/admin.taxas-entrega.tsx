@@ -428,3 +428,76 @@ function ModeCard({
     </button>
   );
 }
+
+function CepRangeSearch({ onSelect }: { onSelect: (r: CepRangeResult) => void }) {
+  const [q, setQ] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<CepRangeResult | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(q.trim()), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["cep-ranges", debounced],
+    queryFn: async () => (await searchCepRanges({ data: { q: debounced } })).results,
+    enabled: debounced.length >= 2,
+    staleTime: 60_000,
+  });
+
+  const results = data ?? [];
+
+  return (
+    <div className="mt-1.5 space-y-1.5">
+      <Popover open={open && debounced.length >= 2} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Digite a cidade, UF ou CEP"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setOpen(true); setPicked(null); }}
+              onFocus={() => setOpen(true)}
+            />
+          </div>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-[--radix-popover-trigger-width] p-0"
+          align="start"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          {isFetching ? (
+            <div className="p-3 text-xs text-muted-foreground">Buscando…</div>
+          ) : results.length === 0 ? (
+            <div className="p-3 text-xs text-muted-foreground">Nenhuma cidade ou faixa encontrada.</div>
+          ) : (
+            <ul className="max-h-72 overflow-auto py-1">
+              {results.map((r) => (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-accent"
+                    onClick={() => { onSelect(r); setPicked(r); setOpen(false); }}
+                  >
+                    <span className="font-semibold">{r.city}/{r.uf}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {maskCep(r.cep_start)} até {maskCep(r.cep_end)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </PopoverContent>
+      </Popover>
+      {picked && (
+        <p className="text-[11px] text-muted-foreground">
+          Faixa de <strong>{picked.city}/{picked.uf}</strong> aplicada. Você pode ajustar os CEPs abaixo.
+        </p>
+      )}
+    </div>
+  );
+}
