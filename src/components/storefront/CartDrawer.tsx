@@ -401,10 +401,23 @@ export function CartDrawer({
 
   const StickySubtotal = ({ cta, onCta, disabled }: { cta?: string; onCta?: () => void; disabled?: boolean }) => (
     <div className="border-t bg-card px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">Subtotal</p>
-          <p className="text-lg font-bold">{brl(total)}</p>
+      <div className="flex items-end justify-between gap-3">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Subtotal</span><span>{brl(subtotal)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="flex items-center gap-2 text-xs text-success">
+              <span>Desconto</span><span>− {brl(discount)}</span>
+            </div>
+          )}
+          {deliveryFee > 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-lg font-bold leading-none">{brl(total)}</p>
         </div>
         {cta && (
           <Button onClick={onCta} disabled={disabled} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
@@ -714,10 +727,18 @@ export function CartDrawer({
                   <button onClick={() => setStep("mode")} className="text-sm font-semibold text-primary">Alterar</button>
                 </div>
                 {mode === "entrega" && (
-                  <div className="mt-3 text-sm">
+                  <div className="mt-3 space-y-1 text-sm">
                     <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
-                    <p className="mt-1">{street}, {number}</p>
-                    <p>{neighborhood}{complement ? ` — ${complement}` : ""}</p>
+                    <p>{street}, {number}{complement ? ` — ${complement}` : ""}</p>
+                    {neighborhood && (
+                      <p><span className="text-muted-foreground">Bairro:</span> <span className="font-semibold">{neighborhood}</span></p>
+                    )}
+                    {deliveryFee > 0 && (
+                      <p><span className="text-muted-foreground">Taxa de entrega:</span> <span className="font-semibold">{brl(deliveryFee)}</span></p>
+                    )}
+                    {selectedZone && selectedZone.min_order_total > 0 && (
+                      <p className="text-xs text-muted-foreground">Pedido mínimo neste bairro: {brl(selectedZone.min_order_total)}</p>
+                    )}
                   </div>
                 )}
                 {mode === "retirada" && (
@@ -773,9 +794,12 @@ export function CartDrawer({
                   )}
                   {deliveryFee > 0 && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
+                      <span>Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}</span><span>{brl(deliveryFee)}</span>
                     </div>
                   )}
+                  <div className="flex justify-between border-t pt-2 text-base font-bold">
+                    <span>Total</span><span>{brl(total)}</span>
+                  </div>
                 </div>
               </div>
 

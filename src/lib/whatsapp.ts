@@ -39,11 +39,11 @@ export function buildWhatsAppMessage(i: Input) {
   if (i.mode === "entrega" && i.address) {
     lines.push("");
     lines.push("*Endereço:*");
-    lines.push(
-      `${i.address.street ?? ""}, ${i.address.number ?? ""} — ${i.address.neighborhood ?? ""}`,
-    );
+    lines.push(`${i.address.street ?? ""}, ${i.address.number ?? ""}`);
+    if (i.address.neighborhood) lines.push(`Bairro: ${i.address.neighborhood}`);
     if (i.address.complement) lines.push(`Compl.: ${i.address.complement}`);
     if (i.address.reference) lines.push(`Ref.: ${i.address.reference}`);
+    if (i.address.cep) lines.push(`CEP: ${i.address.cep}`);
   }
   if (i.mode === "consumo_local" && i.table)
     lines.push(`Mesa/Comanda: ${i.table}`);
