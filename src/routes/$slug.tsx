@@ -11,6 +11,7 @@ import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
+import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
 import { whatsappLink } from "@/lib/whatsapp";
 import { getCatalog } from "@/lib/catalog.functions";
