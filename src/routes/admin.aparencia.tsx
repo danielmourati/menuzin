@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { computeStoreOpen } from "@/lib/store-hours";
+
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/aparencia")({ component: AppearancePage });
