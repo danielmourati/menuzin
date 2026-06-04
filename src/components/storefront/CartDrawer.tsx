@@ -401,10 +401,23 @@ export function CartDrawer({
 
   const StickySubtotal = ({ cta, onCta, disabled }: { cta?: string; onCta?: () => void; disabled?: boolean }) => (
     <div className="border-t bg-card px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-muted-foreground">Subtotal</p>
-          <p className="text-lg font-bold">{brl(total)}</p>
+      <div className="flex items-end justify-between gap-3">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Subtotal</span><span>{brl(subtotal)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="flex items-center gap-2 text-xs text-success">
+              <span>Desconto</span><span>− {brl(discount)}</span>
+            </div>
+          )}
+          {deliveryFee > 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-lg font-bold leading-none">{brl(total)}</p>
         </div>
         {cta && (
           <Button onClick={onCta} disabled={disabled} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
