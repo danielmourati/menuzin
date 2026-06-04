@@ -23,6 +23,8 @@ const CreateOrderInput = z.object({
   payment_label: z.string().max(120).default(""),
   change_for: z.number().min(0).max(99999).nullable().optional(),
   delivery_fee: z.number().min(0).max(9999).default(0),
+  delivery_fee_source: z.enum(["none", "single_fee", "neighborhood_by_cep", "neighborhood_by_name"]).nullable().optional(),
+  delivery_neighborhood_snapshot: z.string().max(120).nullable().optional(),
   address: z.record(z.string(), z.string()).nullable().optional(),
   table_label: z.string().max(50).nullable().optional(),
   pickup_time: z.string().max(50).nullable().optional(),
