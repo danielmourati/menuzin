@@ -97,6 +97,18 @@ const UpdateTenantInput = z.object({
   min_order: z.number().min(0).max(99999).optional(),
   delivery_fee: z.number().min(0).max(9999).optional(),
   hours: z.string().max(200).optional(),
+  hours_schedule: z
+    .array(
+      z.object({
+        weekday: z.number().int().min(0).max(6),
+        enabled: z.boolean(),
+        open: z.string().regex(/^\d{2}:\d{2}$/),
+        close: z.string().regex(/^\d{2}:\d{2}$/),
+      }),
+    )
+    .max(7)
+    .optional(),
+  open_mode: z.enum(["auto", "open", "closed"]).optional(),
   open: z.boolean().optional(),
   logo_url: z.string().max(1000).nullable().optional(),
   logo_letter: z.string().max(2).optional(),
@@ -105,6 +117,7 @@ const UpdateTenantInput = z.object({
   social: z.record(z.string().max(40), z.string().max(200)).optional(),
   pos_paper_width: z.enum(["55mm", "80mm"]).optional(),
 });
+
 
 export const updateMyTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
