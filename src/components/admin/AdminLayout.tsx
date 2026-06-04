@@ -24,27 +24,39 @@ const items = [
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
 ] as const;
 
-function Nav({ onClick }: { onClick?: () => void }) {
+function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   return (
-    <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
-      {items.map((i) => {
-        const active = pathname === i.to;
-        const Icon = i.icon;
-        return (
-          <Link
-            key={i.to}
-            to={i.to}
-            onClick={onClick}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-              active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"
-            }`}
-          >
-            <Icon className="h-4 w-4" /> {i.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <TooltipProvider delayDuration={200}>
+      <nav className={`flex flex-1 flex-col gap-1 py-4 ${collapsed ? "px-2" : "px-3"}`}>
+        {items.map((i) => {
+          const active = pathname === i.to;
+          const Icon = i.icon;
+          const link = (
+            <Link
+              key={i.to}
+              to={i.to}
+              onClick={onClick}
+              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition ${
+                collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+              } ${
+                active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" /> {!collapsed && i.label}
+            </Link>
+          );
+          return collapsed ? (
+            <Tooltip key={i.to}>
+              <TooltipTrigger asChild>{link}</TooltipTrigger>
+              <TooltipContent side="right">{i.label}</TooltipContent>
+            </Tooltip>
+          ) : (
+            link
+          );
+        })}
+      </nav>
+    </TooltipProvider>
   );
 }
 
