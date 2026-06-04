@@ -192,6 +192,8 @@ export function CartDrawer({
         address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
         table_label: mode === "consumo_local" ? table : null,
         note: generalNote || null,
+        coupon_code: appliedCoupon?.code ?? null,
+
         items: items.map((i) => {
           const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
           const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
