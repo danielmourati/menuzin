@@ -386,7 +386,7 @@ function FlavorsEditor({ productId, flavors, onChanged }: {
         <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Nome do sabor" />
         <Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Descrição (opcional)" />
         <div className="flex items-end gap-2">
-          <div className="flex-1"><Label className="text-xs">Acréscimo (R$)</Label><Input type="number" step="0.10" value={draft.price_delta} onChange={(e) => setDraft({ ...draft, price_delta: Number(e.target.value) })} className="mt-1" /></div>
+          <div className="flex-1"><Label className="text-xs">Acréscimo (R$)</Label><CurrencyInput value={draft.price_delta} onChange={(v) => setDraft({ ...draft, price_delta: v })} className="mt-1" /></div>
           <Button onClick={() => {
             if (!draft.name) return;
             saveMut.mutate({ product_id: productId, name: draft.name, description: draft.description, price_delta: draft.price_delta, available: true, sort_order: flavors.length });
