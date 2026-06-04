@@ -207,6 +207,50 @@ export type Database = {
           },
         ]
       }
+      delivery_zones: {
+        Row: {
+          active: boolean
+          created_at: string
+          estimated_minutes: number | null
+          fee: number
+          id: string
+          min_order_total: number
+          neighborhood: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          estimated_minutes?: number | null
+          fee?: number
+          id?: string
+          min_order_total?: number
+          neighborhood: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          estimated_minutes?: number | null
+          fee?: number
+          id?: string
+          min_order_total?: number
+          neighborhood?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons: Json
