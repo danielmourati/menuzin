@@ -182,11 +182,11 @@ export function CartDrawer({
 
   const confirmAddress = () => {
     if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
-    if (hasZones && !selectedZone) {
-      return toast.error("Selecione um bairro atendido pela loja");
+    if (!deliveryAvailable) {
+      return toast.error(feeResolution?.message || "Endereço fora da área de entrega");
     }
-    if (selectedZone && selectedZone.min_order_total > 0 && subtotal < selectedZone.min_order_total) {
-      return toast.error(`Pedido mínimo para ${selectedZone.neighborhood}: ${brl(selectedZone.min_order_total)}`);
+    if (deliveryMinOrder > 0 && subtotal < deliveryMinOrder) {
+      return toast.error(`Pedido mínimo para esta área: ${brl(deliveryMinOrder)}`);
     }
     goTo("customer");
   };
