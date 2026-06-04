@@ -99,13 +99,14 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
   const storeOpen = useMemo(
     () =>
       computeStoreOpen({
-        openMode: storeOpenMode,
+        openMode: tenant.openMode,
         hoursSchedule: tenant.hoursSchedule,
-        legacyOpen: storeOpen,
+        legacyOpen: tenant.open,
       }).open,
     // tick é dependência intencional para re-avaliar no fuso atual.
-    [storeOpenMode, tenant.hoursSchedule, storeOpen, tick],
+    [tenant.openMode, tenant.hoursSchedule, tenant.open, tick],
   );
+
 
 
   const filtered = useMemo(() => {
