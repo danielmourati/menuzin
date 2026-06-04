@@ -37,8 +37,8 @@ function OrdersPage() {
 
   const [q, setQ] = useState("");
   const [modeFilter, setModeFilter] = useState<string>("todos");
-  const [statusFilter, setStatusFilter] = useState<string>("ativos"); // "todos" | "ativos" | "finalizado" | "cancelado"
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [statusFilter, setStatusFilter] = useState<string>("ativos");
+  const [printerOpen, setPrinterOpen] = useState(false);
   
   const [detailedOrderId, setDetailedOrderId] = useState<string | null>(null);
   const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
