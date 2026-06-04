@@ -145,6 +145,9 @@ export type Tenant = {
   open: boolean;
   openMode: "auto" | "open" | "closed";
   hoursSchedule: { weekday: number; enabled: boolean; open: string; close: string }[];
+  acceptsDelivery: boolean;
+  acceptsTakeout: boolean;
+  acceptsDinein: boolean;
   prepTime: string;
   minOrder: number;
   deliveryFee: number;
