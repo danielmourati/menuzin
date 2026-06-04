@@ -151,6 +151,33 @@ export type Database = {
           },
         ]
       }
+      cep_ranges: {
+        Row: {
+          cep_end: string
+          cep_start: string
+          city: string
+          created_at: string
+          id: string
+          uf: string
+        }
+        Insert: {
+          cep_end: string
+          cep_start: string
+          city: string
+          created_at?: string
+          id?: string
+          uf: string
+        }
+        Update: {
+          cep_end?: string
+          cep_start?: string
+          city?: string
+          created_at?: string
+          id?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       coupons: {
         Row: {
           active: boolean
