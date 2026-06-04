@@ -36,6 +36,7 @@ type FormState = {
   min_order: number;
   prep_time: string;
   pos_paper_width: "55mm" | "80mm";
+  hours_schedule: HoursSchedule;
 };
 
 function SettingsPage() {
@@ -45,6 +46,7 @@ function SettingsPage() {
     queryFn: () => getMyTenant(),
   });
   const tenant = data?.tenant;
+
 
   const [form, setForm] = useState<FormState>({
     name: "", whatsapp: "", description: "", address: "", city: "", state: "",
