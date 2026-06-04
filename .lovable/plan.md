@@ -1,65 +1,70 @@
 ## Goal
-Make the "Novo bairro" autocomplete prioritize **neighborhood** matches, while still supporting city/UF/CEP. Selecting a result autofills Bairro + CEP range.
+Make the "Novo bairro" modal on `/taxas-entrega` use ViaCEP as the primary source for filling Bairro, Cidade, UF, CEP inicial and CEP final. Keep manual entry and existing CSV `cep_ranges` as fallback. Storage shape stays the tenant-scoped `delivery_zones` table; the checkout resolver does not change.
 
-## 1. Database — add `neighborhood` to `cep_ranges`
+## Scope (frontend-first; minimal backend)
 
-Migration:
-- `ALTER TABLE public.cep_ranges ADD COLUMN neighborhood text NULL;`
-- Index: `CREATE INDEX cep_ranges_neighborhood_lower_idx ON public.cep_ranges (lower(neighborhood));`
-- No data backfill — existing ~5.7k rows stay `neighborhood = null` (city-level ranges).
-- Future imports with neighborhood data populate the column; logic auto-prefers non-null rows.
+### 1. ViaCEP client helper (browser fetch)
+New file `src/lib/viacep.ts`:
+- `lookupByCep(cep)` → `GET https://viacep.com.br/ws/{cep}/json/` (8 digits only).
+- `searchByAddress({ uf, city, street })` → `GET https://viacep.com.br/ws/{UF}/{city}/{street}/json/` (city & street ≥ 3 chars; strip accents, encode URI).
+- Return normalized `ViaCepResult[]` with `{ cep, logradouro, bairro, localidade, uf }`.
+- Surface `{ status: 'ok' | 'empty' | 'invalid' | 'error', results }` so the UI can render proper empty/error states.
+- No server function needed — called directly from the modal (CORS-friendly public API).
 
-No tenant-table changes. The existing `delivery_zones` already stores `neighborhood`, `cep_start`, `cep_end`, `fee`, `min_order_total`, `estimated_minutes`, `active`. (City/UF are not persisted today — out of scope unless requested; selection just fills the form fields the table supports.)
+### 2. Modal rewrite (`src/routes/admin.taxas-entrega.tsx`)
+Replace the `CepRangeSearch` block with a new `ViaCepSearch` component. Keep the existing modal frame (overflow fix stays).
 
-## 2. Server — rewrite `searchCepRanges` (`src/lib/cep-ranges.functions.ts`)
+Fields, in order:
+1. Search input — "Buscar bairro, cidade, rua ou CEP" (helper text per spec).
+2. Bairro * (existing).
+3. Cidade — new in `Editing` state.
+4. UF — new (2-char uppercase).
+5. CEP inicial / CEP final (existing).
+6. Taxa, Pedido mínimo, Tempo estimado (existing).
+7. Ativo (existing).
 
-Input: `{ q: string }`. Normalize (lowercase, strip accents, trim).
+Search behavior:
+- Debounce 500ms.
+- If input digits length === 8 → `lookupByCep`. Auto-fill Bairro (if returned), Cidade, UF, CEP inicial = CEP final = returned CEP. Helper: "O ViaCEP retornou um CEP específico. Se a área de entrega cobre uma faixa maior, ajuste o CEP inicial e final."
+- Else if text length ≥ 3:
+  - Determine UF/City context: prefer values already in the form; fallback to tenant's `city`/`state` (loaded via existing `getMyTenant`).
+  - If UF + City available → `searchByAddress({ uf, city, street: term })`.
+  - If UF/City missing → render inline message: "Informe a cidade e UF para buscar bairros e endereços pelo ViaCEP." and disable the search call.
+- Rank results: exact bairro match → partial bairro → exact logradouro → partial logradouro. Limit to 10.
+- Result card: `[Bairro|"Bairro não informado"] — [Logradouro] — [Cidade/UF] — [CEP]`.
+- States: loading, empty ("Nenhum resultado encontrado no ViaCEP. Você pode preencher os dados manualmente."), error ("Não foi possível consultar o ViaCEP agora. Preencha manualmente ou tente novamente.").
+- On select → fill Bairro, Cidade, UF, CEP inicial, CEP final (same CEP for both); show inline helper about ranges.
 
-Run up to 4 small queries in parallel (each limit ~15) and merge by rank:
+Fallback to local `cep_ranges`:
+- When ViaCEP returns `empty` or `error`, call existing `searchCepRanges` and render those results under a "Base local" badge. Selecting a local result fills the CEP range it carries (which can be a real range) plus city/uf/neighborhood.
 
-1. **Neighborhood exact** — `neighborhood ilike q` (accent-insensitive narrow in JS).
-2. **Neighborhood partial** — `neighborhood ilike %q%` (excluding rank-1 ids).
-3. **City exact / partial** — `city ilike` matches.
-4. **CEP** — when `q` has ≥5 digits: zero-pad to 8, `cep_start <= padded <= cep_end`.
+### 3. State + persistence
+Extend the modal's `Editing` type with `city` and `uf`. Persist by adding optional `city`/`uf` to `upsertDeliveryZone` input and to the `delivery_zones` table.
 
-Optional 2-letter UF token detection (start or end of query) filters all of the above with `eq('uf', UF)`.
+Backend changes (single migration):
+- `ALTER TABLE public.delivery_zones ADD COLUMN city text, ADD COLUMN uf text` (nullable; no GRANT changes needed — table already exists with grants/RLS).
+- Update `src/lib/delivery-zones.functions.ts` (`UpsertInput`, `DeliveryZoneRow`, payload, `listPublicDeliveryZones` select) to include `city` and `uf`. No checkout-resolver logic change — it still matches by CEP/name.
 
-Return shape (extend `CepRangeResult`):
-```ts
-{ id, uf, city, neighborhood: string | null, cep_start, cep_end, rank: 1|2|3|4|5 }
-```
-Dedupe by `id`, sort by `rank` then `city`, cap at 20.
+Optional `source`/`source_cep`/`source_street` columns from the spec are **not** added in this pass to keep the migration minimal; can be a follow-up.
 
-## 3. UI — `src/routes/admin.taxas-entrega.tsx`
+### 4. Validation (client-side, before save)
+- Bairro required.
+- Taxa ≥ 0 (existing).
+- CEPs: 8 digits each when present; `cep_start ≤ cep_end` (existing).
+- UF: exactly 2 letters (uppercased) when filled.
+- City: ≥ 3 chars when used in ViaCEP search.
 
-**Label/placeholder:**
-- Label: `Buscar bairro, cidade ou CEP`
-- Placeholder: `Digite o bairro, cidade ou CEP`
+### 5. Tenant defaults (small admin nicety)
+Existing tenant settings already expose `city`/`state` (see `updateMyTenant`). No new settings UI in this pass; we just consume `tenantData.city` / `tenantData.state` as ViaCEP defaults. If both empty, the search UI prompts the admin to fill UF/City inline in the modal.
 
-**Result rendering** in `CepRangeSearch`:
-- Neighborhood row → `**{neighborhood}** — {city}/{uf} — {cep_start} até {cep_end}`
-- City row → `**{city}/{uf}** — Faixa geral da cidade — {cep_start} até {cep_end}`
-
-**onSelect:**
-- Always fill `cep_start` / `cep_end` via `maskCep`.
-- If `r.neighborhood` is non-null AND current `editing.neighborhood` is empty → also fill `neighborhood`. (Never overwrite a value the admin already typed.)
-
-**Helper text after selection:**
-- Neighborhood selected: `Bairro {neighborhood} aplicado. Você pode ajustar os CEPs abaixo.`
-- City-only selected: `Faixa de {city}/{uf} aplicada. Informe o nome do bairro ou área de entrega.`
-
-**Empty state:** `Nenhum bairro encontrado. Você pode preencher os dados manualmente.`
-
-Bairro field stays required; manual entry of all fields remains fully supported.
-
-## 4. Checkout
-No changes. `resolveDeliveryFee` already does CEP-range match + bairro fallback and never uses a hardcoded fee.
+## Out of scope
+- Checkout calculation changes (CEP→fee logic stays).
+- Importing ViaCEP responses into `cep_ranges`.
+- New tenant-settings screen for default city/UF (already editable elsewhere).
+- `source`/`source_cep`/`source_street` audit columns.
 
 ## Files touched
-- `supabase/migrations/<new>.sql` — add `neighborhood` column + index
-- `src/lib/cep-ranges.functions.ts` — multi-query ranked search, return `neighborhood` + `rank`
-- `src/routes/admin.taxas-entrega.tsx` — label, placeholder, result rendering, autofill rules, helper messages, empty state
-
-## Out of scope (flag for follow-up)
-- Importing a neighborhood-level CSV (current `ceps.csv` has none). The schema is ready; once you provide neighborhood data, it'll surface automatically.
-- Persisting `city`/`uf` on `delivery_zones` (would require a separate migration + UI fields).
+- New: `src/lib/viacep.ts`.
+- Edit: `src/routes/admin.taxas-entrega.tsx` (modal + new `ViaCepSearch` component, extended `Editing`).
+- Edit: `src/lib/delivery-zones.functions.ts` (add `city`/`uf` to schema, row, selects).
+- New migration: add `city`, `uf` columns to `public.delivery_zones`.
