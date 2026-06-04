@@ -219,6 +219,8 @@ export function CartDrawer({
         mode: mode!,
         payment_label: `${paymentWhenLabel} · ${methodLabel}`,
         delivery_fee: deliveryFee,
+        delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
+        delivery_neighborhood_snapshot: mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
         address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
         table_label: mode === "consumo_local" ? table : null,
         note: generalNote || null,
