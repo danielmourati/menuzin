@@ -243,29 +243,16 @@ function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="entrega" className="mt-6 grid gap-3 md:grid-cols-2">
-              <Row label="Aceita entrega" value={true} />
-              <Row label="Aceita retirada" value={true} />
-              <Row label="Aceita consumo no local" value={true} />
-              <div><Label>Taxa de entrega</Label><Input type="number" value={form.delivery_fee} onChange={(e) => set("delivery_fee", Number(e.target.value))} className="mt-1.5" /></div>
-              <div><Label>Pedido mínimo</Label><Input type="number" value={form.min_order} onChange={(e) => set("min_order", Number(e.target.value))} className="mt-1.5" /></div>
-              <div><Label>Tempo médio de preparo</Label><Input value={form.prep_time} onChange={(e) => set("prep_time", e.target.value)} className="mt-1.5" /></div>
+              <Row label="Aceita entrega" value={form.accepts_delivery} onChange={(v) => set("accepts_delivery", v)} />
+              <Row label="Aceita retirada" value={form.accepts_takeout} onChange={(v) => set("accepts_takeout", v)} />
+              <Row label="Aceita consumo no local" value={form.accepts_dinein} onChange={(v) => set("accepts_dinein", v)} />
+              <div>
+                <Label>Pedido mínimo</Label>
+                <CurrencyInput value={form.min_order} onChange={(v) => set("min_order", v)} className="mt-1.5" />
+              </div>
               <div className="md:col-span-2">
-                <Label>Largura do papel térmico (POS)</Label>
-                <div className="mt-2 flex gap-2">
-                  {(["55mm", "80mm"] as const).map((w) => (
-                    <Button
-                      key={w}
-                      type="button"
-                      variant={form.pos_paper_width === w ? "default" : "outline"}
-                      onClick={() => set("pos_paper_width", w)}
-                    >
-                      {w}
-                    </Button>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Define o layout do cupom impresso de pedidos.
-                </p>
+                <Label>Tempo médio de preparo</Label>
+                <Input value={form.prep_time} onChange={(e) => set("prep_time", e.target.value)} className="mt-1.5" />
               </div>
             </TabsContent>
 
