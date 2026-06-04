@@ -12,11 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
+import {
+  defaultSchedule,
+  normalizeSchedule,
+  WEEKDAY_LABELS,
+  WEEKDAY_ORDER,
+  type HoursSchedule,
+  type WeekdayCode,
+} from "@/lib/store-hours";
 
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: SettingsPage });
 
-const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
 type FormState = {
   name: string;
