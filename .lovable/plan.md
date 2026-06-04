@@ -1,73 +1,66 @@
-## Objetivo
+## Goal
+Replace the current "groups + options + min/max/required" UI in `admin/adicionais` with a simple, flat list where each row is **one item** — either a paid **Add-on** (with price) or a free **Observation** (no price) — assigned to one or many categories via checkboxes.
 
-Limpar e corrigir a aba **Entrega** em `/admin/configuracoes` e padronizar todos os inputs de moeda da plataforma com máscara BRL (R$).
+## Strategy: keep DB, simplify UI
 
----
+The existing schema (`addon_groups` + `addon_options` + `addon_group_targets`) is already used by the storefront `ProductModal`, `CartDrawer`, order persistence, and the receipt builder. Rewriting it would force changes across the whole order pipeline.
 
-## 1. Aba Entrega — limpeza e correções
+Instead, we treat each visible "item" in the new UI as an **implicit single-option group**:
+- Group: `name = <item name>`, `kind = adicional|observacao`, `required = false`, `min_select = 0`, `max_select = 1`, `active = <item status>`.
+- Option: a single `addon_options` row mirroring name + price.
+- Targets: `addon_group_targets` rows for the selected categories (product-level targeting removed from UI).
 
-Arquivo: `src/routes/admin.configuracoes.index.tsx`
+This preserves all downstream behavior (cart totals, customer/admin order details, printed receipt) with zero changes to storefront, orders, or receipts.
 
-- **Remover** o input **“Taxa de entrega”** (já é gerenciado em *Bairros e Taxas*). A coluna `delivery_fee` no banco continua existindo como fallback — apenas o input some.
-- **Remover** o seletor **“Largura do papel térmico (POS)”** desta aba (já existe em *Configurar Impressora*). A coluna `pos_paper_width` continua sendo persistida lá.
-- **Corrigir os 3 toggles** (Aceita entrega / Aceita retirada / Aceita consumo no local): hoje estão hardcoded `value={true}` sem state nem persistência. Passarão a:
-  - ler/escrever em 3 novas colunas booleanas em `tenants`: `accepts_delivery`, `accepts_takeout`, `accepts_dinein` (default `true`);
-  - serem refletidos no `form` state e salvos via `updateMyTenant`;
-  - serem consumidos pelo storefront (`src/routes/$slug.tsx` e `CartDrawer`) para esconder/desabilitar modos de pedido não aceitos.
-- **Pedido mínimo**: trocar `<Input type="number">` por componente de moeda BRL (ver §2).
+## Changes
 
-Layout final da aba Entrega:
-```text
-[ Aceita entrega  (toggle) ] [ Aceita retirada (toggle) ]
-[ Aceita consumo no local (toggle) ] [ Pedido mínimo (R$ ____) ]
-[ Tempo médio de preparo (texto) ]
-```
+### 1. `src/routes/admin.adicionais.tsx` — full rewrite of the UI
+- **Header**: two buttons — `Novo adicional`, `Nova observação`.
+- **Tabs**: `Todos` · `Adicionais` · `Observações`.
+- **List rows (cards)** showing:
+  - Name
+  - Badge: `Adicional` or `Observação`
+  - Price (only for add-ons), formatted BRL
+  - Categories applied (comma-separated names; "Todas as categorias" if empty? → show "Sem categoria" badge instead, since empty means it won't appear)
+  - Status badge (`Ativo`/`Inativo`)
+  - Actions: edit, delete, toggle active (switch)
+- **Create/edit dialog** (single form, no tabs):
+  - Name (required)
+  - Price (only for `adicional`) — uses existing `CurrencyInput`, ≥ 0
+  - "Aplicar a categorias" — checkbox grid of tenant categories (multi-select)
+  - Status switch (Ativo)
+  - Save / Cancel
+- **Remove from UI**: kind tabs inside dialog, min/max selection inputs, required toggle, "aplicar a produtos específicos", options sub-editor.
 
-## 2. Componente único de input de moeda BRL
+### 2. `src/lib/catalog-admin.functions.ts` — add simplified server functions
+Add three new server fns (keep existing ones intact for backward compatibility):
+- `listAddonItems()` — returns flat list: `[{ id (group_id), optionId, name, kind, price, active, categoryIds[] }]`. Internally queries `addon_groups` + first/only `addon_options` row + `addon_group_targets` filtered to `category_id IS NOT NULL`.
+- `saveAddonItem({ id?, name, kind, price, active, categoryIds })`:
+  - Upsert group (`required=false`, `min_select=0`, `max_select=1`).
+  - Upsert the single option row (same name + price; active mirrors group).
+  - Replace `addon_group_targets` rows scoped to categories only (delete existing category targets for that group, insert new).
+- `deleteAddonItem({ id })` — wraps existing `deleteAddonGroup` (cascades options + targets).
 
-Criar `src/components/ui/currency-input.tsx`:
+Existing `saveAddonGroup` / `saveAddonOption` / `setAddonGroupTargets` remain for any legacy data and are not removed.
 
-- Wrapper sobre `<Input>` que mostra valor formatado como `R$ 1.234,56` enquanto o usuário digita (parsing por dígitos / 100).
-- Props: `value: number` (em reais), `onChange: (n: number) => void`, demais props herdadas de Input.
-- `inputMode="decimal"`, `type="text"` (não `number`, para suportar a máscara).
-- Prefixo `R$` visual dentro do input.
+### 3. No DB migration needed
+Existing rows still load through the storefront. Legacy multi-option groups created previously will not be editable from the new simplified UI but will keep functioning on the storefront. (Optional follow-up: a one-time normalization, out of scope here.)
 
-## 3. Aplicar `CurrencyInput` em todos os inputs monetários
+### 4. No changes to:
+- `src/components/storefront/ProductModal.tsx` (already renders `addonGroups` with options and prices)
+- `src/components/storefront/CartDrawer.tsx` (already sums option prices into subtotal/total and lists `groupLabels`)
+- `src/lib/receipt-builder.ts` and `order-adapters.ts` (already include addon lines with prices and zero-price observations)
+- `orders.functions.ts` totals
 
-Substituir os `<Input type="number" step="0.10/0.01">` que representam valores em R$:
+Add-on prices already flow into subtotal/total and appear in customer area, admin area, and printed coupon — this refactor only simplifies the admin authoring UX.
 
-- `src/routes/admin.configuracoes.index.tsx` → Pedido mínimo
-- `src/routes/admin.produtos.tsx` → Preço base, Preço promo, preço inline da lista, preço do form de criação, Acréscimo de adicional (inline + form)
-- `src/routes/admin.adicionais.tsx` → Preço (inline e form)
-- `src/routes/admin.cupons.tsx` → Valor (quando `discount_type === "fixed"`) e Pedido mínimo
-- `src/routes/admin.taxas-entrega.tsx` → os 2 inputs de R$ (Taxa e Pedido mínimo do bairro). O input de raio/distância continua como número simples.
-
-Não converter: `min_select`, `max_select`, `max_flavors`, ordem, limite de usos, raio km, quantidades.
-
-## 4. Banco de dados
-
-Migration única adicionando 3 colunas a `tenants`:
-
-```sql
-ALTER TABLE public.tenants
-  ADD COLUMN accepts_delivery boolean NOT NULL DEFAULT true,
-  ADD COLUMN accepts_takeout  boolean NOT NULL DEFAULT true,
-  ADD COLUMN accepts_dinein   boolean NOT NULL DEFAULT true;
-```
-
-Atualizar:
-- `src/lib/tenants.functions.ts` (Zod schema do update + select)
-- `src/lib/db-types.ts` / `domain-types.ts` / `db-adapters.ts`
-
-## 5. Storefront — respeitar toggles
-
-Em `src/routes/$slug.tsx` + `CartDrawer.tsx`:
-- Esconder a opção de modo (entrega / retirada / consumo local) cujo toggle estiver `false`.
-- Se todos estiverem `false`, manter pelo menos entrega habilitada por segurança (fallback defensivo).
-
-## Detalhes técnicos
-
-- Não tocar em `delivery_fee` no banco nem nas funções de pedido — bairros já sobrescrevem.
-- `pos_paper_width` continua salvo apenas pela tela de Impressora.
-- `CurrencyInput` armazena `number` em reais para manter compatibilidade com Zod (`z.number().min(0)`) — sem mudanças em validators.
-- Persistência dos toggles passa pelo `updateMyTenant` existente (apenas adicionar campos no schema).
+## Acceptance checklist
+- Admin can create/edit/delete/activate/deactivate add-ons and observations.
+- Add-on requires a price ≥ 0 (BRL input); observation has no price field.
+- Category assignment by checkbox, multi-select.
+- Listing shows name, type, price (if add-on), categories, status, edit/delete.
+- Tabs filter by `Todos / Adicionais / Observações`.
+- Storefront product modal continues to show items under each linked category's products; customer can multi-select.
+- Cart subtotal/total include add-on prices; observations don't change totals.
+- Order details (customer + admin) and printed receipt continue to render add-ons with price and observations without price.
+- All data scoped per tenant via existing RLS (no policy changes required).
