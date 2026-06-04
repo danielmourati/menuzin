@@ -17,6 +17,9 @@ export type DbTenant = {
   hours: string;
   hours_schedule: { weekday: number; enabled: boolean; open: string; close: string }[] | null;
   open_mode: "auto" | "open" | "closed";
+  accepts_delivery: boolean;
+  accepts_takeout: boolean;
+  accepts_dinein: boolean;
 
   logo_url: string | null;
   logo_letter: string;
