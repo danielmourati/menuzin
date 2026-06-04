@@ -367,8 +367,8 @@ function FlavorsEditor({ productId, flavors, onChanged }: {
             <div className="flex items-center gap-2">
               <Input className="flex-1" defaultValue={f.name}
                 onBlur={(e) => e.target.value !== f.name && saveMut.mutate({ id: f.id, product_id: productId, name: e.target.value, description: f.description, price_delta: Number(f.price_delta), available: f.available, sort_order: f.sort_order })} />
-              <Input className="w-28" type="number" step="0.10" defaultValue={Number(f.price_delta)}
-                onBlur={(e) => Number(e.target.value) !== Number(f.price_delta) && saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: Number(e.target.value), available: f.available, sort_order: f.sort_order })} />
+              <CurrencyBlurInput className="w-32" initialValue={Number(f.price_delta)}
+                onCommit={(v) => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: v, available: f.available, sort_order: f.sort_order })} />
               <Switch checked={f.available}
                 onCheckedChange={(v) => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: Number(f.price_delta), available: v, sort_order: f.sort_order })} />
               <Button size="icon" variant="ghost" className="text-destructive"
