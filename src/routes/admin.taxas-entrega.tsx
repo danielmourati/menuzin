@@ -315,7 +315,7 @@ function DeliveryZonesPage() {
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle>
             <DialogDescription>
-              O CEP é opcional, mas ajuda o sistema a calcular a taxa automaticamente quando o cliente digita o CEP no checkout.
+              Busque por cidade, UF ou CEP para preencher automaticamente a faixa de CEP. O bairro continua sendo usado como nome da área de entrega.
             </DialogDescription>
           </DialogHeader>
           {editing && (
@@ -328,6 +328,12 @@ function DeliveryZonesPage() {
                   onChange={(e) => setEditing({ ...editing, neighborhood: e.target.value })}
                   placeholder="Ex: Centro"
                   maxLength={120}
+                />
+              </div>
+              <div>
+                <Label>Buscar cidade ou CEP</Label>
+                <CepRangeSearch
+                  onSelect={(r) => setEditing({ ...editing, cep_start: maskCep(r.cep_start), cep_end: maskCep(r.cep_end) })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
