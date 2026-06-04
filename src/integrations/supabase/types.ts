@@ -242,6 +242,7 @@ export type Database = {
           active: boolean
           cep_end: string | null
           cep_start: string | null
+          city: string | null
           created_at: string
           estimated_minutes: number | null
           fee: number
@@ -249,12 +250,14 @@ export type Database = {
           min_order_total: number
           neighborhood: string
           tenant_id: string
+          uf: string | null
           updated_at: string
         }
         Insert: {
           active?: boolean
           cep_end?: string | null
           cep_start?: string | null
+          city?: string | null
           created_at?: string
           estimated_minutes?: number | null
           fee?: number
@@ -262,12 +265,14 @@ export type Database = {
           min_order_total?: number
           neighborhood: string
           tenant_id: string
+          uf?: string | null
           updated_at?: string
         }
         Update: {
           active?: boolean
           cep_end?: string | null
           cep_start?: string | null
+          city?: string | null
           created_at?: string
           estimated_minutes?: number | null
           fee?: number
@@ -275,6 +280,7 @@ export type Database = {
           min_order_total?: number
           neighborhood?: string
           tenant_id?: string
+          uf?: string | null
           updated_at?: string
         }
         Relationships: [
