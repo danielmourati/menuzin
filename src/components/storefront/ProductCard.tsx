@@ -19,7 +19,7 @@ export function ProductCard({ product, onClick }: { product: Product; onClick: (
           loading="lazy"
         />
         {product.featured && (
-          <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
+          <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
             Destaque
           </span>
         )}
@@ -30,25 +30,25 @@ export function ProductCard({ product, onClick }: { product: Product; onClick: (
         )}
       </div>
 
-      <div className="relative flex flex-1 flex-col gap-1 p-3 pr-14">
-        <h3 className="line-clamp-1 font-semibold">{product.name}</h3>
+      <div className="relative flex flex-1 flex-col gap-0.5 p-2.5 pr-10">
+        <h3 className="line-clamp-1 text-sm font-semibold">{product.name}</h3>
         {product.description && (
-          <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
+          <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
         )}
         <div className="mt-1">
           {product.promoPrice ? (
-            <div className="flex items-baseline gap-2">
-              <span className="font-bold text-primary">{brl(product.promoPrice)}</span>
-              <span className="text-xs text-muted-foreground line-through">{brl(product.price)}</span>
+            <div className="flex flex-wrap items-baseline gap-x-1.5">
+              <span className="text-sm font-bold text-primary">{brl(product.promoPrice)}</span>
+              <span className="text-[10px] text-muted-foreground line-through">{brl(product.price)}</span>
             </div>
           ) : (
-            <span className="font-bold">{brl(product.price)}</span>
+            <span className="text-sm font-bold">{brl(product.price)}</span>
           )}
         </div>
 
         {!unavailable && (
-          <span className="absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition group-hover:scale-110">
-            <Plus className="h-5 w-5" />
+          <span className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition group-hover:scale-110">
+            <Plus className="h-4 w-4" />
           </span>
         )}
       </div>
