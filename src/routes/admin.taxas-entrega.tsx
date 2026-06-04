@@ -315,7 +315,7 @@ function DeliveryZonesPage() {
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle>
             <DialogDescription>
-              Busque por cidade, UF ou CEP para preencher automaticamente a faixa de CEP. O bairro continua sendo usado como nome da área de entrega.
+              Busque pelo nome do bairro (ou por cidade, UF ou CEP) para preencher automaticamente os campos. Você ainda pode ajustar tudo manualmente.
             </DialogDescription>
           </DialogHeader>
           {editing && (
