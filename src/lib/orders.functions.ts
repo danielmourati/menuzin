@@ -27,8 +27,10 @@ const CreateOrderInput = z.object({
   table_label: z.string().max(50).nullable().optional(),
   pickup_time: z.string().max(50).nullable().optional(),
   note: z.string().max(500).nullable().optional(),
+  coupon_code: z.string().min(2).max(40).regex(/^[A-Z0-9_-]+$/i).nullable().optional(),
   items: z.array(ItemSchema).min(1).max(50),
 });
+
 
 export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((d) => CreateOrderInput.parse(d))
