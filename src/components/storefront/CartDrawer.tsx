@@ -142,7 +142,9 @@ export function CartDrawer({
     setStep("cart"); setHistory([]);
     setDbOrderId(null); setDbOrderNumber(null);
     setPixData(null); setCardData(null); setSelectedMethod(null);
+    setAppliedCoupon(null); setCouponInput("");
   };
+
 
   const modeLabelMap: Record<Mode, string> = {
     entrega: "Entrega", retirada: "Retirada no local", consumo_local: "Consumo no local",
