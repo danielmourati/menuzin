@@ -95,19 +95,13 @@ export const createOrder = createServerFn({ method: "POST" })
     if (oErr || !order) throw new Error(oErr?.message || "Falha ao criar pedido");
 
     if (appliedCode) {
-      await supabaseAdmin.rpc("increment_coupon_use" as never, { _tenant: tenant.id, _code: appliedCode } as never).then(
-        async (res) => {
-          // Fallback if RPC not yet present: do a manual increment via SQL is not available; use update with select.
-          if (res.error) {
-            const { data: row } = await supabaseAdmin.from("coupons").select("id,used_count")
-              .eq("tenant_id", tenant.id).eq("code", appliedCode!).maybeSingle();
-            if (row) {
-              await supabaseAdmin.from("coupons").update({ used_count: (row.used_count ?? 0) + 1 }).eq("id", row.id);
-            }
-          }
-        },
-      );
+      const { data: row } = await supabaseAdmin.from("coupons").select("id,used_count")
+        .eq("tenant_id", tenant.id).eq("code", appliedCode).maybeSingle();
+      if (row) {
+        await supabaseAdmin.from("coupons").update({ used_count: (row.used_count ?? 0) + 1 }).eq("id", row.id);
+      }
     }
+
 
 
     const { error: iErr } = await supabaseAdmin
