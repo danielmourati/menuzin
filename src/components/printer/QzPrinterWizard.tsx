@@ -332,9 +332,24 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
     steps.printer.status === "ok" &&
     steps.test.status === "ok";
 
+  const stepKeys = ["server", "qz", "trust", "printer", "test"] as const;
+  const stepRefs = useRef<Record<string, HTMLLIElement | null>>({});
+  const currentStep = useMemo(
+    () => stepKeys.find((k) => steps[k].status !== "ok") ?? null,
+    [steps],
+  );
+
+  // Volta automaticamente ao passo ativo quando o estado muda — evita que o
+  // usuário fique perdido após rolar a lista em telas pequenas.
+  useEffect(() => {
+    if (!open || !currentStep) return;
+    const el = stepRefs.current[currentStep];
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [open, currentStep]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-1rem)] max-w-xl max-h-[90dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-5 w-5" /> Configurar impressora
@@ -346,11 +361,22 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
         </DialogHeader>
 
         <ol className="space-y-3">
-          {(["server", "qz", "trust", "printer", "test"] as const).map((key, i) => (
-            <li key={key} className="rounded-md border bg-card p-3">
+          {stepKeys.map((key, i) => (
+            <li
+              key={key}
+              ref={(el) => {
+                stepRefs.current[key] = el;
+              }}
+              data-step={key}
+              aria-current={currentStep === key ? "step" : undefined}
+              className={
+                "scroll-mt-4 rounded-md border bg-card p-3 " +
+                (currentStep === key ? "ring-1 ring-primary/40" : "")
+              }
+            >
               <div className="flex items-start gap-3">
                 <StepIcon status={steps[key].status} />
-                <div className="flex-1 space-y-2">
+                <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-sm font-medium">
                       {i + 1}. {STEP_TITLES[key]}
@@ -359,7 +385,7 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
                   {steps[key].detail && (
                     <p
                       className={
-                        "text-xs " +
+                        "break-words text-xs " +
                         (steps[key].status === "err"
                           ? "text-destructive"
                           : "text-muted-foreground")
@@ -368,6 +394,7 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
                       {steps[key].detail}
                     </p>
                   )}
+
 
                   {/* Ações por passo */}
                   {key === "qz" && steps.qz.status === "err" && (
