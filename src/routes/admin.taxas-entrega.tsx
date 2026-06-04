@@ -331,9 +331,22 @@ function DeliveryZonesPage() {
                 />
               </div>
               <div>
-                <Label>Buscar cidade ou CEP</Label>
+                <Label>Buscar bairro, cidade ou CEP</Label>
                 <CepRangeSearch
-                  onSelect={(r) => setEditing({ ...editing, cep_start: maskCep(r.cep_start), cep_end: maskCep(r.cep_end) })}
+                  onSelect={(r) =>
+                    setEditing((prev) => {
+                      if (!prev) return prev;
+                      const next: Editing = {
+                        ...prev,
+                        cep_start: maskCep(r.cep_start),
+                        cep_end: maskCep(r.cep_end),
+                      };
+                      if (r.neighborhood && !prev.neighborhood.trim()) {
+                        next.neighborhood = r.neighborhood;
+                      }
+                      return next;
+                    })
+                  }
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
