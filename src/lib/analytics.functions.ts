@@ -114,7 +114,8 @@ export const getMyTenantAnalytics = createServerFn({ method: "POST" })
       .eq("tenant_id", tenantId).eq("available", true);
 
     const { data: tenant } = await supabaseAdmin
-      .from("tenants").select("open").eq("id", tenantId).maybeSingle();
+      .from("tenants").select("open, open_mode, hours_schedule").eq("id", tenantId).maybeSingle();
+
 
     return {
       salesByDay,
