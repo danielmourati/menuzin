@@ -794,9 +794,12 @@ export function CartDrawer({
                   )}
                   {deliveryFee > 0 && (
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
+                      <span>Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}</span><span>{brl(deliveryFee)}</span>
                     </div>
                   )}
+                  <div className="flex justify-between border-t pt-2 text-base font-bold">
+                    <span>Total</span><span>{brl(total)}</span>
+                  </div>
                 </div>
               </div>
 
