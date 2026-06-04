@@ -58,3 +58,34 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
   },
 );
 CurrencyInput.displayName = "CurrencyInput";
+
+/**
+ * Variante que mantém valor localmente e só dispara `onCommit`
+ * quando o input perde o foco — usada em listas inline editáveis.
+ */
+export interface CurrencyBlurInputProps
+  extends Omit<CurrencyInputProps, "value" | "onChange"> {
+  initialValue: number;
+  onCommit: (value: number) => void;
+}
+
+export const CurrencyBlurInput = React.forwardRef<HTMLInputElement, CurrencyBlurInputProps>(
+  ({ initialValue, onCommit, ...rest }, ref) => {
+    const [value, setValue] = React.useState<number>(initialValue);
+    React.useEffect(() => {
+      setValue(initialValue);
+    }, [initialValue]);
+    return (
+      <CurrencyInput
+        ref={ref}
+        value={value}
+        onChange={setValue}
+        onBlur={() => {
+          if (value !== initialValue) onCommit(value);
+        }}
+        {...rest}
+      />
+    );
+  },
+);
+CurrencyBlurInput.displayName = "CurrencyBlurInput";
