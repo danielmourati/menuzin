@@ -878,6 +878,9 @@ export type Database = {
       }
       tenants: {
         Row: {
+          accepts_delivery: boolean
+          accepts_dinein: boolean
+          accepts_takeout: boolean
           active: boolean
           address: string | null
           city: string | null
@@ -906,6 +909,9 @@ export type Database = {
           whatsapp: string
         }
         Insert: {
+          accepts_delivery?: boolean
+          accepts_dinein?: boolean
+          accepts_takeout?: boolean
           active?: boolean
           address?: string | null
           city?: string | null
@@ -934,6 +940,9 @@ export type Database = {
           whatsapp?: string
         }
         Update: {
+          accepts_delivery?: boolean
+          accepts_dinein?: boolean
+          accepts_takeout?: boolean
           active?: boolean
           address?: string | null
           city?: string | null
