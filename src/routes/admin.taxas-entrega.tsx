@@ -19,7 +19,10 @@ import {
   type DeliveryZoneRow,
 } from "@/lib/delivery-zones.functions";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
+import { searchCepRanges, type CepRangeResult } from "@/lib/cep-ranges.functions";
 import { brl } from "@/lib/format";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/admin/taxas-entrega")({
   component: DeliveryZonesPage,
