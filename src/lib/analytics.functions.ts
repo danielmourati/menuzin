@@ -128,7 +128,12 @@ export const getMyTenantAnalytics = createServerFn({ method: "POST" })
       monthOrdersCount,
       productsActive: productsActive ?? 0,
       monthRevenue,
-      storeOpen: !!tenant?.open,
+      storeOpen: computeStoreOpen({
+        openMode: (tenant as { open_mode?: "auto" | "open" | "closed" } | null)?.open_mode,
+        hoursSchedule: (tenant as { hours_schedule?: unknown } | null)?.hours_schedule,
+        legacyOpen: tenant?.open,
+      }).open,
+
     };
   });
 
