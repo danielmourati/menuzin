@@ -87,6 +87,25 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
   const [cartOpen, setCartOpen] = useState(false);
   const { count, subtotal } = useCart();
 
+  // Recalcula o status a cada minuto para fechar/abrir sozinho conforme o
+  // relógio do cliente — não depende de re-render no servidor.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const storeOpen = useMemo(
+    () =>
+      computeStoreOpen({
+        openMode: tenant.openMode,
+        hoursSchedule: tenant.hoursSchedule,
+        legacyOpen: tenant.open,
+      }).open,
+    // tick é dependência intencional para re-avaliar no fuso atual.
+    [tenant.openMode, tenant.hoursSchedule, tenant.open, tick],
+  );
+
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (activeCat !== "Todos" && p.category !== activeCat) return false;
