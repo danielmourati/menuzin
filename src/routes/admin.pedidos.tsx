@@ -100,7 +100,6 @@ function OrdersPage() {
       title="Gestão de Pedidos"
       action={
         <div className="flex items-center gap-2">
-          {/* Botão de simulação rápida */}
           <Button
             onClick={handleManualSimulate}
             size="sm"
@@ -110,7 +109,26 @@ function OrdersPage() {
             Simular Pedido
           </Button>
 
-          {/* Atalho de configurações */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPrinterOpen(true)}
+            className="hidden sm:inline-flex h-9 text-xs"
+          >
+            <Printer className="mr-1.5 h-4 w-4" />
+            Configurar impressora
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setPrinterOpen(true)}
+            className="sm:hidden h-9 w-9"
+            title="Configurar impressora"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+
           <Button asChild variant="outline" size="icon" className="h-9 w-9">
             <Link to="/admin/configuracoes/pedidos" title="Alertas e Notificações">
               <Settings2 className="h-4 w-4 text-foreground/80" />
@@ -124,7 +142,6 @@ function OrdersPage() {
         <Card className="shadow-sm border border-zinc-200 dark:border-zinc-800">
           <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex-1 grid gap-3 grid-cols-1 sm:grid-cols-[1fr_180px_180px]">
-              {/* Campo de Busca */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -135,7 +152,6 @@ function OrdersPage() {
                 />
               </div>
 
-              {/* Filtro de Modalidade */}
               <Select value={modeFilter} onValueChange={setModeFilter}>
                 <SelectTrigger className="h-10 rounded-xl">
                   <SelectValue placeholder="Todas as modalidades" />
@@ -148,7 +164,6 @@ function OrdersPage() {
                 </SelectContent>
               </Select>
 
-              {/* Filtro de Status Geral */}
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="h-10 rounded-xl">
                   <SelectValue placeholder="Todos os status" />
@@ -161,32 +176,10 @@ function OrdersPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Alternador de Visualização (Kanban vs Lista) - Oculto no Mobile */}
-            <div className="hidden md:flex items-center gap-1 bg-muted p-1 rounded-xl">
-              <Button
-                variant={viewMode === "kanban" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("kanban")}
-                className="h-8 w-8 rounded-lg"
-                title="Visualização em Kanban"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("list")}
-                className="h-8 w-8 rounded-lg"
-                title="Visualização em Lista"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Visualização Mobile (Abas Horizontais com Scroll) */}
+        {/* Mobile — abas com scroll */}
         <div className="md:hidden">
           <OrdersMobileTabs
             orders={filtered}
@@ -197,40 +190,28 @@ function OrdersPage() {
           />
         </div>
 
-        {/* Visualização Desktop */}
+        {/* Desktop — grupos de cards retangulares por status */}
         <div className="hidden md:block">
-          {viewMode === "kanban" && statusFilter !== "finalizado" && statusFilter !== "cancelado" ? (
-            <OrdersKanbanBoard
+          {filtered.length === 0 ? (
+            <Card className="border border-dashed">
+              <CardContent className="p-12 text-center text-muted-foreground">
+                Nenhum pedido encontrado com os filtros selecionados.
+              </CardContent>
+            </Card>
+          ) : (
+            <OrdersStatusGroups
               orders={filtered}
               onViewDetails={(order) => setDetailedOrderId(order.id)}
               onAccept={acceptOrder}
               onCancel={(order) => setCancellationOrderId(order.id)}
               onUpdateStatus={updateOrderStatus}
             />
-          ) : (
-            <div className="grid gap-3">
-              {filtered.length === 0 ? (
-                <Card className="border border-dashed">
-                  <CardContent className="p-12 text-center text-muted-foreground">
-                    Nenhum pedido encontrado com os filtros selecionados.
-                  </CardContent>
-                </Card>
-              ) : (
-                filtered.map((order) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    onViewDetails={() => setDetailedOrderId(order.id)}
-                    onAccept={() => acceptOrder(order.id)}
-                    onCancel={() => setCancellationOrderId(order.id)}
-                    onUpdateStatus={(status) => updateOrderStatus(order.id, status)}
-                  />
-                ))
-              )}
-            </div>
           )}
         </div>
       </div>
+
+      <PrinterSettingsDialog open={printerOpen} onOpenChange={setPrinterOpen} />
+
 
       {/* Drawer de Detalhes do Pedido */}
       <OrderDetailsDrawer
