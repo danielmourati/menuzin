@@ -22,7 +22,7 @@ import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
-import { listPublicDeliveryZones, type PublicDeliveryZone } from "@/lib/delivery-zones.functions";
+import { listPublicDeliveryZones, resolveDeliveryFee, type PublicDeliveryZone, type DeliveryFeeResolution } from "@/lib/delivery-zones.functions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
