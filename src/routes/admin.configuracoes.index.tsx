@@ -12,11 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
+import {
+  defaultSchedule,
+  normalizeSchedule,
+  WEEKDAY_LABELS,
+  WEEKDAY_ORDER,
+  type HoursSchedule,
+  type WeekdayCode,
+} from "@/lib/store-hours";
 
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: SettingsPage });
 
-const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
 type FormState = {
   name: string;
@@ -29,6 +36,7 @@ type FormState = {
   min_order: number;
   prep_time: string;
   pos_paper_width: "55mm" | "80mm";
+  hours_schedule: HoursSchedule;
 };
 
 function SettingsPage() {
@@ -39,14 +47,20 @@ function SettingsPage() {
   });
   const tenant = data?.tenant;
 
+
   const [form, setForm] = useState<FormState>({
     name: "", whatsapp: "", description: "", address: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
+    hours_schedule: defaultSchedule(),
   });
 
   useEffect(() => {
     if (!tenant) return;
-    const t = tenant as typeof tenant & { pos_paper_width?: string };
+    const t = tenant as typeof tenant & {
+      pos_paper_width?: string;
+      hours_schedule?: unknown;
+    };
+    const sched = normalizeSchedule(t.hours_schedule);
     setForm({
       name: tenant.name ?? "",
       whatsapp: tenant.whatsapp ?? "",
@@ -58,8 +72,10 @@ function SettingsPage() {
       min_order: Number(tenant.min_order ?? 0),
       prep_time: tenant.prep_time ?? "",
       pos_paper_width: (t.pos_paper_width === "55mm" ? "55mm" : "80mm"),
+      hours_schedule: sched.some((d) => d.enabled) ? sched : defaultSchedule(),
     });
   }, [tenant]);
+
 
   const saveMut = useMutation({
     mutationFn: () => updateMyTenant({ data: form }),
@@ -123,16 +139,54 @@ function SettingsPage() {
               <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>
             </TabsContent>
 
-            <TabsContent value="horarios" className="mt-6 space-y-2">
-              {days.map((d) => (
-                <div key={d} className="grid items-center gap-3 rounded-xl border p-3 sm:grid-cols-[120px_auto_1fr_1fr]">
-                  <span className="font-medium">{d}</span>
-                  <Switch defaultChecked />
-                  <Input type="time" defaultValue="18:00" />
-                  <Input type="time" defaultValue="23:00" />
-                </div>
-              ))}
+            <TabsContent value="horarios" className="mt-6 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Horário no fuso de Brasília. Quando o toggle do cabeçalho está em
+                <strong> Auto</strong>, a loja abre e fecha sozinha conforme estes
+                horários.
+              </p>
+              {WEEKDAY_ORDER.map((w) => {
+                const day =
+                  form.hours_schedule.find((d) => d.weekday === w) ??
+                  { weekday: w, enabled: false, open: "18:00", close: "23:00" };
+                const update = (patch: Partial<typeof day>) => {
+                  setForm((p) => ({
+                    ...p,
+                    hours_schedule: WEEKDAY_ORDER.map((wd) => {
+                      const existing =
+                        p.hours_schedule.find((d) => d.weekday === wd) ??
+                        { weekday: wd, enabled: false, open: "18:00", close: "23:00" };
+                      return wd === w ? { ...existing, ...patch } : existing;
+                    }),
+                  }));
+                };
+                return (
+                  <div
+                    key={w}
+                    className="grid items-center gap-3 rounded-xl border p-3 sm:grid-cols-[120px_auto_1fr_1fr]"
+                  >
+                    <span className="font-medium">{WEEKDAY_LABELS[w as WeekdayCode]}</span>
+                    <Switch
+                      checked={day.enabled}
+                      onCheckedChange={(v) => update({ enabled: !!v })}
+                    />
+                    <Input
+                      type="time"
+                      value={day.open}
+                      disabled={!day.enabled}
+                      onChange={(e) => update({ open: e.target.value })}
+                    />
+                    <Input
+                      type="time"
+                      value={day.close}
+                      disabled={!day.enabled}
+                      onChange={(e) => update({ close: e.target.value })}
+                    />
+                  </div>
+                );
+              })}
             </TabsContent>
+
 
             <TabsContent value="pagamento" className="mt-6 space-y-4">
               <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">

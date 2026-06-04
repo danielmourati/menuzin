@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { computeStoreOpen } from "@/lib/store-hours";
+
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/aparencia")({ component: AppearancePage });
@@ -98,7 +100,7 @@ function AppearancePage() {
                   )}
                   <div>
                     <p className="font-bold">{tenant?.name ?? "Sua loja"}</p>
-                    <p className="text-xs text-success">● {tenant?.open ? "Aberta" : "Fechada"}</p>
+                    <p className="text-xs text-success">● {computeStoreOpen({ openMode: (tenant as { open_mode?: "auto"|"open"|"closed" })?.open_mode, hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule, legacyOpen: tenant?.open }).open ? "Aberta" : "Fechada"}</p>
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">

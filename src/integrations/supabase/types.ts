@@ -885,12 +885,14 @@ export type Database = {
           delivery_fee: number
           description: string | null
           hours: string | null
+          hours_schedule: Json
           id: string
           logo_letter: string | null
           logo_url: string | null
           min_order: number
           name: string
           open: boolean
+          open_mode: string
           plan: string
           pos_paper_width: string
           prep_time: string | null
@@ -911,12 +913,14 @@ export type Database = {
           delivery_fee?: number
           description?: string | null
           hours?: string | null
+          hours_schedule?: Json
           id?: string
           logo_letter?: string | null
           logo_url?: string | null
           min_order?: number
           name: string
           open?: boolean
+          open_mode?: string
           plan?: string
           pos_paper_width?: string
           prep_time?: string | null
@@ -937,12 +941,14 @@ export type Database = {
           delivery_fee?: number
           description?: string | null
           hours?: string | null
+          hours_schedule?: Json
           id?: string
           logo_letter?: string | null
           logo_url?: string | null
           min_order?: number
           name?: string
           open?: boolean
+          open_mode?: string
           plan?: string
           pos_paper_width?: string
           prep_time?: string | null

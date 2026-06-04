@@ -15,6 +15,9 @@ export type DbTenant = {
   min_order: number;
   delivery_fee: number;
   hours: string;
+  hours_schedule: { weekday: number; enabled: boolean; open: string; close: string }[] | null;
+  open_mode: "auto" | "open" | "closed";
+
   logo_url: string | null;
   logo_letter: string;
   theme_from: string;
@@ -24,6 +27,7 @@ export type DbTenant = {
   social: Record<string, string>;
   active: boolean;
 };
+
 
 export type DbCategory = {
   id: string;

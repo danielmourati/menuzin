@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { computeStoreOpen } from "@/lib/store-hours";
+
 
 const Input = z.object({ days: z.number().int().min(1).max(90).default(7) });
 
@@ -114,7 +116,8 @@ export const getMyTenantAnalytics = createServerFn({ method: "POST" })
       .eq("tenant_id", tenantId).eq("available", true);
 
     const { data: tenant } = await supabaseAdmin
-      .from("tenants").select("open").eq("id", tenantId).maybeSingle();
+      .from("tenants").select("open, open_mode, hours_schedule").eq("id", tenantId).maybeSingle();
+
 
     return {
       salesByDay,
@@ -127,7 +130,12 @@ export const getMyTenantAnalytics = createServerFn({ method: "POST" })
       monthOrdersCount,
       productsActive: productsActive ?? 0,
       monthRevenue,
-      storeOpen: !!tenant?.open,
+      storeOpen: computeStoreOpen({
+        openMode: (tenant as { open_mode?: "auto" | "open" | "closed" } | null)?.open_mode,
+        hoursSchedule: (tenant as { hours_schedule?: unknown } | null)?.hours_schedule,
+        legacyOpen: tenant?.open,
+      }).open,
+
     };
   });
 

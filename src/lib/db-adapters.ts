@@ -54,6 +54,8 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     state: t.state ?? "",
     address: t.address ?? "",
     open: t.open,
+    openMode: (t.open_mode ?? "auto"),
+    hoursSchedule: Array.isArray(t.hours_schedule) ? t.hours_schedule : [],
     prepTime: t.prep_time ?? "",
     minOrder: Number(t.min_order),
     deliveryFee: Number(t.delivery_fee),
@@ -66,6 +68,7 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     social: (t.social as { instagram?: string; facebook?: string }) ?? {},
   };
 }
+
 
 export function dbCategoriesToUi(rows: { id: string; name: string; sort_order: number; active: boolean }[]): Category[] {
   return rows.map((c) => ({

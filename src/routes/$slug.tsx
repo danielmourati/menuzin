@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { computeStoreOpen } from "@/lib/store-hours";
+
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon } from "lucide-react";
@@ -87,6 +89,26 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
   const [cartOpen, setCartOpen] = useState(false);
   const { count, subtotal } = useCart();
 
+  // Recalcula o status a cada minuto para fechar/abrir sozinho conforme o
+  // relógio do cliente — não depende de re-render no servidor.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const storeOpen = useMemo(
+    () =>
+      computeStoreOpen({
+        openMode: tenant.openMode,
+        hoursSchedule: tenant.hoursSchedule,
+        legacyOpen: tenant.open,
+      }).open,
+    // tick é dependência intencional para re-avaliar no fuso atual.
+    [tenant.openMode, tenant.hoursSchedule, tenant.open, tick],
+  );
+
+
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       if (activeCat !== "Todos" && p.category !== activeCat) return false;
@@ -129,8 +151,8 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 <h1 className="text-lg font-bold sm:text-xl">{tenant.name}</h1>
-                <Badge className={tenant.open ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
-                  {tenant.open ? "Aberta" : "Fechada"}
+                <Badge className={storeOpen ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
+                  {storeOpen ? "Aberta" : "Fechada"}
                 </Badge>
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{tenant.description}</p>
@@ -159,7 +181,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
           />
         </div>
 
-        {!tenant.open && (
+        {!storeOpen && (
           <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-center">
             <p className="text-sm font-semibold text-destructive">Loja fechada no momento</p>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -184,7 +206,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
           </div>
         </div>
 
-        <div className={`mt-6 space-y-8 ${!tenant.open ? "opacity-60" : ""}`}>
+        <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
               Nenhum produto encontrado.
@@ -199,7 +221,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
                       key={p.id}
                       product={p}
                       onClick={() => {
-                        if (!tenant.open) return;
+                        if (!storeOpen) return;
                         setSelectedProduct(p);
                         setModalOpen(true);
                       }}
@@ -212,7 +234,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         </div>
       </div>
 
-      {tenant.open && count > 0 && (
+      {storeOpen && count > 0 && (
         <button
           onClick={() => setCartOpen(true)}
           className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between bg-primary px-5 py-3.5 text-primary-foreground shadow-[var(--shadow-pop)]"
@@ -228,14 +250,14 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         </button>
       )}
 
-      {!tenant.open && (
+      {!storeOpen && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card px-5 py-3 text-center">
           <p className="text-sm font-semibold text-destructive">Loja fechada — pedidos indisponíveis</p>
         </div>
       )}
 
-      <ProductModal product={selectedProduct} open={modalOpen && tenant.open} onOpenChange={setModalOpen} />
-      <CartDrawer open={cartOpen && tenant.open} onOpenChange={setCartOpen} />
+      <ProductModal product={selectedProduct} open={modalOpen && storeOpen} onOpenChange={setModalOpen} />
+      <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} />
     </div>
   );
 }

@@ -12,7 +12,9 @@ import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListen
 import { useAuth } from "@/lib/auth-context";
 import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
+import { computeStoreOpen } from "@/lib/store-hours";
 import { toast } from "sonner";
+
 
 const items = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -340,39 +342,58 @@ function StoreOpenToggle() {
     queryKey: ["my-tenant", tenantKey],
     queryFn: () => getMyTenant(),
     enabled: !!(profile?.tenant_id || activeTenantId),
+    // Recalcula o status com base no relógio a cada minuto.
+    refetchInterval: 60_000,
   });
   const tenant = data?.tenant;
 
   const canToggle = !!tenant && (isPlatformAdmin || !!profile?.tenant_id);
 
   const mut = useMutation({
-    mutationFn: (open: boolean) => updateMyTenant({ data: { open } }),
-    onSuccess: (_r, open) => {
-      toast.success(open ? "Atendimento aberto" : "Atendimento fechado");
+    mutationFn: (open_mode: "auto" | "open" | "closed") =>
+      updateMyTenant({ data: { open_mode } }),
+    onSuccess: (_r, mode) => {
+      toast.success(
+        mode === "auto"
+          ? "Voltou ao modo automático pelo horário"
+          : mode === "open"
+            ? "Atendimento forçado ABERTO"
+            : "Atendimento forçado FECHADO",
+      );
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   if (!canToggle) return null;
-  const open = !!tenant?.open;
+
+  const status = computeStoreOpen({
+    openMode: (tenant as { open_mode?: "auto" | "open" | "closed" }).open_mode,
+    hoursSchedule: (tenant as { hours_schedule?: unknown }).hours_schedule,
+    legacyOpen: tenant.open,
+  });
+  const mode = status.mode;
+  const open = status.open;
+
+  // Próximo modo no ciclo: auto → open → closed → auto.
+  const nextMode = mode === "auto" ? "open" : mode === "open" ? "closed" : "auto";
+  const label = mode === "auto" ? (open ? "Aberta" : "Fechada") : mode === "open" ? "Aberta" : "Fechada";
+  const sub = mode === "auto" ? "auto" : "manual";
 
   return (
     <Button
       size="sm"
       variant={open ? "default" : "outline"}
-      onClick={() => mut.mutate(!open)}
+      onClick={() => mut.mutate(nextMode)}
       disabled={mut.isPending}
       className={
         open
           ? "bg-success text-success-foreground hover:bg-success/90"
           : "border-destructive text-destructive hover:bg-destructive/10"
       }
-      title={
-        open
-          ? "Clique para fechar/bloquear o atendimento agora (ignora os horários)"
-          : "Clique para abrir o atendimento agora (ignora os horários)"
-      }
+      title={`${status.reason}. Clique para alternar para "${
+        nextMode === "auto" ? "Auto" : nextMode === "open" ? "Forçar aberta" : "Forçar fechada"
+      }".`}
     >
       {mut.isPending ? (
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -380,8 +401,9 @@ function StoreOpenToggle() {
         <Power className="h-4 w-4" />
       )}
       <span className="ml-1.5 hidden sm:inline">
-        {open ? "Aberta" : "Fechada"}
+        {label} <span className="opacity-70">· {sub}</span>
       </span>
     </Button>
   );
 }
+

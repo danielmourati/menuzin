@@ -143,6 +143,8 @@ export type Tenant = {
   state: string;
   address: string;
   open: boolean;
+  openMode: "auto" | "open" | "closed";
+  hoursSchedule: { weekday: number; enabled: boolean; open: string; close: string }[];
   prepTime: string;
   minOrder: number;
   deliveryFee: number;
@@ -154,3 +156,4 @@ export type Tenant = {
   active: boolean;
   social?: { instagram?: string; facebook?: string };
 };
+
