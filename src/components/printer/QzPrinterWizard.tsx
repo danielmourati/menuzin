@@ -334,8 +334,8 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Printer className="h-5 w-5" /> Configurar impressora
           </DialogTitle>
@@ -345,8 +345,7 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto pr-1 py-1">
-          <ol className="space-y-3">
+        <ol className="space-y-3">
           {(["server", "qz", "trust", "printer", "test"] as const).map((key, i) => (
             <li key={key} className="rounded-md border bg-card p-3">
               <div className="flex items-start gap-3">
@@ -530,9 +529,8 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
             </li>
           ))}
         </ol>
-        </div>
 
-        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row flex-shrink-0 mt-2">
+        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="sm:mr-auto">
             Fechar
           </Button>
