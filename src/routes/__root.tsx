@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -12,11 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "../lib/cart-context";
-import { AuthProvider } from "../lib/auth-context";
-import { PrintServerProvider } from "../lib/print-server-context";
-import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
-
+import { AuthProvider } from "../hooks/useAuth";
 
 function NotFoundComponent() {
   return (
@@ -96,37 +93,16 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function AuthStateInvalidator() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        queryClient.removeQueries();
-      } else {
-        queryClient.invalidateQueries();
-      }
-      router.invalidate();
-    });
-    return () => subscription.unsubscribe();
-  }, [router, queryClient]);
-  return null;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AuthStateInvalidator />
-        <PrintServerProvider>
-          <CartProvider>
-            <Outlet />
-            <Toaster position="top-center" richColors />
-          </CartProvider>
-        </PrintServerProvider>
+        <CartProvider>
+          <Outlet />
+          <Toaster position="top-center" richColors />
+        </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
-
