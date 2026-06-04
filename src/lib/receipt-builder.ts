@@ -207,8 +207,13 @@ export function buildReceipt(
       a.complement,
     ].filter(Boolean).join(" - ");
     if (linhaEnd) wrap(stripAccents(linhaEnd), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
-    if (a.neighborhood) wrap(stripAccents(a.neighborhood), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    if (a.neighborhood) {
+      wrap(`Bairro: ${stripAccents(a.neighborhood)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    }
     if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    if (order.deliveryFee > 0) {
+      out.push(addonIndent + row("Taxa entrega", money(order.deliveryFee), cols - addonIndent.length));
+    }
   }
   if (order.paymentStatus === "approved") out.push("Cobranca antecipada");
   else if (order.paymentStatus === "manual") out.push("Pagamento na entrega");
