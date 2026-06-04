@@ -44,7 +44,31 @@ export const createOrder = createServerFn({ method: "POST" })
       const addonsSum = it.addons.reduce((a, x) => a + x.price, 0);
       return s + it.qty * (it.unit_price + addonsSum);
     }, 0);
-    const total = subtotal + (data.delivery_fee ?? 0);
+
+    // Re-validate coupon server-side if provided.
+    let discountAmount = 0;
+    let appliedCode: string | null = null;
+    if (data.coupon_code) {
+      const codeUpper = data.coupon_code.toUpperCase();
+      const { data: coupon } = await supabaseAdmin
+        .from("coupons").select("*").eq("tenant_id", tenant.id).eq("code", codeUpper).maybeSingle();
+      if (!coupon) throw new Error("Cupom inválido");
+      if (!coupon.active) throw new Error("Cupom desativado");
+      const now = new Date();
+      if (coupon.valid_from && new Date(coupon.valid_from) > now) throw new Error("Cupom ainda não está válido");
+      if (coupon.valid_until && new Date(coupon.valid_until) < now) throw new Error("Cupom expirado");
+      if (coupon.max_uses != null && coupon.used_count >= coupon.max_uses) throw new Error("Cupom esgotado");
+      if (Number(coupon.min_order_total) > subtotal) {
+        throw new Error(`Pedido mínimo de R$ ${Number(coupon.min_order_total).toFixed(2)} para este cupom`);
+      }
+      const value = Number(coupon.discount_value);
+      discountAmount = coupon.discount_type === "percent" ? (subtotal * value) / 100 : value;
+      discountAmount = Math.min(discountAmount, subtotal);
+      discountAmount = Math.round(discountAmount * 100) / 100;
+      appliedCode = coupon.code;
+    }
+
+    const total = Math.max(0, subtotal - discountAmount) + (data.delivery_fee ?? 0);
 
     const { data: order, error: oErr } = await supabaseAdmin
       .from("orders")
@@ -58,6 +82,8 @@ export const createOrder = createServerFn({ method: "POST" })
         change_for: data.change_for ?? null,
         subtotal,
         delivery_fee: data.delivery_fee ?? 0,
+        discount_amount: discountAmount,
+        coupon_code: appliedCode,
         total,
         address: data.address ?? null,
         table_label: data.table_label ?? null,
@@ -67,6 +93,22 @@ export const createOrder = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (oErr || !order) throw new Error(oErr?.message || "Falha ao criar pedido");
+
+    if (appliedCode) {
+      await supabaseAdmin.rpc("increment_coupon_use" as never, { _tenant: tenant.id, _code: appliedCode } as never).then(
+        async (res) => {
+          // Fallback if RPC not yet present: do a manual increment via SQL is not available; use update with select.
+          if (res.error) {
+            const { data: row } = await supabaseAdmin.from("coupons").select("id,used_count")
+              .eq("tenant_id", tenant.id).eq("code", appliedCode!).maybeSingle();
+            if (row) {
+              await supabaseAdmin.from("coupons").update({ used_count: (row.used_count ?? 0) + 1 }).eq("id", row.id);
+            }
+          }
+        },
+      );
+    }
+
 
     const { error: iErr } = await supabaseAdmin
       .from("order_items")
