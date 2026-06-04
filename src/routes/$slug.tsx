@@ -88,6 +88,7 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const { count, subtotal } = useCart();
 
   // Recalcula o status a cada minuto para fechar/abrir sozinho conforme o
