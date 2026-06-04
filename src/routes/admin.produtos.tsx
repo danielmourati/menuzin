@@ -319,8 +319,8 @@ function SizesEditor({ productId, sizes, onChanged }: {
           <div key={s.id} className="flex items-center gap-2 rounded-xl border p-2">
             <Input className="flex-1" defaultValue={s.name}
               onBlur={(e) => e.target.value !== s.name && saveMut.mutate({ id: s.id, product_id: productId, name: e.target.value, price: Number(s.price), sort_order: s.sort_order })} />
-            <Input className="w-28" type="number" step="0.10" defaultValue={Number(s.price)}
-              onBlur={(e) => Number(e.target.value) !== Number(s.price) && saveMut.mutate({ id: s.id, product_id: productId, name: s.name, price: Number(e.target.value), sort_order: s.sort_order })} />
+            <CurrencyBlurInput className="w-32" initialValue={Number(s.price)}
+              onCommit={(v) => saveMut.mutate({ id: s.id, product_id: productId, name: s.name, price: v, sort_order: s.sort_order })} />
             <Button size="icon" variant="ghost" className="text-destructive"
               onClick={() => { if (confirm(`Remover "${s.name}"?`)) delMut.mutate(s.id); }}>
               <Trash2 className="h-4 w-4" />
