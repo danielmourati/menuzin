@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ChevronRight,
   Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
-  User, Mail, Phone, MapPin, Pencil, Home, Map,
+  User, Mail, Phone, MapPin, Pencil, Home, Map, Ticket, Loader2, X as XIcon,
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
@@ -21,6 +21,8 @@ import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelecto
 import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone, maskCpfCnpj } from "@/lib/masks";
+import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
+
 
 type Step =
   | "cart"
