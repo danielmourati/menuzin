@@ -1,66 +1,53 @@
-## Goal
-Replace the current "groups + options + min/max/required" UI in `admin/adicionais` with a simple, flat list where each row is **one item** — either a paid **Add-on** (with price) or a free **Observation** (no price) — assigned to one or many categories via checkboxes.
 
-## Strategy: keep DB, simplify UI
+## Scope
+Frontend-only refactor of the public storefront. No DB/business-logic changes. Cart totals, order flow, tenant scoping, and receipt remain unchanged.
 
-The existing schema (`addon_groups` + `addon_options` + `addon_group_targets`) is already used by the storefront `ProductModal`, `CartDrawer`, order persistence, and the receipt builder. Rewriting it would force changes across the whole order pipeline.
+## Files to change
 
-Instead, we treat each visible "item" in the new UI as an **implicit single-option group**:
-- Group: `name = <item name>`, `kind = adicional|observacao`, `required = false`, `min_select = 0`, `max_select = 1`, `active = <item status>`.
-- Option: a single `addon_options` row mirroring name + price.
-- Targets: `addon_group_targets` rows for the selected categories (product-level targeting removed from UI).
+### 1. `src/components/storefront/ProductCard.tsx`
+Rebuild as a vertical card with edge-to-edge hero image:
+- Image on top, full width, `aspect-[4/3]` or `aspect-video`, `object-cover`, no internal padding, rounded matching card radius (top corners only).
+- Content area below image: name, 2-line description, price + promo, "Destaque" badge if `featured`.
+- Bottom-right floating "+" button overlapping image/content.
+- "Indisponível" overlay if unavailable.
+- Preserve existing props (`product`, `onClick`).
 
-This preserves all downstream behavior (cart totals, customer/admin order details, printed receipt) with zero changes to storefront, orders, or receipts.
+### 2. `src/components/storefront/ProductModal.tsx`
+- Hero image edge-to-edge at top of modal (remove the `max-w-md` and `object-contain` framing; use `object-cover` filling full width, fixed aspect ratio e.g. `aspect-square` on mobile).
+- Floating back button with soft shadow (kept).
+- Improve spacing rhythm between sections (image → title/price → description → groups → bottom bar).
+- Sticky bottom action bar (kept).
+- **Dedupe adicionais/observações:** Currently the modal renders both `product.addonGroups` (looped) AND legacy `product.addons`. After the recent simplification, each addon item is its own single-option group. To avoid showing the same item twice:
+  - Split `product.addonGroups` into `adicionalGroups` (kind !== "observacao") and `observacaoGroups` (kind === "observacao").
+  - Render a single **"Adicionais"** section header, then a flat list of all options from adicional groups (checkbox rows with name + price right-aligned). Selecting still routes through `toggleGroupOption(g.id, o.id, g.maxSelect)` to preserve cart/order behavior.
+  - Render a single **"Observações"** section header (only if any observation groups exist), flat list of options as checkboxes, no price, not required.
+  - Hide the legacy "Adicionais" block (`product.addons`) entirely if `addonGroups` already covers it; keep as fallback only when `addonGroups` is empty.
+  - Drop "Obrigatório" badges and min/max hints for these sections since simplified add-ons are always optional single-option groups.
+- Keep size/flavor sections untouched.
 
-## Changes
+### 3. `src/routes/$slug.tsx`
+- **Search input:** force white background, stronger border, larger radius, better placeholder contrast (`bg-white text-foreground placeholder:text-muted-foreground border-input shadow-sm`).
+- **Featured scroller:** Add a new section above the category tabs:
+  - Title "Destaques" (only rendered if `products.some(p => p.featured && p.available)`).
+  - Horizontal scroll container (`flex overflow-x-auto snap-x scrollbar-hide`) with larger cards (~260px wide) showing big image, name, short description, price, "Destaque" badge.
+  - Clicking opens the same ProductModal.
+  - Hidden when activeCat !== "Todos" or search is active (to avoid noise), or always visible — pick: keep visible only when `activeCat === "Todos"` and `!search`.
+- Grid below stays the same.
 
-### 1. `src/routes/admin.adicionais.tsx` — full rewrite of the UI
-- **Header**: two buttons — `Novo adicional`, `Nova observação`.
-- **Tabs**: `Todos` · `Adicionais` · `Observações`.
-- **List rows (cards)** showing:
-  - Name
-  - Badge: `Adicional` or `Observação`
-  - Price (only for add-ons), formatted BRL
-  - Categories applied (comma-separated names; "Todas as categorias" if empty? → show "Sem categoria" badge instead, since empty means it won't appear)
-  - Status badge (`Ativo`/`Inativo`)
-  - Actions: edit, delete, toggle active (switch)
-- **Create/edit dialog** (single form, no tabs):
-  - Name (required)
-  - Price (only for `adicional`) — uses existing `CurrencyInput`, ≥ 0
-  - "Aplicar a categorias" — checkbox grid of tenant categories (multi-select)
-  - Status switch (Ativo)
-  - Save / Cancel
-- **Remove from UI**: kind tabs inside dialog, min/max selection inputs, required toggle, "aplicar a produtos específicos", options sub-editor.
+### 4. New component `src/components/storefront/FeaturedScroller.tsx`
+Encapsulates the horizontal scroller card UI for featured products. Receives `products` and `onSelect`.
 
-### 2. `src/lib/catalog-admin.functions.ts` — add simplified server functions
-Add three new server fns (keep existing ones intact for backward compatibility):
-- `listAddonItems()` — returns flat list: `[{ id (group_id), optionId, name, kind, price, active, categoryIds[] }]`. Internally queries `addon_groups` + first/only `addon_options` row + `addon_group_targets` filtered to `category_id IS NOT NULL`.
-- `saveAddonItem({ id?, name, kind, price, active, categoryIds })`:
-  - Upsert group (`required=false`, `min_select=0`, `max_select=1`).
-  - Upsert the single option row (same name + price; active mirrors group).
-  - Replace `addon_group_targets` rows scoped to categories only (delete existing category targets for that group, insert new).
-- `deleteAddonItem({ id })` — wraps existing `deleteAddonGroup` (cascades options + targets).
+## Behavior preserved
+- `useCart().add(...)` still receives `groupOptions` derived from `groupSelections`, so totals and order details remain correct.
+- `validateSelection` continues to govern the Add button.
+- Receipt builder, order adapters, cart drawer unchanged.
 
-Existing `saveAddonGroup` / `saveAddonOption` / `setAddonGroupTargets` remain for any legacy data and are not removed.
-
-### 3. No DB migration needed
-Existing rows still load through the storefront. Legacy multi-option groups created previously will not be editable from the new simplified UI but will keep functioning on the storefront. (Optional follow-up: a one-time normalization, out of scope here.)
-
-### 4. No changes to:
-- `src/components/storefront/ProductModal.tsx` (already renders `addonGroups` with options and prices)
-- `src/components/storefront/CartDrawer.tsx` (already sums option prices into subtotal/total and lists `groupLabels`)
-- `src/lib/receipt-builder.ts` and `order-adapters.ts` (already include addon lines with prices and zero-price observations)
-- `orders.functions.ts` totals
-
-Add-on prices already flow into subtotal/total and appear in customer area, admin area, and printed coupon — this refactor only simplifies the admin authoring UX.
-
-## Acceptance checklist
-- Admin can create/edit/delete/activate/deactivate add-ons and observations.
-- Add-on requires a price ≥ 0 (BRL input); observation has no price field.
-- Category assignment by checkbox, multi-select.
-- Listing shows name, type, price (if add-on), categories, status, edit/delete.
-- Tabs filter by `Todos / Adicionais / Observações`.
-- Storefront product modal continues to show items under each linked category's products; customer can multi-select.
-- Cart subtotal/total include add-on prices; observations don't change totals.
-- Order details (customer + admin) and printed receipt continue to render add-ons with price and observations without price.
-- All data scoped per tenant via existing RLS (no policy changes required).
+## Acceptance
+- Product card shows large edge-to-edge image, no padding around it.
+- Modal hero image fills width; no `max-w-md` container around image.
+- Adicionais appear once, under a single "Adicionais" header, with price right-aligned.
+- Observações appear once (when present), under "Observações", checkboxes, no price, optional.
+- Featured horizontal scroller appears at top when there are featured products and no filter/search active.
+- Search input is white with modern styling.
+- Cart totals and order details still reflect selected add-ons correctly.
+- Mobile + desktop layouts both look clean.

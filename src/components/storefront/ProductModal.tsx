@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Minus, Plus, ArrowLeft } from "lucide-react";
 import { brl } from "@/lib/format";
-import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonOption } from "@/lib/domain-types";
+import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonGroup, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
 import { toast } from "sonner";
 import {
@@ -65,7 +65,13 @@ export function ProductModal({
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
   const total = (basePrice + addonsSum + groupSum) * qty;
 
-  // ===== Validação =====
+  const allGroups = product.addonGroups ?? [];
+  const adicionalGroups = allGroups.filter((g) => g.kind !== "observacao");
+  const observacaoGroups = allGroups.filter((g) => g.kind === "observacao");
+  // Legacy fallback: only show product.addons if no addonGroups defined
+  const showLegacyAddons = adicionalGroups.length === 0 && (product.addons?.length ?? 0) > 0;
+
+  // Validação (multi-option groups com required/min/max ainda são validados)
   const validations = validateSelection({ product, sizeId, flavorIds, groupSelections });
   const canAdd = validations.length === 0 && product.available;
 
@@ -76,6 +82,9 @@ export function ProductModal({
   const toggleGroupOption = (groupId: string, optId: string, maxSelect: number) => {
     setGroupSelections((prev) => ({ ...prev, [groupId]: toggleGroupOptionId(prev[groupId], optId, maxSelect) }));
   };
+
+  const isOptionSelected = (g: AddonGroup, o: AddonOption) =>
+    (groupSelections[g.id] ?? []).includes(o.id);
 
   const onAdd = () => {
     if (!canAdd) {
@@ -103,17 +112,22 @@ export function ProductModal({
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
-        <div className="relative shrink-0 bg-card pt-4">
+        <div className="relative shrink-0">
+          <div className="relative aspect-square w-full overflow-hidden bg-muted sm:aspect-[4/3]">
+            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+          </div>
           <Button
             size="icon" variant="secondary"
             onClick={() => onOpenChange(false)}
-            className="absolute left-3 top-3 z-10 h-10 w-10 rounded-xl bg-card text-primary shadow-md hover:bg-card"
+            className="absolute left-3 top-3 z-10 h-10 w-10 rounded-full bg-card/95 text-foreground shadow-md backdrop-blur hover:bg-card"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="mx-auto aspect-[4/3] w-full max-w-md overflow-hidden">
-            <img src={product.image} alt={product.name} className="h-full w-full object-contain" />
-          </div>
+          {product.featured && (
+            <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-md">
+              Destaque
+            </span>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto bg-card px-5 pt-5">
@@ -175,38 +189,68 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Grupos de adicionais / observações */}
-          {(product.addonGroups ?? []).map((g) => {
-            const selected = groupSelections[g.id] ?? [];
-            const isObs = g.kind === "observacao";
-            const hint = g.maxSelect > 1
-              ? `Escolha até ${g.maxSelect}${g.minSelect > 0 ? ` (mín. ${g.minSelect})` : ""} (${selected.length}/${g.maxSelect})`
-              : "Escolha 1";
-            return (
-              <Section key={g.id} title={g.name} required={g.required} hint={hint}>
-                <div className="mt-2 space-y-2">
-                  {g.options.map((o: AddonOption) => {
-                    const checked = selected.includes(o.id);
-                    return (
-                      <label key={o.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
-                        <div className="flex items-center gap-3">
-                          <Checkbox checked={checked} onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)} />
-                          <span className="text-sm">{o.name}</span>
-                        </div>
-                        {!isObs && o.price > 0 && <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>}
-                      </label>
-                    );
-                  })}
-                </div>
-              </Section>
-            );
-          })}
-
-          {/* Adicionais legados (product_addons) */}
-          {product.addons && product.addons.length > 0 && (
+          {/* Adicionais (centralizado, sem duplicação) */}
+          {adicionalGroups.length > 0 && (
             <Section title="Adicionais">
               <div className="mt-2 space-y-2">
-                {product.addons.map((a) => (
+                {adicionalGroups.flatMap((g) =>
+                  g.options.map((o) => {
+                    const checked = isOptionSelected(g, o);
+                    return (
+                      <label
+                        key={`${g.id}-${o.id}`}
+                        className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                          />
+                          <span className="text-sm">{o.name}</span>
+                        </div>
+                        {o.price > 0 && (
+                          <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
+                        )}
+                      </label>
+                    );
+                  }),
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* Observações (centralizado, sem preço, opcional) */}
+          {observacaoGroups.length > 0 && (
+            <Section title="Observações">
+              <div className="mt-2 space-y-2">
+                {observacaoGroups.flatMap((g) =>
+                  g.options.map((o) => {
+                    const checked = isOptionSelected(g, o);
+                    return (
+                      <label
+                        key={`${g.id}-${o.id}`}
+                        className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                          />
+                          <span className="text-sm">{o.name}</span>
+                        </div>
+                      </label>
+                    );
+                  }),
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* Fallback: adicionais legados quando não há addonGroups */}
+          {showLegacyAddons && (
+            <Section title="Adicionais">
+              <div className="mt-2 space-y-2">
+                {product.addons!.map((a) => (
                   <label key={a.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
                       <Checkbox
@@ -217,7 +261,7 @@ export function ProductModal({
                       />
                       <span className="text-sm">{a.name}</span>
                     </div>
-                    <span className="text-sm font-semibold text-primary">+ {brl(a.price)}</span>
+                    {a.price > 0 && <span className="text-sm font-semibold text-primary">+ {brl(a.price)}</span>}
                   </label>
                 ))}
               </div>
@@ -225,7 +269,7 @@ export function ProductModal({
           )}
 
           {product.allowObservations && (
-            <Section title="Observações">
+            <Section title="Alguma observação?">
               <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
