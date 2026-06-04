@@ -330,7 +330,7 @@ function SizesEditor({ productId, sizes, onChanged }: {
       </div>
       <div className="flex items-end gap-2 border-t pt-3">
         <div className="flex-1"><Label className="text-xs">Novo tamanho</Label><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ex: Grande" className="mt-1" /></div>
-        <div className="w-28"><Label className="text-xs">Preço</Label><Input type="number" step="0.10" value={draft.price} onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })} className="mt-1" /></div>
+        <div className="w-32"><Label className="text-xs">Preço</Label><CurrencyInput value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} className="mt-1" /></div>
         <Button onClick={() => {
           if (!draft.name) return;
           saveMut.mutate({ product_id: productId, name: draft.name, price: draft.price, sort_order: sizes.length });
