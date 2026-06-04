@@ -79,6 +79,11 @@ export function CartDrawer({
   const [paymentMethod, setPaymentMethod] = useState<string>("PIX");
   const [generalNote, setGeneralNote] = useState("");
 
+  // Coupon
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
   // Fetch settings for tenant
   useEffect(() => {
     if (open && slug) {
@@ -101,7 +106,25 @@ export function CartDrawer({
   const tenantAddress = tenant?.address ?? "";
 
   const deliveryFee = mode === "entrega" ? tenantDeliveryFee : 0;
-  const total = subtotal + deliveryFee;
+  const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
+  const total = Math.max(0, subtotal - discount) + deliveryFee;
+
+  const applyCoupon = async () => {
+    if (!couponInput || !slug) return;
+    setCouponLoading(true);
+    try {
+      const res = await validateCoupon({ data: { tenant_slug: slug, code: couponInput.trim(), subtotal } });
+      setAppliedCoupon(res);
+      toast.success(`Cupom ${res.code} aplicado`);
+    } catch (e) {
+      setAppliedCoupon(null);
+      toast.error((e as Error).message || "Cupom inválido");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+  const removeCoupon = () => { setAppliedCoupon(null); setCouponInput(""); };
+
 
   const goTo = (next: Step) => {
     setHistory((h) => [...h, step]);
