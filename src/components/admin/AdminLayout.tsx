@@ -1,5 +1,6 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -23,31 +24,43 @@ const items = [
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
 ] as const;
 
-function Nav({ onClick }: { onClick?: () => void }) {
+function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   return (
-    <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
-      {items.map((i) => {
-        const active = pathname === i.to;
-        const Icon = i.icon;
-        return (
-          <Link
-            key={i.to}
-            to={i.to}
-            onClick={onClick}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-              active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"
-            }`}
-          >
-            <Icon className="h-4 w-4" /> {i.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <TooltipProvider delayDuration={200}>
+      <nav className={`flex flex-1 flex-col gap-1 py-4 ${collapsed ? "px-2" : "px-3"}`}>
+        {items.map((i) => {
+          const active = pathname === i.to;
+          const Icon = i.icon;
+          const link = (
+            <Link
+              key={i.to}
+              to={i.to}
+              onClick={onClick}
+              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition ${
+                collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+              } ${
+                active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" /> {!collapsed && i.label}
+            </Link>
+          );
+          return collapsed ? (
+            <Tooltip key={i.to}>
+              <TooltipTrigger asChild>{link}</TooltipTrigger>
+              <TooltipContent side="right">{i.label}</TooltipContent>
+            </Tooltip>
+          ) : (
+            link
+          );
+        })}
+      </nav>
+    </TooltipProvider>
   );
 }
 
-function SidebarInner({ onNav }: { onNav?: () => void }) {
+function SidebarInner({ onNav, collapsed }: { onNav?: () => void; collapsed?: boolean }) {
   const { signOut, profile } = useAuth();
   const activeTenantId = useActiveTenantId();
   const { data } = useQuery({
@@ -60,36 +73,41 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <div className="border-b border-sidebar-border px-5 py-4">
-        <Link to="/" className="flex items-center gap-2">
+      <div className={`border-b border-sidebar-border ${collapsed ? "px-2 py-4" : "px-5 py-4"}`}>
+        <Link to="/" className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
           <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-primary-foreground font-bold">M</div>
-          <span className="font-display font-bold">Menuzin</span>
+          {!collapsed && <span className="font-display font-bold">Menuzin</span>}
         </Link>
-        <div className="mt-3 rounded-xl border border-sidebar-border bg-card p-2.5">
-          <p className="text-xs text-muted-foreground">Loja conectada</p>
-          <p className="text-sm font-semibold">{tenant?.name ?? "—"}</p>
-        </div>
+        {!collapsed && (
+          <div className="mt-3 rounded-xl border border-sidebar-border bg-card p-2.5">
+            <p className="text-xs text-muted-foreground">Loja conectada</p>
+            <p className="text-sm font-semibold">{tenant?.name ?? "—"}</p>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto">
-        <Nav onClick={onNav} />
+        <Nav onClick={onNav} collapsed={collapsed} />
       </div>
-      <div className="mt-auto border-t border-sidebar-border p-3 space-y-1">
+      <div className={`mt-auto border-t border-sidebar-border space-y-1 ${collapsed ? "p-2" : "p-3"}`}>
         {tenant?.slug && (
-          <Button asChild variant="ghost" size="sm" className="w-full justify-start" onClick={onNav}>
+          <Button asChild variant="ghost" size="sm" className={`w-full ${collapsed ? "justify-center px-0" : "justify-start"}`} onClick={onNav} title="Ver loja pública">
             <Link to="/$slug" params={{ slug: tenant.slug }} target="_blank">
-              <ExternalLink className="mr-2 h-4 w-4" /> Ver loja pública
+              <ExternalLink className={collapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+              {!collapsed && "Ver loja pública"}
             </Link>
           </Button>
         )}
         <Button
           variant="ghost" size="sm"
-          className="w-full justify-start text-muted-foreground"
+          className={`w-full text-muted-foreground ${collapsed ? "justify-center px-0" : "justify-start"}`}
+          title="Sair"
           onClick={async () => {
             await signOut();
             navigate({ to: "/admin/login" });
           }}
         >
-          <LogOut className="mr-2 h-4 w-4" /> Sair
+          <LogOut className={collapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+          {!collapsed && "Sair"}
         </Button>
       </div>
     </div>
@@ -232,14 +250,19 @@ function OnboardingClaim() {
 
 export function AdminLayout({ children, title, action }: { children?: ReactNode; title?: string; action?: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(true); // always start collapsed
   return (
     <AuthGate>
       <div className="flex min-h-screen bg-muted/30">
         <OrdersRealtimeListener />
-        <aside className="hidden w-64 shrink-0 border-r border-sidebar-border lg:block">
-          <SidebarInner />
+        <aside
+          className={`hidden shrink-0 border-r border-sidebar-border lg:block transition-[width] duration-200 ${
+            collapsed ? "w-16" : "w-64"
+          }`}
+        >
+          <SidebarInner collapsed={collapsed} />
         </aside>
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0">
           <ImpersonationBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -250,7 +273,16 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
                 <SidebarInner onNav={() => setMobileOpen(false)} />
               </SheetContent>
             </Sheet>
-            <h1 className="text-base font-semibold lg:text-lg">{title}</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden lg:inline-flex"
+              onClick={() => setCollapsed((v) => !v)}
+              title={collapsed ? "Expandir menu" : "Recolher menu"}
+            >
+              {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            </Button>
+            <h1 className="text-base font-semibold lg:text-lg truncate">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
               <StoreOpenToggle />
               <AdminNotificationsBell />
