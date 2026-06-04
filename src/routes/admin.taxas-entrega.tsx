@@ -311,8 +311,7 @@ function DeliveryZonesPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0 gap-0">
-          <div className="overflow-y-auto px-6 py-6 space-y-4">
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar bairro" : "Novo bairro"}</DialogTitle>
             <DialogDescription>
