@@ -518,9 +518,15 @@ export function CartDrawer({
           <>
             <Header title="Opções de entrega" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              <OptionRow icon={<Truck className="h-5 w-5" />} title="Entrega" subtitle="Receba em seu endereço" onClick={() => selectMode("entrega")} active={mode === "entrega"} />
-              <OptionRow icon={<StoreIcon className="h-5 w-5" />} title="Retirada" subtitle="Retire no estabelecimento" onClick={() => selectMode("retirada")} active={mode === "retirada"} />
-              <OptionRow icon={<Utensils className="h-5 w-5" />} title="Consumo no local" subtitle="Consuma no estabelecimento" onClick={() => selectMode("consumo_local")} active={mode === "consumo_local"} />
+              {(tenant?.accepts_delivery ?? true) && (
+                <OptionRow icon={<Truck className="h-5 w-5" />} title="Entrega" subtitle="Receba em seu endereço" onClick={() => selectMode("entrega")} active={mode === "entrega"} />
+              )}
+              {(tenant?.accepts_takeout ?? true) && (
+                <OptionRow icon={<StoreIcon className="h-5 w-5" />} title="Retirada" subtitle="Retire no estabelecimento" onClick={() => selectMode("retirada")} active={mode === "retirada"} />
+              )}
+              {(tenant?.accepts_dinein ?? true) && (
+                <OptionRow icon={<Utensils className="h-5 w-5" />} title="Consumo no local" subtitle="Consuma no estabelecimento" onClick={() => selectMode("consumo_local")} active={mode === "consumo_local"} />
+              )}
             </div>
             <StickySubtotal />
           </>
