@@ -94,6 +94,9 @@ function PrinterSettingsPage() {
   const tenantId = (tenantData?.tenant as { id?: string } | null | undefined)?.id ?? null;
   const trustStorageKey = tenantId ? `qz:trust:${tenantId}` : "qz:trust:default";
   const lastAttemptStorageKey = tenantId ? `qz:last-attempt:${tenantId}` : "qz:last-attempt:default";
+  const wizardSeenKey = tenantId ? `qz:wizard-seen:${tenantId}` : "qz:wizard-seen:default";
+
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">("unknown");
   useEffect(() => {
