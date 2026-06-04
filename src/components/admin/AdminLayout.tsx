@@ -60,7 +60,7 @@ function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean
   );
 }
 
-function SidebarInner({ onNav }: { onNav?: () => void }) {
+function SidebarInner({ onNav, collapsed }: { onNav?: () => void; collapsed?: boolean }) {
   const { signOut, profile } = useAuth();
   const activeTenantId = useActiveTenantId();
   const { data } = useQuery({
@@ -73,36 +73,41 @@ function SidebarInner({ onNav }: { onNav?: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <div className="border-b border-sidebar-border px-5 py-4">
-        <Link to="/" className="flex items-center gap-2">
+      <div className={`border-b border-sidebar-border ${collapsed ? "px-2 py-4" : "px-5 py-4"}`}>
+        <Link to="/" className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
           <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-primary-foreground font-bold">M</div>
-          <span className="font-display font-bold">Menuzin</span>
+          {!collapsed && <span className="font-display font-bold">Menuzin</span>}
         </Link>
-        <div className="mt-3 rounded-xl border border-sidebar-border bg-card p-2.5">
-          <p className="text-xs text-muted-foreground">Loja conectada</p>
-          <p className="text-sm font-semibold">{tenant?.name ?? "—"}</p>
-        </div>
+        {!collapsed && (
+          <div className="mt-3 rounded-xl border border-sidebar-border bg-card p-2.5">
+            <p className="text-xs text-muted-foreground">Loja conectada</p>
+            <p className="text-sm font-semibold">{tenant?.name ?? "—"}</p>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto">
-        <Nav onClick={onNav} />
+        <Nav onClick={onNav} collapsed={collapsed} />
       </div>
-      <div className="mt-auto border-t border-sidebar-border p-3 space-y-1">
+      <div className={`mt-auto border-t border-sidebar-border space-y-1 ${collapsed ? "p-2" : "p-3"}`}>
         {tenant?.slug && (
-          <Button asChild variant="ghost" size="sm" className="w-full justify-start" onClick={onNav}>
+          <Button asChild variant="ghost" size="sm" className={`w-full ${collapsed ? "justify-center px-0" : "justify-start"}`} onClick={onNav} title="Ver loja pública">
             <Link to="/$slug" params={{ slug: tenant.slug }} target="_blank">
-              <ExternalLink className="mr-2 h-4 w-4" /> Ver loja pública
+              <ExternalLink className={collapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+              {!collapsed && "Ver loja pública"}
             </Link>
           </Button>
         )}
         <Button
           variant="ghost" size="sm"
-          className="w-full justify-start text-muted-foreground"
+          className={`w-full text-muted-foreground ${collapsed ? "justify-center px-0" : "justify-start"}`}
+          title="Sair"
           onClick={async () => {
             await signOut();
             navigate({ to: "/admin/login" });
           }}
         >
-          <LogOut className="mr-2 h-4 w-4" /> Sair
+          <LogOut className={collapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+          {!collapsed && "Sair"}
         </Button>
       </div>
     </div>
