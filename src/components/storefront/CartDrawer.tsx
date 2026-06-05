@@ -328,7 +328,7 @@ export function CartDrawer({
     if (m === "pix_online") {
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
-        const orderId = await ensureOrder(methodLabels[m]);
+        const { id: orderId } = await ensureOrder(methodLabels[m]);
         const res = await createPixPayment({
           store_slug: slug || "",
           order_id: orderId,
