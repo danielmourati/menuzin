@@ -481,7 +481,7 @@ export function CartDrawer({
     </div>
   );
 
-  const StickySubtotal = ({ cta, onCta, disabled }: { cta?: string; onCta?: () => void; disabled?: boolean }) => (
+  const StickySubtotal = ({ cta, onCta, disabled, loading }: { cta?: string; onCta?: () => void; disabled?: boolean; loading?: boolean }) => (
     <div className="border-t bg-card px-4 py-3">
       <div className="flex items-end justify-between gap-3">
         <div className="space-y-0.5">
@@ -502,8 +502,8 @@ export function CartDrawer({
           <p className="text-lg font-bold leading-none">{brl(total)}</p>
         </div>
         {cta && (
-          <Button onClick={onCta} disabled={disabled} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
-            {cta}
+          <Button onClick={onCta} disabled={disabled || loading} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
           </Button>
         )}
       </div>
