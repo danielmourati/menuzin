@@ -159,6 +159,59 @@ export function CartDrawer({
   };
   const removeCoupon = () => { setAppliedCoupon(null); setCouponInput(""); };
 
+  // Dynamic CEP search (ViaCEP) with debounce + abort.
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepError(null);
+      setCepLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCepError(null);
+    setCepLoading(true);
+    const t = setTimeout(async () => {
+      const res = await lookupByCep(digits);
+      if (cancelled) return;
+      setCepLoading(false);
+      if (res.status === "ok") {
+        const r = res.results[0];
+        setStreet((cur) => cur || r.logradouro);
+        setNeighborhood((cur) => cur || r.bairro);
+      } else if (res.status === "empty") {
+        setCepError("CEP não encontrado");
+      } else if (res.status === "error") {
+        setCepError("Falha ao buscar CEP. Preencha manualmente.");
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cep]);
+
+  const hasFormData = Boolean(
+    cep || street || number || neighborhood || complement || reference ||
+    table || name || phone || email || doc || generalNote || couponInput || appliedCoupon
+  );
+
+  const clearForm = () => {
+    setCep(""); setStreet(""); setNumber(""); setNeighborhood("");
+    setComplement(""); setReference(""); setTable("");
+    setName(""); setPhone(""); setEmail(""); setDoc(""); setGeneralNote("");
+    setCouponInput(""); setAppliedCoupon(null);
+    setPaymentWhen(null); setPaymentMethod("PIX"); setSelectedMethod(null);
+    setDbOrderId(null); setDbOrderNumber(null);
+    setPixData(null); setCardData(null);
+    setCepError(null); setCepLoading(false);
+    setHistory([]); setStep("mode");
+    toast.success("Campos limpos");
+  };
+
+  const requestClearForm = () => {
+    if (hasFormData) setClearOpen(true);
+    else clearForm();
+  };
+
+
 
   const goTo = (next: Step) => {
     setHistory((h) => [...h, step]);
