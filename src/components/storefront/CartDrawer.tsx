@@ -845,9 +845,12 @@ export function CartDrawer({
             <Header
               title="Revisar pedido"
               right={
-                <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => { onOpenChange(false); resetAll(); }}>
-                  <Home className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ClearBtn />
+                  <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => { onOpenChange(false); resetAll(); }}>
+                    <Home className="h-5 w-5" />
+                  </Button>
+                </div>
               }
             />
             <div className="flex-1 space-y-3 overflow-y-auto bg-card p-4">
