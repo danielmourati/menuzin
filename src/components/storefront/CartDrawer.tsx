@@ -979,10 +979,24 @@ export function CartDrawer({
               </div>
 
             </div>
-            <StickySubtotal cta="Fazer pedido" onCta={finalize} />
+            <StickySubtotal cta="Fazer pedido" onCta={finalize} loading={submitting} disabled={submitting} />
           </>
         )}
       </SheetContent>
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar formulário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai apagar endereço, dados do cliente, cupom e observações. Os itens do carrinho serão mantidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={clearForm}>Limpar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
