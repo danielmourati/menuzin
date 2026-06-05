@@ -391,73 +391,80 @@ export function CartDrawer({
   };
 
   const finalize = async () => {
-    // Status mapping
-    let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
-    let mpPaymentId: string | undefined = undefined;
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      // Status mapping
+      let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
+      let mpPaymentId: string | undefined = undefined;
 
-    if (selectedMethod === "pix_online") {
-      finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
-      mpPaymentId = pixData?.payment_id;
-    } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
-      finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
-      mpPaymentId = cardData?.payment_id;
-    } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
-      finalPaymentStatus = "manual";
-    }
+      if (selectedMethod === "pix_online") {
+        finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
+        mpPaymentId = pixData?.payment_id;
+      } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
+        finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
+        mpPaymentId = cardData?.payment_id;
+      } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
+        finalPaymentStatus = "manual";
+      }
 
-    // Ensure order persisted (for offline methods that skipped the online flow)
-    let orderId = dbOrderId;
-    let orderNumber = dbOrderNumber;
-    if (!orderId) {
+      // Ensure order persisted (for offline methods that skipped the online flow).
+      // Use the returned values directly — dbOrderNumber state is not yet updated.
+      let orderId: string;
+      let orderNumber: number;
       try {
-        orderId = await ensureOrder(paymentMethod);
-        orderNumber = dbOrderNumber; // updated inside ensureOrder
+        const persisted = await ensureOrder(paymentMethod);
+        orderId = persisted.id;
+        orderNumber = persisted.number;
       } catch (err) {
         console.error("Falha ao persistir pedido no banco:", err);
         toast.error("Não foi possível registrar o pedido. Tente novamente.");
         return;
       }
-    }
 
-    const order = {
-      number: orderNumber ?? 1000 + Math.floor(Math.random() * 9000),
-      id: orderId,
-      customerName: name,
-      whatsapp: phone.replace(/\D/g, ""),
-      email,
-      doc,
-      mode: mode!,
-      payment: `${paymentWhenLabel} · ${paymentMethod}`,
-      paymentMethod: selectedMethod,
-      paymentStatus: finalPaymentStatus,
-      orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
-      mpPaymentId,
-      items: items.map((i) => ({
-        name: i.product.name,
-        qty: i.qty,
-        unitPrice: computeUnitPrice(i),
-        addons: [
-          ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
-          ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
-          ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
-          ...i.addons,
-        ],
-        note: i.note,
-      })),
-      subtotal, deliveryFee, total,
-      address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
-      table: mode === "consumo_local" ? table : undefined,
-      note: generalNote,
-    };
-    try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
-    clear();
-    onOpenChange(false);
-    resetAll();
-    navigate({
-      to: "/$slug/pedido-confirmado",
-      params: { slug: slug || tenant?.slug || "" },
-      search: { n: order.number } as never,
-    });
+      const order = {
+        number: orderNumber,
+        id: orderId,
+        customerName: name,
+        whatsapp: phone.replace(/\D/g, ""),
+        email,
+        doc,
+        mode: mode!,
+        payment: `${paymentWhenLabel} · ${paymentMethod}`,
+        paymentMethod: selectedMethod,
+        paymentStatus: finalPaymentStatus,
+        orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
+        mpPaymentId,
+        items: items.map((i) => ({
+          name: i.product.name,
+          qty: i.qty,
+          unitPrice: computeUnitPrice(i),
+          addons: [
+            ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
+            ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
+            ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
+            ...i.addons,
+          ],
+          note: i.note,
+        })),
+        subtotal, deliveryFee, total,
+        address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
+        table: mode === "consumo_local" ? table : undefined,
+        note: generalNote,
+      };
+      try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
+      toast.success(`Pedido #${order.number} criado`);
+      clear();
+      onOpenChange(false);
+      resetAll();
+      navigate({
+        to: "/$slug/pedido-confirmado",
+        params: { slug: slug || tenant?.slug || "" },
+        search: { n: order.number } as never,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
