@@ -711,7 +711,7 @@ export function CartDrawer({
         {/* MODE - TABLE */}
         {step === "mode-table" && (
           <>
-            <Header title="Mesa / Comanda" />
+            <Header title="Mesa / Comanda" right={<ClearBtn />} />
             <div className="flex-1 overflow-y-auto p-4">
               <Label>Mesa ou número da comanda *</Label>
               <Input value={table} onChange={(e) => setTable(e.target.value)} placeholder="Ex: Mesa 7" className="mt-1.5 h-11" />
