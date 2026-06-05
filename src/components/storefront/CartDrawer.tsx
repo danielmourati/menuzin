@@ -809,7 +809,7 @@ export function CartDrawer({
         {/* CUSTOMER */}
         {step === "customer" && (
           <>
-            <Header title="Insira seus dados" />
+            <Header title="Insira seus dados" right={<ClearBtn />} />
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
               <div>
                 <Label>Nome <span className="text-primary">*</span></Label>
