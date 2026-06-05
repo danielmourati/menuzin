@@ -9,6 +9,7 @@ import {
   Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ChevronRight,
   Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
   User, Mail, Phone, MapPin, Pencil, Home, Map, Ticket, Loader2, X as XIcon,
+  Eraser,
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
@@ -24,6 +25,11 @@ import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
 import { listPublicDeliveryZones, resolveDeliveryFee, type PublicDeliveryZone, type DeliveryFeeResolution } from "@/lib/delivery-zones.functions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { lookupByCep } from "@/lib/viacep";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type Step =
