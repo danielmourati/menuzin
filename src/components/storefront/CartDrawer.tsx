@@ -530,6 +530,16 @@ export function CartDrawer({
     </button>
   );
 
+  const ClearBtn = () => (
+    <button
+      onClick={requestClearForm}
+      className="flex items-center gap-1 text-sm font-semibold text-primary"
+      type="button"
+    >
+      <Eraser className="h-4 w-4" /> Limpar
+    </button>
+  );
+
   return (
     <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetAll(); }}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 bg-card p-0 sm:max-w-md">
