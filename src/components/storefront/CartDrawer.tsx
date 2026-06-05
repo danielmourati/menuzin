@@ -627,7 +627,7 @@ export function CartDrawer({
         {/* MODE - ADDRESS */}
         {step === "mode-address" && (
           <>
-            <Header title="Endereço de entrega" />
+            <Header title="Endereço de entrega" right={<ClearBtn />} />
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
@@ -639,22 +639,18 @@ export function CartDrawer({
                       const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
                       setCep(masked);
                     }}
-                    onBlur={async () => {
-                      const d = cep.replace(/\D/g, "");
-                      if (d.length !== 8) return;
-                      try {
-                        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
-                        const json = await res.json();
-                        if (!json.erro) {
-                          if (json.logradouro && !street) setStreet(json.logradouro);
-                          if (json.bairro && !neighborhood) setNeighborhood(json.bairro);
-                        }
-                      } catch { /* silent */ }
-                    }}
                     placeholder="00000-000"
                     inputMode="numeric"
                     className="mt-1.5 h-11"
                   />
+                  {cepLoading && (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Buscando endereço…
+                    </p>
+                  )}
+                  {cepError && !cepLoading && (
+                    <p className="mt-1 text-xs text-destructive">{cepError}</p>
+                  )}
                 </div>
                 <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
