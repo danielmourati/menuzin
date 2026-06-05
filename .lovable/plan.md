@@ -1,70 +1,68 @@
-## Goal
-Make the "Novo bairro" modal on `/taxas-entrega` use ViaCEP as the primary source for filling Bairro, Cidade, UF, CEP inicial and CEP final. Keep manual entry and existing CSV `cep_ranges` as fallback. Storage shape stays the tenant-scoped `delivery_zones` table; the checkout resolver does not change.
+# Checkout/Order Flow Improvements
 
-## Scope (frontend-first; minimal backend)
+Escopo todo em `src/components/storefront/CartDrawer.tsx`. O fluxo pós-pedido já tem a página de confirmação certa (`/$slug/pedido-confirmado`) que mostra **WhatsApp** + **Acompanhar pedido** — não precisamos trocar a rota, só corrigir o bug que está fazendo a página dizer "Pedido não encontrado".
 
-### 1. ViaCEP client helper (browser fetch)
-New file `src/lib/viacep.ts`:
-- `lookupByCep(cep)` → `GET https://viacep.com.br/ws/{cep}/json/` (8 digits only).
-- `searchByAddress({ uf, city, street })` → `GET https://viacep.com.br/ws/{UF}/{city}/{street}/json/` (city & street ≥ 3 chars; strip accents, encode URI).
-- Return normalized `ViaCepResult[]` with `{ cep, logradouro, bairro, localidade, uf }`.
-- Surface `{ status: 'ok' | 'empty' | 'invalid' | 'error', results }` so the UI can render proper empty/error states.
-- No server function needed — called directly from the modal (CORS-friendly public API).
+## 1. Bug "Pedido não encontrado" após finalizar (imagem 3)
 
-### 2. Modal rewrite (`src/routes/admin.taxas-entrega.tsx`)
-Replace the `CepRangeSearch` block with a new `ViaCepSearch` component. Keep the existing modal frame (overflow fix stays).
+Causa raiz em `finalize()`:
 
-Fields, in order:
-1. Search input — "Buscar bairro, cidade, rua ou CEP" (helper text per spec).
-2. Bairro * (existing).
-3. Cidade — new in `Editing` state.
-4. UF — new (2-char uppercase).
-5. CEP inicial / CEP final (existing).
-6. Taxa, Pedido mínimo, Tempo estimado (existing).
-7. Ativo (existing).
+```ts
+let orderNumber = dbOrderNumber;
+if (!orderId) {
+  orderId = await ensureOrder(paymentMethod);
+  orderNumber = dbOrderNumber; // ❌ lê estado React antigo, ainda null
+}
+// ...
+number: orderNumber ?? 1000 + Math.floor(Math.random() * 9000) // ❌ fallback inválido
+navigate({ search: { n: order.number } }) // navega com número aleatório que não existe
+```
 
-Search behavior:
-- Debounce 500ms.
-- If input digits length === 8 → `lookupByCep`. Auto-fill Bairro (if returned), Cidade, UF, CEP inicial = CEP final = returned CEP. Helper: "O ViaCEP retornou um CEP específico. Se a área de entrega cobre uma faixa maior, ajuste o CEP inicial e final."
-- Else if text length ≥ 3:
-  - Determine UF/City context: prefer values already in the form; fallback to tenant's `city`/`state` (loaded via existing `getMyTenant`).
-  - If UF + City available → `searchByAddress({ uf, city, street: term })`.
-  - If UF/City missing → render inline message: "Informe a cidade e UF para buscar bairros e endereços pelo ViaCEP." and disable the search call.
-- Rank results: exact bairro match → partial bairro → exact logradouro → partial logradouro. Limit to 10.
-- Result card: `[Bairro|"Bairro não informado"] — [Logradouro] — [Cidade/UF] — [CEP]`.
-- States: loading, empty ("Nenhum resultado encontrado no ViaCEP. Você pode preencher os dados manualmente."), error ("Não foi possível consultar o ViaCEP agora. Preencha manualmente ou tente novamente.").
-- On select → fill Bairro, Cidade, UF, CEP inicial, CEP final (same CEP for both); show inline helper about ranges.
+Quando o método é offline (dinheiro / cartão na entrega / pix manual), `ensureOrder` é chamado dentro do próprio `finalize`, e `dbOrderNumber` ainda é `null` na próxima linha porque `setState` é assíncrono. Aí cai no fallback aleatório `1000 + random` e a página `pedido-confirmado` busca um número que não existe no banco.
 
-Fallback to local `cep_ranges`:
-- When ViaCEP returns `empty` or `error`, call existing `searchCepRanges` and render those results under a "Base local" badge. Selecting a local result fills the CEP range it carries (which can be a real range) plus city/uf/neighborhood.
+Correção:
+- Fazer `ensureOrder` **retornar `{ id, number }`** e usar esses valores locais em `finalize` em vez de reler `dbOrderNumber`.
+- Remover o fallback aleatório — se persistência falhar, abortar com toast de erro e não navegar.
+- Se a navegação não acontecer, o usuário fica na revisão e pode tentar de novo.
 
-### 3. State + persistence
-Extend the modal's `Editing` type with `city` and `uf`. Persist by adding optional `city`/`uf` to `upsertDeliveryZone` input and to the `delivery_zones` table.
+## 2. Submit hardening
 
-Backend changes (single migration):
-- `ALTER TABLE public.delivery_zones ADD COLUMN city text, ADD COLUMN uf text` (nullable; no GRANT changes needed — table already exists with grants/RLS).
-- Update `src/lib/delivery-zones.functions.ts` (`UpsertInput`, `DeliveryZoneRow`, payload, `listPublicDeliveryZones` select) to include `city` and `uf`. No checkout-resolver logic change — it still matches by CEP/name.
+- Novo state `submitting`. `finalize()` retorna cedo se já estiver `submitting`.
+- CTA "Fazer pedido" mostra `Loader2` e fica disabled enquanto `submitting`.
+- `try/finally` resetando o flag.
+- `toast.success("Pedido #N criado")` antes do `navigate`.
 
-Optional `source`/`source_cep`/`source_street` columns from the spec are **not** added in this pass to keep the migration minimal; can be a follow-up.
+Isso resolve duplo-clique e cria estado de loading explícito.
 
-### 4. Validation (client-side, before save)
-- Bairro required.
-- Taxa ≥ 0 (existing).
-- CEPs: 8 digits each when present; `cep_start ≤ cep_end` (existing).
-- UF: exactly 2 letters (uppercased) when filled.
-- City: ≥ 3 chars when used in ViaCEP search.
+## 3. Busca de CEP dinâmica (imagens 1 e 2)
 
-### 5. Tenant defaults (small admin nicety)
-Existing tenant settings already expose `city`/`state` (see `updateMyTenant`). No new settings UI in this pass; we just consume `tenantData.city` / `tenantData.state` as ViaCEP defaults. If both empty, the search UI prompts the admin to fill UF/City inline in the modal.
+Hoje a busca só roda no `onBlur` do campo CEP. Trocar para busca enquanto digita:
 
-## Out of scope
-- Checkout calculation changes (CEP→fee logic stays).
-- Importing ViaCEP responses into `cep_ranges`.
-- New tenant-settings screen for default city/UF (already editable elsewhere).
-- `source`/`source_cep`/`source_street` audit columns.
+- `useEffect` observando `cep`; quando bater 8 dígitos, dispara `lookupByCep` de `src/lib/viacep.ts` (já existe).
+- Debounce de 400 ms via `setTimeout` + cleanup.
+- `AbortController` para descartar respostas obsoletas se o usuário continuar digitando.
+- Feedback inline abaixo do campo CEP:
+  - `Loader2` + "Buscando endereço…" durante a busca.
+  - Texto destructive "CEP não encontrado" quando ViaCEP retorna `erro`.
+  - Sucesso silencioso (campos preenchem sozinhos).
+- Auto-preenche `street` e `neighborhood` **apenas se estiverem vazios** (não sobrescreve edição manual).
+- `inputMode="numeric"` mantido; aceita com ou sem máscara (já normalizamos com `replace(/\D/g, "")`).
+- A query `resolveDeliveryFee` continua reagindo a `cepDigitsOnly` automaticamente — taxa por bairro segue funcionando.
 
-## Files touched
-- New: `src/lib/viacep.ts`.
-- Edit: `src/routes/admin.taxas-entrega.tsx` (modal + new `ViaCepSearch` component, extended `Editing`).
-- Edit: `src/lib/delivery-zones.functions.ts` (add `city`/`uf` to schema, row, selects).
-- New migration: add `city`, `uf` columns to `public.delivery_zones`.
+## 4. "Limpar formulário"
+
+- Botão "Limpar campos" no header dos passos `mode-address`, `mode-table`, `customer` e `review`. Não no passo do carrinho (que já tem "Limpar" do próprio carrinho).
+- Se houver dados preenchidos (endereço/mesa/cliente/observação/cupom), abre `AlertDialog` pedindo confirmação ("Limpar todos os campos preenchidos?"). Senão, limpa em silêncio.
+- Limpa: `cep, street, number, neighborhood, complement, reference, table, name, phone, email, doc, generalNote, couponInput, appliedCoupon, paymentWhen, selectedMethod, paymentMethod, dbOrderId, dbOrderNumber, pixData, cardData`.
+- **Não** mexe nos itens do carrinho.
+- Após limpar, volta para o passo `mode`.
+
+## Arquivos
+
+- Editar: `src/components/storefront/CartDrawer.tsx`
+- Reutiliza: `src/lib/viacep.ts` (já existente), `src/components/ui/alert-dialog`
+
+## Fora de escopo
+
+- Mudanças de schema, RLS ou rota da confirmação.
+- Refatoração de cart-context, payments, admin.
+- Identidade visual — botões reutilizam variantes existentes.

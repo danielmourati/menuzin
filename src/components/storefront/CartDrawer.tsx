@@ -9,6 +9,7 @@ import {
   Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ChevronRight,
   Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
   User, Mail, Phone, MapPin, Pencil, Home, Map, Ticket, Loader2, X as XIcon,
+  Eraser,
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
@@ -24,6 +25,11 @@ import { maskPhone, maskCpfCnpj } from "@/lib/masks";
 import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
 import { listPublicDeliveryZones, resolveDeliveryFee, type PublicDeliveryZone, type DeliveryFeeResolution } from "@/lib/delivery-zones.functions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { lookupByCep } from "@/lib/viacep";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type Step =
@@ -86,6 +92,12 @@ export function CartDrawer({
   const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
 
+  // Submit + CEP lookup
+  const [submitting, setSubmitting] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+
   // Fetch settings for tenant
   useEffect(() => {
     if (open && slug) {
@@ -147,6 +159,59 @@ export function CartDrawer({
   };
   const removeCoupon = () => { setAppliedCoupon(null); setCouponInput(""); };
 
+  // Dynamic CEP search (ViaCEP) with debounce + abort.
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepError(null);
+      setCepLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCepError(null);
+    setCepLoading(true);
+    const t = setTimeout(async () => {
+      const res = await lookupByCep(digits);
+      if (cancelled) return;
+      setCepLoading(false);
+      if (res.status === "ok") {
+        const r = res.results[0];
+        setStreet((cur) => cur || r.logradouro);
+        setNeighborhood((cur) => cur || r.bairro);
+      } else if (res.status === "empty") {
+        setCepError("CEP não encontrado");
+      } else if (res.status === "error") {
+        setCepError("Falha ao buscar CEP. Preencha manualmente.");
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cep]);
+
+  const hasFormData = Boolean(
+    cep || street || number || neighborhood || complement || reference ||
+    table || name || phone || email || doc || generalNote || couponInput || appliedCoupon
+  );
+
+  const clearForm = () => {
+    setCep(""); setStreet(""); setNumber(""); setNeighborhood("");
+    setComplement(""); setReference(""); setTable("");
+    setName(""); setPhone(""); setEmail(""); setDoc(""); setGeneralNote("");
+    setCouponInput(""); setAppliedCoupon(null);
+    setPaymentWhen(null); setPaymentMethod("PIX"); setSelectedMethod(null);
+    setDbOrderId(null); setDbOrderNumber(null);
+    setPixData(null); setCardData(null);
+    setCepError(null); setCepLoading(false);
+    setHistory([]); setStep("mode");
+    toast.success("Campos limpos");
+  };
+
+  const requestClearForm = () => {
+    if (hasFormData) setClearOpen(true);
+    else clearForm();
+  };
+
+
 
   const goTo = (next: Step) => {
     setHistory((h) => [...h, step]);
@@ -207,9 +272,9 @@ export function CartDrawer({
   };
 
   // Persist a draft order if not already created (used before online MP call).
-  // Returns the orderId.
-  const ensureOrder = async (methodLabel: string): Promise<string> => {
-    if (dbOrderId) return dbOrderId;
+  // Returns the order id AND number to avoid React setState race conditions.
+  const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number }> => {
+    if (dbOrderId && dbOrderNumber != null) return { id: dbOrderId, number: dbOrderNumber };
     const { createOrder } = await import("@/lib/orders.functions");
     const res = await createOrder({
       data: {
@@ -244,7 +309,7 @@ export function CartDrawer({
     });
     setDbOrderId(res.order.id);
     setDbOrderNumber(res.order.number);
-    return res.order.id;
+    return { id: res.order.id, number: res.order.number };
   };
 
   const handleSelectMethod = async (m: PaymentMethod) => {
@@ -263,7 +328,7 @@ export function CartDrawer({
     if (m === "pix_online") {
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
-        const orderId = await ensureOrder(methodLabels[m]);
+        const { id: orderId } = await ensureOrder(methodLabels[m]);
         const res = await createPixPayment({
           store_slug: slug || "",
           order_id: orderId,
@@ -307,7 +372,7 @@ export function CartDrawer({
     installments: number;
     cardToken: string;
   }) => {
-    const orderId = await ensureOrder(paymentMethod);
+    const { id: orderId } = await ensureOrder(paymentMethod);
     const res = await createCardPayment({
       store_slug: slug || "",
       order_id: orderId,
@@ -326,73 +391,80 @@ export function CartDrawer({
   };
 
   const finalize = async () => {
-    // Status mapping
-    let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
-    let mpPaymentId: string | undefined = undefined;
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      // Status mapping
+      let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
+      let mpPaymentId: string | undefined = undefined;
 
-    if (selectedMethod === "pix_online") {
-      finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
-      mpPaymentId = pixData?.payment_id;
-    } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
-      finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
-      mpPaymentId = cardData?.payment_id;
-    } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
-      finalPaymentStatus = "manual";
-    }
+      if (selectedMethod === "pix_online") {
+        finalPaymentStatus = (pixData?.payment_status as typeof finalPaymentStatus) || "pending";
+        mpPaymentId = pixData?.payment_id;
+      } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
+        finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
+        mpPaymentId = cardData?.payment_id;
+      } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
+        finalPaymentStatus = "manual";
+      }
 
-    // Ensure order persisted (for offline methods that skipped the online flow)
-    let orderId = dbOrderId;
-    let orderNumber = dbOrderNumber;
-    if (!orderId) {
+      // Ensure order persisted (for offline methods that skipped the online flow).
+      // Use the returned values directly — dbOrderNumber state is not yet updated.
+      let orderId: string;
+      let orderNumber: number;
       try {
-        orderId = await ensureOrder(paymentMethod);
-        orderNumber = dbOrderNumber; // updated inside ensureOrder
+        const persisted = await ensureOrder(paymentMethod);
+        orderId = persisted.id;
+        orderNumber = persisted.number;
       } catch (err) {
         console.error("Falha ao persistir pedido no banco:", err);
         toast.error("Não foi possível registrar o pedido. Tente novamente.");
         return;
       }
-    }
 
-    const order = {
-      number: orderNumber ?? 1000 + Math.floor(Math.random() * 9000),
-      id: orderId,
-      customerName: name,
-      whatsapp: phone.replace(/\D/g, ""),
-      email,
-      doc,
-      mode: mode!,
-      payment: `${paymentWhenLabel} · ${paymentMethod}`,
-      paymentMethod: selectedMethod,
-      paymentStatus: finalPaymentStatus,
-      orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
-      mpPaymentId,
-      items: items.map((i) => ({
-        name: i.product.name,
-        qty: i.qty,
-        unitPrice: computeUnitPrice(i),
-        addons: [
-          ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
-          ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
-          ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
-          ...i.addons,
-        ],
-        note: i.note,
-      })),
-      subtotal, deliveryFee, total,
-      address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
-      table: mode === "consumo_local" ? table : undefined,
-      note: generalNote,
-    };
-    try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
-    clear();
-    onOpenChange(false);
-    resetAll();
-    navigate({
-      to: "/$slug/pedido-confirmado",
-      params: { slug: slug || tenant?.slug || "" },
-      search: { n: order.number } as never,
-    });
+      const order = {
+        number: orderNumber,
+        id: orderId,
+        customerName: name,
+        whatsapp: phone.replace(/\D/g, ""),
+        email,
+        doc,
+        mode: mode!,
+        payment: `${paymentWhenLabel} · ${paymentMethod}`,
+        paymentMethod: selectedMethod,
+        paymentStatus: finalPaymentStatus,
+        orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
+        mpPaymentId,
+        items: items.map((i) => ({
+          name: i.product.name,
+          qty: i.qty,
+          unitPrice: computeUnitPrice(i),
+          addons: [
+            ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
+            ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
+            ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
+            ...i.addons,
+          ],
+          note: i.note,
+        })),
+        subtotal, deliveryFee, total,
+        address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
+        table: mode === "consumo_local" ? table : undefined,
+        note: generalNote,
+      };
+      try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
+      toast.success(`Pedido #${order.number} criado`);
+      clear();
+      onOpenChange(false);
+      resetAll();
+      navigate({
+        to: "/$slug/pedido-confirmado",
+        params: { slug: slug || tenant?.slug || "" },
+        search: { n: order.number } as never,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
@@ -409,7 +481,7 @@ export function CartDrawer({
     </div>
   );
 
-  const StickySubtotal = ({ cta, onCta, disabled }: { cta?: string; onCta?: () => void; disabled?: boolean }) => (
+  const StickySubtotal = ({ cta, onCta, disabled, loading }: { cta?: string; onCta?: () => void; disabled?: boolean; loading?: boolean }) => (
     <div className="border-t bg-card px-4 py-3">
       <div className="flex items-end justify-between gap-3">
         <div className="space-y-0.5">
@@ -430,8 +502,8 @@ export function CartDrawer({
           <p className="text-lg font-bold leading-none">{brl(total)}</p>
         </div>
         {cta && (
-          <Button onClick={onCta} disabled={disabled} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
-            {cta}
+          <Button onClick={onCta} disabled={disabled || loading} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
+            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
           </Button>
         )}
       </div>
@@ -455,6 +527,16 @@ export function CartDrawer({
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <ChevronRight className="h-5 w-5 text-muted-foreground" />
+    </button>
+  );
+
+  const ClearBtn = () => (
+    <button
+      onClick={requestClearForm}
+      className="flex items-center gap-1 text-sm font-semibold text-primary"
+      type="button"
+    >
+      <Eraser className="h-4 w-4" /> Limpar
     </button>
   );
 
@@ -545,7 +627,7 @@ export function CartDrawer({
         {/* MODE - ADDRESS */}
         {step === "mode-address" && (
           <>
-            <Header title="Endereço de entrega" />
+            <Header title="Endereço de entrega" right={<ClearBtn />} />
             <div className="flex-1 overflow-y-auto p-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
@@ -557,22 +639,18 @@ export function CartDrawer({
                       const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
                       setCep(masked);
                     }}
-                    onBlur={async () => {
-                      const d = cep.replace(/\D/g, "");
-                      if (d.length !== 8) return;
-                      try {
-                        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
-                        const json = await res.json();
-                        if (!json.erro) {
-                          if (json.logradouro && !street) setStreet(json.logradouro);
-                          if (json.bairro && !neighborhood) setNeighborhood(json.bairro);
-                        }
-                      } catch { /* silent */ }
-                    }}
                     placeholder="00000-000"
                     inputMode="numeric"
                     className="mt-1.5 h-11"
                   />
+                  {cepLoading && (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Buscando endereço…
+                    </p>
+                  )}
+                  {cepError && !cepLoading && (
+                    <p className="mt-1 text-xs text-destructive">{cepError}</p>
+                  )}
                 </div>
                 <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
                 <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
@@ -633,7 +711,7 @@ export function CartDrawer({
         {/* MODE - TABLE */}
         {step === "mode-table" && (
           <>
-            <Header title="Mesa / Comanda" />
+            <Header title="Mesa / Comanda" right={<ClearBtn />} />
             <div className="flex-1 overflow-y-auto p-4">
               <Label>Mesa ou número da comanda *</Label>
               <Input value={table} onChange={(e) => setTable(e.target.value)} placeholder="Ex: Mesa 7" className="mt-1.5 h-11" />
@@ -731,7 +809,7 @@ export function CartDrawer({
         {/* CUSTOMER */}
         {step === "customer" && (
           <>
-            <Header title="Insira seus dados" />
+            <Header title="Insira seus dados" right={<ClearBtn />} />
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
               <div>
                 <Label>Nome <span className="text-primary">*</span></Label>
@@ -767,9 +845,12 @@ export function CartDrawer({
             <Header
               title="Revisar pedido"
               right={
-                <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => { onOpenChange(false); resetAll(); }}>
-                  <Home className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ClearBtn />
+                  <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => { onOpenChange(false); resetAll(); }}>
+                    <Home className="h-5 w-5" />
+                  </Button>
+                </div>
               }
             />
             <div className="flex-1 space-y-3 overflow-y-auto bg-card p-4">
@@ -898,10 +979,24 @@ export function CartDrawer({
               </div>
 
             </div>
-            <StickySubtotal cta="Fazer pedido" onCta={finalize} />
+            <StickySubtotal cta="Fazer pedido" onCta={finalize} loading={submitting} disabled={submitting} />
           </>
         )}
       </SheetContent>
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar formulário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai apagar endereço, dados do cliente, cupom e observações. Os itens do carrinho serão mantidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={clearForm}>Limpar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
