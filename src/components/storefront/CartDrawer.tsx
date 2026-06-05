@@ -272,9 +272,9 @@ export function CartDrawer({
   };
 
   // Persist a draft order if not already created (used before online MP call).
-  // Returns the orderId.
-  const ensureOrder = async (methodLabel: string): Promise<string> => {
-    if (dbOrderId) return dbOrderId;
+  // Returns the order id AND number to avoid React setState race conditions.
+  const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number }> => {
+    if (dbOrderId && dbOrderNumber != null) return { id: dbOrderId, number: dbOrderNumber };
     const { createOrder } = await import("@/lib/orders.functions");
     const res = await createOrder({
       data: {
@@ -309,7 +309,7 @@ export function CartDrawer({
     });
     setDbOrderId(res.order.id);
     setDbOrderNumber(res.order.number);
-    return res.order.id;
+    return { id: res.order.id, number: res.order.number };
   };
 
   const handleSelectMethod = async (m: PaymentMethod) => {
