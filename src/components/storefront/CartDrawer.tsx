@@ -372,7 +372,7 @@ export function CartDrawer({
     installments: number;
     cardToken: string;
   }) => {
-    const orderId = await ensureOrder(paymentMethod);
+    const { id: orderId } = await ensureOrder(paymentMethod);
     const res = await createCardPayment({
       store_slug: slug || "",
       order_id: orderId,
