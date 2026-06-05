@@ -92,6 +92,12 @@ export function CartDrawer({
   const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
 
+  // Submit + CEP lookup
+  const [submitting, setSubmitting] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+
   // Fetch settings for tenant
   useEffect(() => {
     if (open && slug) {
