@@ -49,7 +49,7 @@ function Landing() {
         <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-              <span className="h-2 w-2 rounded-full bg-primary" /> Novo · MVP funcional
+              <span className="h-2 w-2 rounded-full bg-primary" /> Plataforma pronta para vender
             </span>
             <h1 className="mt-5 text-4xl font-bold leading-tight text-balance md:text-6xl">
               A vitrine digital do seu <span className="text-primary">negócio food</span>.

@@ -484,22 +484,24 @@ export function CartDrawer({
   const StickySubtotal = ({ cta, onCta, disabled, loading }: { cta?: string; onCta?: () => void; disabled?: boolean; loading?: boolean }) => (
     <div className="border-t bg-card px-4 py-3">
       <div className="flex items-end justify-between gap-3">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Subtotal</span><span>{brl(subtotal)}</span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
+            <span>Subtotal</span><span className="font-medium">{brl(subtotal)}</span>
           </div>
           {discount > 0 && (
-            <div className="flex items-center gap-2 text-xs text-success">
+            <div className="flex items-center justify-between gap-2 text-sm font-medium text-success">
               <span>Desconto</span><span>− {brl(discount)}</span>
             </div>
           )}
           {deliveryFee > 0 && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Taxa de entrega</span><span>{brl(deliveryFee)}</span>
+            <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
+              <span>Taxa de entrega</span><span className="font-medium">{brl(deliveryFee)}</span>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-lg font-bold leading-none">{brl(total)}</p>
+          <div className="flex items-baseline justify-between gap-2 pt-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
+            <p className="text-2xl font-extrabold leading-none text-primary">{brl(total)}</p>
+          </div>
         </div>
         {cta && (
           <Button onClick={onCta} disabled={disabled || loading} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
@@ -941,8 +943,9 @@ export function CartDrawer({
                       <span>Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}</span><span>{brl(deliveryFee)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between border-t pt-2 text-base font-bold">
-                    <span>Total</span><span>{brl(total)}</span>
+                  <div className="flex items-baseline justify-between border-t pt-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</span>
+                    <span className="text-xl font-extrabold text-primary">{brl(total)}</span>
                   </div>
                 </div>
               </div>
