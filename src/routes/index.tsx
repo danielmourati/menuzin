@@ -1,10 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { plans } from "@/lib/plans";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
+import landingBurger from "@/assets/landing-burger.jpg";
+import landingPizza from "@/assets/landing-pizza.jpg";
+import landingAcai from "@/assets/landing-acai.jpg";
+import landingCombo from "@/assets/landing-combo.jpg";
+
+const demoProducts = [
+  { name: "Smash Duplo", desc: "Pão brioche, 2 blends, cheddar", price: 28.9, img: landingBurger },
+  { name: "Pizza Pepperoni", desc: "Mussarela, pepperoni, manjericão", price: 49.9, img: landingPizza },
+  { name: "Açaí 500ml", desc: "Banana, granola, leite condensado", price: 22.5, img: landingAcai },
+  { name: "Combo Família", desc: "Burger + batata + refri", price: 39.9, img: landingCombo },
+];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -49,7 +60,7 @@ function Landing() {
         <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-              <span className="h-2 w-2 rounded-full bg-primary" /> Novo · MVP funcional
+              <span className="h-2 w-2 rounded-full bg-primary" /> Plataforma pronta para vender
             </span>
             <h1 className="mt-5 text-4xl font-bold leading-tight text-balance md:text-6xl">
               A vitrine digital do seu <span className="text-primary">negócio food</span>.
@@ -77,27 +88,33 @@ function Landing() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-3xl gradient-brand opacity-20 blur-3xl" />
+            <div className="absolute -inset-6 -z-10 rounded-3xl gradient-brand opacity-25 blur-3xl" />
             <div className="rounded-3xl border bg-card p-2 shadow-[var(--shadow-pop)]">
               <div className="rounded-2xl bg-gradient-to-b from-primary/10 to-transparent p-6">
                 <div className="flex items-center gap-3">
                   <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">B</div>
-                  <div>
+                  <div className="flex-1">
                     <p className="font-semibold">Burger Prime</p>
-                    <p className="text-xs text-success">● Aberta agora · 35–45 min</p>
+                    <p className="text-xs"><span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-semibold text-success">● Aberta agora</span> <span className="ml-2 text-muted-foreground">35–45 min</span></p>
                   </div>
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  {[1,2,3,4].map((i) => (
-                    <div key={i} className="rounded-xl border bg-card p-3 text-left">
-                      <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-primary/20 to-warning/30" />
-                      <p className="mt-2 text-sm font-semibold">Burger #{i}</p>
-                      <p className="text-xs text-muted-foreground">{brl(24.9 + i)}</p>
+                  {demoProducts.map((p) => (
+                    <div key={p.name} className="flex flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm">
+                      <img src={p.img} alt={p.name} loading="lazy" width={768} height={768} className="aspect-square w-full object-cover" />
+                      <div className="flex flex-1 flex-col gap-1 p-2.5">
+                        <p className="text-sm font-semibold leading-tight">{p.name}</p>
+                        <p className="line-clamp-1 text-[11px] text-muted-foreground">{p.desc}</p>
+                        <div className="mt-1 flex items-center justify-between gap-1">
+                          <span className="text-sm font-bold text-primary">{brl(p.price)}</span>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">+ Adicionar</span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-5 flex items-center justify-between rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
-                  <span className="text-sm font-medium">3 itens no carrinho</span>
+                  <span className="flex items-center gap-2 text-sm font-medium"><ShoppingBag className="h-4 w-4" /> 3 itens no carrinho</span>
                   <span className="font-bold">{brl(78.7)}</span>
                 </div>
               </div>
@@ -106,13 +123,21 @@ function Landing() {
         </div>
       </section>
 
+      <section className="border-y bg-card">
+        <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 py-6 text-sm text-muted-foreground">
+          <span className="flex items-center gap-2"><Store className="h-4 w-4 text-primary" /> Multi-loja</span>
+          <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> LGPD &amp; pagamentos seguros</span>
+          <span className="flex items-center gap-2"><Headphones className="h-4 w-4 text-primary" /> Suporte em português</span>
+        </div>
+      </section>
+
       <section id="features" className="border-y bg-muted/40">
         <div className="container mx-auto grid gap-8 px-4 py-16 md:grid-cols-4">
           {[
-            { icon: Utensils, t: "Cardápio completo", d: "Categorias, adicionais, variações e destaques." },
-            { icon: Smartphone, t: "Mobile first", d: "Experiência fluida para seu cliente no celular." },
-            { icon: MessageCircle, t: "Pedidos no WhatsApp", d: "Mensagem pronta com resumo do pedido formatado." },
-            { icon: BarChart3, t: "Painel completo", d: "Pedidos, métricas, produtos e personalização." },
+            { icon: Utensils, t: "Cardápio digital", d: "Categorias, adicionais, variações e destaques com fotos." },
+            { icon: Smartphone, t: "Pedidos em tempo real", d: "Receba e gerencie pedidos com notificações instantâneas." },
+            { icon: MessageCircle, t: "Integração WhatsApp", d: "Pedido enviado direto, formatado e pronto para imprimir." },
+            { icon: BarChart3, t: "Painel de gestão", d: "Métricas, produtos, cupons, taxas e equipe — tudo em um lugar." },
           ].map(({ icon: Icon, t, d }) => (
             <div key={t} className="rounded-2xl border bg-card p-6 shadow-[var(--shadow-soft)]">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>

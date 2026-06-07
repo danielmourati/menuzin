@@ -17,6 +17,7 @@ import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { OrderStatusActions } from "./OrderStatusActions";
 import { WhatsAppOrderActions } from "./WhatsAppOrderActions";
 import { PrintOrderButton } from "./PrintOrderButton";
+import { PrintKitchenButton } from "./PrintKitchenButton";
 import { MapPin, Phone, Clipboard, Check, Utensils, Calendar } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -248,7 +249,8 @@ export function OrderDetailsDrawer({
         <div className="p-4 bg-muted/30 border-t shrink-0 flex flex-col gap-3">
           <WhatsAppOrderActions order={order} storeName={storeName} />
           <div className="flex gap-2 flex-wrap">
-            <PrintOrderButton order={order} className="flex-1 min-w-[120px]" paperWidth={paperWidth} />
+            <PrintOrderButton order={order} className="flex-1 min-w-[140px]" paperWidth={paperWidth} />
+            <PrintKitchenButton order={order} className="flex-1 min-w-[160px]" />
             <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px]">Fechar</Button>
           </div>
           <Separator className="my-1" />

@@ -1,68 +1,130 @@
-# Checkout/Order Flow Improvements
+# Plano de melhorias — UI, checkout e impressão
 
-Escopo todo em `src/components/storefront/CartDrawer.tsx`. O fluxo pós-pedido já tem a página de confirmação certa (`/$slug/pedido-confirmado`) que mostra **WhatsApp** + **Acompanhar pedido** — não precisamos trocar a rota, só corrigir o bug que está fazendo a página dizer "Pedido não encontrado".
+Cinco frentes independentes, implementadas em ordem para minimizar risco no fluxo de impressão atual.
 
-## 1. Bug "Pedido não encontrado" após finalizar (imagem 3)
+## 1. Fundo branco no login mobile
 
-Causa raiz em `finalize()`:
+Arquivo: `src/routes/admin.login.tsx`
 
-```ts
-let orderNumber = dbOrderNumber;
-if (!orderId) {
-  orderId = await ensureOrder(paymentMethod);
-  orderNumber = dbOrderNumber; // ❌ lê estado React antigo, ainda null
-}
-// ...
-number: orderNumber ?? 1000 + Math.floor(Math.random() * 9000) // ❌ fallback inválido
-navigate({ search: { n: order.number } }) // navega com número aleatório que não existe
+- Adicionar `bg-white lg:bg-background` no container principal e na coluna direita (`<div className="flex items-center justify-center ...">`) para garantir `#FFFFFF` apenas no breakpoint mobile.
+- Layout, copy, Google button e formulário permanecem iguais. Coluna esquerda (gradient brand) só aparece em `lg:` então não é afetada.
+
+## 2. Footer do checkout mais legível
+
+Arquivo: `src/components/storefront/CartDrawer.tsx` (componente `StickySubtotal`, linhas 484-511) e bloco "Items" da etapa Review (linhas 921-947).
+
+Mudanças tipográficas — sem quebrar grid:
+- Subtotal / desconto / taxa de entrega: subir de `text-xs` para `text-sm` e cor `text-foreground/80` (desconto continua `text-success`).
+- "Total": label `text-xs uppercase tracking-wide text-muted-foreground`; valor sobe de `text-lg` para `text-2xl font-extrabold` com `text-primary`.
+- CTA continua `h-12` para não sobrepor o total.
+- Mesmo tratamento no resumo da etapa Review (a linha "Total" passa a destacar o valor em `text-xl font-extrabold text-primary`).
+
+Nenhum cálculo muda. Nenhum token de cor novo.
+
+## 3. Impressoras extras (cozinha / balcão / caixa)
+
+### 3.1 Schema
+
+Nova tabela `public.tenant_printers` (migration separada para aprovação):
+
+```
+id uuid pk, tenant_id uuid fk tenants, name text, role text check in
+('receipt','kitchen','bar','counter','other'), printer_name text,
+paper_width text default '80mm', is_active boolean default true,
+is_default boolean default false, created_at, updated_at
 ```
 
-Quando o método é offline (dinheiro / cartão na entrega / pix manual), `ensureOrder` é chamado dentro do próprio `finalize`, e `dbOrderNumber` ainda é `null` na próxima linha porque `setState` é assíncrono. Aí cai no fallback aleatório `1000 + random` e a página `pedido-confirmado` busca um número que não existe no banco.
+RLS: somente staff/owner do tenant pode ler/escrever (via `has_tenant_role`); `service_role` total. GRANTs para `authenticated` e `service_role`. Trigger `set_updated_at`.
 
-Correção:
-- Fazer `ensureOrder` **retornar `{ id, number }`** e usar esses valores locais em `finalize` em vez de reler `dbOrderNumber`.
-- Remover o fallback aleatório — se persistência falhar, abortar com toast de erro e não navegar.
-- Se a navegação não acontecer, o usuário fica na revisão e pode tentar de novo.
+Migração de dados: ao criar a tabela, NÃO migramos `printer_settings` automaticamente — a impressora padrão continua vindo de `printer_settings` (recibo completo). `tenant_printers` é só para impressoras extras. Isso preserva 100% do fluxo atual.
 
-## 2. Submit hardening
+### 3.2 Server functions
 
-- Novo state `submitting`. `finalize()` retorna cedo se já estiver `submitting`.
-- CTA "Fazer pedido" mostra `Loader2` e fica disabled enquanto `submitting`.
-- `try/finally` resetando o flag.
-- `toast.success("Pedido #N criado")` antes do `navigate`.
+Novo arquivo `src/lib/tenant-printers.functions.ts`:
+- `listMyTenantPrinters()` — retorna lista do tenant ativo.
+- `saveTenantPrinter({ id?, name, role, printer_name, paper_width, is_active })` — upsert.
+- `deleteTenantPrinter({ id })`.
 
-Isso resolve duplo-clique e cria estado de loading explícito.
+Todas com `requireSupabaseAuth` + `tryResolveEffectiveTenantId`, validação Zod (`name 1-40`, `role` enum, `printer_name 0-80`).
 
-## 3. Busca de CEP dinâmica (imagens 1 e 2)
+### 3.3 UI
 
-Hoje a busca só roda no `onBlur` do campo CEP. Trocar para busca enquanto digita:
+Novo componente `src/components/printer/ExtraPrintersManager.tsx`, incluído ao final do wizard `QzPrinterWizard.tsx` (em uma `Collapsible` "Impressoras adicionais") e também acessível em `src/routes/admin.configuracoes.impressora.tsx`.
 
-- `useEffect` observando `cep`; quando bater 8 dígitos, dispara `lookupByCep` de `src/lib/viacep.ts` (já existe).
-- Debounce de 400 ms via `setTimeout` + cleanup.
-- `AbortController` para descartar respostas obsoletas se o usuário continuar digitando.
-- Feedback inline abaixo do campo CEP:
-  - `Loader2` + "Buscando endereço…" durante a busca.
-  - Texto destructive "CEP não encontrado" quando ViaCEP retorna `erro`.
-  - Sucesso silencioso (campos preenchem sozinhos).
-- Auto-preenche `street` e `neighborhood` **apenas se estiverem vazios** (não sobrescreve edição manual).
-- `inputMode="numeric"` mantido; aceita com ou sem máscara (já normalizamos com `replace(/\D/g, "")`).
-- A query `resolveDeliveryFee` continua reagindo a `cepDigitsOnly` automaticamente — taxa por bairro segue funcionando.
+Cada linha mostra: nome, papel/role (Select), impressora detectada (Select alimentado por `listQzPrintersWithDefault`), switch ativo, botão "Testar" (usa `printQzTextTest`), botão remover. Botão "Adicionar impressora" cria uma linha em branco. Save persiste via mutation + invalida `["tenant-printers"]`.
 
-## 4. "Limpar formulário"
+Compatibilidade: QZ Tray continua único; cada impressora extra simplesmente envia para um `printer_name` diferente via `printQzReceipt`.
 
-- Botão "Limpar campos" no header dos passos `mode-address`, `mode-table`, `customer` e `review`. Não no passo do carrinho (que já tem "Limpar" do próprio carrinho).
-- Se houver dados preenchidos (endereço/mesa/cliente/observação/cupom), abre `AlertDialog` pedindo confirmação ("Limpar todos os campos preenchidos?"). Senão, limpa em silêncio.
-- Limpa: `cep, street, number, neighborhood, complement, reference, table, name, phone, email, doc, generalNote, couponInput, appliedCoupon, paymentWhen, selectedMethod, paymentMethod, dbOrderId, dbOrderNumber, pixData, cardData`.
-- **Não** mexe nos itens do carrinho.
-- Após limpar, volta para o passo `mode`.
+## 4. Impressão de comanda da cozinha
 
-## Arquivos
+### 4.1 Builder
 
-- Editar: `src/components/storefront/CartDrawer.tsx`
-- Reutiliza: `src/lib/viacep.ts` (já existente), `src/components/ui/alert-dialog`
+Novo helper `src/lib/kitchen-ticket.ts` espelhando `receipt-builder.ts` mas omitindo blocos financeiros e dados da loja:
+```
+buildKitchenTicket(order, cols): string
+```
+Conteúdo, na ordem:
+- Header grande: `COZINHA — PEDIDO #N`
+- Tipo: ENTREGA / RETIRADA / MESA X
+- Cliente (ou mesa/balcão), horário
+- Separador
+- Para cada item: `Nx Nome`, variações (tamanho/sabor parseAddonLabel), adicionais com `+`, remoções (se vierem em `note` futuras), observação do item destacada com `>> Obs:`
+- Observação geral do pedido (se houver) no rodapé com `>> NOTA GERAL:`
+- 3 linhas de feed, corte conforme `cut_type` da impressora escolhida
 
-## Fora de escopo
+Sem totais, sem método de pagamento, sem CNPJ, sem PIX.
 
-- Mudanças de schema, RLS ou rota da confirmação.
-- Refatoração de cart-context, payments, admin.
-- Identidade visual — botões reutilizam variantes existentes.
+### 4.2 Helper de impressão
+
+Novo `src/lib/print-kitchen.ts`:
+```
+printKitchenTicket(order, kitchenPrinter): Promise<{printer}>
+```
+Resolve `cols` a partir de `paper_width`, monta texto via `buildKitchenTicket`, envia com `printQzReceipt`.
+
+### 4.3 Botão no OrderDetailsDrawer
+
+Arquivo: `src/components/orders/OrderDetailsDrawer.tsx` (linhas 247-256, bloco footer).
+
+- Carregar `tenant-printers` via `useQuery` (só quando autenticado).
+- Selecionar a primeira impressora `role='kitchen' AND is_active`.
+- Substituir o botão único `PrintOrderButton` por dois botões lado a lado:
+  - "Imprimir recibo completo" — atual `PrintOrderButton` (label atualizado).
+  - "Imprimir comanda cozinha" — novo. Se cozinha não configurada, fica habilitado mas mostra um `toast` com ação "Configurar" que abre `/admin/configuracoes/impressora`.
+
+Mesmo par de botões também é adicionado em `src/components/orders/OrderCard.tsx` (versão compacta com `size="icon"` em mobile) para impressão direta do card sem abrir drawer.
+
+## 5. Home page profissional
+
+Arquivo: `src/routes/index.tsx`.
+
+### 5.1 Remover "MVP"
+Linha 52 — substituir `"Novo · MVP funcional"` por `"Plataforma pronta para vender"`.
+
+### 5.2 Mockup com produtos reais
+
+Substituir o grid `[1,2,3,4].map` (linhas 90-98) por 4 cards realistas com imagens. Estratégia:
+- Gerar 4 imagens via `imagegen` (model `standard`, 768×768, jpg) em `src/assets/landing-*.jpg`: hamburguer artesanal, pizza pepperoni, açaí na tigela, hambúrguer combo com batata. Importadas como ES6 modules.
+- Cada card: imagem `aspect-square object-cover rounded-lg`, nome ("Smash Duplo", "Pizza Pepperoni", "Açaí 500ml", "Combo Família"), descrição curta (uma linha, `line-clamp-1 text-xs text-muted-foreground`), preço destacado em `text-primary font-bold` e mini CTA "Adicionar" como pill `bg-primary/10`.
+- Melhorar o card-loja: badge "Aberta agora" com `bg-success/15 text-success`, sombra `shadow-[var(--shadow-pop)]` mantida, padding maior (`p-7`), barra do carrinho com ícone `ShoppingBag`.
+
+### 5.3 Polimento da seção features
+Manter as 4 colunas mas trocar copy para tom comercial ("Cardápio digital", "Pedidos em tempo real", "Integração WhatsApp", "Painel de gestão") e adicionar uma seção curta de social proof acima dos planos: 3 selos (`Multi-loja`, `LGPD`, `Suporte BR`) em uma faixa simples — sem testimonials fake.
+
+Restante do design (planos, footer) preservado.
+
+## Ordem de execução e isolamento
+
+1. Migração `tenant_printers` (requer aprovação).
+2. Server functions + UI de impressoras extras.
+3. Builder de comanda + botões no drawer/card.
+4. Mudanças puramente cosméticas: login mobile, footer do checkout, landing.
+
+Cada passo é independente; impressão atual de recibo completo (`printer_settings` + `printOrderViaQz`) não é tocada.
+
+## Fora do escopo
+
+- Refatorar `printer_settings` para o novo modelo (mantemos as duas fontes coexistindo).
+- Mudar layout do recibo completo.
+- Alterar fluxo de pedidos, checkout (além da tipografia do footer) ou multi-tenant.
+- Testimonials, vídeo ou copy nova além do listado.

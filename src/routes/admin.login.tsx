@@ -76,7 +76,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
+    <div className="grid min-h-screen bg-white lg:grid-cols-2 lg:bg-background">
       <div className="relative hidden gradient-brand lg:flex lg:flex-col lg:justify-between p-12 text-primary-foreground">
         <Link to="/" className="flex items-center gap-2 text-white">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur font-bold">F</div>
@@ -92,7 +92,7 @@ function LoginPage() {
         </div>
         <p className="text-sm text-primary-foreground/70">© Menuzin</p>
       </div>
-      <div className="flex items-center justify-center p-6 lg:p-12">
+      <div className="flex items-center justify-center bg-white p-6 lg:bg-background lg:p-12">
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-bold">
             {mode === "login" ? "Entrar no painel" : "Criar sua conta"}
