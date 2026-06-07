@@ -134,10 +134,10 @@ function Landing() {
       <section id="features" className="border-y bg-muted/40">
         <div className="container mx-auto grid gap-8 px-4 py-16 md:grid-cols-4">
           {[
-            { icon: Utensils, t: "Cardápio completo", d: "Categorias, adicionais, variações e destaques." },
-            { icon: Smartphone, t: "Mobile first", d: "Experiência fluida para seu cliente no celular." },
-            { icon: MessageCircle, t: "Pedidos no WhatsApp", d: "Mensagem pronta com resumo do pedido formatado." },
-            { icon: BarChart3, t: "Painel completo", d: "Pedidos, métricas, produtos e personalização." },
+            { icon: Utensils, t: "Cardápio digital", d: "Categorias, adicionais, variações e destaques com fotos." },
+            { icon: Smartphone, t: "Pedidos em tempo real", d: "Receba e gerencie pedidos com notificações instantâneas." },
+            { icon: MessageCircle, t: "Integração WhatsApp", d: "Pedido enviado direto, formatado e pronto para imprimir." },
+            { icon: BarChart3, t: "Painel de gestão", d: "Métricas, produtos, cupons, taxas e equipe — tudo em um lugar." },
           ].map(({ icon: Icon, t, d }) => (
             <div key={t} className="rounded-2xl border bg-card p-6 shadow-[var(--shadow-soft)]">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
