@@ -28,6 +28,7 @@ import {
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 import { QzPrinterWizard } from "@/components/printer/QzPrinterWizard";
+import { ExtraPrintersManager } from "@/components/printer/ExtraPrintersManager";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: PrinterSettingsPage,
@@ -1139,6 +1140,15 @@ function PrinterSettingsPage() {
         onRetryDetect={handleDetectQz}
         retrying={qzBusy}
       />
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Impressoras adicionais (cozinha, balcão, bar)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ExtraPrintersManager />
+        </CardContent>
+      </Card>
 
       <QzPrinterWizard
         open={wizardOpen}
