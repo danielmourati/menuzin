@@ -1176,3 +1176,16 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
     </div>
   );
 }
+
+function ExtraPrintersManagerGated() {
+  const { can } = useTenantPlan();
+  if (!can("multiplePrinters")) {
+    return (
+      <UpgradeNotice
+        title="Múltiplas impressoras no Plano Pro"
+        description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. No Plano Start a impressora principal de recibo continua disponível normalmente."
+      />
+    );
+  }
+  return <ExtraPrintersManager />;
+}
