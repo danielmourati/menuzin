@@ -1,15 +1,20 @@
 // Server-side plan helpers. Use inside createServerFn handlers AFTER you have
 // resolved the effective tenantId.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { normalizePlan, type TenantPlan } from "@/lib/plan-features";
 
-export async function getTenantPlan(tenantId: string): Promise<TenantPlan> {
+export type ServerTenantPlan = "start" | "pro";
+
+function normalize(raw: string | null | undefined): ServerTenantPlan {
+  return raw === "pro" ? "pro" : "start";
+}
+
+export async function getTenantPlan(tenantId: string): Promise<ServerTenantPlan> {
   const { data } = await supabaseAdmin
     .from("tenants")
     .select("plan")
     .eq("id", tenantId)
     .maybeSingle();
-  return normalizePlan((data as { plan?: string } | null)?.plan);
+  return normalize((data as { plan?: string } | null)?.plan);
 }
 
 export async function requireProPlan(tenantId: string): Promise<void> {
