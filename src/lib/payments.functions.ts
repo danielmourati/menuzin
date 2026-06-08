@@ -280,7 +280,7 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
 
 
 
-    const tenantId = await resolveTenantId(supabase, userId);
+    const tenantId = tenantIdEarly;
     const encrypted = await encryptToken(data.mp_access_token);
 
     const { error } = await supabase
