@@ -37,8 +37,15 @@ function StatCard({ icon: Icon, label, value, hint, accent }: { icon: typeof Tre
   );
 }
 
+function greetingFor(date: Date): string {
+  const h = date.getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
 function DashboardPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, profile } = useAuth();
   const enabled = !authLoading && isAuthenticated;
 
   const { data: analytics, isLoading } = useQuery({
@@ -54,6 +61,10 @@ function DashboardPage() {
   });
   const recentOrders = (ordersData?.orders ?? []).slice(0, 5);
 
+  const greet = greetingFor(new Date());
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
+  const greetingText = firstName ? `${greet}, ${firstName}!` : `${greet}!`;
+
   if (isLoading || !analytics) {
     return (
       <AdminLayout title="Dashboard">
@@ -65,6 +76,10 @@ function DashboardPage() {
   return (
     <AdminLayout title="Dashboard">
       <div className="space-y-6">
+        <div className="rounded-2xl border bg-gradient-to-r from-primary/10 via-card to-card p-5 shadow-[var(--shadow-soft)]">
+          <p className="text-sm text-muted-foreground">Bem-vindo de volta</p>
+          <h2 className="mt-0.5 text-2xl font-bold tracking-tight">{greetingText}</h2>
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={ShoppingBag} label="Pedidos hoje" value={String(analytics.todayOrdersCount)} />
           <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(analytics.todayRevenue)} accent="bg-success/15 text-success" />

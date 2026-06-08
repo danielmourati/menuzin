@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { requireProPlan } from "@/lib/plan-server";
 
 export type TenantPrinterRole = "receipt" | "kitchen" | "bar" | "counter" | "other";
 
@@ -67,6 +68,7 @@ export const saveTenantPrinter = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Usuário sem loja vinculada.");
+    await requireProPlan(resolved.tenantId);
     const payload = {
       tenant_id: resolved.tenantId,
       name: data.name,

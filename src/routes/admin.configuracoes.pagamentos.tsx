@@ -23,6 +23,7 @@ import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, Arro
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { useActiveTenantId } from "@/lib/active-tenant";
+import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
   component: AdminPaymentSettingsPage,
@@ -32,6 +33,8 @@ function AdminPaymentSettingsPage() {
   const { profile } = useAuth();
   const activeTenantId = useActiveTenantId();
   const storeId = activeTenantId ?? profile?.tenant_id ?? "";
+  const { can } = useTenantPlan();
+  const canMP = can("mercadoPago");
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
@@ -222,81 +225,90 @@ function AdminPaymentSettingsPage() {
           </p>
         </div>
 
-        {/* 1. MÓDULO MERCADO PAGO ONLINE */}
+        {/* 1. MÓDULO MERCADO PAGO ONLINE — somente plano Pro */}
         <div className="space-y-4">
           <h2 className="text-lg font-bold tracking-tight text-foreground flex items-center gap-2">
             <Landmark className="h-5 w-5 text-[#009EE3]" /> Mercado Pago Online
           </h2>
 
-          <MercadoPagoStatus
-            status={mpStatus}
-            onConnect={handleConnectMP}
-            onDisconnect={handleDisconnectMP}
-            onTestPayment={handleTestPay}
-            onConnectManual={handleConnectMPManual}
-            expiresAt={settings?.mp_token_expires_at}
-            connectedVia={connectedVia}
-            connectedPublicKey={settings?.mp_public_key}
-            accountKind={settings?.mp_account_kind}
-            liveModeSaved={settings?.mp_live_mode}
-            mpUserId={settings?.mp_user_id}
-          />
+          {!canMP ? (
+            <UpgradeNotice
+              title="Pagamento online no Plano Pro"
+              description="A integração com o Mercado Pago (Pix online, crédito e débito) está disponível no Plano Pro. No Plano Start você continua recebendo pedidos via WhatsApp e pode usar Pix manual, dinheiro e cartão na entrega."
+            />
+          ) : (
+            <>
+              <MercadoPagoStatus
+                status={mpStatus}
+                onConnect={handleConnectMP}
+                onDisconnect={handleDisconnectMP}
+                onTestPayment={handleTestPay}
+                onConnectManual={handleConnectMPManual}
+                expiresAt={settings?.mp_token_expires_at}
+                connectedVia={connectedVia}
+                connectedPublicKey={settings?.mp_public_key}
+                accountKind={settings?.mp_account_kind}
+                liveModeSaved={settings?.mp_live_mode}
+                mpUserId={settings?.mp_user_id}
+              />
 
-          {settings?.mp_connected && (
-            <Card className="border border-border/80 shadow-[var(--shadow-soft)] animate-fade-in">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-bold">Métodos Online Ativos</CardTitle>
-                <CardDescription>
-                  Habilite ou desabilite os fluxos de checkout transparente do Mercado Pago.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between border-b pb-3.5">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <Landmark className="h-4 w-4 text-primary" /> Pix Online
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      QR Code e Copia e Cola gerados na hora com confirmação automática.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.pix_enabled}
-                    onCheckedChange={(checked) => handleToggleOnline("pix_enabled", checked)}
-                  />
-                </div>
+              {settings?.mp_connected && (
+                <Card className="border border-border/80 shadow-[var(--shadow-soft)] animate-fade-in">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-bold">Métodos Online Ativos</CardTitle>
+                    <CardDescription>
+                      Habilite ou desabilite os fluxos de checkout transparente do Mercado Pago.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-3.5">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-semibold flex items-center gap-1.5">
+                          <Landmark className="h-4 w-4 text-primary" /> Pix Online
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          QR Code e Copia e Cola gerados na hora com confirmação automática.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.pix_enabled}
+                        onCheckedChange={(checked) => handleToggleOnline("pix_enabled", checked)}
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between border-b pb-3.5">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <CreditCard className="h-4 w-4 text-primary" /> Cartão de Crédito Online
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Permite que o cliente pague com cartão direto no catálogo com parcelamento.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.credit_card_enabled}
-                    onCheckedChange={(checked) => handleToggleOnline("credit_card_enabled", checked)}
-                  />
-                </div>
+                    <div className="flex items-center justify-between border-b pb-3.5">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-semibold flex items-center gap-1.5">
+                          <CreditCard className="h-4 w-4 text-primary" /> Cartão de Crédito Online
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Permite que o cliente pague com cartão direto no catálogo com parcelamento.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.credit_card_enabled}
+                        onCheckedChange={(checked) => handleToggleOnline("credit_card_enabled", checked)}
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-sm font-semibold flex items-center gap-1.5">
-                      <CreditCard className="h-4 w-4 text-primary" /> Cartão de Débito Online
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Permite compras à vista usando o cartão de débito virtual.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.debit_card_enabled}
-                    onCheckedChange={(checked) => handleToggleOnline("debit_card_enabled", checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-semibold flex items-center gap-1.5">
+                          <CreditCard className="h-4 w-4 text-primary" /> Cartão de Débito Online
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Permite compras à vista usando o cartão de débito virtual.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.debit_card_enabled}
+                        onCheckedChange={(checked) => handleToggleOnline("debit_card_enabled", checked)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
 

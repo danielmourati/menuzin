@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
@@ -33,6 +34,7 @@ function NewTenantPage() {
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
+  const [plan, setPlan] = useState<"start" | "pro">("start");
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
@@ -80,6 +82,7 @@ function NewTenantPage() {
           theme_from: themeFrom,
           theme_to: themeTo,
           active,
+          plan,
           owner_email: ownerEmail.trim().toLowerCase(),
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
@@ -164,12 +167,27 @@ function NewTenantPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border p-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="font-medium">Tenant ativo</p>
-              <p className="text-xs text-muted-foreground">Lojas inativas não aparecem para o público.</p>
+              <Label>Plano</Label>
+              <Select value={plan} onValueChange={(v) => setPlan(v as "start" | "pro")}>
+                <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="start">Start — WhatsApp + relatórios básicos</SelectItem>
+                  <SelectItem value="pro">Pro — Mercado Pago + múltiplas impressoras</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Padrão: Start. Pode ser alterado depois na edição da loja.
+              </p>
             </div>
-            <Switch checked={active} onCheckedChange={setActive} />
+            <div className="flex items-center justify-between rounded-2xl border p-4">
+              <div>
+                <p className="font-medium">Tenant ativo</p>
+                <p className="text-xs text-muted-foreground">Lojas inativas não aparecem para o público.</p>
+              </div>
+              <Switch checked={active} onCheckedChange={setActive} />
+            </div>
           </div>
 
           <div className="flex items-center justify-between rounded-2xl border p-4">
