@@ -133,6 +133,7 @@ const CreateTenantInput = z.object({
   theme_from: z.string().max(40).optional().default("#FF6A1F"),
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
+  plan: z.enum(["start", "pro"]).default("start"),
   owner_user_id: z.string().uuid().nullable().optional(),
   owner_email: z.string().email().max(160).optional().nullable(),
   owner_password: z.string().min(8).max(72).optional().nullable(),
@@ -162,7 +163,7 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
         theme_from: data.theme_from,
         theme_to: data.theme_to,
         active: data.active,
-        plan: "start",
+        plan: data.plan,
         status: "ativa",
       }).select("id").single();
     if (error || !tenant) throw new Error(error?.message || "Falha ao criar loja");
