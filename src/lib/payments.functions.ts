@@ -159,6 +159,9 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const tenantIdEarly = await resolveTenantId(supabase, userId);
+    const { requireProPlan } = await import("@/lib/plan-server");
+    await requireProPlan(tenantIdEarly);
 
     // Basic non-empty validation only — Mercado Pago credentials may have
     // varying prefixes (APP_USR-, TEST-, or no prefix for newer accounts).
@@ -356,6 +359,13 @@ export const updatePaymentSettings = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<StorePaymentSettingsSafe> => {
     const { supabase, userId } = context;
     const tenantId = await resolveTenantId(supabase, userId);
+    // Server-side plan guard: online toggles only on Pro.
+    const onlineKeys = ["pix_enabled", "credit_card_enabled", "debit_card_enabled"] as const;
+    const togglingOnline = onlineKeys.some((k) => data[k] === true);
+    if (togglingOnline) {
+      const { requireProPlan } = await import("@/lib/plan-server");
+      await requireProPlan(tenantId);
+    }
     const { data: row, error } = await supabase
       .from("store_payment_settings")
       .update(data)
