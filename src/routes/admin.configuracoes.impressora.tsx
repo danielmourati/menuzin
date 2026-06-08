@@ -29,6 +29,7 @@ import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 import { QzPrinterWizard } from "@/components/printer/QzPrinterWizard";
 import { ExtraPrintersManager } from "@/components/printer/ExtraPrintersManager";
+import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: PrinterSettingsPage,
@@ -1146,7 +1147,7 @@ function PrinterSettingsPage() {
           <CardTitle className="text-base">Impressoras adicionais (cozinha, balcão, bar)</CardTitle>
         </CardHeader>
         <CardContent>
-          <ExtraPrintersManager />
+          <ExtraPrintersManagerGated />
         </CardContent>
       </Card>
 
