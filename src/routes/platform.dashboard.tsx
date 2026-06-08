@@ -54,7 +54,7 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
       <div className="border-b border-sidebar-border px-5 py-4">
         <Link to="/" className="flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-primary-foreground font-bold">F</div>
-          <span className="font-display font-bold">FoodCatálogo</span>
+          <span className="font-display font-bold">Menuzin</span>
         </Link>
         <p className="mt-2 text-xs text-muted-foreground">Painel da plataforma</p>
       </div>
