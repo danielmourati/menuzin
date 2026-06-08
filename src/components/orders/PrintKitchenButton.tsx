@@ -38,9 +38,6 @@ export function PrintKitchenButton({
   });
 
   if (!can("kitchenPrinter")) return null;
-    staleTime: 60_000,
-    retry: false,
-  });
 
   const kitchenPrinter = (data?.printers ?? []).find(
     (p) => p.role === "kitchen" && p.is_active,
