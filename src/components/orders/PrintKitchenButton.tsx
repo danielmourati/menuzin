@@ -9,6 +9,7 @@ import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { printKitchenTicket } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
+import { useTenantPlan } from "@/lib/plan-features";
 
 interface PrintKitchenButtonProps {
   order: Order;
@@ -24,13 +25,19 @@ export function PrintKitchenButton({
   className = "",
 }: PrintKitchenButtonProps) {
   const { isAuthenticated } = useAuth();
+  const { can } = useTenantPlan();
   const navigate = useNavigate();
   const [printing, setPrinting] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["tenant-printers"],
     queryFn: () => listMyTenantPrinters(),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && can("kitchenPrinter"),
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  if (!can("kitchenPrinter")) return null;
     staleTime: 60_000,
     retry: false,
   });
