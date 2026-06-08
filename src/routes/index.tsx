@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { plans } from "@/lib/plans";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
@@ -17,12 +16,45 @@ const demoProducts = [
   { name: "Combo Família", desc: "Burger + batata + refri", price: 39.9, img: landingCombo },
 ];
 
+const pricingPlans = [
+  {
+    id: "start",
+    name: "Start",
+    price: 0,
+    priceLabel: "Grátis",
+    tagline: "Para começar a receber pedidos hoje pelo WhatsApp.",
+    features: [
+      "Produtos ilimitados",
+      "Dashboard completo",
+      "Gestão de status de pedidos",
+      "Pedidos direto no WhatsApp",
+      "Relatórios básicos de gestão",
+    ],
+    cta: "Começar grátis",
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: 79,
+    priceLabel: "R$ 79",
+    tagline: "Para vender online com pagamento e estrutura profissional.",
+    features: [
+      "Tudo do Plano Start",
+      "Pagamento online com Mercado Pago",
+      "Múltiplas impressoras (cozinha, bar, balcão)",
+      "Suporte personalizado",
+    ],
+    cta: "Assinar Pro",
+    highlighted: true,
+  },
+] as const;
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "FoodCatálogo — Vitrine digital para o seu negócio food" },
-      { name: "description", content: "Catálogo digital com pedidos pelo WhatsApp para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias." },
-      { property: "og:title", content: "FoodCatálogo" },
+      { title: "Menuzin — Cardápio digital e pedidos por WhatsApp" },
+      { name: "description", content: "Catálogo digital com pedidos pelo WhatsApp, pagamento online e gestão completa para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias." },
+      { property: "og:title", content: "Menuzin" },
       { property: "og:description", content: "A vitrine digital do seu negócio food." },
     ],
   }),
@@ -41,8 +73,8 @@ function Landing() {
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl gradient-brand text-primary-foreground font-bold">F</div>
-            <span className="font-display text-lg font-bold">FoodCatálogo</span>
+            <div className="grid h-9 w-9 place-items-center rounded-xl gradient-brand text-primary-foreground font-bold">M</div>
+            <span className="font-display text-lg font-bold">Menuzin</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features">Recursos</a>
@@ -59,10 +91,7 @@ function Landing() {
       <section className="relative overflow-hidden">
         <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-              <span className="h-2 w-2 rounded-full bg-primary" /> Plataforma pronta para vender
-            </span>
-            <h1 className="mt-5 text-4xl font-bold leading-tight text-balance md:text-6xl">
+            <h1 className="text-4xl font-bold leading-tight text-balance md:text-6xl">
               A vitrine digital do seu <span className="text-primary">negócio food</span>.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground text-balance">
@@ -150,29 +179,60 @@ function Landing() {
 
       <section id="plans" className="container mx-auto px-4 py-20">
         <div className="text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">Planos para crescer no seu ritmo</h2>
-          <p className="mt-3 text-muted-foreground">Comece grátis e evolua quando o movimento crescer.</p>
+          <h2 className="text-3xl font-bold md:text-4xl">Planos do Menuzin</h2>
+          <p className="mt-3 text-muted-foreground">Comece grátis no Start e desbloqueie pagamento online e múltiplas impressoras no Pro.</p>
         </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {plans.map((p, idx) => (
-            <div key={p.id} className={`rounded-2xl border bg-card p-6 ${idx === 1 ? "border-primary shadow-[var(--shadow-pop)]" : ""}`}>
-              {idx === 1 && <span className="inline-flex rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Mais popular</span>}
-              <h3 className="mt-2 text-xl font-bold">{p.name}</h3>
-              <p className="mt-2 text-3xl font-bold">{p.price === 0 ? "Grátis" : brl(p.price)}<span className="text-sm font-normal text-muted-foreground">/mês</span></p>
-              <ul className="mt-5 space-y-2 text-sm">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />{f}</li>
-                ))}
-              </ul>
-              <Button className="mt-6 w-full" variant={idx === 1 ? "default" : "outline"}>Começar</Button>
-            </div>
-          ))}
+        <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+          {pricingPlans.map((p) => {
+            const highlighted = "highlighted" in p && p.highlighted;
+            return (
+              <div
+                key={p.id}
+                className={`relative flex flex-col rounded-3xl border bg-card p-8 transition ${
+                  highlighted
+                    ? "border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
+                    : "shadow-[var(--shadow-soft)]"
+                }`}
+              >
+                {highlighted && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
+                    <Sparkles className="h-3 w-3" /> Recomendado
+                  </span>
+                )}
+                <h3 className="text-2xl font-bold">{p.name}</h3>
+                <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
+                <p className="mt-5 text-4xl font-bold">
+                  {p.priceLabel}
+                  {p.price > 0 && <span className="text-base font-normal text-muted-foreground">/mês</span>}
+                </p>
+                <ul className="mt-6 space-y-3 text-sm">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${highlighted ? "text-primary" : "text-success"}`} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  asChild
+                  className="mt-8 w-full"
+                  size="lg"
+                  variant={highlighted ? "default" : "outline"}
+                >
+                  <Link to="/admin/login">{p.cta}</Link>
+                </Button>
+              </div>
+            );
+          })}
         </div>
+        <p className="mt-8 text-center text-xs text-muted-foreground">
+          Sem fidelidade. Você pode mudar de plano quando quiser.
+        </p>
       </section>
 
       <footer className="border-t bg-card">
         <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground md:flex-row">
-          <p>© {new Date().getFullYear()} FoodCatálogo. Vitrine digital para negócios food.</p>
+          <p>© {new Date().getFullYear()} Menuzin. Vitrine digital para negócios food.</p>
           <div className="flex gap-4">
             <Link to="/platform/dashboard">Painel da plataforma</Link>
             <Link to="/admin/dashboard">Painel do lojista</Link>
