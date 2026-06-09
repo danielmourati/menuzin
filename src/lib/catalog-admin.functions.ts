@@ -44,6 +44,7 @@ const CategoryInput = z.object({
   description: z.string().max(500).optional().default(""),
   sort_order: z.number().int().min(0).max(9999).default(0),
   active: z.boolean().default(true),
+  kind: z.enum(["standard", "pizza"]).default("standard"),
 });
 
 export const saveCategory = createServerFn({ method: "POST" })
@@ -56,14 +57,16 @@ export const saveCategory = createServerFn({ method: "POST" })
       const { error } = await sb.from("categories").update({
         name: data.name, description: data.description ?? "",
         sort_order: data.sort_order, active: data.active,
-      }).eq("id", data.id).eq("tenant_id", tenantId);
+        kind: data.kind,
+      } as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: row, error } = await sb.from("categories").insert({
       tenant_id: tenantId, name: data.name, description: data.description ?? "",
       sort_order: data.sort_order, active: data.active,
-    }).select("id").single();
+      kind: data.kind,
+    } as never).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
