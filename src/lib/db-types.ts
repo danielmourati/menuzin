@@ -40,6 +40,38 @@ export type DbCategory = {
   description: string;
   sort_order: number;
   active: boolean;
+  kind: "standard" | "pizza";
+};
+
+export type DbCategoryPizzaSize = {
+  id: string;
+  category_id: string;
+  name: string;
+  pieces: number;
+  max_flavors: number;
+  pdv_code: string | null;
+  active: boolean;
+  sort_order: number;
+};
+
+export type DbCategoryPizzaDough = {
+  id: string;
+  category_id: string;
+  name: string;
+  extra_price: number;
+  pdv_code: string | null;
+  active: boolean;
+  sort_order: number;
+};
+
+export type DbCategoryPizzaCrust = {
+  id: string;
+  category_id: string;
+  name: string;
+  extra_price: number;
+  pdv_code: string | null;
+  active: boolean;
+  sort_order: number;
 };
 
 export type DbAddon = {
@@ -55,6 +87,7 @@ export type DbProductSize = {
   name: string;
   price: number;
   sort_order: number;
+  category_size_id: string | null;
 };
 
 export type DbProductFlavor = {
