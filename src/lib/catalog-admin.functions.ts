@@ -596,3 +596,163 @@ export const deleteAddonItem = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ===== Category Pizza Config (sizes / doughs / crusts) =====
+
+import type {
+  DbCategoryPizzaSize, DbCategoryPizzaDough, DbCategoryPizzaCrust,
+} from "@/lib/db-types";
+
+async function assertCategoryOwnership(sb: SB, tenantId: string, categoryId: string) {
+  const { data, error } = await sb.from("categories")
+    .select("id, kind").eq("id", categoryId).eq("tenant_id", tenantId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Categoria inválida para este tenant.");
+  return data as { id: string; kind: string };
+}
+
+const sbAny = (sb: SB) => sb as unknown as {
+  from: (t: string) => ReturnType<SB["from"]>;
+};
+
+export const listCategoryPizzaConfig = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ category_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    await assertCategoryOwnership(sb, tenantId, data.category_id);
+    const [sizes, doughs, crusts] = await Promise.all([
+      sbAny(sb).from("category_pizza_sizes").select("*").eq("category_id", data.category_id).order("sort_order"),
+      sbAny(sb).from("category_pizza_doughs").select("*").eq("category_id", data.category_id).order("sort_order"),
+      sbAny(sb).from("category_pizza_crusts").select("*").eq("category_id", data.category_id).order("sort_order"),
+    ]);
+    if (sizes.error) throw new Error(sizes.error.message);
+    if (doughs.error) throw new Error(doughs.error.message);
+    if (crusts.error) throw new Error(crusts.error.message);
+    return {
+      sizes: (sizes.data ?? []) as unknown as DbCategoryPizzaSize[],
+      doughs: (doughs.data ?? []) as unknown as DbCategoryPizzaDough[],
+      crusts: (crusts.data ?? []) as unknown as DbCategoryPizzaCrust[],
+    };
+  });
+
+const PizzaSizeInput = z.object({
+  id: z.string().uuid().optional(),
+  category_id: z.string().uuid(),
+  name: z.string().min(1).max(60),
+  pieces: z.number().int().min(1).max(24).default(8),
+  max_flavors: z.number().int().min(1).max(8).default(1),
+  pdv_code: z.string().max(40).optional().default(""),
+  active: z.boolean().default(true),
+  sort_order: z.number().int().min(0).max(9999).default(0),
+});
+
+export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => PizzaSizeInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    await assertCategoryOwnership(sb, tenantId, data.category_id);
+    const payload = {
+      category_id: data.category_id, name: data.name, pieces: data.pieces,
+      max_flavors: data.max_flavors, pdv_code: data.pdv_code ?? "",
+      active: data.active, sort_order: data.sort_order,
+    };
+    if (data.id) {
+      const { error } = await sbAny(sb).from("category_pizza_sizes").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: row, error } = await sbAny(sb).from("category_pizza_sizes").insert(payload).select("id").single();
+    if (error) throw new Error(error.message);
+    return { id: (row as { id: string }).id };
+  });
+
+export const deleteCategoryPizzaSize = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    await getAuthorizedTenantId(sb, context.userId);
+    const { error } = await sbAny(sb).from("category_pizza_sizes").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const PizzaDoughInput = z.object({
+  id: z.string().uuid().optional(),
+  category_id: z.string().uuid(),
+  name: z.string().min(1).max(60),
+  extra_price: z.number().min(0).max(99999).default(0),
+  pdv_code: z.string().max(40).optional().default(""),
+  active: z.boolean().default(true),
+  sort_order: z.number().int().min(0).max(9999).default(0),
+});
+
+export const saveCategoryPizzaDough = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => PizzaDoughInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    await assertCategoryOwnership(sb, tenantId, data.category_id);
+    const payload = {
+      category_id: data.category_id, name: data.name, extra_price: data.extra_price,
+      pdv_code: data.pdv_code ?? "", active: data.active, sort_order: data.sort_order,
+    };
+    if (data.id) {
+      const { error } = await sbAny(sb).from("category_pizza_doughs").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: row, error } = await sbAny(sb).from("category_pizza_doughs").insert(payload).select("id").single();
+    if (error) throw new Error(error.message);
+    return { id: (row as { id: string }).id };
+  });
+
+export const deleteCategoryPizzaDough = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    await getAuthorizedTenantId(sb, context.userId);
+    const { error } = await sbAny(sb).from("category_pizza_doughs").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const PizzaCrustInput = PizzaDoughInput;
+
+export const saveCategoryPizzaCrust = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => PizzaCrustInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    await assertCategoryOwnership(sb, tenantId, data.category_id);
+    const payload = {
+      category_id: data.category_id, name: data.name, extra_price: data.extra_price,
+      pdv_code: data.pdv_code ?? "", active: data.active, sort_order: data.sort_order,
+    };
+    if (data.id) {
+      const { error } = await sbAny(sb).from("category_pizza_crusts").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { id: data.id };
+    }
+    const { data: row, error } = await sbAny(sb).from("category_pizza_crusts").insert(payload).select("id").single();
+    if (error) throw new Error(error.message);
+    return { id: (row as { id: string }).id };
+  });
+
+export const deleteCategoryPizzaCrust = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    await getAuthorizedTenantId(sb, context.userId);
+    const { error } = await sbAny(sb).from("category_pizza_crusts").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
