@@ -116,6 +116,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          kind: string
           name: string
           sort_order: number
           tenant_id: string
@@ -126,6 +127,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          kind?: string
           name: string
           sort_order?: number
           tenant_id: string
@@ -136,6 +138,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          kind?: string
           name?: string
           sort_order?: number
           tenant_id?: string
@@ -147,6 +150,141 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_pizza_crusts: {
+        Row: {
+          active: boolean
+          category_id: string
+          created_at: string
+          extra_price: number
+          id: string
+          name: string
+          pdv_code: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category_id: string
+          created_at?: string
+          extra_price?: number
+          id?: string
+          name: string
+          pdv_code?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category_id?: string
+          created_at?: string
+          extra_price?: number
+          id?: string
+          name?: string
+          pdv_code?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_pizza_crusts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_pizza_doughs: {
+        Row: {
+          active: boolean
+          category_id: string
+          created_at: string
+          extra_price: number
+          id: string
+          name: string
+          pdv_code: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category_id: string
+          created_at?: string
+          extra_price?: number
+          id?: string
+          name: string
+          pdv_code?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category_id?: string
+          created_at?: string
+          extra_price?: number
+          id?: string
+          name?: string
+          pdv_code?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_pizza_doughs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      category_pizza_sizes: {
+        Row: {
+          active: boolean
+          category_id: string
+          created_at: string
+          id: string
+          max_flavors: number
+          name: string
+          pdv_code: string | null
+          pieces: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category_id: string
+          created_at?: string
+          id?: string
+          max_flavors?: number
+          name: string
+          pdv_code?: string | null
+          pieces?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category_id?: string
+          created_at?: string
+          id?: string
+          max_flavors?: number
+          name?: string
+          pdv_code?: string | null
+          pieces?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_pizza_sizes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -711,6 +849,7 @@ export type Database = {
       }
       product_sizes: {
         Row: {
+          category_size_id: string | null
           created_at: string
           id: string
           name: string
@@ -719,6 +858,7 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          category_size_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -727,6 +867,7 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          category_size_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -734,7 +875,15 @@ export type Database = {
           product_id?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_sizes_category_size_id_fkey"
+            columns: ["category_size_id"]
+            isOneToOne: false
+            referencedRelation: "category_pizza_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
