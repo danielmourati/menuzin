@@ -33,6 +33,7 @@ export type Product = {
   name: string;
   category: string;
   categoryId?: string | null;
+  categoryKind?: "standard" | "pizza";
   description: string;
   price: number;
   promoPrice?: number;
@@ -55,7 +56,11 @@ export type Category = {
   description?: string;
   order: number;
   active: boolean;
+  kind?: "standard" | "pizza";
 };
+
+export type PizzaExtra = { id: string; name: string; extraPrice: number };
+
 
 export type OrderStatus =
   | "novo"

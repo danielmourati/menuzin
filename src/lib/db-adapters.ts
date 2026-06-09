@@ -5,12 +5,13 @@ import type {
   ProductSize, ProductFlavor, AddonGroup, AddonOption,
 } from "./domain-types";
 
-export function dbProductToUi(p: DbProduct, categoryName: string): Product {
+export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: "standard" | "pizza" = "standard"): Product {
   return {
     id: p.id,
     name: p.name,
     category: categoryName,
     categoryId: p.category_id,
+    categoryKind,
     description: p.description ?? "",
     price: Number(p.price),
     promoPrice: p.promo_price != null ? Number(p.promo_price) : undefined,
@@ -73,8 +74,9 @@ export function dbTenantToUi(t: DbTenant): Tenant {
 }
 
 
-export function dbCategoriesToUi(rows: { id: string; name: string; sort_order: number; active: boolean }[]): Category[] {
+export function dbCategoriesToUi(rows: { id: string; name: string; sort_order: number; active: boolean; kind?: string | null }[]): Category[] {
   return rows.map((c) => ({
     id: c.id, name: c.name, order: c.sort_order, active: c.active,
+    kind: (c.kind === "pizza" ? "pizza" : "standard") as "standard" | "pizza",
   }));
 }
