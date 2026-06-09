@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,18 +8,20 @@ import { CurrencyInput, CurrencyBlurInput } from "@/components/ui/currency-input
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit2, Trash2, Star, Loader2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza } from "lucide-react";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { toast } from "sonner";
 import {
   listMyCategories, listMyProducts, saveProduct, deleteProduct, toggleProductAvailable,
   saveProductSize, deleteProductSize, saveProductFlavor, deleteProductFlavor,
+  listCategoryPizzaConfig,
 } from "@/lib/catalog-admin.functions";
 
 export const Route = createFileRoute("/admin/produtos")({
@@ -66,6 +68,11 @@ function ProductsPage() {
     () => (editing?.id ? products.find((p) => p.id === editing.id) ?? null : null),
     [products, editing?.id],
   );
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.id === editing?.category_id) ?? null,
+    [categories, editing?.category_id],
+  );
+  const isPizzaCategory = selectedCategory?.kind === "pizza";
 
   const filtered = useMemo(() => products.filter((p) => {
     if (catFilter !== "todas" && p.category_id !== catFilter) return false;
@@ -77,11 +84,14 @@ function ProductsPage() {
   }), [products, q, catFilter, statusFilter]);
 
   const saveMut = useMutation({
-    mutationFn: (input: Editing) => saveProduct({ data: input }),
+    mutationFn: (input: Editing) => {
+      // Força type='pizza' se a categoria for de pizza
+      const payload: Editing = isPizzaCategory ? { ...input, type: "pizza" } : input;
+      return saveProduct({ data: payload });
+    },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
       toast.success("Produto salvo");
-      // mantém modal aberto para editar tamanhos/sabores
       if (editing && !editing.id) setEditing({ ...editing, id: res.id });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -110,7 +120,7 @@ function ProductsPage() {
       name: "", description: "", category_id: categories[0]?.id ?? null,
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, prep_time: null, sort_order: products.length + 1,
-      type: "standard", max_flavors: null, allow_observations: true,
+      type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
     });
     setOpen(true);
   };
@@ -168,7 +178,7 @@ function ProductsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{p.name}</p>
-                    {p.type === "pizza" && <Badge variant="secondary">Pizza</Badge>}
+                    {p.type === "pizza" && <Badge variant="secondary"><Pizza className="mr-1 h-3 w-3" /> Sabor</Badge>}
                     {p.featured && <Badge className="bg-primary/15 text-primary border-0"><Star className="mr-1 h-3 w-3" /> Destaque</Badge>}
                     {!p.available && <Badge variant="destructive">Indisponível</Badge>}
                   </div>
@@ -203,42 +213,38 @@ function ProductsPage() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing?.id ? "Editar produto" : "Novo produto"}</DialogTitle></DialogHeader>
-          {editing && (
+          <DialogHeader>
+            <DialogTitle>
+              {editing?.id ? "Editar" : "Novo"} {isPizzaCategory ? "sabor de pizza" : "produto"}
+            </DialogTitle>
+          </DialogHeader>
+          {editing && isPizzaCategory && (
+            <PizzaProductForm
+              editing={editing}
+              setEditing={setEditing}
+              categories={categories}
+              currentProductSizes={currentProduct?.sizes ?? []}
+              onClose={() => setOpen(false)}
+              onSave={save}
+              isSaving={saveMut.isPending}
+            />
+          )}
+          {editing && !isPizzaCategory && (
             <Tabs defaultValue="geral">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${editing.type === "pizza" ? 3 : 2}, minmax(0,1fr))` }}>
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="geral">Geral</TabsTrigger>
                 <TabsTrigger value="tamanhos" disabled={!editing.id}>Tamanhos</TabsTrigger>
-                {editing.type === "pizza" && (
-                  <TabsTrigger value="sabores" disabled={!editing.id}>Sabores</TabsTrigger>
-                )}
               </TabsList>
 
               <TabsContent value="geral" className="mt-4 space-y-3">
                 <div><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" /></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Tipo</Label>
-                    <Select value={editing.type} onValueChange={(v) => setEditing({ ...editing, type: v as "standard" | "pizza", max_flavors: v === "pizza" ? (editing.max_flavors ?? 1) : null })}>
-                      <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Padrão</SelectItem>
-                        <SelectItem value="pizza">Pizza (multi-sabor)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {editing.type === "pizza" && (
-                    <div>
-                      <Label>Máx. sabores</Label>
-                      <Input type="number" min={1} max={6} value={editing.max_flavors ?? 1}
-                        onChange={(e) => setEditing({ ...editing, max_flavors: Math.max(1, Number(e.target.value)) })} className="mt-1.5" />
-                    </div>
-                  )}
-                </div>
                 <div><Label>Categoria</Label>
-                  <Select value={editing.category_id ?? ""} onValueChange={(v) => setEditing({ ...editing, category_id: v })}>
+                  <Select value={editing.category_id ?? ""} onValueChange={(v) => {
+                    const cat = categories.find((c) => c.id === v);
+                    setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
+                  }}>
                     <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.kind === "pizza" ? " 🍕" : ""}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
@@ -273,18 +279,6 @@ function ProductsPage() {
                   />
                 )}
               </TabsContent>
-
-              {editing.type === "pizza" && (
-                <TabsContent value="sabores" className="mt-4">
-                  {currentProduct && (
-                    <FlavorsEditor
-                      productId={currentProduct.id}
-                      flavors={currentProduct.flavors ?? []}
-                      onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "products"] })}
-                    />
-                  )}
-                </TabsContent>
-              )}
             </Tabs>
           )}
         </DialogContent>
@@ -292,6 +286,161 @@ function ProductsPage() {
     </AdminLayout>
   );
 }
+
+// ===== Pizza product form (Detalhes / Preço / Classificação) =====
+
+function PizzaProductForm({
+  editing, setEditing, categories, currentProductSizes, onClose, onSave, isSaving,
+}: {
+  editing: Editing;
+  setEditing: (e: Editing) => void;
+  categories: { id: string; name: string; kind: "standard" | "pizza" }[];
+  currentProductSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null }[];
+  onClose: () => void;
+  onSave: () => void;
+  isSaving: boolean;
+}) {
+  return (
+    <Tabs defaultValue="detalhes">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+        <TabsTrigger value="preco" disabled={!editing.id}>Preço</TabsTrigger>
+        <TabsTrigger value="classificacao">Classificação</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="detalhes" className="mt-4 space-y-3">
+        <div><Label>Categoria</Label>
+          <Select value={editing.category_id ?? ""} onValueChange={(v) => {
+            const cat = categories.find((c) => c.id === v);
+            setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
+          }}>
+            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.kind === "pizza" ? " 🍕" : ""}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div><Label>Sabor</Label><Input maxLength={80} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" placeholder="Ex: Pizza de Mussarela" /><p className="text-right text-[10px] text-muted-foreground">{editing.name.length}/80 caracteres</p></div>
+        <div><Label>Descrição</Label><Textarea maxLength={1000} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
+        <ImageUploader
+          label="Foto da pizza"
+          value={editing.image_url}
+          onChange={(url) => setEditing({ ...editing, image_url: url })}
+          folder="produtos"
+        />
+        <p className="text-[10px] text-muted-foreground">Formatos: JPEG, JPG, PNG. Resolução mínima: 300×275.</p>
+        <DialogFooter className="pt-3">
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={onSave} disabled={isSaving || !editing.name}>
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editing.id ? "Salvar" : "Continuar")}
+          </Button>
+        </DialogFooter>
+      </TabsContent>
+
+      <TabsContent value="preco" className="mt-4">
+        {editing.id && editing.category_id && (
+          <PizzaPriceMatrix
+            productId={editing.id}
+            categoryId={editing.category_id}
+            existingSizes={currentProductSizes}
+          />
+        )}
+      </TabsContent>
+
+      <TabsContent value="classificacao" className="mt-4 space-y-3">
+        <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 30 min" /></div>
+        <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
+        <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
+        <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
+        <DialogFooter className="pt-3">
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+          <Button onClick={onSave} disabled={isSaving}>
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId: string; categoryId: string; existingSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null }[] }) {
+  const qc = useQueryClient();
+  const cfgQ = useQuery({
+    queryKey: ["admin", "pizza-config", categoryId],
+    queryFn: () => listCategoryPizzaConfig({ data: { category_id: categoryId } }),
+  });
+
+  const sizes = cfgQ.data?.sizes ?? [];
+  const sizeMap = useMemo(() => {
+    const m = new Map<string, { id: string; price: number }>();
+    for (const s of existingSizes) if (s.category_size_id) m.set(s.category_size_id, { id: s.id, price: Number(s.price) });
+    return m;
+  }, [existingSizes]);
+
+  const saveMut = useMutation({
+    mutationFn: (d: { id?: string; product_id: string; name: string; price: number; sort_order: number; category_size_id: string }) => saveProductSize({ data: d }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteProductSize({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  if (cfgQ.isLoading) return <div className="flex justify-center p-6"><Loader2 className="h-4 w-4 animate-spin" /></div>;
+  if (sizes.length === 0) {
+    return <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground">Cadastre os tamanhos na categoria pizza primeiro (Categorias → Configurar).</p>;
+  }
+
+  return (
+    <div>
+      <h4 className="mb-3 font-bold">Preços</h4>
+      <p className="mb-4 text-xs text-muted-foreground">Marque os tamanhos em que este sabor é vendido e defina o preço de cada um.</p>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {sizes.map((sz) => {
+          const existing = sizeMap.get(sz.id);
+          const enabled = !!existing;
+          return (
+            <PriceCell
+              key={sz.id}
+              sizeName={sz.name}
+              enabled={enabled}
+              price={existing?.price ?? 0}
+              onToggle={(v) => {
+                if (!v && existing) delMut.mutate(existing.id);
+                if (v && !existing) saveMut.mutate({ product_id: productId, name: sz.name, price: 0, sort_order: sz.sort_order, category_size_id: sz.id });
+              }}
+              onPriceChange={(v) => {
+                if (existing) saveMut.mutate({ id: existing.id, product_id: productId, name: sz.name, price: v, sort_order: sz.sort_order, category_size_id: sz.id });
+                else if (v > 0) saveMut.mutate({ product_id: productId, name: sz.name, price: v, sort_order: sz.sort_order, category_size_id: sz.id });
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PriceCell({ sizeName, enabled, price, onToggle, onPriceChange }: { sizeName: string; enabled: boolean; price: number; onToggle: (v: boolean) => void; onPriceChange: (v: number) => void }) {
+  const [local, setLocal] = useState(price);
+  useEffect(() => setLocal(price), [price]);
+  return (
+    <div className="rounded-xl border p-3 text-center">
+      <div className="text-3xl">🍕</div>
+      <label className="mt-2 flex items-center justify-center gap-2 cursor-pointer">
+        <Checkbox checked={enabled} onCheckedChange={(v) => onToggle(!!v)} />
+        <span className="text-sm font-medium">{sizeName}</span>
+      </label>
+      <CurrencyBlurInput
+        initialValue={local}
+        onCommit={(v) => { setLocal(v); onPriceChange(v); }}
+        className="mt-2 text-center"
+      />
+    </div>
+  );
+}
+
+// ===== Standard product sizes (kept) =====
 
 function SizesEditor({ productId, sizes, onChanged }: {
   productId: string;
@@ -340,16 +489,16 @@ function SizesEditor({ productId, sizes, onChanged }: {
   );
 }
 
-function FlavorsEditor({ productId, flavors, onChanged }: {
+// Keep flavor editor available but unused for pizza-category (each product is now a flavor)
+export function _FlavorsEditor({ productId, flavors, onChanged }: {
   productId: string;
   flavors: { id: string; name: string; description: string; price_delta: number; available: boolean; sort_order: number }[];
   onChanged: () => void;
 }) {
-  const [draft, setDraft] = useState({ name: "", description: "", price_delta: 0 });
   const saveMut = useMutation({
     mutationFn: (input: { id?: string; product_id: string; name: string; description: string; price_delta: number; available: boolean; sort_order: number }) =>
       saveProductFlavor({ data: input }),
-    onSuccess: () => { onChanged(); setDraft({ name: "", description: "", price_delta: 0 }); },
+    onSuccess: () => onChanged(),
     onError: (e: Error) => toast.error(e.message),
   });
   const delMut = useMutation({
@@ -358,41 +507,14 @@ function FlavorsEditor({ productId, flavors, onChanged }: {
     onError: (e: Error) => toast.error(e.message),
   });
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Quando o cliente escolhe vários sabores, o preço é a média entre eles (padrão pizzaria).</p>
-      <div className="space-y-2">
-        {flavors.length === 0 && <p className="text-sm text-muted-foreground">Sem sabores cadastrados.</p>}
-        {flavors.map((f) => (
-          <div key={f.id} className="space-y-2 rounded-xl border p-3">
-            <div className="flex items-center gap-2">
-              <Input className="flex-1" defaultValue={f.name}
-                onBlur={(e) => e.target.value !== f.name && saveMut.mutate({ id: f.id, product_id: productId, name: e.target.value, description: f.description, price_delta: Number(f.price_delta), available: f.available, sort_order: f.sort_order })} />
-              <CurrencyBlurInput className="w-32" initialValue={Number(f.price_delta)}
-                onCommit={(v) => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: v, available: f.available, sort_order: f.sort_order })} />
-              <Switch checked={f.available}
-                onCheckedChange={(v) => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: Number(f.price_delta), available: v, sort_order: f.sort_order })} />
-              <Button size="icon" variant="ghost" className="text-destructive"
-                onClick={() => { if (confirm(`Remover "${f.name}"?`)) delMut.mutate(f.id); }}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            <Input defaultValue={f.description} placeholder="Descrição"
-              onBlur={(e) => e.target.value !== f.description && saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: e.target.value, price_delta: Number(f.price_delta), available: f.available, sort_order: f.sort_order })} />
-          </div>
-        ))}
-      </div>
-      <div className="grid gap-2 border-t pt-3">
-        <Label className="text-xs">Novo sabor</Label>
-        <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Nome do sabor" />
-        <Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder="Descrição (opcional)" />
-        <div className="flex items-end gap-2">
-          <div className="flex-1"><Label className="text-xs">Acréscimo (R$)</Label><CurrencyInput value={draft.price_delta} onChange={(v) => setDraft({ ...draft, price_delta: v })} className="mt-1" /></div>
-          <Button onClick={() => {
-            if (!draft.name) return;
-            saveMut.mutate({ product_id: productId, name: draft.name, description: draft.description, price_delta: draft.price_delta, available: true, sort_order: flavors.length });
-          }} disabled={saveMut.isPending || !draft.name}><Plus className="h-4 w-4" /></Button>
+    <div className="space-y-2">
+      {flavors.map((f) => (
+        <div key={f.id} className="flex items-center gap-2 rounded border p-2">
+          <span>{f.name}</span>
+          <Button size="icon" variant="ghost" onClick={() => delMut.mutate(f.id)}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => saveMut.mutate({ id: f.id, product_id: productId, name: f.name, description: f.description, price_delta: f.price_delta, available: !f.available, sort_order: f.sort_order })}><Edit2 className="h-4 w-4" /></Button>
         </div>
-      </div>
+      ))}
     </div>
   );
 }

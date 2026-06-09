@@ -18,15 +18,25 @@ import {
   toggleGroupOptionId,
 } from "@/lib/product-selection";
 
+type PizzaExtra = { id: string; name: string; extraPrice: number };
+
 export function ProductModal({
-  product, open, onOpenChange,
-}: { product: Product | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+  product, open, onOpenChange, pizzaDoughs = [], pizzaCrusts = [],
+}: {
+  product: Product | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  pizzaDoughs?: PizzaExtra[];
+  pizzaCrusts?: PizzaExtra[];
+}) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
   const [legacyAddons, setLegacyAddons] = useState<ProductAddon[]>([]);
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [flavorIds, setFlavorIds] = useState<string[]>([]);
   const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
+  const [doughId, setDoughId] = useState<string | null>(null);
+  const [crustId, setCrustId] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -36,6 +46,8 @@ export function ProductModal({
       setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
       setFlavorIds([]);
       setGroupSelections({});
+      setDoughId(pizzaDoughs[0]?.id ?? null);
+      setCrustId(null);
       setNote("");
     }
   }, [open, product?.id]);
@@ -61,9 +73,15 @@ export function ProductModal({
 
   const basePrice = computeBasePrice(product, selectedSize, selectedFlavors);
 
+  const showPizzaExtras = product.categoryKind === "pizza";
+  const selectedDough = showPizzaExtras ? pizzaDoughs.find((d) => d.id === doughId) : undefined;
+  const selectedCrust = showPizzaExtras ? pizzaCrusts.find((c) => c.id === crustId) : undefined;
+  const doughSum = selectedDough?.extraPrice ?? 0;
+  const crustSum = selectedCrust?.extraPrice ?? 0;
+
   const addonsSum = legacyAddons.reduce((s, a) => s + a.price, 0);
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
-  const total = (basePrice + addonsSum + groupSum) * qty;
+  const total = (basePrice + addonsSum + groupSum + doughSum + crustSum) * qty;
 
   const allGroups = product.addonGroups ?? [];
   const adicionalGroups = allGroups.filter((g) => g.kind !== "observacao");
@@ -91,10 +109,17 @@ export function ProductModal({
       toast.error(validations[0] ?? "Selecione as opções obrigatórias");
       return;
     }
+    if (showPizzaExtras && pizzaDoughs.length > 0 && !selectedDough) {
+      toast.error("Escolha a massa da pizza");
+      return;
+    }
+    const extras: ProductAddon[] = [];
+    if (selectedDough && selectedDough.extraPrice >= 0) extras.push({ id: `dough-${selectedDough.id}`, name: `Massa: ${selectedDough.name}`, price: selectedDough.extraPrice });
+    if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}`, price: selectedCrust.extraPrice });
     add({
       product,
       qty,
-      addons: legacyAddons,
+      addons: [...legacyAddons, ...extras],
       size: selectedSize,
       flavors: selectedFlavors.length ? selectedFlavors : undefined,
       groupOptions: groupOptionsSelected.length ? groupOptionsSelected : undefined,
@@ -185,6 +210,46 @@ export function ProductModal({
                     </label>
                   );
                 })}
+              </div>
+            </Section>
+          )}
+
+          {/* Massa da pizza (categoria pizza) */}
+          {showPizzaExtras && pizzaDoughs.length > 0 && (
+            <Section title="Massa" required>
+              <RadioGroup value={doughId ?? ""} onValueChange={setDoughId} className="mt-2 space-y-2">
+                {pizzaDoughs.map((d) => (
+                  <label key={d.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={d.id} id={`dough-${d.id}`} />
+                      <Label htmlFor={`dough-${d.id}`} className="cursor-pointer text-sm">{d.name}</Label>
+                    </div>
+                    {d.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(d.extraPrice)}</span>}
+                  </label>
+                ))}
+              </RadioGroup>
+            </Section>
+          )}
+
+          {/* Borda (categoria pizza) — opcional */}
+          {showPizzaExtras && pizzaCrusts.length > 0 && (
+            <Section title="Borda">
+              <div className="mt-2 space-y-2">
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                  <div className="flex items-center gap-3">
+                    <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
+                    <span className="text-sm">Sem borda</span>
+                  </div>
+                </label>
+                {pizzaCrusts.map((c) => (
+                  <label key={c.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                    <div className="flex items-center gap-3">
+                      <input type="radio" name="crust" checked={crustId === c.id} onChange={() => setCrustId(c.id)} />
+                      <span className="text-sm">{c.name}</span>
+                    </div>
+                    {c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
+                  </label>
+                ))}
               </div>
             </Section>
           )}

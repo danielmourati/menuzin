@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type {
   DbTenant, DbCategory, DbProduct, DbAddon,
   DbProductSize, DbProductFlavor, DbAddonGroup, DbAddonOption, DbAddonGroupTarget,
+  DbCategoryPizzaSize, DbCategoryPizzaDough, DbCategoryPizzaCrust,
 } from "@/lib/db-types";
 
 const SlugInput = z.object({ slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/) });
@@ -27,7 +28,7 @@ export const getCatalog = createServerFn({ method: "POST" })
     const { data: tenant, error: tErr } = await supabaseAdmin
       .from("tenants").select("*").eq("slug", data.slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
-    if (!tenant) return { tenant: null, categories: [], products: [] };
+    if (!tenant) return { tenant: null, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [] };
 
     const tenantId = tenant.id as string;
 
@@ -129,10 +130,24 @@ export const getCatalog = createServerFn({ method: "POST" })
       category: p.category_id ? catNameById.get(p.category_id) ?? "" : "",
     }));
 
+    // Pizza config por categoria (somente categorias kind='pizza')
+    const pizzaCats = cats.filter((c) => (c as DbCategory).kind === "pizza").map((c) => c.id);
+    const sbAny = supabaseAdmin as unknown as { from: (t: string) => ReturnType<typeof supabaseAdmin.from> };
+    const [{ data: pSizes }, { data: pDoughs }, { data: pCrusts }] = pizzaCats.length
+      ? await Promise.all([
+          sbAny.from("category_pizza_sizes").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
+          sbAny.from("category_pizza_doughs").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
+          sbAny.from("category_pizza_crusts").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
+        ])
+      : [{ data: [] }, { data: [] }, { data: [] }];
+
     return {
       tenant: tenant as DbTenant,
       categories: cats,
       products: prods,
+      pizzaSizes: (pSizes ?? []) as unknown as DbCategoryPizzaSize[],
+      pizzaDoughs: (pDoughs ?? []) as unknown as DbCategoryPizzaDough[],
+      pizzaCrusts: (pCrusts ?? []) as unknown as DbCategoryPizzaCrust[],
     };
   });
 

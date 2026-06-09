@@ -23,14 +23,17 @@ const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
-    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[] };
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaDoughs: [], pizzaCrusts: [] };
     const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
+    const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
     return {
       tenant: dbTenantToUi(res.tenant),
       categories: dbCategoriesToUi(res.categories),
       products: res.products.map((p) =>
-        dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : ""),
+        dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : "", p.category_id ? catKindById.get(p.category_id) ?? "standard" : "standard"),
       ),
+      pizzaDoughs: res.pizzaDoughs ?? [],
+      pizzaCrusts: res.pizzaCrusts ?? [],
     };
   },
 });
@@ -59,7 +62,7 @@ function StoreRoute() {
   if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
-  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} />;
+  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
 }
 
 
@@ -82,7 +85,9 @@ function StoreNotFound({ slug }: { slug: string }) {
   );
 }
 
-function StorePage({ tenant, categories, products }: { tenant: Tenant; categories: Category[]; products: Product[] }) {
+type PizzaExtraRow = { id: string; category_id: string; name: string; extra_price: number };
+
+function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -302,7 +307,13 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         </div>
       )}
 
-      <ProductModal product={selectedProduct} open={modalOpen && storeOpen} onOpenChange={setModalOpen} />
+      <ProductModal
+        product={selectedProduct}
+        open={modalOpen && storeOpen}
+        onOpenChange={setModalOpen}
+        pizzaDoughs={selectedProduct?.categoryId ? pizzaDoughs.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
+        pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
+      />
       <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} />
     </div>
   );
