@@ -7,6 +7,7 @@ import type { Database } from "@/integrations/supabase/types";
 import type {
   DbCategory, DbProduct, DbAddon,
   DbProductSize, DbProductFlavor, DbAddonGroup, DbAddonOption, DbAddonGroupTarget,
+  DbCategoryPizzaSize, DbCategoryPizzaDough, DbCategoryPizzaCrust,
 } from "@/lib/db-types";
 
 type SB = SupabaseClient<Database>;
@@ -598,10 +599,6 @@ export const deleteAddonItem = createServerFn({ method: "POST" })
   });
 
 // ===== Category Pizza Config (sizes / doughs / crusts) =====
-
-import type {
-  DbCategoryPizzaSize, DbCategoryPizzaDough, DbCategoryPizzaCrust,
-} from "@/lib/db-types";
 
 async function assertCategoryOwnership(sb: SB, tenantId: string, categoryId: string) {
   const { data, error } = await sb.from("categories")
