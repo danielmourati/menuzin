@@ -108,10 +108,12 @@ export function PizzaCategoryConfigDialog({
 
 type PizzaSize = { id: string; category_id: string; name: string; pieces: number; max_flavors: number; pdv_code: string | null; active: boolean; sort_order: number };
 
+type SizeInput = { id?: string; category_id: string; name: string; pieces: number; max_flavors: number; pdv_code: string; active: boolean; sort_order: number };
+
 function SizesTable({ sizes, onChange, categoryId }: { sizes: PizzaSize[]; onChange: () => void; categoryId: string }) {
   const [draft, setDraft] = useState({ name: "", pieces: 8, max_flavors: 1 });
   const saveMut = useMutation({
-    mutationFn: (d: Parameters<typeof saveCategoryPizzaSize>[0]["data"]) => saveCategoryPizzaSize({ data: d }),
+    mutationFn: (d: SizeInput) => saveCategoryPizzaSize({ data: d }),
     onSuccess: () => { onChange(); setDraft({ name: "", pieces: 8, max_flavors: 1 }); },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -147,7 +149,7 @@ function SizesTable({ sizes, onChange, categoryId }: { sizes: PizzaSize[]; onCha
   );
 }
 
-function SizeRow({ size, onSave, onDelete }: { size: PizzaSize; onSave: (d: Parameters<typeof saveCategoryPizzaSize>[0]["data"]) => void; onDelete: () => void }) {
+function SizeRow({ size, onSave, onDelete }: { size: PizzaSize; onSave: (d: SizeInput) => void; onDelete: () => void }) {
   return (
     <div className="grid grid-cols-[1fr_120px_180px_120px_40px] items-center gap-2 border-b px-3 py-2">
       <Input defaultValue={size.name} onBlur={(e) => e.target.value !== size.name && onSave({ id: size.id, category_id: size.category_id, name: e.target.value, pieces: size.pieces, max_flavors: size.max_flavors, active: size.active, sort_order: size.sort_order, pdv_code: size.pdv_code ?? "" })} />
