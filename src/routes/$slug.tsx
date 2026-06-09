@@ -23,14 +23,17 @@ const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
-    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[] };
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaDoughs: [], pizzaCrusts: [] };
     const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
+    const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
     return {
       tenant: dbTenantToUi(res.tenant),
       categories: dbCategoriesToUi(res.categories),
       products: res.products.map((p) =>
-        dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : ""),
+        dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : "", p.category_id ? catKindById.get(p.category_id) ?? "standard" : "standard"),
       ),
+      pizzaDoughs: res.pizzaDoughs ?? [],
+      pizzaCrusts: res.pizzaCrusts ?? [],
     };
   },
 });
