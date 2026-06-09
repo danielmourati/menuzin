@@ -18,15 +18,25 @@ import {
   toggleGroupOptionId,
 } from "@/lib/product-selection";
 
+type PizzaExtra = { id: string; name: string; extraPrice: number };
+
 export function ProductModal({
-  product, open, onOpenChange,
-}: { product: Product | null; open: boolean; onOpenChange: (v: boolean) => void }) {
+  product, open, onOpenChange, pizzaDoughs = [], pizzaCrusts = [],
+}: {
+  product: Product | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  pizzaDoughs?: PizzaExtra[];
+  pizzaCrusts?: PizzaExtra[];
+}) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
   const [legacyAddons, setLegacyAddons] = useState<ProductAddon[]>([]);
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [flavorIds, setFlavorIds] = useState<string[]>([]);
   const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
+  const [doughId, setDoughId] = useState<string | null>(null);
+  const [crustId, setCrustId] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
   useEffect(() => {
@@ -36,6 +46,8 @@ export function ProductModal({
       setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
       setFlavorIds([]);
       setGroupSelections({});
+      setDoughId(pizzaDoughs[0]?.id ?? null);
+      setCrustId(null);
       setNote("");
     }
   }, [open, product?.id]);
