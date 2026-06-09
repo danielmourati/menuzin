@@ -214,6 +214,46 @@ export function ProductModal({
             </Section>
           )}
 
+          {/* Massa da pizza (categoria pizza) */}
+          {showPizzaExtras && pizzaDoughs.length > 0 && (
+            <Section title="Massa" required>
+              <RadioGroup value={doughId ?? ""} onValueChange={setDoughId} className="mt-2 space-y-2">
+                {pizzaDoughs.map((d) => (
+                  <label key={d.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value={d.id} id={`dough-${d.id}`} />
+                      <Label htmlFor={`dough-${d.id}`} className="cursor-pointer text-sm">{d.name}</Label>
+                    </div>
+                    {d.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(d.extraPrice)}</span>}
+                  </label>
+                ))}
+              </RadioGroup>
+            </Section>
+          )}
+
+          {/* Borda (categoria pizza) — opcional */}
+          {showPizzaExtras && pizzaCrusts.length > 0 && (
+            <Section title="Borda">
+              <div className="mt-2 space-y-2">
+                <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                  <div className="flex items-center gap-3">
+                    <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
+                    <span className="text-sm">Sem borda</span>
+                  </div>
+                </label>
+                {pizzaCrusts.map((c) => (
+                  <label key={c.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                    <div className="flex items-center gap-3">
+                      <input type="radio" name="crust" checked={crustId === c.id} onChange={() => setCrustId(c.id)} />
+                      <span className="text-sm">{c.name}</span>
+                    </div>
+                    {c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
+                  </label>
+                ))}
+              </div>
+            </Section>
+          )}
+
           {/* Adicionais (centralizado, sem duplicação) */}
           {adicionalGroups.length > 0 && (
             <Section title="Adicionais">
