@@ -62,7 +62,7 @@ function StoreRoute() {
   if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
-  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} />;
+  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
 }
 
 
@@ -85,7 +85,9 @@ function StoreNotFound({ slug }: { slug: string }) {
   );
 }
 
-function StorePage({ tenant, categories, products }: { tenant: Tenant; categories: Category[]; products: Product[] }) {
+type PizzaExtraRow = { id: string; category_id: string; name: string; extra_price: number };
+
+function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -309,8 +311,8 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         product={selectedProduct}
         open={modalOpen && storeOpen}
         onOpenChange={setModalOpen}
-        pizzaDoughs={selectedProduct?.categoryId ? (data.pizzaDoughs ?? []).filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
-        pizzaCrusts={selectedProduct?.categoryId ? (data.pizzaCrusts ?? []).filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
+        pizzaDoughs={selectedProduct?.categoryId ? pizzaDoughs.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
+        pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
       />
       <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} />
     </div>
