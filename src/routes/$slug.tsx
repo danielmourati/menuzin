@@ -305,7 +305,13 @@ function StorePage({ tenant, categories, products }: { tenant: Tenant; categorie
         </div>
       )}
 
-      <ProductModal product={selectedProduct} open={modalOpen && storeOpen} onOpenChange={setModalOpen} />
+      <ProductModal
+        product={selectedProduct}
+        open={modalOpen && storeOpen}
+        onOpenChange={setModalOpen}
+        pizzaDoughs={selectedProduct?.categoryId ? (data.pizzaDoughs ?? []).filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
+        pizzaCrusts={selectedProduct?.categoryId ? (data.pizzaCrusts ?? []).filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
+      />
       <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} />
     </div>
   );
