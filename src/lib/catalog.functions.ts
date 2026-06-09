@@ -28,7 +28,7 @@ export const getCatalog = createServerFn({ method: "POST" })
     const { data: tenant, error: tErr } = await supabaseAdmin
       .from("tenants").select("*").eq("slug", data.slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
-    if (!tenant) return { tenant: null, categories: [], products: [] };
+    if (!tenant) return { tenant: null, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [] };
 
     const tenantId = tenant.id as string;
 
