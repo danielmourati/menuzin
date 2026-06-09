@@ -73,9 +73,15 @@ export function ProductModal({
 
   const basePrice = computeBasePrice(product, selectedSize, selectedFlavors);
 
+  const showPizzaExtras = product.categoryKind === "pizza";
+  const selectedDough = showPizzaExtras ? pizzaDoughs.find((d) => d.id === doughId) : undefined;
+  const selectedCrust = showPizzaExtras ? pizzaCrusts.find((c) => c.id === crustId) : undefined;
+  const doughSum = selectedDough?.extraPrice ?? 0;
+  const crustSum = selectedCrust?.extraPrice ?? 0;
+
   const addonsSum = legacyAddons.reduce((s, a) => s + a.price, 0);
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
-  const total = (basePrice + addonsSum + groupSum) * qty;
+  const total = (basePrice + addonsSum + groupSum + doughSum + crustSum) * qty;
 
   const allGroups = product.addonGroups ?? [];
   const adicionalGroups = allGroups.filter((g) => g.kind !== "observacao");
@@ -103,10 +109,17 @@ export function ProductModal({
       toast.error(validations[0] ?? "Selecione as opções obrigatórias");
       return;
     }
+    if (showPizzaExtras && pizzaDoughs.length > 0 && !selectedDough) {
+      toast.error("Escolha a massa da pizza");
+      return;
+    }
+    const extras: ProductAddon[] = [];
+    if (selectedDough && selectedDough.extraPrice >= 0) extras.push({ id: `dough-${selectedDough.id}`, name: `Massa: ${selectedDough.name}`, price: selectedDough.extraPrice });
+    if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}`, price: selectedCrust.extraPrice });
     add({
       product,
       qty,
-      addons: legacyAddons,
+      addons: [...legacyAddons, ...extras],
       size: selectedSize,
       flavors: selectedFlavors.length ? selectedFlavors : undefined,
       groupOptions: groupOptionsSelected.length ? groupOptionsSelected : undefined,
