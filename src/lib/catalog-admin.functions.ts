@@ -238,6 +238,7 @@ const SizeInput = z.object({
   name: z.string().min(1).max(60),
   price: z.number().min(0).max(99999),
   sort_order: z.number().int().min(0).max(9999).default(0),
+  category_size_id: z.string().uuid().nullable().optional(),
 });
 
 export const saveProductSize = createServerFn({ method: "POST" })
@@ -250,13 +251,15 @@ export const saveProductSize = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await sb.from("product_sizes").update({
         name: data.name, price: data.price, sort_order: data.sort_order,
-      }).eq("id", data.id);
+        category_size_id: data.category_size_id ?? null,
+      } as never).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: row, error } = await sb.from("product_sizes").insert({
       product_id: data.product_id, name: data.name, price: data.price, sort_order: data.sort_order,
-    }).select("id").single();
+      category_size_id: data.category_size_id ?? null,
+    } as never).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
