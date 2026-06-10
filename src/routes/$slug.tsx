@@ -93,7 +93,7 @@ function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const { count, subtotal } = useCart();
 
   // Recalcula o status a cada minuto para fechar/abrir sozinho conforme o
