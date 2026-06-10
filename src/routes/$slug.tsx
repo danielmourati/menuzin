@@ -116,20 +116,45 @@ function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: {
 
 
 
+  const pizzaCatNames = useMemo(
+    () => new Set(categories.filter((c) => c.kind === "pizza").map((c) => c.name)),
+    [categories],
+  );
+  const hasPizza = pizzaCatNames.size > 0;
+  const PIZZAS_KEY = "__pizzas__";
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
-      if (activeCat !== "Todos" && p.category !== activeCat) return false;
+      if (activeCat === PIZZAS_KEY) {
+        if (!pizzaCatNames.has(p.category)) return false;
+      } else if (activeCat !== "Todos" && p.category !== activeCat) return false;
       if (search && !`${p.name} ${p.description}`.toLowerCase().includes(search.toLowerCase()))
         return false;
       return true;
     });
-  }, [search, activeCat, products]);
+  }, [search, activeCat, products, pizzaCatNames]);
 
-  const grouped = useMemo(() => {
-    if (activeCat !== "Todos") return [{ name: activeCat, items: filtered }];
-    return categories
-      .map((c) => ({ name: c.name, items: filtered.filter((p) => p.category === c.name) }))
-      .filter((g) => g.items.length > 0);
+  type Group = { name: string; items: Product[]; isPizzaParent?: boolean; children?: { name: string; items: Product[] }[] };
+  const grouped = useMemo<Group[]>(() => {
+    if (activeCat !== "Todos" && activeCat !== PIZZAS_KEY) {
+      return [{ name: activeCat, items: filtered }];
+    }
+    const out: Group[] = [];
+    const pizzaChildren: { name: string; items: Product[] }[] = [];
+    for (const c of categories) {
+      const items = filtered.filter((p) => p.category === c.name);
+      if (items.length === 0) continue;
+      if (c.kind === "pizza") {
+        pizzaChildren.push({ name: c.name, items });
+      } else if (activeCat === "Todos") {
+        out.push({ name: c.name, items });
+      }
+    }
+    if (pizzaChildren.length > 0) {
+      const allPizzaItems = pizzaChildren.flatMap((g) => g.items);
+      out.push({ name: "Pizzas", items: allPizzaItems, isPizzaParent: true, children: pizzaChildren });
+    }
+    return out;
   }, [filtered, activeCat, categories]);
 
   const bannerStyle = {
