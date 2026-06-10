@@ -21,7 +21,8 @@ export function validateSelection(i: SelectionInput): string[] {
     errors.push("Escolha um tamanho");
   }
 
-  if (product.type === "pizza") {
+  // Só valida sabores quando o produto realmente expõe sabores selecionáveis.
+  if (product.type === "pizza" && (product.flavors?.length ?? 0) > 0) {
     const max = Math.max(1, product.maxFlavors ?? 1);
     if (flavorIds.length < 1) errors.push("Escolha ao menos 1 sabor");
     else if (flavorIds.length > max) errors.push(`Máximo ${max} sabor${max > 1 ? "es" : ""}`);
