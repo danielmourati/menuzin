@@ -235,15 +235,19 @@ function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: {
 
         <div className="mt-4 -mx-4 overflow-x-auto px-4 scrollbar-hide">
           <div className="flex gap-2">
-            {["Todos", ...categories.map((c) => c.name)].map((c) => (
+            {[
+              { key: "Todos", label: "Todos" },
+              ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
+              ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
+            ].map((c) => (
               <button
-                key={c}
-                onClick={() => setActiveCat(c)}
+                key={c.key}
+                onClick={() => setActiveCat(c.key)}
                 className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
-                  activeCat === c ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
+                  activeCat === c.key ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
                 }`}
               >
-                {c}
+                {c.label}
               </button>
             ))}
           </div>
@@ -284,31 +288,63 @@ function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: {
                     </button>
                   </div>
                 </div>
-                <div
-                  className={
-                    viewMode === "grid"
-                      ? "grid grid-cols-2 gap-3 md:grid-cols-3"
-                      : "flex flex-col gap-3"
-                  }
-                >
-                  {g.items.map((p) => (
-                    <ProductCard
-                      key={p.id}
-                      product={p}
-                      view={viewMode}
-                      onClick={() => {
-                        if (!storeOpen) return;
-                        setSelectedProduct(p);
-                        setModalOpen(true);
-                      }}
-                    />
-                  ))}
-                </div>
+
+                {g.isPizzaParent && g.children ? (
+                  <div className="space-y-6">
+                    {g.children.map((sub) => (
+                      <div key={sub.name}>
+                        <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{sub.name}</h3>
+                        <div
+                          className={
+                            viewMode === "grid"
+                              ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                              : "flex flex-col gap-3"
+                          }
+                        >
+                          {sub.items.map((p) => (
+                            <ProductCard
+                              key={p.id}
+                              product={p}
+                              view={viewMode}
+                              onClick={() => {
+                                if (!storeOpen) return;
+                                setSelectedProduct(p);
+                                setModalOpen(true);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                        : "flex flex-col gap-3"
+                    }
+                  >
+                    {g.items.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        view={viewMode}
+                        onClick={() => {
+                          if (!storeOpen) return;
+                          setSelectedProduct(p);
+                          setModalOpen(true);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </section>
             ))
           )}
         </div>
       </div>
+
 
       {storeOpen && count > 0 && (
         <button
