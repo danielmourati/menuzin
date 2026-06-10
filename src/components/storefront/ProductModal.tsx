@@ -295,7 +295,7 @@ export function ProductModal({
           )}
 
           {/* Sabores (pizza) */}
-          {isPizza && product.flavors && product.flavors.length > 0 && (
+          {!isPizzaCategory && isPizza && product.flavors && product.flavors.length > 0 && (
             <Section
               title={`Sabores`}
               required
