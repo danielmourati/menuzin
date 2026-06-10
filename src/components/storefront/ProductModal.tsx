@@ -19,13 +19,24 @@ import {
 } from "@/lib/product-selection";
 
 type PizzaExtra = { id: string; name: string; extraPrice: number };
+type PizzaSizeOption = { id: string; name: string; pieces: number; maxFlavors: number };
+type PizzaFlavorOption = {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  pricesByCategorySizeId: Record<string, number>;
+  fallbackPrice: number;
+};
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaDoughs = [], pizzaCrusts = [],
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [],
 }: {
   product: Product | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  pizzaSizes?: PizzaSizeOption[];
+  pizzaFlavors?: PizzaFlavorOption[];
   pizzaDoughs?: PizzaExtra[];
   pizzaCrusts?: PizzaExtra[];
 }) {
@@ -39,12 +50,21 @@ export function ProductModal({
   const [crustId, setCrustId] = useState<string | null>(null);
   const [note, setNote] = useState("");
 
+  const isPizzaCategory = product?.categoryKind === "pizza" && pizzaSizes.length > 0;
+
   useEffect(() => {
     if (open && product) {
       setQty(1);
       setLegacyAddons([]);
-      setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
-      setFlavorIds([]);
+      // For pizza-category products, size comes from category_pizza_sizes;
+      // pre-select first active size and the product itself as the first flavor.
+      if (product.categoryKind === "pizza" && pizzaSizes.length > 0) {
+        setSizeId(pizzaSizes[0].id);
+        setFlavorIds(pizzaFlavors.some((f) => f.id === product.id) ? [product.id] : []);
+      } else {
+        setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
+        setFlavorIds([]);
+      }
       setGroupSelections({});
       setDoughId(pizzaDoughs[0]?.id ?? null);
       setCrustId(null);
