@@ -63,7 +63,7 @@ function StoreRoute() {
   if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
-  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
+  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaSizes={data.pizzaSizes ?? []} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
 }
 
 
