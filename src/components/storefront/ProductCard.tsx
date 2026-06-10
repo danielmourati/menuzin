@@ -108,7 +108,12 @@ export function ProductCard({
           <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
         )}
         <div className="mt-1">
-          {product.promoPrice ? (
+          {showFromPrefix ? (
+            <div className="flex flex-wrap items-baseline gap-x-1">
+              <span className="text-[10px] text-muted-foreground">A partir de</span>
+              <span className="text-sm font-bold text-primary">{brl(displayPrice)}</span>
+            </div>
+          ) : product.promoPrice ? (
             <div className="flex flex-wrap items-baseline gap-x-1.5">
               <span className="text-sm font-bold text-primary">{brl(product.promoPrice)}</span>
               <span className="text-[10px] text-muted-foreground line-through">{brl(product.price)}</span>
