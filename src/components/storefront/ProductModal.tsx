@@ -87,11 +87,27 @@ export function ProductModal({
   if (!product) return null;
 
   const isPizza = product.type === "pizza";
-  const maxFlavors = product.maxFlavors ?? 1;
-  const selectedSize: ProductSize | undefined = product.sizes?.find((s) => s.id === sizeId);
-  const selectedFlavors: ProductFlavor[] = (product.flavors ?? []).filter((f) => flavorIds.includes(f.id));
 
-  const basePrice = computeBasePrice(product, selectedSize, selectedFlavors);
+  // --- Pizza-category mode (size + sibling flavors from category_pizza_sizes) ---
+  const selectedPizzaSize = isPizzaCategory ? pizzaSizes.find((s) => s.id === sizeId) ?? pizzaSizes[0] : undefined;
+  const pizzaMaxFlavors = selectedPizzaSize?.maxFlavors ?? 1;
+  const selectedPizzaFlavors = isPizzaCategory ? pizzaFlavors.filter((f) => flavorIds.includes(f.id)) : [];
+  const priceOfFlavor = (f: PizzaFlavorOption) =>
+    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) ?? f.fallbackPrice;
+  const pizzaBase = isPizzaCategory
+    ? selectedPizzaFlavors.length > 0
+      ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
+      : 0
+    : 0;
+
+  // --- Standard mode (legacy sizes/flavors on product) ---
+  const maxFlavors = product.maxFlavors ?? 1;
+  const selectedSize: ProductSize | undefined = !isPizzaCategory ? product.sizes?.find((s) => s.id === sizeId) : undefined;
+  const selectedFlavors: ProductFlavor[] = !isPizzaCategory
+    ? (product.flavors ?? []).filter((f) => flavorIds.includes(f.id))
+    : [];
+
+  const basePrice = isPizzaCategory ? pizzaBase : computeBasePrice(product, selectedSize, selectedFlavors);
 
   const showPizzaExtras = product.categoryKind === "pizza";
   const selectedDough = showPizzaExtras ? pizzaDoughs.find((d) => d.id === doughId) : undefined;
@@ -109,12 +125,24 @@ export function ProductModal({
   // Legacy fallback: only show product.addons if no addonGroups defined
   const showLegacyAddons = adicionalGroups.length === 0 && (product.addons?.length ?? 0) > 0;
 
-  // Validação (multi-option groups com required/min/max ainda são validados)
-  const validations = validateSelection({ product, sizeId, flavorIds, groupSelections });
+  // Validação
+  const pizzaValidations: string[] = [];
+  if (isPizzaCategory) {
+    if (!selectedPizzaSize) pizzaValidations.push("Escolha um tamanho");
+    else if (selectedPizzaFlavors.length < 1) pizzaValidations.push("Escolha ao menos 1 sabor");
+    else if (selectedPizzaFlavors.length > pizzaMaxFlavors) pizzaValidations.push(`Máximo ${pizzaMaxFlavors} sabor${pizzaMaxFlavors > 1 ? "es" : ""}`);
+  }
+  const validations = isPizzaCategory
+    ? pizzaValidations
+    : validateSelection({ product, sizeId, flavorIds, groupSelections });
   const canAdd = validations.length === 0 && product.available;
 
   const toggleFlavor = (f: ProductFlavor) => {
     setFlavorIds((prev) => toggleFlavorId(prev, f.id, maxFlavors));
+  };
+
+  const togglePizzaFlavor = (id: string) => {
+    setFlavorIds((prev) => toggleFlavorId(prev, id, pizzaMaxFlavors));
   };
 
   const toggleGroupOption = (groupId: string, optId: string, maxSelect: number) => {
@@ -134,6 +162,12 @@ export function ProductModal({
       return;
     }
     const extras: ProductAddon[] = [];
+    if (isPizzaCategory && selectedPizzaSize) {
+      extras.push({ id: `psize-${selectedPizzaSize.id}`, name: `Tamanho: ${selectedPizzaSize.name}`, price: 0 });
+      for (const f of selectedPizzaFlavors) {
+        extras.push({ id: `pflavor-${f.id}`, name: `Sabor: ${f.name}`, price: 0 });
+      }
+    }
     if (selectedDough && selectedDough.extraPrice >= 0) extras.push({ id: `dough-${selectedDough.id}`, name: `Massa: ${selectedDough.name}`, price: selectedDough.extraPrice });
     if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}`, price: selectedCrust.extraPrice });
     add({
