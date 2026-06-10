@@ -87,8 +87,9 @@ function StoreNotFound({ slug }: { slug: string }) {
 }
 
 type PizzaExtraRow = { id: string; category_id: string; name: string; extra_price: number };
+type PizzaSizeRow = { id: string; category_id: string; name: string; pieces: number; max_flavors: number; active: boolean; sort_order: number };
 
-function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
+function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaSizes: PizzaSizeRow[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
