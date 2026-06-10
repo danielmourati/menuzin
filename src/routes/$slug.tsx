@@ -23,7 +23,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
-    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaDoughs: [], pizzaCrusts: [] };
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [] };
     const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
     const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
     return {
@@ -32,6 +32,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
       products: res.products.map((p) =>
         dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : "", p.category_id ? catKindById.get(p.category_id) ?? "standard" : "standard"),
       ),
+      pizzaSizes: res.pizzaSizes ?? [],
       pizzaDoughs: res.pizzaDoughs ?? [],
       pizzaCrusts: res.pizzaCrusts ?? [],
     };
