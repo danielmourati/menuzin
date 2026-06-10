@@ -315,8 +315,13 @@ function PizzaProductForm({
             setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
           }}>
             <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-            <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.kind === "pizza" ? " 🍕" : ""}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {categories.filter((c) => c.kind === "pizza").map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name} 🍕</SelectItem>
+              ))}
+            </SelectContent>
           </Select>
+          <p className="mt-1 text-[11px] text-muted-foreground">Apenas categorias do tipo pizza são listadas.</p>
         </div>
         <div><Label>Sabor</Label><Input maxLength={80} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" placeholder="Ex: Pizza de Mussarela" /><p className="text-right text-[10px] text-muted-foreground">{editing.name.length}/80 caracteres</p></div>
         <div><Label>Descrição</Label><Textarea maxLength={1000} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>

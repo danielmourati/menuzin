@@ -23,7 +23,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
-    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaDoughs: [], pizzaCrusts: [] };
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [] };
     const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
     const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
     return {
@@ -32,6 +32,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
       products: res.products.map((p) =>
         dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : "", p.category_id ? catKindById.get(p.category_id) ?? "standard" : "standard"),
       ),
+      pizzaSizes: res.pizzaSizes ?? [],
       pizzaDoughs: res.pizzaDoughs ?? [],
       pizzaCrusts: res.pizzaCrusts ?? [],
     };
@@ -62,7 +63,7 @@ function StoreRoute() {
   if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
-  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
+  return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaSizes={data.pizzaSizes ?? []} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
 }
 
 
@@ -86,8 +87,9 @@ function StoreNotFound({ slug }: { slug: string }) {
 }
 
 type PizzaExtraRow = { id: string; category_id: string; name: string; extra_price: number };
+type PizzaSizeRow = { id: string; category_id: string; name: string; pieces: number; max_flavors: number; active: boolean; sort_order: number };
 
-function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
+function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaSizes: PizzaSizeRow[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -372,6 +374,17 @@ function StorePage({ tenant, categories, products, pizzaDoughs, pizzaCrusts }: {
         product={selectedProduct}
         open={modalOpen && storeOpen}
         onOpenChange={setModalOpen}
+        pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors })) : []}
+        pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
+          ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available).map((p) => ({
+              id: p.id,
+              name: p.name,
+              description: p.description,
+              image: p.image,
+              pricesByCategorySizeId: Object.fromEntries((p.sizes ?? []).filter((s) => s.categorySizeId).map((s) => [s.categorySizeId as string, s.price])),
+              fallbackPrice: p.promoPrice ?? p.price,
+            }))
+          : []}
         pizzaDoughs={selectedProduct?.categoryId ? pizzaDoughs.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
       />

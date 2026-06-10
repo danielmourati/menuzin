@@ -2,7 +2,7 @@
 
 export type ProductAddon = { id: string; name: string; price: number };
 
-export type ProductSize = { id: string; name: string; price: number; sortOrder: number };
+export type ProductSize = { id: string; name: string; price: number; sortOrder: number; categorySizeId?: string | null };
 
 export type ProductFlavor = {
   id: string;
