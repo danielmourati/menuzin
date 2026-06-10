@@ -374,6 +374,17 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         product={selectedProduct}
         open={modalOpen && storeOpen}
         onOpenChange={setModalOpen}
+        pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors })) : []}
+        pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
+          ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available).map((p) => ({
+              id: p.id,
+              name: p.name,
+              description: p.description,
+              image: p.image,
+              pricesByCategorySizeId: Object.fromEntries((p.sizes ?? []).filter((s) => s.categorySizeId).map((s) => [s.categorySizeId as string, s.price])),
+              fallbackPrice: p.promoPrice ?? p.price,
+            }))
+          : []}
         pizzaDoughs={selectedProduct?.categoryId ? pizzaDoughs.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
       />
