@@ -26,7 +26,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
       id: a.id, name: a.name, price: Number(a.price),
     })),
     sizes: (p.sizes ?? []).map<ProductSize>((s) => ({
-      id: s.id, name: s.name, price: Number(s.price), sortOrder: s.sort_order,
+      id: s.id, name: s.name, price: Number(s.price), sortOrder: s.sort_order, categorySizeId: s.category_size_id ?? null,
     })),
     flavors: (p.flavors ?? []).map<ProductFlavor>((f) => ({
       id: f.id, name: f.name, description: f.description ?? "",
