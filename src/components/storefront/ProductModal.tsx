@@ -222,8 +222,35 @@ export function ProductModal({
             <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
           )}
 
-          {/* Tamanhos */}
-          {product.sizes && product.sizes.length > 0 && (
+          {/* Tamanhos (pizza-category) */}
+          {isPizzaCategory && (
+            <Section title="Tamanho" required>
+              <RadioGroup value={sizeId ?? ""} onValueChange={(v) => { setSizeId(v); setFlavorIds([]); }} className="mt-2 space-y-2">
+                {pizzaSizes.map((s) => {
+                  const minPrice = pizzaFlavors.length
+                    ? Math.min(...pizzaFlavors.map((f) => f.pricesByCategorySizeId[s.id] ?? f.fallbackPrice))
+                    : 0;
+                  return (
+                    <label key={s.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value={s.id} id={`psize-${s.id}`} />
+                        <div>
+                          <Label htmlFor={`psize-${s.id}`} className="cursor-pointer text-sm font-medium">{s.name}</Label>
+                          <p className="text-xs text-muted-foreground">{s.pieces} pedaços · até {s.maxFlavors} sabor{s.maxFlavors > 1 ? "es" : ""}</p>
+                        </div>
+                      </div>
+                      <span className="text-right text-xs text-muted-foreground">
+                        A partir de<br /><span className="text-sm font-semibold text-primary">{brl(minPrice)}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </RadioGroup>
+            </Section>
+          )}
+
+          {/* Tamanhos (standard) */}
+          {!isPizzaCategory && product.sizes && product.sizes.length > 0 && (
             <Section title="Tamanho" required>
               <RadioGroup value={sizeId ?? ""} onValueChange={setSizeId} className="mt-2 space-y-2">
                 {product.sizes.map((s) => (
@@ -236,6 +263,34 @@ export function ProductModal({
                   </label>
                 ))}
               </RadioGroup>
+            </Section>
+          )}
+
+          {/* Sabores (pizza-category — siblings) */}
+          {isPizzaCategory && pizzaFlavors.length > 0 && (
+            <Section
+              title="Sabores"
+              required
+              hint={`Escolha até ${pizzaMaxFlavors} (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
+            >
+              <div className="mt-2 space-y-2">
+                {pizzaFlavors.map((f) => {
+                  const checked = flavorIds.includes(f.id);
+                  const price = priceOfFlavor(f);
+                  return (
+                    <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                      <div className="flex items-start gap-3">
+                        <Checkbox checked={checked} onCheckedChange={() => togglePizzaFlavor(f.id)} className="mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium">{f.name}</p>
+                          {f.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-primary">{brl(price)}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </Section>
           )}
 
