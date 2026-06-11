@@ -235,15 +235,42 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         </div>
 
         {activeCat === "Todos" && !search && (
-          <FeaturedScroller
-            products={products.filter((p) => p.featured)}
-            onSelect={(p) => {
-              if (!storeOpen) return;
-              setSelectedProduct(p);
-              setModalOpen(true);
-            }}
-          />
+          <>
+            <FeaturedScroller
+              products={products.filter((p) => p.featured)}
+              onSelect={(p) => {
+                if (!storeOpen) return;
+                setSelectedProduct(p);
+                setModalOpen(true);
+              }}
+            />
+            {(() => {
+              const promoCatNames = new Set(
+                categories
+                  .filter((c) => {
+                    const n = c.name.toLowerCase();
+                    return n.includes("promo") || n.includes("oferta");
+                  })
+                  .map((c) => c.name),
+              );
+              const promoProducts = products.filter((p) => promoCatNames.has(p.category) && p.available);
+              return (
+                <FeaturedScroller
+                  products={promoProducts}
+                  title="Promoções"
+                  badgeLabel="Oferta"
+                  badgeClassName="bg-destructive text-destructive-foreground"
+                  onSelect={(p) => {
+                    if (!storeOpen) return;
+                    setSelectedProduct(p);
+                    setModalOpen(true);
+                  }}
+                />
+              );
+            })()}
+          </>
         )}
+
 
         {!storeOpen && (
           <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-center">
