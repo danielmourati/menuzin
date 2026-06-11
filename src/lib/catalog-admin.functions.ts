@@ -154,6 +154,8 @@ const ProductInput = z.object({
   type: z.enum(["standard", "pizza"]).default("standard"),
   max_flavors: z.number().int().min(1).max(6).nullable().optional(),
   allow_observations: z.boolean().default(true),
+  free_gift_kind: z.enum(["crust", "product"]).nullable().optional(),
+  free_gift_ref_id: z.string().uuid().nullable().optional(),
 });
 
 export const saveProduct = createServerFn({ method: "POST" })
@@ -185,15 +187,17 @@ export const saveProduct = createServerFn({ method: "POST" })
       type: data.type,
       max_flavors: data.type === "pizza" ? (data.max_flavors ?? 1) : null,
       allow_observations: data.allow_observations,
+      free_gift_kind: data.free_gift_kind ?? null,
+      free_gift_ref_id: data.free_gift_ref_id ?? null,
     };
     if (data.id) {
       const { error } = await sb.from("products")
-        .update(payload).eq("id", data.id).eq("tenant_id", tenantId);
+        .update(payload as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: row, error } = await sb.from("products")
-      .insert({ ...payload, tenant_id: tenantId }).select("id").single();
+      .insert({ ...payload, tenant_id: tenantId } as never).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });

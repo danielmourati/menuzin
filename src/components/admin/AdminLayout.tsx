@@ -81,8 +81,11 @@ function SidebarInner({ onNav, collapsed }: { onNav?: () => void; collapsed?: bo
     <div className="flex h-full flex-col bg-sidebar">
       <div className={`border-b border-sidebar-border ${collapsed ? "px-2 py-4" : "px-5 py-4"}`}>
         <Link to="/" className={`flex items-center gap-2 ${collapsed ? "justify-center" : ""}`}>
-          <div className="grid h-8 w-8 place-items-center rounded-lg gradient-brand text-primary-foreground font-bold">M</div>
-          {!collapsed && <span className="font-display font-bold">Menuzin</span>}
+          {collapsed ? (
+            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Menuzin" className="h-8 w-8 object-contain object-left" style={{ objectPosition: "left center" }} />
+          ) : (
+            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Menuzin" className="h-8 w-auto" />
+          )}
         </Link>
         {!collapsed && (
           <div className="mt-3 rounded-xl border border-sidebar-border bg-card p-2.5">

@@ -30,6 +30,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { UpsellSuggestions } from "@/components/storefront/UpsellSuggestions";
 
 
 type Step =
@@ -561,44 +562,55 @@ export function CartDrawer({
                   <p className="mt-3">Seu carrinho está vazio</p>
                 </div>
               ) : (
-                <div className="divide-y bg-card">
-                  {items.map((i) => {
-                    const unit = computeUnitPrice(i);
-                    const detailParts: string[] = [];
-                    if (i.size) detailParts.push(i.size.name);
-                    if (i.flavors && i.flavors.length) detailParts.push(i.flavors.map((f) => f.name).join(" + "));
-                    if (i.groupOptions && i.groupOptions.length) detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
-                    if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
-                    return (
-                      <div key={i.uid} className="px-4 py-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold leading-tight">{i.product.name}</p>
-                            {detailParts.length > 0 && (
-                              <p className="mt-0.5 text-xs text-muted-foreground">{detailParts.join(" · ")}</p>
+                <div className="bg-card">
+                  <UpsellSuggestions />
+                  <div className="divide-y">
+                    {items.map((i) => {
+                      const unit = computeUnitPrice(i);
+                      const detailParts: string[] = [];
+                      if (i.size) detailParts.push(i.size.name);
+                      if (i.flavors && i.flavors.length) detailParts.push(i.flavors.map((f) => f.name).join(" + "));
+                      if (i.groupOptions && i.groupOptions.length) detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
+                      if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
+                      const isFreeGift = i.note === "🎁 Brinde";
+                      return (
+                        <div key={i.uid} className="px-4 py-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold leading-tight">
+                                {i.product.name}
+                                {isFreeGift && <span className="ml-2 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase text-success">Brinde</span>}
+                              </p>
+                              {detailParts.length > 0 && (
+                                <p className="mt-0.5 text-xs text-muted-foreground">{detailParts.join(" · ")}</p>
+                              )}
+                              <p className="mt-2 font-bold">{isFreeGift ? "Grátis" : brl(unit * i.qty)}</p>
+                            </div>
+                            {!isFreeGift && (
+                              <button className="text-sm font-semibold text-primary" onClick={() => onOpenChange(false)}>Alterar</button>
                             )}
-                            <p className="mt-2 font-bold">{brl(unit * i.qty)}</p>
                           </div>
-                          <button className="text-sm font-semibold text-primary" onClick={() => onOpenChange(false)}>Alterar</button>
+                          {!isFreeGift && (
+                            <div className="mt-3 flex justify-end">
+                              <div className="flex items-center gap-2 rounded-lg bg-muted px-2 py-1">
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => i.qty === 1 ? remove(i.uid) : update(i.uid, i.qty - 1)}>
+                                  {i.qty === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                                </Button>
+                                <span className="w-6 text-center text-sm font-semibold">{i.qty}</span>
+                                <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => update(i.uid, i.qty + 1)}>
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="mt-3 flex justify-end">
-                          <div className="flex items-center gap-2 rounded-lg bg-muted px-2 py-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => i.qty === 1 ? remove(i.uid) : update(i.uid, i.qty - 1)}>
-                              {i.qty === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
-                            </Button>
-                            <span className="w-6 text-center text-sm font-semibold">{i.qty}</span>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => update(i.uid, i.qty + 1)}>
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="px-4 py-6 text-center">
-                    <button onClick={() => onOpenChange(false)} className="text-sm font-bold text-primary">
-                      Adicionar mais itens
-                    </button>
+                      );
+                    })}
+                    <div className="px-4 py-6 text-center">
+                      <button onClick={() => onOpenChange(false)} className="text-sm font-bold text-primary">
+                        Adicionar mais itens
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

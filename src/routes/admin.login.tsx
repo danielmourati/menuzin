@@ -79,8 +79,9 @@ function LoginPage() {
     <div className="grid min-h-screen bg-white lg:grid-cols-2 lg:bg-background">
       <div className="relative hidden gradient-brand lg:flex lg:flex-col lg:justify-between p-12 text-primary-foreground">
         <Link to="/" className="flex items-center gap-2 text-white">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur font-bold">F</div>
-          <span className="font-display text-lg font-bold">Menuzin</span>
+          <div className="rounded-xl bg-white/95 px-3 py-1.5 shadow">
+            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Menuzin" className="h-7 w-auto" />
+          </div>
         </Link>
         <div>
           <h2 className="font-display text-4xl font-bold leading-tight text-balance">

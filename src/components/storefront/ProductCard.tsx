@@ -14,9 +14,8 @@ export function ProductCard({
 }) {
   const unavailable = !product.available;
   const isPizza = product.categoryKind === "pizza";
-  const minSizePrice = product.sizes && product.sizes.length > 0
-    ? Math.min(...product.sizes.map((s) => s.price))
-    : undefined;
+  const positiveSizePrices = (product.sizes ?? []).map((s) => s.price).filter((n) => n > 0);
+  const minSizePrice = positiveSizePrices.length > 0 ? Math.min(...positiveSizePrices) : undefined;
   const displayPrice = isPizza && minSizePrice != null ? minSizePrice : (product.promoPrice ?? product.price);
   const showFromPrefix = isPizza;
 
