@@ -38,6 +38,8 @@ import {
   listPlatformStores,
   adminUpdateTenant,
   adminDeleteTenant,
+  adminGetTenantOwner,
+  adminUpdateTenantOwner,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
 import { brl } from "@/lib/format";
