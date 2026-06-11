@@ -3,7 +3,26 @@ import { computeStoreOpen } from "@/lib/store-hours";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List } from "lucide-react";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Sparkles, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, type LucideIcon } from "lucide-react";
+
+function getCategoryIcon(name: string): LucideIcon {
+  const n = name.toLowerCase();
+  if (n.includes("tod")) return Sparkles;
+  if (n.includes("pizza")) return Pizza;
+  if (n.includes("hambur") || n.includes("burger") || n.includes("lanche")) return Sandwich;
+  if (n.includes("combo")) return UtensilsCrossed;
+  if (n.includes("bebid") || n.includes("drink") || n.includes("suco") || n.includes("refri")) return GlassWater;
+  if (n.includes("café") || n.includes("cafe")) return Coffee;
+  if (n.includes("sobremesa") || n.includes("doce")) return IceCream;
+  if (n.includes("promo") || n.includes("oferta")) return Tag;
+  if (n.includes("salada") || n.includes("veg")) return Salad;
+  if (n.includes("sopa") || n.includes("caldo")) return Soup;
+  if (n.includes("frango")) return Drumstick;
+  if (n.includes("peixe") || n.includes("sushi")) return Fish;
+  if (n.includes("carne") || n.includes("churras")) return Beef;
+  if (n.includes("biscoit") || n.includes("cookie")) return Cookie;
+  return UtensilsCrossed;
+}
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -241,17 +260,22 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               { key: "Todos", label: "Todos" },
               ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
               ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
-            ].map((c) => (
-              <button
-                key={c.key}
-                onClick={() => setActiveCat(c.key)}
-                className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
-                  activeCat === c.key ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
+            ].map((c) => {
+              const Icon = getCategoryIcon(c.label);
+              const active = activeCat === c.key;
+              return (
+                <button
+                  key={c.key}
+                  onClick={() => setActiveCat(c.key)}
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
+                    active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
+                  {c.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
