@@ -893,6 +893,8 @@ export type Database = {
           created_at: string
           description: string | null
           featured: boolean
+          free_gift_kind: string | null
+          free_gift_ref_id: string | null
           id: string
           image_url: string | null
           max_flavors: number | null
@@ -912,6 +914,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          free_gift_kind?: string | null
+          free_gift_ref_id?: string | null
           id?: string
           image_url?: string | null
           max_flavors?: number | null
@@ -931,6 +935,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          free_gift_kind?: string | null
+          free_gift_ref_id?: string | null
           id?: string
           image_url?: string | null
           max_flavors?: number | null
