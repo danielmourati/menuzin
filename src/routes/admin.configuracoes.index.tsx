@@ -13,6 +13,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
+import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
 import {
   defaultSchedule,
   normalizeSchedule,
