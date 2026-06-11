@@ -11,6 +11,13 @@ import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroPhone from "@/assets/landing-hero-phone.png";
 import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
+import {
+  FeatureShowcaseSection,
+  CTABanner,
+  ContactSpecialistSection,
+  FaqSection,
+  LandingFooter,
+} from "@/components/landing/LandingSections";
 
 const demoProducts = [
   { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
