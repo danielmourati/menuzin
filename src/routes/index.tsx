@@ -234,10 +234,44 @@ function Landing() {
             <p className="mt-3 text-muted-foreground">
               Comece pelo Essencial e evolua para o Controle quando precisar de pagamento online e múltiplas impressoras. Sem fidelidade.
             </p>
+
+            {/* Toggle mensal / anual */}
+            <div className="mt-8 flex flex-col items-center gap-2">
+              <div className="inline-flex items-center rounded-full border bg-card p-1 shadow-[var(--shadow-soft)]">
+                <button
+                  type="button"
+                  onClick={() => setBilling("monthly")}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                    billing === "monthly" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Mensal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBilling("annual")}
+                  className={`relative rounded-full px-4 py-2 text-sm font-medium transition ${
+                    billing === "annual" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Anual
+                  <span className="ml-2 inline-flex items-center rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success">
+                    2 meses grátis
+                  </span>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {billing === "annual" ? "Economize ~17% pagando anualmente" : "Cobrado mensalmente, sem fidelidade"}
+              </p>
+            </div>
           </div>
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
             {pricingPlans.map((p) => {
               const highlighted = "highlighted" in p && p.highlighted;
+              const monthly = p.price;
+              const annualMonthly = Math.round(p.price * 10) / 12; // 2 meses grátis
+              const displayed = billing === "annual" ? annualMonthly : monthly;
+              const annualTotal = p.price * 10;
               return (
                 <div
                   key={p.id}
@@ -254,10 +288,24 @@ function Landing() {
                   )}
                   <h3 className="text-2xl font-bold">{p.name}</h3>
                   <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
-                  <p className="mt-5 text-4xl font-bold">
-                    {p.priceLabel}
-                    {p.price > 0 && <span className="text-base font-normal text-muted-foreground">/mês</span>}
-                  </p>
+                  <div className="mt-5">
+                    {billing === "annual" && (
+                      <p className="text-sm text-muted-foreground line-through">
+                        De R$ {monthly}/mês
+                      </p>
+                    )}
+                    <p className="text-4xl font-bold">
+                      R$ {displayed.toLocaleString("pt-BR", { minimumFractionDigits: billing === "annual" ? 2 : 0, maximumFractionDigits: 2 })}
+                      <span className="text-base font-normal text-muted-foreground">/mês</span>
+                    </p>
+                    {billing === "annual" ? (
+                      <p className="mt-1 text-xs font-medium text-success">
+                        R$ {annualTotal.toLocaleString("pt-BR")} por ano · 2 meses grátis
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-muted-foreground">Cobrado mensalmente</p>
+                    )}
+                  </div>
                   <ul className="mt-6 space-y-3 text-sm">
                     {p.features.map((f) => (
                       <li key={f} className="flex items-start gap-2">
