@@ -386,11 +386,21 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Borda (categoria pizza) — opcional */}
-          {showPizzaExtras && pizzaCrusts.length > 0 && (
-            <Section title="Borda" hint={freeCrust ? "Brinde incluso 🎁" : undefined}>
+          {/* Borda (categoria pizza) — comportamento varia conforme freeCrustMode */}
+          {showPizzaExtras && visibleCrusts.length > 0 && (
+            <Section
+              title="Borda"
+              required={crustMode === "customer_choice"}
+              hint={
+                crustMode === "fixed"
+                  ? "Borda grátis inclusa 🎁"
+                  : crustMode === "customer_choice"
+                    ? "Escolha sua borda grátis 🎁"
+                    : undefined
+              }
+            >
               <div className="mt-2 space-y-2">
-                {!freeCrust && (
+                {crustMode === "none" && (
                   <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
                       <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
@@ -398,16 +408,30 @@ export function ProductModal({
                     </div>
                   </label>
                 )}
-                {pizzaCrusts.map((c) => {
-                  const isFree = freeCrust?.id === c.id;
+                {visibleCrusts.map((c) => {
+                  const isFixed = crustMode === "fixed" && fixedFreeCrust?.id === c.id;
+                  const isCustomerChoice = crustMode === "customer_choice";
+                  const showGratis = isFixed || isCustomerChoice;
+                  const disabled = crustMode === "fixed" && !isFixed; // não deveria aparecer, mas garante
                   return (
-                    <label key={c.id} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition hover:border-primary/40 ${isFree ? "border-success/40 bg-success/5" : "bg-card"}`}>
+                    <label
+                      key={c.id}
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition hover:border-primary/40 ${
+                        showGratis ? "border-success/40 bg-success/5" : "bg-card"
+                      } ${disabled ? "opacity-50 pointer-events-none" : ""}`}
+                    >
                       <div className="flex items-center gap-3">
-                        <input type="radio" name="crust" checked={crustId === c.id} onChange={() => setCrustId(c.id)} />
+                        <input
+                          type="radio"
+                          name="crust"
+                          checked={crustId === c.id}
+                          onChange={() => setCrustId(c.id)}
+                          disabled={disabled || isFixed}
+                        />
                         <span className="text-sm font-medium">{c.name}</span>
-                        {isFree && <Badge className="bg-success text-success-foreground border-0 text-[10px] uppercase">Grátis</Badge>}
+                        {showGratis && <Badge className="bg-success text-success-foreground border-0 text-[10px] uppercase">Grátis</Badge>}
                       </div>
-                      {!isFree && c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
+                      {!showGratis && c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
                     </label>
                   );
                 })}
