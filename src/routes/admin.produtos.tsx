@@ -549,3 +549,84 @@ export function _FlavorsEditor({ productId, flavors, onChanged }: {
     </div>
   );
 }
+
+// ===== Free gift picker =====
+
+type GiftKind = "crust" | "product" | null;
+
+function FreeGiftPicker({
+  categoryId, allProducts, giftKind, giftRefId, onChange,
+}: {
+  categoryId: string | null;
+  allProducts: { id: string; name: string }[];
+  giftKind: GiftKind;
+  giftRefId: string | null;
+  onChange: (k: GiftKind, id: string | null) => void;
+}) {
+  const cfgQ = useQuery({
+    queryKey: ["admin", "pizza-config", categoryId],
+    queryFn: () => listCategoryPizzaConfig({ data: { category_id: categoryId! } }),
+    enabled: !!categoryId,
+  });
+  const crusts = cfgQ.data?.crusts ?? [];
+  const enabled = !!giftKind;
+
+  return (
+    <div className="rounded-xl border p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <Label className="font-semibold">🎁 Brinde incluso</Label>
+          <p className="text-[11px] text-muted-foreground">Ofereça uma borda ou um produto grátis com esta pizza.</p>
+        </div>
+        <Switch checked={enabled} onCheckedChange={(v) => onChange(v ? "crust" : null, null)} />
+      </div>
+
+      {enabled && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button"
+              onClick={() => onChange("crust", null)}
+              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${giftKind === "crust" ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40"}`}>
+              Borda grátis
+            </button>
+            <button type="button"
+              onClick={() => onChange("product", null)}
+              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${giftKind === "product" ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40"}`}>
+              Produto grátis
+            </button>
+          </div>
+
+          {giftKind === "crust" && (
+            <div>
+              <Label className="text-xs">Qual borda?</Label>
+              <Select value={giftRefId ?? ""} onValueChange={(v) => onChange("crust", v)}>
+                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a borda" /></SelectTrigger>
+                <SelectContent>
+                  {crusts.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">Cadastre bordas na categoria pizza primeiro.</div>}
+                  {crusts.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {giftKind === "product" && (
+            <div>
+              <Label className="text-xs">Qual produto?</Label>
+              <Select value={giftRefId ?? ""} onValueChange={(v) => onChange("product", v)}>
+                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {allProducts.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">Sem outros produtos.</div>}
+                  {allProducts.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
