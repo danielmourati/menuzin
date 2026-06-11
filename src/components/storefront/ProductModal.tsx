@@ -365,26 +365,33 @@ export function ProductModal({
 
           {/* Borda (categoria pizza) — opcional */}
           {showPizzaExtras && pizzaCrusts.length > 0 && (
-            <Section title="Borda">
+            <Section title="Borda" hint={freeCrust ? "Brinde incluso 🎁" : undefined}>
               <div className="mt-2 space-y-2">
-                <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
-                  <div className="flex items-center gap-3">
-                    <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
-                    <span className="text-sm">Sem borda</span>
-                  </div>
-                </label>
-                {pizzaCrusts.map((c) => (
-                  <label key={c.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
+                {!freeCrust && (
+                  <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
-                      <input type="radio" name="crust" checked={crustId === c.id} onChange={() => setCrustId(c.id)} />
-                      <span className="text-sm">{c.name}</span>
+                      <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
+                      <span className="text-sm">Sem borda</span>
                     </div>
-                    {c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
                   </label>
-                ))}
+                )}
+                {pizzaCrusts.map((c) => {
+                  const isFree = freeCrust?.id === c.id;
+                  return (
+                    <label key={c.id} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition hover:border-primary/40 ${isFree ? "border-success/40 bg-success/5" : "bg-card"}`}>
+                      <div className="flex items-center gap-3">
+                        <input type="radio" name="crust" checked={crustId === c.id} onChange={() => setCrustId(c.id)} />
+                        <span className="text-sm font-medium">{c.name}</span>
+                        {isFree && <Badge className="bg-success text-success-foreground border-0 text-[10px] uppercase">Grátis</Badge>}
+                      </div>
+                      {!isFree && c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
+                    </label>
+                  );
+                })}
               </div>
             </Section>
           )}
+
 
           {/* Adicionais (centralizado, sem duplicação) */}
           {adicionalGroups.length > 0 && (
