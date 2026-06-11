@@ -179,6 +179,16 @@ function Landing() {
             <p className="mt-3 text-base text-muted-foreground md:text-lg">
               Veja como seus clientes vão pedir — direto do celular, em poucos toques.
             </p>
+            {demoSlug && (
+              <div className="relative mt-8 inline-flex">
+                <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-primary/60" aria-hidden />
+                <Button asChild size="lg" className="relative gap-2 shadow-lg">
+                  <Link to="/$slug" params={{ slug: demoSlug }}>
+                    Ver demo da loja <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </section>
