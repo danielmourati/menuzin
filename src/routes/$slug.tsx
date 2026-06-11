@@ -7,7 +7,7 @@ import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, 
 
 function getCategoryIcon(name: string): LucideIcon {
   const n = name.toLowerCase();
-  if (n.includes("tod")) return Sparkles;
+  if (n.includes("tod")) return LayoutGrid;
   if (n.includes("pizza")) return Pizza;
   if (n.includes("hambur") || n.includes("burger") || n.includes("lanche")) return Sandwich;
   if (n.includes("combo")) return UtensilsCrossed;

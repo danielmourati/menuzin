@@ -7,7 +7,7 @@ import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
 import landingComboSmash from "@/assets/demo-combo-smash.jpg";
 import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
-import landingHeroDevices from "@/assets/landing-hero-devices.jpg";
+import landingHeroDevices from "@/assets/landing-hero-devices.png";
 import couplePhoneAsset from "@/assets/couple-ordering.png.asset.json";
 import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
 import {
