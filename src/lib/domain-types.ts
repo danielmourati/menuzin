@@ -44,6 +44,8 @@ export type Product = {
   type: "standard" | "pizza";
   maxFlavors?: number;
   allowObservations: boolean;
+  freeGiftKind?: "crust" | "product" | null;
+  freeGiftRefId?: string | null;
   addons?: ProductAddon[];
   sizes?: ProductSize[];
   flavors?: ProductFlavor[];

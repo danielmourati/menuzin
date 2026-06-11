@@ -147,6 +147,8 @@ export type DbProduct = {
   type: "standard" | "pizza";
   max_flavors: number | null;
   allow_observations: boolean;
+  free_gift_kind: "crust" | "product" | null;
+  free_gift_ref_id: string | null;
   addons: DbAddon[];
   sizes?: DbProductSize[];
   flavors?: DbProductFlavor[];
