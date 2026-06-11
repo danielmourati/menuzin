@@ -239,6 +239,7 @@ function ProductsPage() {
               editing={editing}
               setEditing={setEditing}
               categories={categories}
+              allProducts={products.map((p) => ({ id: p.id, name: p.name }))}
               currentProductSizes={currentProduct?.sizes ?? []}
               onClose={() => setOpen(false)}
               onSave={save}
@@ -306,12 +307,13 @@ function ProductsPage() {
 // ===== Pizza product form (Detalhes / Preço / Classificação) =====
 
 function PizzaProductForm({
-  editing, setEditing, categories, currentProductSizes, onClose, onSave, isSaving,
+  editing, setEditing, categories, currentProductSizes, allProducts, onClose, onSave, isSaving,
 }: {
   editing: Editing;
   setEditing: (e: Editing) => void;
   categories: { id: string; name: string; kind: "standard" | "pizza" }[];
   currentProductSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null }[];
+  allProducts: { id: string; name: string }[];
   onClose: () => void;
   onSave: () => void;
   isSaving: boolean;
@@ -371,6 +373,14 @@ function PizzaProductForm({
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
+
+        <FreeGiftPicker
+          categoryId={editing.category_id}
+          allProducts={allProducts.filter((p) => p.id !== editing.id)}
+          giftKind={editing.free_gift_kind}
+          giftRefId={editing.free_gift_ref_id}
+          onChange={(k, id) => setEditing({ ...editing, free_gift_kind: k, free_gift_ref_id: id })}
+        />
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
           <Button onClick={onSave} disabled={isSaving}>
