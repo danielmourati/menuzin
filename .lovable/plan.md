@@ -1,72 +1,52 @@
-## Objetivo
+# Plano de implementação
 
-Reformular o cadastro de pizzas no padrão iFood mostrado nos prints: **tamanhos, massas e bordas passam a pertencer à categoria do tipo "Pizza"**, e cada produto-pizza vira um **sabor com preço por tamanho** (matriz preço × tamanho), em vez de cada produto manter seus próprios tamanhos.
+## 1. Admin > Produtos: hierarquia Pizza → subcategorias
+No filtro de categorias da tela `admin.produtos.tsx`, agrupar todas as categorias `kind === "pizza"` sob um item pai "Pizza" com as subcategorias (Tradicionais, Doces, Especiais…) listadas indentadas abaixo. Selecionar "Pizza" filtra todos os produtos de qualquer subcategoria pizza; selecionar uma subcategoria filtra só ela. Mesma lógica de agrupamento já existente no storefront (`$slug.tsx`) será reutilizada visualmente.
 
-## Mudanças no banco
+## 2. Tamanhos de pizza: ocultar zerados e renderização
+Em `ProductModal.tsx` (storefront), na seção de tamanhos de pizza:
+- Filtrar tamanhos cujo menor preço entre os sabores disponíveis seja `0` ou inexistente — não exibir.
+- Corrigir o cálculo "A partir de" para usar o menor preço real entre os sabores irmãos para aquele `category_size_id` (hoje pode estar caindo em 0 quando há sabor sem preço cadastrado).
 
-1. **`categories`**: adicionar `kind text default 'standard'` (`'standard' | 'pizza'`).
-2. **Novas tabelas** ligadas à categoria (RLS + GRANTs por tenant, mesmo padrão das demais):
-   - `category_pizza_sizes` — `category_id`, `name`, `pieces` (int), `max_flavors` (1–4), `pdv_code`, `active`, `sort_order`.
-   - `category_pizza_doughs` — `category_id`, `name`, `extra_price`, `pdv_code`, `active`, `sort_order`.
-   - `category_pizza_crusts` — `category_id`, `name`, `extra_price`, `pdv_code`, `active`, `sort_order`.
-3. **`product_sizes`**: adicionar `category_size_id uuid null` para amarrar o preço do sabor ao tamanho da categoria (a coluna `name`/`price` continua existindo para retrocompat com pizzas antigas e produtos `standard` que ainda usam tamanhos próprios).
-4. Backfill: para cada categoria existente cuja produtos sejam `type='pizza'`, marcar `kind='pizza'` e migrar tamanhos do produto "mais completo" para `category_pizza_sizes` (best-effort; depois o tenant ajusta).
+## 3. Travar preço quando múltiplos sabores selecionados
+Quando o tamanho aceita 2+ sabores e o usuário já escolheu o 1º sabor:
+- O preço unitário fica fixado no valor do 1º sabor escolhido (regra "maior preço entre os escolhidos" já existe; vamos manter "maior preço" como política, mas travar visualmente).
+- Na lista de sabores sugeridos, ocultar/esmaecer os valores dos demais sabores (mostrar apenas nome + descrição), deixando claro que escolher outro sabor não altera o total.
+- Badge "Valor não muda" próximo à lista.
 
-Sem CHECK constraints com `now()`; valores enum via texto + validação no servidor.
+## 4. Upsell de bebida durante o pedido
+Novo componente `UpsellDrawer` exibido **ao abrir o carrinho** (`CartDrawer.tsx`) **uma única vez por sessão de carrinho**:
+- Se o carrinho NÃO contém nenhum produto cuja categoria tenha nome contendo "bebida", "refri", "suco" (case-insensitive), sugerir até 4 produtos disponíveis dessas categorias do mesmo tenant.
+- Card compacto com imagem, nome, preço e botão "+ Adicionar". Adiciona direto ao carrinho sem abrir modal (produtos simples).
+- Se não houver bebida cadastrada, não exibe nada.
 
-## Backend (`catalog-admin.functions.ts`)
+## 5. Pizza com adicional grátis (borda/refri grátis)
+No cadastro do produto pizza (`admin.produtos.tsx` aba Preço ou Classificação):
+- Novo bloco "Brinde incluso" com:
+  - Switch "Esta pizza inclui um brinde grátis"
+  - Tipo: `Borda` ou `Produto` (ex.: refrigerante)
+  - Se Borda → select com as bordas da categoria pizza (de `category_pizza_crusts`)
+  - Se Produto → select dos produtos do tenant
+- Persistir em 2 colunas novas em `products`: `free_gift_kind` (`crust|product|null`) e `free_gift_ref_id` (uuid).
+- No storefront `ProductModal.tsx`: quando o produto tem brinde de borda, pré-selecionar e travar a borda correspondente com preço 0 e label "Grátis". Quando brinde de produto, ao adicionar a pizza ao carrinho, adicionar também o produto-brinde como item separado com `basePrice: 0` e nota "Brinde".
 
-- `saveCategory`: aceitar `kind` no input. Default `'standard'`.
-- Novas server functions (mesmo guard `getAuthorizedTenantId`):
-  - `listCategoryPizzaConfig({ category_id })` → `{ sizes, doughs, crusts }`.
-  - `saveCategoryPizzaSize`, `deleteCategoryPizzaSize`.
-  - `saveCategoryPizzaDough`, `deleteCategoryPizzaDough`.
-  - `saveCategoryPizzaCrust`, `deleteCategoryPizzaCrust`.
-- `saveProduct`: quando a categoria-alvo for `kind='pizza'`, forçar `type='pizza'`; `max_flavors` deixa de ser editável no produto (vem do tamanho).
-- `saveProductSize`: passar a aceitar `category_size_id` (opcional). Preço por tamanho do sabor.
-- `listMyProducts`: já retorna `sizes`; nada muda.
+Migration necessária: adicionar colunas em `public.products`.
 
-## UI
+## 6. Substituir logo em todo o projeto
+- Subir `/mnt/user-uploads/logo_v1.png` via Lovable Assets → `src/assets/menuzin-logo.png.asset.json`.
+- Substituir todas as ocorrências do logotipo/wordmark atual nos componentes: `AdminLayout` (sidebar), `admin.login`, `index.tsx` (home), `platform.dashboard`, headers públicos, favicon meta no `__root.tsx`.
+- Ajustar tokens de cor no `src/styles.css` para alinhar com a paleta do novo logo: primary laranja `#F26522` e dark navy `#143C5A` (oklch equivalentes), mantendo contraste e dark mode. Atualizar `--primary`, `--primary-glow`, `--accent` e gradiente.
 
-### 1. Modal "Nova categoria" (`admin.categorias.tsx`)
-- Primeiro passo: card-picker com dois modelos: **Itens principais** (ícone talher) e **Pizza** (ícone pizza), conforme print 1.
-- Em seguida, formulário de detalhes (nome + descrição + ativo). Salvo com `kind` correto.
+## Arquivos afetados (principais)
+- `src/routes/admin.produtos.tsx` (1, 5)
+- `src/components/storefront/ProductModal.tsx` (2, 3, 5)
+- `src/components/storefront/CartDrawer.tsx` + novo `UpsellSuggestions.tsx` (4)
+- `src/lib/catalog-admin.functions.ts`, `src/lib/catalog.functions.ts`, `src/lib/db-adapters.ts`, `src/lib/domain-types.ts` (5)
+- Migration Supabase (5)
+- `src/assets/menuzin-logo.png.asset.json` + componentes com logo (6)
+- `src/styles.css` (6)
 
-### 2. Página da categoria Pizza
-- Quando a categoria for `kind='pizza'`, abrir um drawer/dialog full com abas **Detalhes / Tamanhos / Massas / Bordas** (prints 3–6). Editor inline tipo tabela (linha por item) com botões "+ Adicionar tamanho/massa/borda" e toggle Pausar/Ativado.
-- Lista de tamanhos vira também cards "Resumo e status de venda" (print 5).
-
-### 3. Modal de produto (`admin.produtos.tsx`)
-- Detectar categoria selecionada. Se `kind='pizza'`:
-  - Tabs do produto viram **Detalhes / Preço / Classificação** (sem aba "Tamanhos" do produto; sem aba "Sabores" — cada produto **é** um sabor).
-  - **Detalhes**: nome (rótulo "Sabor"), descrição, imagem, PDV.
-  - **Preço**: lista os tamanhos cadastrados na categoria com checkbox para habilitar + input de preço por tamanho (print 8). Persiste em `product_sizes` com `category_size_id`.
-  - **Classificação**: featured, allow_observations, prep_time, disponível.
-  - Esconde `type`/`max_flavors` (derivados).
-- Para categoria `standard`, manter o fluxo atual (tabs Geral/Tamanhos, sem aba Sabores — o tipo "pizza" antigo deixa de aparecer no seletor).
-
-### 4. Storefront (`ProductModal`)
-- Para pizza, montar a seleção a partir de:
-  - Tamanhos da categoria (filtrando só os que esse sabor tem preço habilitado).
-  - Sabores = outros produtos da mesma categoria com preço habilitado no mesmo tamanho (modal vira "monte sua pizza" partindo do sabor clicado). Limite de sabores = `category_pizza_sizes.max_flavors` do tamanho escolhido (média de preços, padrão já implementado).
-  - Massas (radio, obrigatório) e Bordas (radio opcional) somam `extra_price` ao item.
-- Cart/checkout: salvar massa/borda escolhidas no campo `addons` do `order_items` (snapshot já suportado).
-
-### 5. Ajustes visuais
-- Botões primários "Próximo/Salvar" no canto inferior direito, "Cancelar" outline ao lado, conforme prints — aplicar nos diálogos novos.
-- Linha-item editável com ícone drag + lixeira (print 3/4/6).
-
-## Fora de escopo
-
-- Importação automática "Recomendações" (cards laterais nos prints).
-- Cód. PDV integrado a sistemas externos — campo é só armazenado.
-- Combos/descontos % no produto (print 10) — não solicitado nesta refatoração.
-
-## Ordem de execução
-
-1. Migration (categorias `kind` + 3 tabelas pizza + coluna em `product_sizes`).
-2. Tipos + server functions.
-3. UI de categoria (picker + abas pizza).
-4. UI de produto pizza (preço por tamanho).
-5. Adaptar `ProductModal` storefront.
-6. Smoke test manual: criar categoria pizza → 3 tamanhos / 2 massas / 2 bordas → 2 sabores com preços → pedido no storefront com 2 sabores + borda recheada.
+## Perguntas antes de implementar
+1. **Upsell**: mostrar como **drawer/modal ao abrir o carrinho** (1x por sessão) ou como **seção fixa dentro do CartDrawer** ("Que tal adicionar?") sempre visível?
+2. **Brinde grátis tipo Produto**: o produto-brinde deve ser **adicionado automaticamente ao carrinho** junto com a pizza, ou apenas **exibido como aviso** "Você ganhou 1 Refri 350ml" e o atendente entrega manualmente?
+3. **Cores do logo**: posso atualizar a paleta primária do app para o **laranja #F26522 + navy #143C5A** do logo, ou prefere manter as cores atuais e apenas trocar a imagem?
