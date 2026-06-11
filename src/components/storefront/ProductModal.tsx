@@ -52,14 +52,25 @@ export function ProductModal({
 
   const isPizzaCategory = product?.categoryKind === "pizza" && pizzaSizes.length > 0;
 
+  // Hide sizes with no real price among any sibling flavor
+  const visiblePizzaSizes = useMemo(() => {
+    if (!isPizzaCategory) return pizzaSizes;
+    return pizzaSizes.filter((s) =>
+      pizzaFlavors.some((f) => (f.pricesByCategorySizeId[s.id] ?? 0) > 0)
+    );
+  }, [isPizzaCategory, pizzaSizes, pizzaFlavors]);
+
+  // Free gift: pre-select crust at price 0 if applicable
+  const freeCrust = product?.freeGiftKind === "crust" && product.freeGiftRefId
+    ? pizzaCrusts.find((c) => c.id === product.freeGiftRefId)
+    : undefined;
+
   useEffect(() => {
     if (open && product) {
       setQty(1);
       setLegacyAddons([]);
-      // For pizza-category products, size comes from category_pizza_sizes;
-      // pre-select first active size and the product itself as the first flavor.
-      if (product.categoryKind === "pizza" && pizzaSizes.length > 0) {
-        setSizeId(pizzaSizes[0].id);
+      if (product.categoryKind === "pizza" && visiblePizzaSizes.length > 0) {
+        setSizeId(visiblePizzaSizes[0].id);
         setFlavorIds(pizzaFlavors.some((f) => f.id === product.id) ? [product.id] : []);
       } else {
         setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
@@ -67,9 +78,10 @@ export function ProductModal({
       }
       setGroupSelections({});
       setDoughId(pizzaDoughs[0]?.id ?? null);
-      setCrustId(null);
+      setCrustId(freeCrust?.id ?? null);
       setNote("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, product?.id]);
 
   const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
@@ -89,16 +101,18 @@ export function ProductModal({
   const isPizza = product.type === "pizza";
 
   // --- Pizza-category mode (size + sibling flavors from category_pizza_sizes) ---
-  const selectedPizzaSize = isPizzaCategory ? pizzaSizes.find((s) => s.id === sizeId) ?? pizzaSizes[0] : undefined;
+  const selectedPizzaSize = isPizzaCategory ? visiblePizzaSizes.find((s) => s.id === sizeId) ?? visiblePizzaSizes[0] : undefined;
   const pizzaMaxFlavors = selectedPizzaSize?.maxFlavors ?? 1;
   const selectedPizzaFlavors = isPizzaCategory ? pizzaFlavors.filter((f) => flavorIds.includes(f.id)) : [];
   const priceOfFlavor = (f: PizzaFlavorOption) =>
-    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) ?? f.fallbackPrice;
+    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || f.fallbackPrice;
+  // Locked price: max among selected flavors (price doesn't change as user adds equal/cheaper flavors)
   const pizzaBase = isPizzaCategory
     ? selectedPizzaFlavors.length > 0
       ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
       : 0
     : 0;
+  const priceLocked = isPizzaCategory && pizzaMaxFlavors > 1 && selectedPizzaFlavors.length >= 1;
 
   // --- Standard mode (legacy sizes/flavors on product) ---
   const maxFlavors = product.maxFlavors ?? 1;
