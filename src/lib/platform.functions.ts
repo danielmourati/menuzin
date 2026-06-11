@@ -484,3 +484,101 @@ export const adminDeleteTenant = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ===== Dados do admin/dono da loja (apenas platform_admin) =====
+
+export type TenantOwner = {
+  user_id: string | null;
+  email: string;
+  full_name: string;
+};
+
+export const adminGetTenantOwner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ tenant_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<TenantOwner> => {
+    await ensurePlatformAdmin(context.userId);
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles").select("user_id, role")
+      .eq("tenant_id", data.tenant_id)
+      .in("role", ["owner", "admin"]);
+    const owner = (roles ?? []).find((r) => r.role === "owner") ?? (roles ?? [])[0];
+    if (!owner) return { user_id: null, email: "", full_name: "" };
+    const { data: prof } = await supabaseAdmin
+      .from("profiles").select("email, full_name")
+      .eq("id", owner.user_id as string).maybeSingle();
+    return {
+      user_id: owner.user_id as string,
+      email: prof?.email ?? "",
+      full_name: prof?.full_name ?? "",
+    };
+  });
+
+const StrongPasswordAdmin = z
+  .string()
+  .min(8, "Mínimo de 8 caracteres.")
+  .max(72)
+  .regex(/[A-Z]/, "Inclua maiúscula.")
+  .regex(/[a-z]/, "Inclua minúscula.")
+  .regex(/[0-9]/, "Inclua número.")
+  .regex(/[^A-Za-z0-9]/, "Inclua caractere especial.");
+
+const UpdateOwnerInput = z.object({
+  tenant_id: z.string().uuid(),
+  full_name: z.string().trim().min(2).max(120).optional(),
+  email: z.string().trim().email().max(160).optional(),
+  new_password: StrongPasswordAdmin.optional(),
+  create_if_missing: z.boolean().optional().default(false),
+});
+
+export const adminUpdateTenantOwner = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => UpdateOwnerInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePlatformAdmin(context.userId);
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles").select("user_id, role")
+      .eq("tenant_id", data.tenant_id)
+      .in("role", ["owner", "admin"]);
+    let ownerId = (roles ?? []).find((r) => r.role === "owner")?.user_id as string | undefined
+      ?? (roles ?? [])[0]?.user_id as string | undefined;
+
+    if (!ownerId) {
+      if (!data.create_if_missing || !data.email || !data.new_password) {
+        throw new Error("Esta loja não possui administrador. Informe e-mail e senha para criar.");
+      }
+      const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: data.new_password,
+        email_confirm: true,
+        user_metadata: { full_name: data.full_name ?? "" },
+      });
+      if (cErr || !created.user) throw new Error(cErr?.message || "Falha ao criar administrador.");
+      ownerId = created.user.id;
+      await supabaseAdmin.from("profiles").upsert({
+        id: ownerId, email: data.email, full_name: data.full_name ?? "", tenant_id: data.tenant_id,
+      }, { onConflict: "id" });
+      await supabaseAdmin.from("user_roles").insert({
+        user_id: ownerId, tenant_id: data.tenant_id, role: "owner",
+      });
+      return { ok: true, created: true };
+    }
+
+    const authPatch: { email?: string; password?: string } = {};
+    if (data.email) authPatch.email = data.email;
+    if (data.new_password) authPatch.password = data.new_password;
+    if (Object.keys(authPatch).length) {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(ownerId, {
+        ...authPatch,
+        email_confirm: !!data.email || undefined,
+      } as never);
+      if (error) throw new Error(error.message);
+    }
+    const profPatch: { full_name?: string; email?: string } = {};
+    if (data.full_name) profPatch.full_name = data.full_name;
+    if (data.email) profPatch.email = data.email;
+    if (Object.keys(profPatch).length) {
+      await supabaseAdmin.from("profiles").update(profPatch).eq("id", ownerId);
+    }
+    return { ok: true, created: false };
+  });
