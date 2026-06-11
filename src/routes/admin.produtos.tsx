@@ -311,7 +311,7 @@ function PizzaProductForm({
 }: {
   editing: Editing;
   setEditing: (e: Editing) => void;
-  categories: { id: string; name: string; kind: "standard" | "pizza" }[];
+  categories: { id: string; name: string; kind: "standard" | "pizza" | "oferta" }[];
   currentProductSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null }[];
   allProducts: { id: string; name: string }[];
   onClose: () => void;
