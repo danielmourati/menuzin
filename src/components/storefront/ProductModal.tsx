@@ -126,8 +126,9 @@ export function ProductModal({
   const showPizzaExtras = product.categoryKind === "pizza";
   const selectedDough = showPizzaExtras ? pizzaDoughs.find((d) => d.id === doughId) : undefined;
   const selectedCrust = showPizzaExtras ? pizzaCrusts.find((c) => c.id === crustId) : undefined;
+  const isCrustFree = !!(freeCrust && selectedCrust && selectedCrust.id === freeCrust.id);
   const doughSum = selectedDough?.extraPrice ?? 0;
-  const crustSum = selectedCrust?.extraPrice ?? 0;
+  const crustSum = selectedCrust && !isCrustFree ? selectedCrust.extraPrice : 0;
 
   const addonsSum = legacyAddons.reduce((s, a) => s + a.price, 0);
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
@@ -183,7 +184,7 @@ export function ProductModal({
       }
     }
     if (selectedDough && selectedDough.extraPrice >= 0) extras.push({ id: `dough-${selectedDough.id}`, name: `Massa: ${selectedDough.name}`, price: selectedDough.extraPrice });
-    if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}`, price: selectedCrust.extraPrice });
+    if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}${isCrustFree ? " (Grátis)" : ""}`, price: isCrustFree ? 0 : selectedCrust.extraPrice });
     add({
       product,
       qty,
