@@ -376,12 +376,38 @@ function PizzaProductForm({
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
 
-        <FreeGiftPicker
+        <BordaGratisPicker
           categoryId={editing.category_id}
+          mode={editing.free_crust_mode}
+          fixedCrustId={editing.free_crust_mode === "fixed" ? (editing.free_gift_kind === "crust" ? editing.free_gift_ref_id : null) : null}
+          onChange={(mode, fixedId) => {
+            if (mode === "fixed") {
+              setEditing({ ...editing, free_crust_mode: "fixed", free_gift_kind: "crust", free_gift_ref_id: fixedId });
+            } else if (mode === "customer_choice") {
+              setEditing({ ...editing, free_crust_mode: "customer_choice", free_gift_kind: null, free_gift_ref_id: null });
+            } else {
+              // none: limpa apenas se o brinde anterior era de borda
+              const wasProduct = editing.free_gift_kind === "product";
+              setEditing({
+                ...editing,
+                free_crust_mode: "none",
+                free_gift_kind: wasProduct ? "product" : null,
+                free_gift_ref_id: wasProduct ? editing.free_gift_ref_id : null,
+              });
+            }
+          }}
+        />
+        <ProductGiftPicker
           allProducts={allProducts.filter((p) => p.id !== editing.id)}
-          giftKind={editing.free_gift_kind}
-          giftRefId={editing.free_gift_ref_id}
-          onChange={(k, id) => setEditing({ ...editing, free_gift_kind: k, free_gift_ref_id: id })}
+          enabled={editing.free_gift_kind === "product"}
+          giftRefId={editing.free_gift_kind === "product" ? editing.free_gift_ref_id : null}
+          onChange={(enabled, id) => {
+            if (enabled) {
+              setEditing({ ...editing, free_gift_kind: "product", free_gift_ref_id: id });
+            } else if (editing.free_gift_kind === "product") {
+              setEditing({ ...editing, free_gift_kind: null, free_gift_ref_id: null });
+            }
+          }}
         />
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
@@ -552,18 +578,17 @@ export function _FlavorsEditor({ productId, flavors, onChanged }: {
   );
 }
 
-// ===== Free gift picker =====
+// ===== Borda grátis (crust gift) =====
 
-type GiftKind = "crust" | "product" | null;
+type CrustMode = "none" | "fixed" | "customer_choice";
 
-function FreeGiftPicker({
-  categoryId, allProducts, giftKind, giftRefId, onChange,
+function BordaGratisPicker({
+  categoryId, mode, fixedCrustId, onChange,
 }: {
   categoryId: string | null;
-  allProducts: { id: string; name: string }[];
-  giftKind: GiftKind;
-  giftRefId: string | null;
-  onChange: (k: GiftKind, id: string | null) => void;
+  mode: CrustMode;
+  fixedCrustId: string | null;
+  onChange: (mode: CrustMode, fixedCrustId: string | null) => void;
 }) {
   const cfgQ = useQuery({
     queryKey: ["admin", "pizza-config", categoryId],
@@ -571,37 +596,40 @@ function FreeGiftPicker({
     enabled: !!categoryId,
   });
   const crusts = cfgQ.data?.crusts ?? [];
-  const enabled = !!giftKind;
+  const enabled = mode !== "none";
 
   return (
     <div className="rounded-xl border p-3 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <Label className="font-semibold">🎁 Brinde incluso</Label>
-          <p className="text-[11px] text-muted-foreground">Ofereça uma borda ou um produto grátis com esta pizza.</p>
+          <Label className="font-semibold">🍕 Borda grátis</Label>
+          <p className="text-[11px] text-muted-foreground">Inclua a borda como cortesia nesta pizza.</p>
         </div>
-        <Switch checked={enabled} onCheckedChange={(v) => onChange(v ? "crust" : null, null)} />
+        <Switch
+          checked={enabled}
+          onCheckedChange={(v) => onChange(v ? "fixed" : "none", null)}
+        />
       </div>
 
       {enabled && (
         <>
           <div className="grid grid-cols-2 gap-2">
             <button type="button"
-              onClick={() => onChange("crust", null)}
-              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${giftKind === "crust" ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40"}`}>
-              Borda grátis
+              onClick={() => onChange("fixed", fixedCrustId)}
+              className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${mode === "fixed" ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40"}`}>
+              Definir borda fixa
             </button>
             <button type="button"
-              onClick={() => onChange("product", null)}
-              className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${giftKind === "product" ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40"}`}>
-              Produto grátis
+              onClick={() => onChange("customer_choice", null)}
+              className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${mode === "customer_choice" ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/40"}`}>
+              Cliente escolhe a borda
             </button>
           </div>
 
-          {giftKind === "crust" && (
+          {mode === "fixed" && (
             <div>
-              <Label className="text-xs">Qual borda?</Label>
-              <Select value={giftRefId ?? ""} onValueChange={(v) => onChange("crust", v)}>
+              <Label className="text-xs">Qual borda será inclusa?</Label>
+              <Select value={fixedCrustId ?? ""} onValueChange={(v) => onChange("fixed", v)}>
                 <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a borda" /></SelectTrigger>
                 <SelectContent>
                   {crusts.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">Cadastre bordas na categoria pizza primeiro.</div>}
@@ -610,24 +638,53 @@ function FreeGiftPicker({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="mt-1 text-[11px] text-muted-foreground">As outras bordas ficarão indisponíveis para esta pizza.</p>
             </div>
           )}
 
-          {giftKind === "product" && (
-            <div>
-              <Label className="text-xs">Qual produto?</Label>
-              <Select value={giftRefId ?? ""} onValueChange={(v) => onChange("product", v)}>
-                <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {allProducts.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">Sem outros produtos.</div>}
-                  {allProducts.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {mode === "customer_choice" && (
+            <p className="rounded-lg bg-success/10 px-3 py-2 text-[11px] text-success">
+              ✓ O cliente verá todas as bordas com preço R$ 0,00 e deverá escolher uma para finalizar.
+            </p>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+// ===== Brinde de produto (refri/sobremesa etc) =====
+
+function ProductGiftPicker({
+  allProducts, enabled, giftRefId, onChange,
+}: {
+  allProducts: { id: string; name: string }[];
+  enabled: boolean;
+  giftRefId: string | null;
+  onChange: (enabled: boolean, giftRefId: string | null) => void;
+}) {
+  return (
+    <div className="rounded-xl border p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <Label className="font-semibold">🎁 Brinde de produto</Label>
+          <p className="text-[11px] text-muted-foreground">Acompanhe um produto cortesia (refri, sobremesa…).</p>
+        </div>
+        <Switch checked={enabled} onCheckedChange={(v) => onChange(v, null)} />
+      </div>
+      {enabled && (
+        <div>
+          <Label className="text-xs">Qual produto?</Label>
+          <Select value={giftRefId ?? ""} onValueChange={(v) => onChange(true, v)}>
+            <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {allProducts.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground">Sem outros produtos.</div>}
+              {allProducts.map((p) => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
     </div>
   );
