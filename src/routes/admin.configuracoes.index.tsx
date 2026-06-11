@@ -149,6 +149,9 @@ function SettingsPage() {
               <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
               <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>
+              <div className="md:col-span-2">
+                <AdminAccountCard />
+              </div>
             </TabsContent>
 
             <TabsContent value="horarios" className="mt-6 space-y-3">
