@@ -221,6 +221,15 @@ export function ContactSpecialistSection() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
+  function formatPhone(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10)
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const message =
@@ -258,9 +267,12 @@ export function ContactSpecialistSection() {
             <Input
               id="contact-phone"
               required
-              placeholder="(11) 91234-5678"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel-national"
+              placeholder="(86) 91234-5678"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
             />
           </div>
           <Button type="submit" size="lg" className="w-full gap-2">
