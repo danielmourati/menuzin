@@ -73,8 +73,7 @@ function Landing() {
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="grid h-9 w-9 place-items-center rounded-xl gradient-brand text-primary-foreground font-bold">M</div>
-            <span className="font-display text-lg font-bold">Menuzin</span>
+            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Menuzin" className="h-9 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features">Recursos</a>

@@ -65,9 +65,10 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.03 250);
 
-  /* Primary: vibrant tangerine #FF4F1F */
-  --primary: oklch(0.66 0.22 35);
+  /* Primary: Menuzin orange #F26522 */
+  --primary: oklch(0.68 0.19 42);
   --primary-foreground: oklch(0.99 0 0);
+  --brand-navy: oklch(0.32 0.06 235);
 
   /* Secondary: warm amber #FFB020 */
   --secondary: oklch(0.97 0.025 75);
