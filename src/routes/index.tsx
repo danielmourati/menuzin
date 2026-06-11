@@ -218,65 +218,78 @@ function Landing() {
         </div>
       </section>
 
-      <section id="plans" className="container mx-auto px-4 py-20">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">Planos do Menuzin</h2>
-          <p className="mt-3 text-muted-foreground">Comece grátis no Start e desbloqueie pagamento online e múltiplas impressoras no Pro.</p>
-        </div>
-        <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
-          {pricingPlans.map((p) => {
-            const highlighted = "highlighted" in p && p.highlighted;
-            return (
-              <div
-                key={p.id}
-                className={`relative flex flex-col rounded-3xl border bg-card p-8 transition ${
-                  highlighted
-                    ? "border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
-                    : "shadow-[var(--shadow-soft)]"
-                }`}
-              >
-                {highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
-                    MAIS ESCOLHIDO
-                  </span>
-                )}
-                <h3 className="text-2xl font-bold">{p.name}</h3>
-                <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
-                <p className="mt-5 text-4xl font-bold">
-                  {p.priceLabel}
-                  {p.price > 0 && <span className="text-base font-normal text-muted-foreground">/mês</span>}
-                </p>
-                <ul className="mt-6 space-y-3 text-sm">
-                  {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${highlighted ? "text-primary" : "text-success"}`} />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  asChild
-                  className="mt-8 w-full"
-                  size="lg"
-                  variant={highlighted ? "default" : "outline"}
+      {/* Deep features (mostra valor antes do preço) */}
+      <FeatureShowcaseSection products={demoProducts} />
+
+      {/* Planos — posicionados após a demonstração de valor */}
+      <section id="plans" className="relative overflow-hidden bg-gradient-to-b from-muted/40 via-background to-background">
+        <div className="container mx-auto px-4 py-20">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Planos &amp; preços
+            </span>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">Escolha o plano ideal para o seu negócio</h2>
+            <p className="mt-3 text-muted-foreground">
+              Comece pelo Essencial e evolua para o Controle quando precisar de pagamento online e múltiplas impressoras. Sem fidelidade.
+            </p>
+          </div>
+          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+            {pricingPlans.map((p) => {
+              const highlighted = "highlighted" in p && p.highlighted;
+              return (
+                <div
+                  key={p.id}
+                  className={`relative flex flex-col rounded-3xl border bg-card p-8 transition ${
+                    highlighted
+                      ? "border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
+                      : "shadow-[var(--shadow-soft)]"
+                  }`}
                 >
-                  <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
-                    {p.cta}
-                  </a>
-                </Button>
-              </div>
-            );
-          })}
+                  {highlighted && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
+                      MAIS ESCOLHIDO
+                    </span>
+                  )}
+                  <h3 className="text-2xl font-bold">{p.name}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
+                  <p className="mt-5 text-4xl font-bold">
+                    {p.priceLabel}
+                    {p.price > 0 && <span className="text-base font-normal text-muted-foreground">/mês</span>}
+                  </p>
+                  <ul className="mt-6 space-y-3 text-sm">
+                    {p.features.map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${highlighted ? "text-primary" : "text-success"}`} />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    asChild
+                    className="mt-8 w-full"
+                    size="lg"
+                    variant={highlighted ? "default" : "outline"}
+                  >
+                    <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                      {p.cta}
+                    </a>
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-8 text-center text-xs text-muted-foreground">
+            Sem fidelidade. Você pode mudar de plano quando quiser.
+          </p>
         </div>
-        <p className="mt-8 text-center text-xs text-muted-foreground">
-          Sem fidelidade. Você pode mudar de plano quando quiser.
-        </p>
       </section>
 
-      <FeatureShowcaseSection products={demoProducts} />
+      {/* FAQ — quebra objeções imediatamente após o preço */}
+      <FaqSection />
+
+      {/* CTA final + contato */}
       <CTABanner />
       <ContactSpecialistSection />
-      <FaqSection />
       <LandingFooter />
 
       <WhatsAppFloatingButton />
