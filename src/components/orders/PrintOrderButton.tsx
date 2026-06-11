@@ -100,7 +100,7 @@ export function PrintOrderButton({
       ) : (
         <Printer className={size === "icon" ? "h-3.5 w-3.5" : "mr-2 h-4 w-4"} />
       )}
-      {size !== "icon" && (printing ? "Imprimindo..." : "Imprimir recibo completo")}
+      {size !== "icon" && (printing ? "Imprimindo..." : "Imprimir pedido completo")}
     </Button>
   );
 }
