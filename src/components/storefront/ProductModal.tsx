@@ -61,10 +61,16 @@ export function ProductModal({
     );
   }, [isPizzaCategory, pizzaSizes, pizzaFlavors]);
 
-  // Free gift: pre-select crust at price 0 if applicable
-  const freeCrust = product?.freeGiftKind === "crust" && product.freeGiftRefId
+  // Borda grátis: três modos
+  const crustMode = (product?.freeCrustMode ?? "none") as "none" | "fixed" | "customer_choice";
+  const fixedFreeCrust = crustMode === "fixed" && product?.freeGiftKind === "crust" && product.freeGiftRefId
     ? pizzaCrusts.find((c) => c.id === product.freeGiftRefId)
     : undefined;
+  // Lista de bordas a exibir: 'fixed' restringe à crust definida; outros modos mostram todas
+  const visibleCrusts = useMemo(() => {
+    if (crustMode === "fixed" && fixedFreeCrust) return [fixedFreeCrust];
+    return pizzaCrusts;
+  }, [crustMode, fixedFreeCrust, pizzaCrusts]);
 
   useEffect(() => {
     if (open && product) {
@@ -79,7 +85,8 @@ export function ProductModal({
       }
       setGroupSelections({});
       setDoughId(pizzaDoughs[0]?.id ?? null);
-      setCrustId(freeCrust?.id ?? null);
+      // Pré-seleciona borda fixa; customer_choice deixa vazio (obrigatório escolher)
+      setCrustId(fixedFreeCrust?.id ?? null);
       setNote("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +134,11 @@ export function ProductModal({
   const showPizzaExtras = product.categoryKind === "pizza";
   const selectedDough = showPizzaExtras ? pizzaDoughs.find((d) => d.id === doughId) : undefined;
   const selectedCrust = showPizzaExtras ? pizzaCrusts.find((c) => c.id === crustId) : undefined;
-  const isCrustFree = !!(freeCrust && selectedCrust && selectedCrust.id === freeCrust.id);
+  // Crust é "grátis" quando: modo fixed e bate com a fixedFreeCrust, OU modo customer_choice (qualquer escolha)
+  const isCrustFree = !!selectedCrust && (
+    (crustMode === "fixed" && !!fixedFreeCrust && selectedCrust.id === fixedFreeCrust.id) ||
+    crustMode === "customer_choice"
+  );
   const doughSum = selectedDough?.extraPrice ?? 0;
   const crustSum = selectedCrust && !isCrustFree ? selectedCrust.extraPrice : 0;
 
