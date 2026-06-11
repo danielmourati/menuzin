@@ -167,21 +167,18 @@ function Landing() {
         </div>
       </section>
 
-      <section className="border-y bg-muted/30">
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold md:text-3xl">Pré-visualização do cardápio</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Veja como seus clientes vão pedir.</p>
-          </div>
-          <div className="mx-auto mt-10 max-w-5xl">
-            <img
-              src={landingPeopleOrdering}
-              alt="Amigos felizes fazendo pedido pelo celular em uma cafeteria"
-              loading="lazy"
-              width={1536}
-              height={864}
-              className="block h-auto w-full object-contain"
-            />
+      <section
+        className="relative border-y bg-muted/30 bg-cover bg-center"
+        style={{ backgroundImage: `url(${couplePhoneAsset.url})` }}
+        aria-label="Casal feliz fazendo pedido pelo celular"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-background/10 md:from-background/95 md:via-background/40 md:to-transparent" />
+        <div className="relative container mx-auto px-4 py-24 md:py-32 lg:py-40">
+          <div className="max-w-xl">
+            <h2 className="text-3xl font-bold md:text-4xl">Pré-visualização do cardápio</h2>
+            <p className="mt-3 text-base text-muted-foreground md:text-lg">
+              Veja como seus clientes vão pedir — direto do celular, em poucos toques.
+            </p>
           </div>
         </div>
       </section>
