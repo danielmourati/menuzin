@@ -84,29 +84,30 @@ function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
+        <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
             <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Menuzin" className="h-9 w-auto" />
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-            <a href="#features">Recursos</a>
-            <a href="#plans">Planos</a>
-            <a href="#faq">Dúvidas</a>
-            <a href="#contato">Contato</a>
-            {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
-          </nav>
-          <div className="relative group">
-            <span
-              className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-primary via-primary/70 to-primary opacity-60 blur-md transition duration-300 group-hover:opacity-100 group-hover:blur-lg"
-              aria-hidden
-            />
-            <Button
-              asChild
-              size="sm"
-              className="relative shadow-lg transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:shadow-xl"
-            >
-              <a href="#plans">Começar agora</a>
-            </Button>
+          <div className="flex items-center gap-3 md:gap-4">
+            <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
+              <a href="#features">Recursos</a>
+              <a href="#plans">Planos</a>
+              <a href="#faq">Dúvidas</a>
+              <a href="#contato">Contato</a>
+              {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
+            </nav>
+            <div className="relative group">
+              <span
+                className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-primary via-primary/70 to-primary opacity-60 blur-md transition duration-300 group-hover:opacity-100 group-hover:blur-lg"
+                aria-hidden
+              />
+              <Button
+                asChild
+                className="relative h-10 px-5 text-sm shadow-lg transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:shadow-xl"
+              >
+                <a href="#plans">Começar Agora</a>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
