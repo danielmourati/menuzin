@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, GripVertical, Loader2, Pizza, UtensilsCrossed, Settings2 } from "lucide-react";
+import { Plus, Edit2, Trash2, GripVertical, Loader2, Pizza, UtensilsCrossed, Settings2, Tag } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, deleteCategory,
@@ -112,6 +112,7 @@ function CategoriesPage() {
                   <div className="flex items-center gap-2">
                     <p className="font-semibold">{c.name}</p>
                     {c.kind === "pizza" && <Badge className="bg-primary/15 text-primary border-0"><Pizza className="mr-1 h-3 w-3" /> Pizza</Badge>}
+                    {c.kind === "oferta" && <Badge className="bg-success/15 text-success border-0"><Tag className="mr-1 h-3 w-3" /> Oferta do Dia</Badge>}
                   </div>
                   {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
                 </div>
@@ -163,6 +164,16 @@ function CategoriesPage() {
                 <div>
                   <p className="font-bold">Pizza</p>
                   <p className="text-sm text-muted-foreground">Defina o tamanho, tipos de massa, bordas e sabores</p>
+                </div>
+              </div>
+            </button>
+            <button onClick={() => openNew("oferta")}
+              className="w-full rounded-xl border-2 p-4 text-left transition hover:border-primary hover:bg-primary/5">
+              <div className="flex items-start gap-3">
+                <Tag className="mt-1 h-6 w-6 text-success" />
+                <div>
+                  <p className="font-bold">Oferta do Dia</p>
+                  <p className="text-sm text-muted-foreground">Pizzas promocionais fechadas com sabores e brindes já definidos</p>
                 </div>
               </div>
             </button>
