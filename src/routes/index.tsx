@@ -10,6 +10,7 @@ import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
 import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroPhone from "@/assets/landing-hero-phone.png";
+import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
 
 const demoProducts = [
   { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
@@ -108,8 +109,10 @@ function Landing() {
                   </Link>
                 </Button>
               )}
-              <Button asChild variant="outline" size="lg">
-                <Link to="/admin/dashboard">Entrar no painel</Link>
+              <Button asChild variant="outline" size="lg" className="gap-2">
+                <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
+                </a>
               </Button>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -238,7 +241,9 @@ function Landing() {
                   size="lg"
                   variant={highlighted ? "default" : "outline"}
                 >
-                  <Link to="/admin/login">{p.cta}</Link>
+                  <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                    {p.cta}
+                  </a>
                 </Button>
               </div>
             );
@@ -258,6 +263,7 @@ function Landing() {
           </div>
         </div>
       </footer>
+      <WhatsAppFloatingButton />
     </div>
   );
 }
