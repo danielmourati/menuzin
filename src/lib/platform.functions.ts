@@ -223,8 +223,61 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }
     }
 
+    // Seed de categorias por tipo de negócio (apenas se não houver clone)
+    if (!data.clone_from_slug && (data.business_types?.length ?? 0) > 0) {
+      await seedCategoriesForBusinessTypes(tenant.id as string, data.business_types as string[]);
+    }
+
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
   });
+
+const BUSINESS_TYPE_CATEGORIES: Record<string, { name: string; kind: "standard" | "pizza" }[]> = {
+  pizzaria: [{ name: "Pizza", kind: "pizza" }, { name: "Bebidas", kind: "standard" }],
+  hamburgueria: [{ name: "Hambúrgueres", kind: "standard" }, { name: "Combos", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  churrascaria: [{ name: "Espetos", kind: "standard" }, { name: "Porções", kind: "standard" }, { name: "Bebidas", kind: "standard" }, { name: "Combos", kind: "standard" }],
+  espetaria: [{ name: "Espetos", kind: "standard" }, { name: "Porções", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  restaurante: [{ name: "Pratos executivos", kind: "standard" }, { name: "Porções", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  acaiteria: [{ name: "Açaí", kind: "standard" }, { name: "Acompanhamentos", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  sorveteria: [{ name: "Sorvetes", kind: "standard" }, { name: "Sundaes", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  cafeteria: [{ name: "Cafés", kind: "standard" }, { name: "Salgados", kind: "standard" }, { name: "Doces", kind: "standard" }],
+  padaria: [{ name: "Pães", kind: "standard" }, { name: "Salgados", kind: "standard" }, { name: "Doces", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  lanchonete: [{ name: "Lanches", kind: "standard" }, { name: "Salgados", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  marmitaria: [{ name: "Marmitas", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  sushi: [{ name: "Sushis", kind: "standard" }, { name: "Combinados", kind: "standard" }, { name: "Hot", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  pastelaria: [{ name: "Pastéis", kind: "standard" }, { name: "Caldo de Cana", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  food_truck: [{ name: "Especialidades", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  bar: [{ name: "Petiscos", kind: "standard" }, { name: "Drinks", kind: "standard" }, { name: "Cervejas", kind: "standard" }],
+  conveniencia: [{ name: "Bebidas", kind: "standard" }, { name: "Lanches", kind: "standard" }, { name: "Doces", kind: "standard" }],
+};
+
+async function seedCategoriesForBusinessTypes(tenantId: string, types: string[]): Promise<void> {
+  // junta nomes deduplicados respeitando o primeiro kind encontrado
+  const wanted = new Map<string, "standard" | "pizza">();
+  for (const t of types) {
+    for (const c of (BUSINESS_TYPE_CATEGORIES[t] ?? [])) {
+      const k = c.name.toLowerCase();
+      if (!wanted.has(k)) wanted.set(k, c.kind);
+    }
+  }
+  if (wanted.size === 0) return;
+  let order = 1;
+  for (const [keyLower, kind] of wanted) {
+    // Restaura caps originais a partir do mapeamento (uso primeiro hit)
+    const display = Array.from(wanted.keys()).includes(keyLower) ? capitalize(keyLower) : keyLower;
+    await supabaseAdmin.from("categories").insert({
+      tenant_id: tenantId,
+      name: display,
+      description: "",
+      sort_order: order++,
+      active: true,
+      kind,
+    } as never);
+  }
+}
+
+function capitalize(s: string): string {
+  return s.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
 
 /**
  * Clona categorias, produtos (com tamanhos/sabores) e grupos de complementos
