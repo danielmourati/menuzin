@@ -30,6 +30,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { UpsellSuggestions } from "@/components/storefront/UpsellSuggestions";
 
 
 type Step =
