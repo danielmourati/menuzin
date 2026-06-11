@@ -123,6 +123,12 @@ const SlugSchema = z
   .regex(/^[a-z0-9-]+$/)
   .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
 
+const BUSINESS_TYPES = [
+  "pizzaria", "hamburgueria", "churrascaria", "espetaria", "restaurante",
+  "acaiteria", "sorveteria", "cafeteria", "padaria", "lanchonete",
+  "marmitaria", "sushi", "pastelaria", "food_truck", "bar", "conveniencia", "outros",
+] as const;
+
 const CreateTenantInput = z.object({
   slug: SlugSchema,
   name: z.string().min(2).max(120),
@@ -134,6 +140,7 @@ const CreateTenantInput = z.object({
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
   plan: z.enum(["start", "pro"]).default("start"),
+  business_types: z.array(z.enum(BUSINESS_TYPES)).optional().default([]),
   owner_user_id: z.string().uuid().nullable().optional(),
   owner_email: z.string().email().max(160).optional().nullable(),
   owner_password: z.string().min(8).max(72).optional().nullable(),
@@ -165,7 +172,8 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
         active: data.active,
         plan: data.plan,
         status: "ativa",
-      }).select("id").single();
+        business_types: data.business_types ?? [],
+      } as never).select("id").single();
     if (error || !tenant) throw new Error(error?.message || "Falha ao criar loja");
 
     // 1) Dono já existente (id informado)
