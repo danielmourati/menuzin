@@ -11,6 +11,13 @@ import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroPhone from "@/assets/landing-hero-phone.png";
 import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
+import {
+  FeatureShowcaseSection,
+  CTABanner,
+  ContactSpecialistSection,
+  FaqSection,
+  LandingFooter,
+} from "@/components/landing/LandingSections";
 
 const demoProducts = [
   { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
@@ -83,6 +90,8 @@ function Landing() {
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features">Recursos</a>
             <a href="#plans">Planos</a>
+            <a href="#faq">Dúvidas</a>
+            <a href="#contato">Contato</a>
             {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
           </nav>
           <div className="flex items-center gap-2">
@@ -254,15 +263,12 @@ function Landing() {
         </p>
       </section>
 
-      <footer className="border-t bg-card">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground md:flex-row">
-          <p>© {new Date().getFullYear()} Menuzin. Vitrine digital para negócios food.</p>
-          <div className="flex gap-4">
-            <Link to="/platform/dashboard">Painel da plataforma</Link>
-            <Link to="/admin/dashboard">Painel do lojista</Link>
-          </div>
-        </div>
-      </footer>
+      <FeatureShowcaseSection products={demoProducts} />
+      <CTABanner />
+      <ContactSpecialistSection />
+      <FaqSection />
+      <LandingFooter />
+
       <WhatsAppFloatingButton />
     </div>
   );
