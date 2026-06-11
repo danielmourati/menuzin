@@ -123,122 +123,120 @@ export function OrderDetailsDrawer({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
-          <div className="grid gap-6 p-5 md:grid-cols-2">
-            {/* COLUNA ESQUERDA: cliente + itens */}
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cliente</h3>
-                <div className="space-y-3 bg-muted/20 border rounded-lg p-4 text-sm">
-                  <div className="font-medium text-foreground text-base">{order.customerName}</div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4 shrink-0 text-success" />
-                    <a href={`tel:${order.whatsapp}`} className="hover:underline text-foreground">{order.whatsapp}</a>
-                  </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="grid gap-4 p-5 md:grid-cols-2">
+            {/* Cliente */}
+            <div className="flex flex-col">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Cliente</h3>
+              <div className="space-y-3 bg-muted/20 border rounded-lg p-4 text-sm flex-1">
+                <div className="font-medium text-foreground text-base">{order.customerName}</div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4 shrink-0 text-success" />
+                  <a href={`tel:${order.whatsapp}`} className="hover:underline text-foreground">{order.whatsapp}</a>
+                </div>
 
-                  {order.mode === "entrega" && order.address && (
-                    <div className="flex items-start gap-2 text-muted-foreground pt-1 border-t border-dashed">
-                      <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-                      <div className="flex-1">
-                        <a href={getMapLink()} target="_blank" rel="noreferrer" className="text-foreground hover:underline font-medium block">
-                          {order.address.street}, {order.address.number}
-                        </a>
-                        <span>
-                          {order.address.neighborhood}
-                          {order.address.complement ? ` — ${order.address.complement}` : ""}
-                        </span>
-                        {order.address.reference && <p className="text-xs text-muted-foreground mt-1">Ref: {order.address.reference}</p>}
-                      </div>
+                {order.mode === "entrega" && order.address && (
+                  <div className="flex items-start gap-2 text-muted-foreground pt-2 border-t border-dashed">
+                    <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                    <div className="flex-1">
+                      <a href={getMapLink()} target="_blank" rel="noreferrer" className="text-foreground hover:underline font-medium block">
+                        {order.address.street}, {order.address.number}
+                      </a>
+                      <span>
+                        {order.address.neighborhood}
+                        {order.address.complement ? ` — ${order.address.complement}` : ""}
+                      </span>
+                      {order.address.reference && <p className="text-xs text-muted-foreground mt-1">Ref: {order.address.reference}</p>}
                     </div>
-                  )}
-
-                  {order.mode === "consumo_local" && order.table && (
-                    <div className="flex items-center gap-2 text-primary pt-1 border-t border-dashed font-semibold">
-                      <Utensils className="h-4 w-4 shrink-0" />
-                      <span>Consumir no local: {order.table}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 text-muted-foreground pt-1 border-t border-dashed">
-                    <Calendar className="h-4 w-4 shrink-0" />
-                    <span>Enviado às {formatDateTime(order.createdAt)}</span>
                   </div>
+                )}
+
+                {order.mode === "consumo_local" && order.table && (
+                  <div className="flex items-center gap-2 text-primary pt-2 border-t border-dashed font-semibold">
+                    <Utensils className="h-4 w-4 shrink-0" />
+                    <span>Consumir no local: {order.table}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 text-muted-foreground pt-2 border-t border-dashed">
+                  <Calendar className="h-4 w-4 shrink-0" />
+                  <span>Enviado às {formatDateTime(order.createdAt)}</span>
                 </div>
               </div>
-
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens do pedido</h3>
-                <div className="border rounded-lg overflow-hidden divide-y">
-                  {order.items.map((item, idx) => (
-                    <div key={idx} className="p-3 bg-card text-sm">
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="font-semibold text-foreground">{item.qty}x {item.name}</span>
-                        <span className="font-medium shrink-0">{brl(item.unitPrice * item.qty)}</span>
-                      </div>
-                      {item.addons && item.addons.length > 0 && (
-                        <div className="pl-3 mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-                          {item.addons.map((add) => {
-                            const p = parseAddonLabel(add.name);
-                            const prefix = p.kind === "size" ? "Tamanho:" : p.kind === "flavor" ? "Sabor:" : p.kind === "group" ? `${p.groupName}:` : "+";
-                            return (
-                              <div key={add.id} className="flex justify-between">
-                                <span>{prefix} {p.label}</span>
-                                {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {item.note && <p className="mt-1.5 pl-3 border-l-2 text-xs text-muted-foreground italic">Obs: {item.note}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {order.note && (
-                <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Observações gerais</h3>
-                  <p className="text-sm border rounded-lg bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/30 p-3 italic text-foreground/80">
-                    "{order.note}"
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* COLUNA DIREITA: timeline + valores */}
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Linha do tempo</h3>
-                <div className="bg-muted/30 border rounded-lg p-4">
-                  <OrderStatusTimeline order={order} />
-                </div>
+            {/* Linha do tempo */}
+            <div className="flex flex-col">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Linha do tempo</h3>
+              <div className="bg-muted/30 border rounded-lg p-4 flex-1">
+                <OrderStatusTimeline order={order} />
               </div>
+            </div>
 
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Valores e pagamento</h3>
-                <div className="bg-muted/10 border rounded-lg p-4 text-sm space-y-2">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(order.subtotal)}</span></div>
-                  {order.deliveryFee > 0 && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">Taxa de Entrega</span><span>{brl(order.deliveryFee)}</span></div>
-                  )}
-                  <div className="flex justify-between font-bold text-base border-t pt-2">
-                    <span>Total</span>
-                    <span className="text-primary">{brl(order.total)}</span>
-                  </div>
-                  <div className="border-t border-dashed pt-3 mt-2 space-y-1.5 text-xs text-muted-foreground">
-                    <div className="flex justify-between"><span>Método</span><span className="font-semibold text-foreground uppercase">{order.payment}</span></div>
-                    <div className="flex justify-between">
-                      <span>Status do Pagamento</span>
-                      <span className="font-semibold text-foreground">
-                        {order.paymentStatus === "approved" ? "PAGO" : order.paymentStatus === "pending" ? "AGUARDANDO PAGAMENTO" : "PAGAR NA ENTREGA"}
-                      </span>
+            {/* Itens do pedido — full width */}
+            <div className="md:col-span-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens do pedido</h3>
+              <div className="border rounded-lg overflow-hidden divide-y bg-card">
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="p-3 text-sm">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-semibold text-foreground">{item.qty}x {item.name}</span>
+                      <span className="font-semibold shrink-0 text-primary">{brl(item.unitPrice * item.qty)}</span>
                     </div>
-                    {order.changeFor && (
-                      <div className="flex justify-between text-amber-600 dark:text-amber-500 font-medium">
-                        <span>Troco para</span><span>{brl(order.changeFor)}</span>
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="pl-3 mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                        {item.addons.map((add) => {
+                          const p = parseAddonLabel(add.name);
+                          const prefix = p.kind === "size" ? "Tamanho:" : p.kind === "flavor" ? "Sabor:" : p.kind === "group" ? `${p.groupName}:` : "+";
+                          return (
+                            <div key={add.id} className="flex justify-between">
+                              <span>{prefix} {p.label}</span>
+                              {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
+                    {item.note && <p className="mt-1.5 pl-3 border-l-2 border-amber-400 text-xs text-amber-700 dark:text-amber-500 italic">Obs: {item.note}</p>}
                   </div>
+                ))}
+              </div>
+            </div>
+
+            {order.note && (
+              <div className="md:col-span-2">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Observações gerais</h3>
+                <p className="text-sm border rounded-lg bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/30 p-3 italic text-foreground/80">
+                  "{order.note}"
+                </p>
+              </div>
+            )}
+
+            {/* Valores */}
+            <div className="md:col-span-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Valores e pagamento</h3>
+              <div className="bg-muted/10 border rounded-lg p-4 text-sm space-y-2">
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(order.subtotal)}</span></div>
+                {order.deliveryFee > 0 && (
+                  <div className="flex justify-between"><span className="text-muted-foreground">Taxa de Entrega</span><span>{brl(order.deliveryFee)}</span></div>
+                )}
+                <div className="flex justify-between font-bold text-base border-t pt-2">
+                  <span>Total</span>
+                  <span className="text-primary">{brl(order.total)}</span>
+                </div>
+                <div className="border-t border-dashed pt-3 mt-2 space-y-1.5 text-xs text-muted-foreground">
+                  <div className="flex justify-between"><span>Método</span><span className="font-semibold text-foreground uppercase">{order.payment}</span></div>
+                  <div className="flex justify-between">
+                    <span>Status do Pagamento</span>
+                    <span className="font-semibold text-foreground">
+                      {order.paymentStatus === "approved" ? "PAGO" : order.paymentStatus === "pending" ? "AGUARDANDO PAGAMENTO" : "PAGAR NA ENTREGA"}
+                    </span>
+                  </div>
+                  {order.changeFor && (
+                    <div className="flex justify-between text-amber-600 dark:text-amber-500 font-medium">
+                      <span>Troco para</span><span>{brl(order.changeFor)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -249,9 +247,9 @@ export function OrderDetailsDrawer({
         <div className="p-4 bg-muted/30 border-t shrink-0 flex flex-col gap-3">
           <WhatsAppOrderActions order={order} storeName={storeName} />
           <div className="flex gap-2 flex-wrap">
-            <PrintOrderButton order={order} className="flex-1 min-w-[140px]" paperWidth={paperWidth} />
-            <PrintKitchenButton order={order} className="flex-1 min-w-[160px]" />
-            <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px]">Fechar</Button>
+            <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-sky-600 hover:bg-sky-700 text-white border-sky-600" paperWidth={paperWidth} />
+            <PrintKitchenButton order={order} className="flex-1 min-w-[160px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
+            <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px] border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Fechar</Button>
           </div>
           <Separator className="my-1" />
           <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="w-full" />
