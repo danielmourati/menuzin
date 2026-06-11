@@ -611,6 +611,37 @@ export function CartDrawer({
                         Adicionar mais itens
                       </button>
                     </div>
+
+                    {/* Cupom de desconto */}
+                    <div className="mx-4 mb-4 rounded-2xl border bg-card p-4">
+                      <div className="mb-2 flex items-center gap-2 font-semibold">
+                        <Ticket className="h-4 w-4" /> Cupom de desconto
+                      </div>
+                      {appliedCoupon ? (
+                        <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/10 px-3 py-2">
+                          <div className="text-sm">
+                            <p className="font-mono font-bold">{appliedCoupon.code}</p>
+                            <p className="text-xs text-success">Desconto de {brl(discount)} aplicado</p>
+                          </div>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={removeCoupon}>
+                            <XIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Input
+                            value={couponInput}
+                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                            placeholder="Digite o código"
+                            className="h-10 uppercase font-mono"
+                            maxLength={40}
+                          />
+                          <Button onClick={applyCoupon} disabled={couponLoading || !couponInput} className="h-10">
+                            {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
