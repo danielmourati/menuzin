@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Sparkles } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
@@ -21,32 +21,34 @@ const demoProducts = [
 const pricingPlans = [
   {
     id: "start",
-    name: "Start",
-    price: 0,
-    priceLabel: "Grátis",
-    tagline: "Para começar a receber pedidos hoje pelo WhatsApp.",
+    name: "Essencial",
+    price: 89,
+    priceLabel: "R$ 89",
+    tagline: "Para vendedores autônomos (MEI) que vendem pelo WhatsApp e Instagram.",
     features: [
+      "1 usuário com acesso",
       "Produtos ilimitados",
       "Dashboard completo",
       "Gestão de status de pedidos",
       "Pedidos direto no WhatsApp",
       "Relatórios básicos de gestão",
     ],
-    cta: "Começar grátis",
+    cta: "Começar agora",
   },
   {
     id: "pro",
-    name: "Pro",
-    price: 79,
-    priceLabel: "R$ 79",
-    tagline: "Para vender online com pagamento e estrutura profissional.",
+    name: "Controle",
+    price: 159,
+    priceLabel: "R$ 159",
+    tagline: "Para quem tem loja física e quer controle total da operação.",
     features: [
-      "Tudo do Plano Start",
+      "Até 3 usuários ou vendedores",
+      "Tudo do Plano Essencial",
       "Pagamento online com Mercado Pago",
       "Múltiplas impressoras (cozinha, bar, balcão)",
       "Suporte personalizado",
     ],
-    cta: "Assinar Pro",
+    cta: "Assinar Controle",
     highlighted: true,
   },
 ] as const;
@@ -212,8 +214,8 @@ function Landing() {
                 }`}
               >
                 {highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
-                    <Sparkles className="h-3 w-3" /> Recomendado
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
+                    MAIS ESCOLHIDO
                   </span>
                 )}
                 <h3 className="text-2xl font-bold">{p.name}</h3>
