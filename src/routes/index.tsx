@@ -10,6 +10,7 @@ import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
 import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroPhone from "@/assets/landing-hero-phone.png";
+import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
 
 const demoProducts = [
   { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
