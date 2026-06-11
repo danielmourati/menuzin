@@ -263,7 +263,7 @@ async function seedCategoriesForBusinessTypes(tenantId: string, types: string[])
   let order = 1;
   for (const [keyLower, kind] of wanted) {
     // Restaura caps originais a partir do mapeamento (uso primeiro hit)
-    const display = Array.from(wanted.keys()).includes(keyLower) ? capitalize(keyLower) : keyLower;
+    const display = capitalize(keyLower);
     await supabaseAdmin.from("categories").insert({
       tenant_id: tenantId,
       name: display,
