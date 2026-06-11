@@ -168,40 +168,20 @@ function Landing() {
       </section>
 
       <section className="border-y bg-muted/30">
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-16">
           <div className="text-center">
             <h2 className="text-2xl font-bold md:text-3xl">Pré-visualização do cardápio</h2>
             <p className="mt-2 text-sm text-muted-foreground">Veja como seus clientes vão pedir.</p>
           </div>
-          <div className="mx-auto mt-8 max-w-2xl rounded-3xl border bg-card p-2 shadow-[var(--shadow-pop)]">
-            <div className="rounded-2xl bg-gradient-to-b from-primary/10 to-transparent p-6">
-              <div className="flex items-center gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">B</div>
-                <div className="flex-1">
-                  <p className="font-semibold">Burger Prime</p>
-                  <p className="text-xs"><span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-semibold text-success">● Aberta agora</span> <span className="ml-2 text-muted-foreground">35–45 min</span></p>
-                </div>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                {demoProducts.map((p) => (
-                  <div key={p.name} className="flex flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm">
-                    <img src={p.img} alt={p.name} loading="lazy" width={768} height={768} className="aspect-square w-full object-cover" />
-                    <div className="flex flex-1 flex-col gap-1 p-2.5">
-                      <p className="text-sm font-semibold leading-tight">{p.name}</p>
-                      <p className="line-clamp-1 text-[11px] text-muted-foreground">{p.desc}</p>
-                      <div className="mt-1 flex items-center justify-between gap-1">
-                        <span className="text-sm font-bold text-primary">{brl(p.price)}</span>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">+ Adicionar</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex items-center justify-between rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
-                <span className="flex items-center gap-2 text-sm font-medium"><ShoppingBag className="h-4 w-4" /> 4 itens no carrinho</span>
-                <span className="font-bold">{brl(125.2)}</span>
-              </div>
-            </div>
+          <div className="mx-auto mt-10 max-w-5xl">
+            <img
+              src={landingPeopleOrdering}
+              alt="Amigos felizes fazendo pedido pelo celular em uma cafeteria"
+              loading="lazy"
+              width={1536}
+              height={864}
+              className="block h-auto w-full object-contain"
+            />
           </div>
         </div>
       </section>
