@@ -90,6 +90,8 @@ function Landing() {
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features">Recursos</a>
             <a href="#plans">Planos</a>
+            <a href="#faq">Dúvidas</a>
+            <a href="#contato">Contato</a>
             {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
           </nav>
           <div className="flex items-center gap-2">
