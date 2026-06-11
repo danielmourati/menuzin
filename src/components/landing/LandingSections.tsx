@@ -378,7 +378,7 @@ export function LandingFooter() {
           title="Contato"
           links={[
             { label: "WhatsApp", href: WHATSAPP_CONTACT_URL, external: true },
-            { label: "Entrar no painel", href: "/admin/login" },
+            { label: "Entrar", href: "/admin/login" },
           ]}
         />
       </div>
