@@ -109,8 +109,10 @@ function Landing() {
                   </Link>
                 </Button>
               )}
-              <Button asChild variant="outline" size="lg">
-                <Link to="/admin/dashboard">Entrar no painel</Link>
+              <Button asChild variant="outline" size="lg" className="gap-2">
+                <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
+                </a>
               </Button>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
