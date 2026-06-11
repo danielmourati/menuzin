@@ -261,15 +261,12 @@ function Landing() {
         </p>
       </section>
 
-      <footer className="border-t bg-card">
-        <div className="container mx-auto flex flex-col items-center justify-between gap-3 px-4 py-8 text-sm text-muted-foreground md:flex-row">
-          <p>© {new Date().getFullYear()} Menuzin. Vitrine digital para negócios food.</p>
-          <div className="flex gap-4">
-            <Link to="/platform/dashboard">Painel da plataforma</Link>
-            <Link to="/admin/dashboard">Painel do lojista</Link>
-          </div>
-        </div>
-      </footer>
+      <FeatureShowcaseSection products={demoProducts} />
+      <CTABanner />
+      <ContactSpecialistSection />
+      <FaqSection />
+      <LandingFooter />
+
       <WhatsAppFloatingButton />
     </div>
   );
