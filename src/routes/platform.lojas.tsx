@@ -61,9 +61,11 @@ function PlatformStores() {
     qc.invalidateQueries();
     navigate({ to: "/admin/dashboard" });
   };
+  const { isPlatformAdmin, loading: authLoading } = useAuth();
   const { data, isLoading, error } = useQuery({
     queryKey: ["platform", "stores"],
     queryFn: () => listPlatformStores(),
+    enabled: !authLoading && isPlatformAdmin,
   });
   const stores = data?.stores ?? [];
 
