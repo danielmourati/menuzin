@@ -133,12 +133,36 @@ function Landing() {
           <div className="relative flex items-end justify-center self-end lg:justify-end">
             <div className="pointer-events-none absolute inset-x-4 bottom-0 -z-10 h-2/3 rounded-[50%] gradient-brand opacity-25 blur-3xl" />
             <img
-              src={landingHeroPhone}
-              alt="Cliente fazendo pedido pelo cardápio digital Menuzin no celular"
-              width={1280}
-              height={1280}
-              className="block h-auto w-full max-w-sm object-contain object-bottom drop-shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-none lg:h-[640px] lg:w-auto xl:h-[760px]"
+              src={landingHeroDevices}
+              alt="Painel administrativo Menuzin no notebook e cardápio digital no celular"
+              width={1536}
+              height={1024}
+              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl sm:max-w-lg md:max-w-xl lg:max-w-none lg:w-[640px] xl:w-[760px]"
             />
+
+            {/* Floating elements */}
+            <div className="pointer-events-none absolute left-0 top-6 hidden animate-fade-in items-center gap-2 rounded-xl border bg-card/95 px-3 py-2 shadow-lg backdrop-blur sm:flex md:left-2 lg:left-4">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                <ShoppingBag className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-semibold leading-tight">Novo pedido #1058</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">R$ 64,80 · Delivery</p>
+              </div>
+            </div>
+
+            <div className="pointer-events-none absolute right-2 top-16 hidden items-center gap-2 rounded-full border bg-card/95 px-3 py-2 shadow-lg backdrop-blur sm:flex md:right-4 lg:right-6">
+              <div className="relative">
+                <Bell className="h-4 w-4 text-primary" />
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
+              </div>
+              <span className="text-[11px] font-semibold">3 novas notificações</span>
+            </div>
+
+            <div className="pointer-events-none absolute bottom-8 right-0 hidden items-center gap-2 rounded-2xl bg-[#25D366] px-3 py-2 text-white shadow-lg sm:flex md:right-2 lg:right-4">
+              <MessageCircle className="h-4 w-4" />
+              <span className="text-[11px] font-semibold">Pedido enviado ao WhatsApp</span>
+            </div>
           </div>
         </div>
       </section>
