@@ -1,15 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
 import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
 import landingComboSmash from "@/assets/demo-combo-smash.jpg";
 import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
-import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
-import landingHeroPhone from "@/assets/landing-hero-phone.png";
+import landingHeroDevices from "@/assets/landing-hero-devices.jpg";
+import landingPeopleOrdering from "@/assets/landing-people-ordering.jpg";
 import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
 import {
   FeatureShowcaseSection,
@@ -54,7 +53,7 @@ const pricingPlans = [
       "Tudo do Plano Essencial",
       "Pagamento online com Mercado Pago",
       "Múltiplas impressoras (cozinha, bar, balcão)",
-      "Suporte personalizado",
+      "Suporte individualizado e humano via WhatsApp",
     ],
     cta: "Assinar Controle",
     highlighted: true,
@@ -134,51 +133,55 @@ function Landing() {
           <div className="relative flex items-end justify-center self-end lg:justify-end">
             <div className="pointer-events-none absolute inset-x-4 bottom-0 -z-10 h-2/3 rounded-[50%] gradient-brand opacity-25 blur-3xl" />
             <img
-              src={landingHeroPhone}
-              alt="Cliente fazendo pedido pelo cardápio digital Menuzin no celular"
-              width={1280}
-              height={1280}
-              className="block h-auto w-full max-w-sm object-contain object-bottom drop-shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-none lg:h-[640px] lg:w-auto xl:h-[760px]"
+              src={landingHeroDevices}
+              alt="Painel administrativo Menuzin no notebook e cardápio digital no celular"
+              width={1536}
+              height={1024}
+              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl sm:max-w-lg md:max-w-xl lg:max-w-none lg:w-[640px] xl:w-[760px]"
             />
+
+            {/* Floating elements */}
+            <div className="pointer-events-none absolute left-0 top-6 hidden animate-fade-in items-center gap-2 rounded-xl border bg-card/95 px-3 py-2 shadow-lg backdrop-blur sm:flex md:left-2 lg:left-4">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                <ShoppingBag className="h-4 w-4" />
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] font-semibold leading-tight">Novo pedido #1058</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">R$ 64,80 · Delivery</p>
+              </div>
+            </div>
+
+            <div className="pointer-events-none absolute right-2 top-16 hidden items-center gap-2 rounded-full border bg-card/95 px-3 py-2 shadow-lg backdrop-blur sm:flex md:right-4 lg:right-6">
+              <div className="relative">
+                <Bell className="h-4 w-4 text-primary" />
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
+              </div>
+              <span className="text-[11px] font-semibold">3 novas notificações</span>
+            </div>
+
+            <div className="pointer-events-none absolute bottom-8 right-0 hidden items-center gap-2 rounded-2xl bg-[#25D366] px-3 py-2 text-white shadow-lg sm:flex md:right-2 lg:right-4">
+              <MessageCircle className="h-4 w-4" />
+              <span className="text-[11px] font-semibold">Pedido enviado ao WhatsApp</span>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="border-y bg-muted/30">
-        <div className="container mx-auto px-4 py-12">
+        <div className="container mx-auto px-4 py-16">
           <div className="text-center">
             <h2 className="text-2xl font-bold md:text-3xl">Pré-visualização do cardápio</h2>
             <p className="mt-2 text-sm text-muted-foreground">Veja como seus clientes vão pedir.</p>
           </div>
-          <div className="mx-auto mt-8 max-w-2xl rounded-3xl border bg-card p-2 shadow-[var(--shadow-pop)]">
-            <div className="rounded-2xl bg-gradient-to-b from-primary/10 to-transparent p-6">
-              <div className="flex items-center gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">B</div>
-                <div className="flex-1">
-                  <p className="font-semibold">Burger Prime</p>
-                  <p className="text-xs"><span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-semibold text-success">● Aberta agora</span> <span className="ml-2 text-muted-foreground">35–45 min</span></p>
-                </div>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                {demoProducts.map((p) => (
-                  <div key={p.name} className="flex flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm">
-                    <img src={p.img} alt={p.name} loading="lazy" width={768} height={768} className="aspect-square w-full object-cover" />
-                    <div className="flex flex-1 flex-col gap-1 p-2.5">
-                      <p className="text-sm font-semibold leading-tight">{p.name}</p>
-                      <p className="line-clamp-1 text-[11px] text-muted-foreground">{p.desc}</p>
-                      <div className="mt-1 flex items-center justify-between gap-1">
-                        <span className="text-sm font-bold text-primary">{brl(p.price)}</span>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">+ Adicionar</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex items-center justify-between rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
-                <span className="flex items-center gap-2 text-sm font-medium"><ShoppingBag className="h-4 w-4" /> 4 itens no carrinho</span>
-                <span className="font-bold">{brl(125.2)}</span>
-              </div>
-            </div>
+          <div className="mx-auto mt-10 max-w-5xl">
+            <img
+              src={landingPeopleOrdering}
+              alt="Amigos felizes fazendo pedido pelo celular em uma cafeteria"
+              loading="lazy"
+              width={1536}
+              height={864}
+              className="block h-auto w-full object-contain"
+            />
           </div>
         </div>
       </section>
