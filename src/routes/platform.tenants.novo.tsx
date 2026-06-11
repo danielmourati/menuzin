@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,10 +32,15 @@ function NewTenantPage() {
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
   const [cloneBurger, setCloneBurger] = useState(true);
+  const [businessTypes, setBusinessTypes] = useState<string[]>([]);
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   const [plan, setPlan] = useState<"start" | "pro">("start");
+
+  const toggleBusinessType = (t: string) => {
+    setBusinessTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+  };
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
@@ -83,6 +89,7 @@ function NewTenantPage() {
           theme_to: themeTo,
           active,
           plan,
+          business_types: businessTypes as ("pizzaria" | "hamburgueria" | "churrascaria" | "espetaria" | "restaurante" | "acaiteria" | "sorveteria" | "cafeteria" | "padaria" | "lanchonete" | "marmitaria" | "sushi" | "pastelaria" | "food_truck" | "bar" | "conveniencia" | "outros")[],
           owner_email: ownerEmail.trim().toLowerCase(),
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
