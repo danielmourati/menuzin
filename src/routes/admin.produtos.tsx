@@ -43,6 +43,8 @@ type Editing = {
   type: "standard" | "pizza";
   max_flavors: number | null;
   allow_observations: boolean;
+  free_gift_kind: "crust" | "product" | null;
+  free_gift_ref_id: string | null;
 };
 
 function ProductsPage() {
@@ -74,14 +76,19 @@ function ProductsPage() {
   );
   const isPizzaCategory = selectedCategory?.kind === "pizza";
 
+  const pizzaCatIds = useMemo(() => new Set(categories.filter((c) => c.kind === "pizza").map((c) => c.id)), [categories]);
   const filtered = useMemo(() => products.filter((p) => {
-    if (catFilter !== "todas" && p.category_id !== catFilter) return false;
+    if (catFilter === "todas") {
+      // pass
+    } else if (catFilter === "__pizza__") {
+      if (!p.category_id || !pizzaCatIds.has(p.category_id)) return false;
+    } else if (p.category_id !== catFilter) return false;
     if (statusFilter === "disponivel" && !p.available) return false;
     if (statusFilter === "indisponivel" && p.available) return false;
     if (statusFilter === "destaque" && !p.featured) return false;
     if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
-  }), [products, q, catFilter, statusFilter]);
+  }), [products, q, catFilter, statusFilter, pizzaCatIds]);
 
   const saveMut = useMutation({
     mutationFn: (input: Editing) => {
@@ -121,6 +128,7 @@ function ProductsPage() {
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, prep_time: null, sort_order: products.length + 1,
       type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
+      free_gift_kind: null, free_gift_ref_id: null,
     });
     setOpen(true);
   };
@@ -145,7 +153,13 @@ function ProductsPage() {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas categorias</SelectItem>
-              {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              {pizzaCatIds.size > 0 && <SelectItem value="__pizza__">🍕 Pizza (todas)</SelectItem>}
+              {categories.filter((c) => c.kind === "pizza").map((c) => (
+                <SelectItem key={c.id} value={c.id}>&nbsp;&nbsp;↳ {c.name}</SelectItem>
+              ))}
+              {categories.filter((c) => c.kind !== "pizza").map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -196,6 +210,8 @@ function ProductsPage() {
                       type: (p.type ?? "standard") as "standard" | "pizza",
                       max_flavors: p.max_flavors ?? null,
                       allow_observations: p.allow_observations ?? true,
+                      free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
+                      free_gift_ref_id: p.free_gift_ref_id ?? null,
                     });
                     setOpen(true);
                   }}><Edit2 className="h-4 w-4" /></Button>
