@@ -237,13 +237,14 @@ export function ProductModal({
           )}
 
           {/* Tamanhos (pizza-category) */}
-          {isPizzaCategory && (
+          {isPizzaCategory && visiblePizzaSizes.length > 0 && (
             <Section title="Tamanho" required>
               <RadioGroup value={sizeId ?? ""} onValueChange={(v) => { setSizeId(v); setFlavorIds([]); }} className="mt-2 space-y-2">
-                {pizzaSizes.map((s) => {
-                  const minPrice = pizzaFlavors.length
-                    ? Math.min(...pizzaFlavors.map((f) => f.pricesByCategorySizeId[s.id] ?? f.fallbackPrice))
-                    : 0;
+                {visiblePizzaSizes.map((s) => {
+                  const prices = pizzaFlavors
+                    .map((f) => f.pricesByCategorySizeId[s.id] ?? 0)
+                    .filter((n) => n > 0);
+                  const minPrice = prices.length ? Math.min(...prices) : 0;
                   return (
                     <label key={s.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                       <div className="flex items-center gap-3">
@@ -287,10 +288,16 @@ export function ProductModal({
               required
               hint={`Escolha até ${pizzaMaxFlavors} (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
             >
+              {priceLocked && (
+                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                  💡 O valor da pizza não muda ao adicionar mais sabores — prevalece o sabor de maior preço.
+                </p>
+              )}
               <div className="mt-2 space-y-2">
                 {pizzaFlavors.map((f) => {
                   const checked = flavorIds.includes(f.id);
                   const price = priceOfFlavor(f);
+                  const hidePrice = priceLocked && !checked;
                   return (
                     <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
                       <div className="flex items-start gap-3">
@@ -300,7 +307,9 @@ export function ProductModal({
                           {f.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>}
                         </div>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold text-primary">{brl(price)}</span>
+                      {!hidePrice && (
+                        <span className="shrink-0 text-sm font-semibold text-primary">{brl(price)}</span>
+                      )}
                     </label>
                   );
                 })}
