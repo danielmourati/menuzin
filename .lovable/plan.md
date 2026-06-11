@@ -1,52 +1,110 @@
+
 # Plano de implementação
 
-## 1. Admin > Produtos: hierarquia Pizza → subcategorias
-No filtro de categorias da tela `admin.produtos.tsx`, agrupar todas as categorias `kind === "pizza"` sob um item pai "Pizza" com as subcategorias (Tradicionais, Doces, Especiais…) listadas indentadas abaixo. Selecionar "Pizza" filtra todos os produtos de qualquer subcategoria pizza; selecionar uma subcategoria filtra só ela. Mesma lógica de agrupamento já existente no storefront (`$slug.tsx`) será reutilizada visualmente.
+## Tarefa atual
 
-## 2. Tamanhos de pizza: ocultar zerados e renderização
-Em `ProductModal.tsx` (storefront), na seção de tamanhos de pizza:
-- Filtrar tamanhos cujo menor preço entre os sabores disponíveis seja `0` ou inexistente — não exibir.
-- Corrigir o cálculo "A partir de" para usar o menor preço real entre os sabores irmãos para aquele `category_size_id` (hoje pode estar caindo em 0 quando há sabor sem preço cadastrado).
+### 1. Borda grátis (refatorar regra existente)
 
-## 3. Travar preço quando múltiplos sabores selecionados
-Quando o tamanho aceita 2+ sabores e o usuário já escolheu o 1º sabor:
-- O preço unitário fica fixado no valor do 1º sabor escolhido (regra "maior preço entre os escolhidos" já existe; vamos manter "maior preço" como política, mas travar visualmente).
-- Na lista de sabores sugeridos, ocultar/esmaecer os valores dos demais sabores (mostrar apenas nome + descrição), deixando claro que escolher outro sabor não altera o total.
-- Badge "Valor não muda" próximo à lista.
+Hoje já existe `free_gift_kind` (`crust|product|null`) + `free_gift_ref_id` em `products`. Vamos generalizar para suportar os 3 modos pedidos.
 
-## 4. Upsell de bebida durante o pedido
-Novo componente `UpsellDrawer` exibido **ao abrir o carrinho** (`CartDrawer.tsx`) **uma única vez por sessão de carrinho**:
-- Se o carrinho NÃO contém nenhum produto cuja categoria tenha nome contendo "bebida", "refri", "suco" (case-insensitive), sugerir até 4 produtos disponíveis dessas categorias do mesmo tenant.
-- Card compacto com imagem, nome, preço e botão "+ Adicionar". Adiciona direto ao carrinho sem abrir modal (produtos simples).
-- Se não houver bebida cadastrada, não exibe nada.
+**Migration**: adicionar coluna `free_crust_mode` em `public.products`:
+- `none` → sem borda grátis (padrão)
+- `fixed` → borda grátis específica (usa `free_gift_ref_id` apontando para `category_pizza_crusts.id`)
+- `customer_choice` → cliente escolhe qualquer borda da categoria, sem custo
 
-## 5. Pizza com adicional grátis (borda/refri grátis)
-No cadastro do produto pizza (`admin.produtos.tsx` aba Preço ou Classificação):
-- Novo bloco "Brinde incluso" com:
-  - Switch "Esta pizza inclui um brinde grátis"
-  - Tipo: `Borda` ou `Produto` (ex.: refrigerante)
-  - Se Borda → select com as bordas da categoria pizza (de `category_pizza_crusts`)
-  - Se Produto → select dos produtos do tenant
-- Persistir em 2 colunas novas em `products`: `free_gift_kind` (`crust|product|null`) e `free_gift_ref_id` (uuid).
-- No storefront `ProductModal.tsx`: quando o produto tem brinde de borda, pré-selecionar e travar a borda correspondente com preço 0 e label "Grátis". Quando brinde de produto, ao adicionar a pizza ao carrinho, adicionar também o produto-brinde como item separado com `basePrice: 0` e nota "Brinde".
+A coluna `free_gift_kind='product'` continua funcionando para brinde de bebida.
 
-Migration necessária: adicionar colunas em `public.products`.
+**Admin (`admin.produtos.tsx`)**: no bloco "Brinde incluso" (apenas quando produto é pizza), substituir o seletor atual por:
+- Switch "Borda grátis"
+- Quando ligado: radio com 2 opções
+  - "Definir borda fixa" → select com as bordas da categoria pizza
+  - "Cliente escolhe a borda grátis"
+- Bloco separado mantém "Brinde de produto (bebida etc.)" usando `free_gift_kind='product'`
 
-## 6. Substituir logo em todo o projeto
-- Subir `/mnt/user-uploads/logo_v1.png` via Lovable Assets → `src/assets/menuzin-logo.png.asset.json`.
-- Substituir todas as ocorrências do logotipo/wordmark atual nos componentes: `AdminLayout` (sidebar), `admin.login`, `index.tsx` (home), `platform.dashboard`, headers públicos, favicon meta no `__root.tsx`.
-- Ajustar tokens de cor no `src/styles.css` para alinhar com a paleta do novo logo: primary laranja `#F26522` e dark navy `#143C5A` (oklch equivalentes), mantendo contraste e dark mode. Atualizar `--primary`, `--primary-glow`, `--accent` e gradiente.
+**Storefront (`ProductModal.tsx`)**:
+- `fixed`: pré-selecionar a borda, esconder/desabilitar as outras, exibir badge "Borda grátis inclusa: <nome>"
+- `customer_choice`: tornar seleção de borda obrigatória, todas listadas com preço R$ 0 e badge "Grátis", validar antes de adicionar ao carrinho
+- `none`: comportamento atual (bordas opcionais com preço, se houver)
+
+Aplicar apenas a produtos do tipo pizza. Não quebrar fluxo de adicionais/complementos.
+
+### 2. Categoria especial "Oferta do Dia"
+
+Tratar uma categoria com flag `kind='oferta'` (novo valor) como produto promocional fechado.
+
+**Migration**:
+- Permitir `categories.kind = 'oferta'` (extender check/constraint).
+- Adicionar colunas em `products` para snapshot da oferta:
+  - `offer_original_price numeric` (preço de antes)
+  - `offer_fixed_size_id uuid` (FK opcional para `category_pizza_sizes`)
+  - `offer_fixed_crust_id uuid` (FK opcional para `category_pizza_crusts`)
+  - `offer_included_product_id uuid` (FK opcional para `products` — bebida inclusa)
+  - `offer_fixed_flavor_ids uuid[]` (lista de produtos-sabores fixos)
+  - `offer_pieces int`, `offer_max_flavors int`
+
+**Admin**:
+- Botão "+ Nova categoria especial" em `admin.categorias.tsx` cria categoria `kind='oferta'`.
+- Em `admin.produtos.tsx`, quando categoria selecionada é `kind='oferta'`, exibir formulário enxuto:
+  - Nome, descrição, imagem, ativo
+  - Preço normal + preço com desconto (validação: desconto < normal; % calculada automaticamente e exibida)
+  - Tamanho fixo (select), nº de fatias, máx. de sabores
+  - Sabores fixos (multi-select dentre os produtos-sabores)
+  - Borda inclusa (select de `category_pizza_crusts`)
+  - Bebida inclusa (select de produtos)
+- Esconder abas/blocos irrelevantes (tamanhos custom, sabores custom, grupos de adicionais) para esse tipo.
+
+**Storefront**:
+- `ProductCard` de oferta: preço normal riscado em cinza, preço promo em destaque, badge verde `-NN%`, lista do que está incluso.
+- `ProductModal` para oferta: "card fechado" — sem seleção de tamanho/sabor/borda/bebida; só quantidade + observações (se permitido) + botão adicionar.
+- Ao adicionar ao carrinho: criar item único com `addons` snapshot listando tamanho, sabores, borda, bebida e nota "Oferta do Dia".
+- Garantir que ticket de cozinha, recibo e modal admin de pedido mostrem o snapshot completo.
+
+### 3. Compatibilidade
+- Não mexer em fluxo de carrinho/checkout/impressão além de garantir que o snapshot da oferta apareça.
+- Manter pizzas normais inalteradas.
+- Todos os campos novos escopados por tenant via `products.tenant_id` existente.
+
+## Próxima tarefa (escopo separado, mesma entrega)
+
+### 4. Tipo de negócio no super-admin
+
+**Migration**: adicionar `tenants.business_types text[]` (array de slugs).
+
+**UI** (`platform.tenants.novo.tsx` + edição):
+- Seção "Tipo de negócio" com checkboxes multi-select:
+  pizzaria, hamburgueria, churrascaria, espetaria, restaurante, acaiteria, sorveteria, cafeteria, padaria, lanchonete, marmitaria, sushi, pastelaria, food_truck, bar, conveniencia, outros
+- Salvar no tenant.
+
+**Seed inteligente de categorias** após criar tenant:
+- pizzaria → "Pizza" (kind=pizza)
+- hamburgueria → "Hambúrgueres", "Combos", "Bebidas"
+- churrascaria/espetaria → "Espetos", "Porções", "Bebidas", "Combos"
+- Pular categorias já existentes (match por nome case-insensitive).
+- Tela de revisão pós-criação listando as sugeridas com toggle antes de inserir.
+
+### 5. Home page
+
+**Cards demo (`src/routes/index.tsx`)**: substituir `demoProducts` por foco em burgers/combos:
+- Burger Artesanal, Combo Smash, Burger Bacon, Combo Família, Batata + Refri.
+- Gerar 5 imagens via imagegen (jpg, realistas, comerciais). Remover imports de pizza/açaí se não usados em outro lugar.
+- Manter estrutura do card (imagem, nome, descrição, preço, CTA).
+
+**Card "demo store"**: substituir mockup atual por imagem gerada de mulher branca segurando smartphone com a tela do cardápio Menuzin. Gerar via imagegen em `src/assets/landing-hero-phone.jpg`, importar e renderizar no lugar do mockup atual.
+
+Sem menções a "MVP", manter branding "Menuzin", design responsivo.
 
 ## Arquivos afetados (principais)
-- `src/routes/admin.produtos.tsx` (1, 5)
-- `src/components/storefront/ProductModal.tsx` (2, 3, 5)
-- `src/components/storefront/CartDrawer.tsx` + novo `UpsellSuggestions.tsx` (4)
-- `src/lib/catalog-admin.functions.ts`, `src/lib/catalog.functions.ts`, `src/lib/db-adapters.ts`, `src/lib/domain-types.ts` (5)
-- Migration Supabase (5)
-- `src/assets/menuzin-logo.png.asset.json` + componentes com logo (6)
-- `src/styles.css` (6)
+
+- Migrations Supabase (3 novas: free_crust_mode, oferta colums, business_types)
+- `src/lib/db-types.ts`, `src/lib/domain-types.ts`, `src/lib/db-adapters.ts`
+- `src/lib/catalog-admin.functions.ts`, `src/lib/catalog.functions.ts`
+- `src/routes/admin.produtos.tsx`, `src/routes/admin.categorias.tsx`
+- `src/components/storefront/ProductModal.tsx`, `ProductCard.tsx`, `$slug.tsx`
+- `src/routes/platform.tenants.novo.tsx` (+ edição de tenant)
+- `src/routes/index.tsx` + novos assets de imagem
 
 ## Perguntas antes de implementar
-1. **Upsell**: mostrar como **drawer/modal ao abrir o carrinho** (1x por sessão) ou como **seção fixa dentro do CartDrawer** ("Que tal adicionar?") sempre visível?
-2. **Brinde grátis tipo Produto**: o produto-brinde deve ser **adicionado automaticamente ao carrinho** junto com a pizza, ou apenas **exibido como aviso** "Você ganhou 1 Refri 350ml" e o atendente entrega manualmente?
-3. **Cores do logo**: posso atualizar a paleta primária do app para o **laranja #F26522 + navy #143C5A** do logo, ou prefere manter as cores atuais e apenas trocar a imagem?
+
+1. **Brinde de produto vs borda grátis**: hoje o admin escolhe `crust` OU `product` (excludente). Quer manter excludente, ou permitir os dois ao mesmo tempo (ex.: pizza com borda Catupiry grátis + 1 refri grátis)?
+2. **Oferta do Dia — sabores fixos**: os sabores devem ser apenas exibidos como descrição (texto livre) ou precisam ser produtos-sabor reais existentes na categoria pizza do tenant (FK)? FK é mais rastreável mas exige cadastro prévio dos sabores.
+3. **Seed de categorias por tipo de negócio**: criar automaticamente ao salvar o tenant, ou só sugerir numa tela de revisão com checkboxes (admin marca quais quer inserir)?
