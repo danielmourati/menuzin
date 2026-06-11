@@ -95,6 +95,7 @@ function Landing() {
               <a href="#faq">Dúvidas</a>
               <a href="#contato">Contato</a>
               {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
+              <Link to="/admin/login">Entrar</Link>
             </nav>
             <div className="relative group">
               <span
