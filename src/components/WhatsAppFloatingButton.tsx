@@ -1,8 +1,15 @@
 import { MessageCircle } from "lucide-react";
 
+export const WHATSAPP_PHONE = "5586994422827";
+export const WHATSAPP_PHONE_DISPLAY = "(86) 99442-2827";
 export const WHATSAPP_CONTACT_URL =
-  "https://wa.me/5586994422827?text=" +
+  `https://wa.me/${WHATSAPP_PHONE}?text=` +
   encodeURIComponent("Olá, gostaria de saber mais sobre o Menuzin!");
+
+export function buildWhatsAppUrl(message: string) {
+  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
+}
+
 
 export function WhatsAppFloatingButton() {
   return (
