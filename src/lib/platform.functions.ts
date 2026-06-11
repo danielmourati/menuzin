@@ -123,6 +123,12 @@ const SlugSchema = z
   .regex(/^[a-z0-9-]+$/)
   .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
 
+const BUSINESS_TYPES = [
+  "pizzaria", "hamburgueria", "churrascaria", "espetaria", "restaurante",
+  "acaiteria", "sorveteria", "cafeteria", "padaria", "lanchonete",
+  "marmitaria", "sushi", "pastelaria", "food_truck", "bar", "conveniencia", "outros",
+] as const;
+
 const CreateTenantInput = z.object({
   slug: SlugSchema,
   name: z.string().min(2).max(120),
@@ -134,6 +140,7 @@ const CreateTenantInput = z.object({
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
   plan: z.enum(["start", "pro"]).default("start"),
+  business_types: z.array(z.enum(BUSINESS_TYPES)).optional().default([]),
   owner_user_id: z.string().uuid().nullable().optional(),
   owner_email: z.string().email().max(160).optional().nullable(),
   owner_password: z.string().min(8).max(72).optional().nullable(),
@@ -165,7 +172,8 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
         active: data.active,
         plan: data.plan,
         status: "ativa",
-      }).select("id").single();
+        business_types: data.business_types ?? [],
+      } as never).select("id").single();
     if (error || !tenant) throw new Error(error?.message || "Falha ao criar loja");
 
     // 1) Dono já existente (id informado)
@@ -215,8 +223,61 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }
     }
 
+    // Seed de categorias por tipo de negócio (apenas se não houver clone)
+    if (!data.clone_from_slug && (data.business_types?.length ?? 0) > 0) {
+      await seedCategoriesForBusinessTypes(tenant.id as string, data.business_types as string[]);
+    }
+
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
   });
+
+const BUSINESS_TYPE_CATEGORIES: Record<string, { name: string; kind: "standard" | "pizza" }[]> = {
+  pizzaria: [{ name: "Pizza", kind: "pizza" }, { name: "Bebidas", kind: "standard" }],
+  hamburgueria: [{ name: "Hambúrgueres", kind: "standard" }, { name: "Combos", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  churrascaria: [{ name: "Espetos", kind: "standard" }, { name: "Porções", kind: "standard" }, { name: "Bebidas", kind: "standard" }, { name: "Combos", kind: "standard" }],
+  espetaria: [{ name: "Espetos", kind: "standard" }, { name: "Porções", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  restaurante: [{ name: "Pratos executivos", kind: "standard" }, { name: "Porções", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  acaiteria: [{ name: "Açaí", kind: "standard" }, { name: "Acompanhamentos", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  sorveteria: [{ name: "Sorvetes", kind: "standard" }, { name: "Sundaes", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  cafeteria: [{ name: "Cafés", kind: "standard" }, { name: "Salgados", kind: "standard" }, { name: "Doces", kind: "standard" }],
+  padaria: [{ name: "Pães", kind: "standard" }, { name: "Salgados", kind: "standard" }, { name: "Doces", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  lanchonete: [{ name: "Lanches", kind: "standard" }, { name: "Salgados", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  marmitaria: [{ name: "Marmitas", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  sushi: [{ name: "Sushis", kind: "standard" }, { name: "Combinados", kind: "standard" }, { name: "Hot", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  pastelaria: [{ name: "Pastéis", kind: "standard" }, { name: "Caldo de Cana", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  food_truck: [{ name: "Especialidades", kind: "standard" }, { name: "Bebidas", kind: "standard" }],
+  bar: [{ name: "Petiscos", kind: "standard" }, { name: "Drinks", kind: "standard" }, { name: "Cervejas", kind: "standard" }],
+  conveniencia: [{ name: "Bebidas", kind: "standard" }, { name: "Lanches", kind: "standard" }, { name: "Doces", kind: "standard" }],
+};
+
+async function seedCategoriesForBusinessTypes(tenantId: string, types: string[]): Promise<void> {
+  // junta nomes deduplicados respeitando o primeiro kind encontrado
+  const wanted = new Map<string, "standard" | "pizza">();
+  for (const t of types) {
+    for (const c of (BUSINESS_TYPE_CATEGORIES[t] ?? [])) {
+      const k = c.name.toLowerCase();
+      if (!wanted.has(k)) wanted.set(k, c.kind);
+    }
+  }
+  if (wanted.size === 0) return;
+  let order = 1;
+  for (const [keyLower, kind] of wanted) {
+    // Restaura caps originais a partir do mapeamento (uso primeiro hit)
+    const display = capitalize(keyLower);
+    await supabaseAdmin.from("categories").insert({
+      tenant_id: tenantId,
+      name: display,
+      description: "",
+      sort_order: order++,
+      active: true,
+      kind,
+    } as never);
+  }
+}
+
+function capitalize(s: string): string {
+  return s.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
 
 /**
  * Clona categorias, produtos (com tamanhos/sabores) e grupos de complementos

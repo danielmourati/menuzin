@@ -61,10 +61,16 @@ export function ProductModal({
     );
   }, [isPizzaCategory, pizzaSizes, pizzaFlavors]);
 
-  // Free gift: pre-select crust at price 0 if applicable
-  const freeCrust = product?.freeGiftKind === "crust" && product.freeGiftRefId
+  // Borda grátis: três modos
+  const crustMode = (product?.freeCrustMode ?? "none") as "none" | "fixed" | "customer_choice";
+  const fixedFreeCrust = crustMode === "fixed" && product?.freeGiftKind === "crust" && product.freeGiftRefId
     ? pizzaCrusts.find((c) => c.id === product.freeGiftRefId)
     : undefined;
+  // Lista de bordas a exibir: 'fixed' restringe à crust definida; outros modos mostram todas
+  const visibleCrusts = useMemo(() => {
+    if (crustMode === "fixed" && fixedFreeCrust) return [fixedFreeCrust];
+    return pizzaCrusts;
+  }, [crustMode, fixedFreeCrust, pizzaCrusts]);
 
   useEffect(() => {
     if (open && product) {
@@ -79,7 +85,8 @@ export function ProductModal({
       }
       setGroupSelections({});
       setDoughId(pizzaDoughs[0]?.id ?? null);
-      setCrustId(freeCrust?.id ?? null);
+      // Pré-seleciona borda fixa; customer_choice deixa vazio (obrigatório escolher)
+      setCrustId(fixedFreeCrust?.id ?? null);
       setNote("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +134,11 @@ export function ProductModal({
   const showPizzaExtras = product.categoryKind === "pizza";
   const selectedDough = showPizzaExtras ? pizzaDoughs.find((d) => d.id === doughId) : undefined;
   const selectedCrust = showPizzaExtras ? pizzaCrusts.find((c) => c.id === crustId) : undefined;
-  const isCrustFree = !!(freeCrust && selectedCrust && selectedCrust.id === freeCrust.id);
+  // Crust é "grátis" quando: modo fixed e bate com a fixedFreeCrust, OU modo customer_choice (qualquer escolha)
+  const isCrustFree = !!selectedCrust && (
+    (crustMode === "fixed" && !!fixedFreeCrust && selectedCrust.id === fixedFreeCrust.id) ||
+    crustMode === "customer_choice"
+  );
   const doughSum = selectedDough?.extraPrice ?? 0;
   const crustSum = selectedCrust && !isCrustFree ? selectedCrust.extraPrice : 0;
 
@@ -175,6 +186,10 @@ export function ProductModal({
     }
     if (showPizzaExtras && pizzaDoughs.length > 0 && !selectedDough) {
       toast.error("Escolha a massa da pizza");
+      return;
+    }
+    if (showPizzaExtras && crustMode === "customer_choice" && !selectedCrust) {
+      toast.error("Escolha sua borda grátis");
       return;
     }
     const extras: ProductAddon[] = [];
@@ -375,11 +390,21 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Borda (categoria pizza) — opcional */}
-          {showPizzaExtras && pizzaCrusts.length > 0 && (
-            <Section title="Borda" hint={freeCrust ? "Brinde incluso 🎁" : undefined}>
+          {/* Borda (categoria pizza) — comportamento varia conforme freeCrustMode */}
+          {showPizzaExtras && visibleCrusts.length > 0 && (
+            <Section
+              title="Borda"
+              required={crustMode === "customer_choice"}
+              hint={
+                crustMode === "fixed"
+                  ? "Borda grátis inclusa 🎁"
+                  : crustMode === "customer_choice"
+                    ? "Escolha sua borda grátis 🎁"
+                    : undefined
+              }
+            >
               <div className="mt-2 space-y-2">
-                {!freeCrust && (
+                {crustMode === "none" && (
                   <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
                       <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
@@ -387,16 +412,30 @@ export function ProductModal({
                     </div>
                   </label>
                 )}
-                {pizzaCrusts.map((c) => {
-                  const isFree = freeCrust?.id === c.id;
+                {visibleCrusts.map((c) => {
+                  const isFixed = crustMode === "fixed" && fixedFreeCrust?.id === c.id;
+                  const isCustomerChoice = crustMode === "customer_choice";
+                  const showGratis = isFixed || isCustomerChoice;
+                  const disabled = crustMode === "fixed" && !isFixed; // não deveria aparecer, mas garante
                   return (
-                    <label key={c.id} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition hover:border-primary/40 ${isFree ? "border-success/40 bg-success/5" : "bg-card"}`}>
+                    <label
+                      key={c.id}
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 transition hover:border-primary/40 ${
+                        showGratis ? "border-success/40 bg-success/5" : "bg-card"
+                      } ${disabled ? "opacity-50 pointer-events-none" : ""}`}
+                    >
                       <div className="flex items-center gap-3">
-                        <input type="radio" name="crust" checked={crustId === c.id} onChange={() => setCrustId(c.id)} />
+                        <input
+                          type="radio"
+                          name="crust"
+                          checked={crustId === c.id}
+                          onChange={() => setCrustId(c.id)}
+                          disabled={disabled || isFixed}
+                        />
                         <span className="text-sm font-medium">{c.name}</span>
-                        {isFree && <Badge className="bg-success text-success-foreground border-0 text-[10px] uppercase">Grátis</Badge>}
+                        {showGratis && <Badge className="bg-success text-success-foreground border-0 text-[10px] uppercase">Grátis</Badge>}
                       </div>
-                      {!isFree && c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
+                      {!showGratis && c.extraPrice > 0 && <span className="text-xs font-semibold text-primary">+ {brl(c.extraPrice)}</span>}
                     </label>
                   );
                 })}

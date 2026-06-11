@@ -4,16 +4,18 @@ import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
-import landingBurger from "@/assets/landing-burger.jpg";
-import landingPizza from "@/assets/landing-pizza.jpg";
-import landingAcai from "@/assets/landing-acai.jpg";
-import landingCombo from "@/assets/landing-combo.jpg";
+import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
+import landingComboSmash from "@/assets/demo-combo-smash.jpg";
+import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
+import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
+import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
+import landingHeroPhone from "@/assets/landing-hero-phone.jpg";
 
 const demoProducts = [
-  { name: "Smash Duplo", desc: "Pão brioche, 2 blends, cheddar", price: 28.9, img: landingBurger },
-  { name: "Pizza Pepperoni", desc: "Mussarela, pepperoni, manjericão", price: 49.9, img: landingPizza },
-  { name: "Açaí 500ml", desc: "Banana, granola, leite condensado", price: 22.5, img: landingAcai },
-  { name: "Combo Família", desc: "Burger + batata + refri", price: 39.9, img: landingCombo },
+  { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
+  { name: "Combo Smash", desc: "Smash + batata + refri", price: 38.9, img: landingComboSmash },
+  { name: "Burger Bacon", desc: "Bacon crocante, cheddar, brioche", price: 34.9, img: landingBurgerBacon },
+  { name: "Batata + Refri", desc: "Porção de batata com refri 350ml", price: 18.5, img: landingBatataRefri },
 ];
 
 const pricingPlans = [
@@ -117,34 +119,52 @@ function Landing() {
 
           <div className="relative">
             <div className="absolute -inset-6 -z-10 rounded-3xl gradient-brand opacity-25 blur-3xl" />
-            <div className="rounded-3xl border bg-card p-2 shadow-[var(--shadow-pop)]">
-              <div className="rounded-2xl bg-gradient-to-b from-primary/10 to-transparent p-6">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">B</div>
-                  <div className="flex-1">
-                    <p className="font-semibold">Burger Prime</p>
-                    <p className="text-xs"><span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-semibold text-success">● Aberta agora</span> <span className="ml-2 text-muted-foreground">35–45 min</span></p>
-                  </div>
+            <div className="overflow-hidden rounded-3xl border bg-card shadow-[var(--shadow-pop)]">
+              <img
+                src={landingHeroPhone}
+                alt="Cliente fazendo pedido pelo cardápio digital Menuzin no celular"
+                width={1280}
+                height={1280}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y bg-muted/30">
+        <div className="container mx-auto px-4 py-12">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold md:text-3xl">Pré-visualização do cardápio</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Veja como seus clientes vão pedir.</p>
+          </div>
+          <div className="mx-auto mt-8 max-w-2xl rounded-3xl border bg-card p-2 shadow-[var(--shadow-pop)]">
+            <div className="rounded-2xl bg-gradient-to-b from-primary/10 to-transparent p-6">
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">B</div>
+                <div className="flex-1">
+                  <p className="font-semibold">Burger Prime</p>
+                  <p className="text-xs"><span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 font-semibold text-success">● Aberta agora</span> <span className="ml-2 text-muted-foreground">35–45 min</span></p>
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  {demoProducts.map((p) => (
-                    <div key={p.name} className="flex flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm">
-                      <img src={p.img} alt={p.name} loading="lazy" width={768} height={768} className="aspect-square w-full object-cover" />
-                      <div className="flex flex-1 flex-col gap-1 p-2.5">
-                        <p className="text-sm font-semibold leading-tight">{p.name}</p>
-                        <p className="line-clamp-1 text-[11px] text-muted-foreground">{p.desc}</p>
-                        <div className="mt-1 flex items-center justify-between gap-1">
-                          <span className="text-sm font-bold text-primary">{brl(p.price)}</span>
-                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">+ Adicionar</span>
-                        </div>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                {demoProducts.map((p) => (
+                  <div key={p.name} className="flex flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm">
+                    <img src={p.img} alt={p.name} loading="lazy" width={768} height={768} className="aspect-square w-full object-cover" />
+                    <div className="flex flex-1 flex-col gap-1 p-2.5">
+                      <p className="text-sm font-semibold leading-tight">{p.name}</p>
+                      <p className="line-clamp-1 text-[11px] text-muted-foreground">{p.desc}</p>
+                      <div className="mt-1 flex items-center justify-between gap-1">
+                        <span className="text-sm font-bold text-primary">{brl(p.price)}</span>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">+ Adicionar</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-5 flex items-center justify-between rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
-                  <span className="flex items-center gap-2 text-sm font-medium"><ShoppingBag className="h-4 w-4" /> 3 itens no carrinho</span>
-                  <span className="font-bold">{brl(78.7)}</span>
-                </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 flex items-center justify-between rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
+                <span className="flex items-center gap-2 text-sm font-medium"><ShoppingBag className="h-4 w-4" /> 4 itens no carrinho</span>
+                <span className="font-bold">{brl(125.2)}</span>
               </div>
             </div>
           </div>

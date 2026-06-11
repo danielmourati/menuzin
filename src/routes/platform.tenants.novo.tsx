@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,10 +32,15 @@ function NewTenantPage() {
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
   const [cloneBurger, setCloneBurger] = useState(true);
+  const [businessTypes, setBusinessTypes] = useState<string[]>([]);
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   const [plan, setPlan] = useState<"start" | "pro">("start");
+
+  const toggleBusinessType = (t: string) => {
+    setBusinessTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+  };
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
@@ -83,6 +89,7 @@ function NewTenantPage() {
           theme_to: themeTo,
           active,
           plan,
+          business_types: businessTypes as ("pizzaria" | "hamburgueria" | "churrascaria" | "espetaria" | "restaurante" | "acaiteria" | "sorveteria" | "cafeteria" | "padaria" | "lanchonete" | "marmitaria" | "sushi" | "pastelaria" | "food_truck" | "bar" | "conveniencia" | "outros")[],
           owner_email: ownerEmail.trim().toLowerCase(),
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
@@ -190,6 +197,41 @@ function NewTenantPage() {
             </div>
           </div>
 
+          <div className="space-y-3 rounded-2xl border p-4">
+            <div>
+              <p className="font-medium">Tipo de negócio</p>
+              <p className="text-xs text-muted-foreground">
+                Selecione um ou mais tipos. Se o catálogo não for clonado, categorias padrão serão criadas automaticamente.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {[
+                { v: "pizzaria", l: "Pizzaria" },
+                { v: "hamburgueria", l: "Hamburgueria" },
+                { v: "churrascaria", l: "Churrascaria" },
+                { v: "espetaria", l: "Espetaria" },
+                { v: "restaurante", l: "Restaurante" },
+                { v: "acaiteria", l: "Açaíteria" },
+                { v: "sorveteria", l: "Sorveteria" },
+                { v: "cafeteria", l: "Cafeteria" },
+                { v: "padaria", l: "Padaria" },
+                { v: "lanchonete", l: "Lanchonete" },
+                { v: "marmitaria", l: "Marmitaria" },
+                { v: "sushi", l: "Sushi/Japonês" },
+                { v: "pastelaria", l: "Pastelaria" },
+                { v: "food_truck", l: "Food Truck" },
+                { v: "bar", l: "Bar e Petiscaria" },
+                { v: "conveniencia", l: "Conveniência" },
+                { v: "outros", l: "Outros" },
+              ].map((t) => (
+                <label key={t.v} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-card p-2 text-sm transition hover:border-primary/40">
+                  <Checkbox checked={businessTypes.includes(t.v)} onCheckedChange={() => toggleBusinessType(t.v)} />
+                  <span>{t.l}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center justify-between rounded-2xl border p-4">
             <div>
               <p className="font-medium">Clonar catálogo do Burger Prime</p>
@@ -199,6 +241,7 @@ function NewTenantPage() {
             </div>
             <Switch checked={cloneBurger} onCheckedChange={setCloneBurger} />
           </div>
+
 
           <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
             <div>

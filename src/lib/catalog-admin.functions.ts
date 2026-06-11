@@ -45,7 +45,7 @@ const CategoryInput = z.object({
   description: z.string().max(500).optional().default(""),
   sort_order: z.number().int().min(0).max(9999).default(0),
   active: z.boolean().default(true),
-  kind: z.enum(["standard", "pizza"]).default("standard"),
+  kind: z.enum(["standard", "pizza", "oferta"]).default("standard"),
 });
 
 export const saveCategory = createServerFn({ method: "POST" })
@@ -156,6 +156,15 @@ const ProductInput = z.object({
   allow_observations: z.boolean().default(true),
   free_gift_kind: z.enum(["crust", "product"]).nullable().optional(),
   free_gift_ref_id: z.string().uuid().nullable().optional(),
+  free_crust_mode: z.enum(["none", "fixed", "customer_choice"]).default("none"),
+  // Oferta do Dia
+  offer_original_price: z.number().min(0).max(99999).nullable().optional(),
+  offer_fixed_size_id: z.string().uuid().nullable().optional(),
+  offer_fixed_crust_id: z.string().uuid().nullable().optional(),
+  offer_included_product_id: z.string().uuid().nullable().optional(),
+  offer_fixed_flavor_ids: z.array(z.string().uuid()).optional().default([]),
+  offer_pieces: z.number().int().min(1).max(99).nullable().optional(),
+  offer_max_flavors: z.number().int().min(1).max(6).nullable().optional(),
 });
 
 export const saveProduct = createServerFn({ method: "POST" })
@@ -189,6 +198,14 @@ export const saveProduct = createServerFn({ method: "POST" })
       allow_observations: data.allow_observations,
       free_gift_kind: data.free_gift_kind ?? null,
       free_gift_ref_id: data.free_gift_ref_id ?? null,
+      free_crust_mode: data.free_crust_mode,
+      offer_original_price: data.offer_original_price ?? null,
+      offer_fixed_size_id: data.offer_fixed_size_id ?? null,
+      offer_fixed_crust_id: data.offer_fixed_crust_id ?? null,
+      offer_included_product_id: data.offer_included_product_id ?? null,
+      offer_fixed_flavor_ids: data.offer_fixed_flavor_ids ?? [],
+      offer_pieces: data.offer_pieces ?? null,
+      offer_max_flavors: data.offer_max_flavors ?? null,
     };
     if (data.id) {
       const { error } = await sb.from("products")
