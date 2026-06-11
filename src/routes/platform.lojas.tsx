@@ -311,6 +311,7 @@ function EditTenantDialog({
             </div>
             <Switch checked={active} onCheckedChange={setActive} />
           </div>
+          <OwnerEditor tenantId={store.id} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
