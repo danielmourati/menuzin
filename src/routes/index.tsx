@@ -238,7 +238,9 @@ function Landing() {
                   size="lg"
                   variant={highlighted ? "default" : "outline"}
                 >
-                  <Link to="/admin/login">{p.cta}</Link>
+                  <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                    {p.cta}
+                  </a>
                 </Button>
               </div>
             );
