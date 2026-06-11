@@ -33,7 +33,7 @@ export type Product = {
   name: string;
   category: string;
   categoryId?: string | null;
-  categoryKind?: "standard" | "pizza";
+  categoryKind?: "standard" | "pizza" | "oferta";
   description: string;
   price: number;
   promoPrice?: number;
@@ -46,6 +46,15 @@ export type Product = {
   allowObservations: boolean;
   freeGiftKind?: "crust" | "product" | null;
   freeGiftRefId?: string | null;
+  freeCrustMode?: "none" | "fixed" | "customer_choice";
+  // Oferta do Dia
+  offerOriginalPrice?: number | null;
+  offerFixedSizeId?: string | null;
+  offerFixedCrustId?: string | null;
+  offerIncludedProductId?: string | null;
+  offerFixedFlavorIds?: string[];
+  offerPieces?: number | null;
+  offerMaxFlavors?: number | null;
   addons?: ProductAddon[];
   sizes?: ProductSize[];
   flavors?: ProductFlavor[];
@@ -58,7 +67,7 @@ export type Category = {
   description?: string;
   order: number;
   active: boolean;
-  kind?: "standard" | "pizza";
+  kind?: "standard" | "pizza" | "oferta";
 };
 
 export type PizzaExtra = { id: string; name: string; extraPrice: number };

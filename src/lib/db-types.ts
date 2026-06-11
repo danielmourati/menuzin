@@ -40,7 +40,7 @@ export type DbCategory = {
   description: string;
   sort_order: number;
   active: boolean;
-  kind: "standard" | "pizza";
+  kind: "standard" | "pizza" | "oferta";
 };
 
 export type DbCategoryPizzaSize = {
@@ -149,6 +149,15 @@ export type DbProduct = {
   allow_observations: boolean;
   free_gift_kind: "crust" | "product" | null;
   free_gift_ref_id: string | null;
+  free_crust_mode?: "none" | "fixed" | "customer_choice" | null;
+  // Oferta do Dia (snapshot)
+  offer_original_price?: number | null;
+  offer_fixed_size_id?: string | null;
+  offer_fixed_crust_id?: string | null;
+  offer_included_product_id?: string | null;
+  offer_fixed_flavor_ids?: string[] | null;
+  offer_pieces?: number | null;
+  offer_max_flavors?: number | null;
   addons: DbAddon[];
   sizes?: DbProductSize[];
   flavors?: DbProductFlavor[];

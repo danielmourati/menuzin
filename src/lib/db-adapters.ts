@@ -5,7 +5,7 @@ import type {
   ProductSize, ProductFlavor, AddonGroup, AddonOption,
 } from "./domain-types";
 
-export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: "standard" | "pizza" = "standard"): Product {
+export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: "standard" | "pizza" | "oferta" = "standard"): Product {
   return {
     id: p.id,
     name: p.name,
@@ -24,6 +24,14 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     allowObservations: p.allow_observations ?? true,
     freeGiftKind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
     freeGiftRefId: p.free_gift_ref_id ?? null,
+    freeCrustMode: (p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice",
+    offerOriginalPrice: p.offer_original_price != null ? Number(p.offer_original_price) : null,
+    offerFixedSizeId: p.offer_fixed_size_id ?? null,
+    offerFixedCrustId: p.offer_fixed_crust_id ?? null,
+    offerIncludedProductId: p.offer_included_product_id ?? null,
+    offerFixedFlavorIds: p.offer_fixed_flavor_ids ?? [],
+    offerPieces: p.offer_pieces ?? null,
+    offerMaxFlavors: p.offer_max_flavors ?? null,
     addons: (p.addons ?? []).map<ProductAddon>((a) => ({
       id: a.id, name: a.name, price: Number(a.price),
     })),
@@ -79,6 +87,6 @@ export function dbTenantToUi(t: DbTenant): Tenant {
 export function dbCategoriesToUi(rows: { id: string; name: string; sort_order: number; active: boolean; kind?: string | null }[]): Category[] {
   return rows.map((c) => ({
     id: c.id, name: c.name, order: c.sort_order, active: c.active,
-    kind: (c.kind === "pizza" ? "pizza" : "standard") as "standard" | "pizza",
+    kind: (c.kind === "pizza" ? "pizza" : c.kind === "oferta" ? "oferta" : "standard") as "standard" | "pizza" | "oferta",
   }));
 }
