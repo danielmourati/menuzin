@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Sparkles } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
