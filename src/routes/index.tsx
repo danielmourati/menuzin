@@ -1,15 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
 import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
 import landingComboSmash from "@/assets/demo-combo-smash.jpg";
 import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
-import landingComboFamilia from "@/assets/demo-combo-familia.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
-import landingHeroPhone from "@/assets/landing-hero-phone.png";
+import landingHeroDevices from "@/assets/landing-hero-devices.jpg";
+import landingPeopleOrdering from "@/assets/landing-people-ordering.jpg";
 import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
 import {
   FeatureShowcaseSection,
@@ -54,7 +53,7 @@ const pricingPlans = [
       "Tudo do Plano Essencial",
       "Pagamento online com Mercado Pago",
       "Múltiplas impressoras (cozinha, bar, balcão)",
-      "Suporte personalizado",
+      "Suporte individualizado e humano via WhatsApp",
     ],
     cta: "Assinar Controle",
     highlighted: true,
