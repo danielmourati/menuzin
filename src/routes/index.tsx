@@ -214,8 +214,8 @@ function Landing() {
                 }`}
               >
                 {highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
-                    <Sparkles className="h-3 w-3" /> Recomendado
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
+                    MAIS ESCOLHIDO
                   </span>
                 )}
                 <h3 className="text-2xl font-bold">{p.name}</h3>
