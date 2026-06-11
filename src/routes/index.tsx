@@ -90,8 +90,8 @@ function Landing() {
       </header>
 
       <section className="relative overflow-hidden">
-        <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
-          <div>
+        <div className="container mx-auto grid gap-8 px-4 pt-16 md:pt-24 lg:grid-cols-2 lg:items-end lg:gap-4">
+          <div className="pb-12 md:pb-20 lg:pb-32">
             <h1 className="text-4xl font-bold leading-tight text-balance md:text-6xl">
               A vitrine digital do seu <span className="text-primary">negócio food</span>.
             </h1>
@@ -117,17 +117,15 @@ function Landing() {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-3xl gradient-brand opacity-25 blur-3xl" />
-            <div className="overflow-hidden rounded-3xl border bg-card shadow-[var(--shadow-pop)]">
-              <img
-                src={landingHeroPhone}
-                alt="Cliente fazendo pedido pelo cardápio digital Menuzin no celular"
-                width={1280}
-                height={1280}
-                className="h-full w-full object-cover"
-              />
-            </div>
+          <div className="relative flex items-end justify-center self-end lg:justify-end">
+            <div className="pointer-events-none absolute inset-x-4 bottom-0 -z-10 h-2/3 rounded-[50%] gradient-brand opacity-25 blur-3xl" />
+            <img
+              src={landingHeroPhone}
+              alt="Cliente fazendo pedido pelo cardápio digital Menuzin no celular"
+              width={1280}
+              height={1280}
+              className="block h-auto w-full max-w-sm object-contain object-bottom drop-shadow-2xl sm:max-w-md md:max-w-lg lg:max-w-none lg:h-[640px] lg:w-auto xl:h-[760px]"
+            />
           </div>
         </div>
       </section>
