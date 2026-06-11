@@ -334,13 +334,11 @@ function OwnerEditor({ tenantId }: { tenantId: string }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
-  useState(() => {
-    return () => undefined;
-  });
-  if (data && fullName === "" && email === "" && (data.full_name || data.email)) {
+  useEffect(() => {
+    if (!data) return;
     setFullName(data.full_name ?? "");
     setEmail(data.email ?? "");
-  }
+  }, [data]);
 
   const hasOwner = !!data?.user_id;
   const mut = useMutation({
