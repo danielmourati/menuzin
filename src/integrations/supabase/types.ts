@@ -893,12 +893,20 @@ export type Database = {
           created_at: string
           description: string | null
           featured: boolean
+          free_crust_mode: string
           free_gift_kind: string | null
           free_gift_ref_id: string | null
           id: string
           image_url: string | null
           max_flavors: number | null
           name: string
+          offer_fixed_crust_id: string | null
+          offer_fixed_flavor_ids: string[]
+          offer_fixed_size_id: string | null
+          offer_included_product_id: string | null
+          offer_max_flavors: number | null
+          offer_original_price: number | null
+          offer_pieces: number | null
           prep_time: string | null
           price: number
           promo_price: number | null
@@ -914,12 +922,20 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          free_crust_mode?: string
           free_gift_kind?: string | null
           free_gift_ref_id?: string | null
           id?: string
           image_url?: string | null
           max_flavors?: number | null
           name: string
+          offer_fixed_crust_id?: string | null
+          offer_fixed_flavor_ids?: string[]
+          offer_fixed_size_id?: string | null
+          offer_included_product_id?: string | null
+          offer_max_flavors?: number | null
+          offer_original_price?: number | null
+          offer_pieces?: number | null
           prep_time?: string | null
           price: number
           promo_price?: number | null
@@ -935,12 +951,20 @@ export type Database = {
           created_at?: string
           description?: string | null
           featured?: boolean
+          free_crust_mode?: string
           free_gift_kind?: string | null
           free_gift_ref_id?: string | null
           id?: string
           image_url?: string | null
           max_flavors?: number | null
           name?: string
+          offer_fixed_crust_id?: string | null
+          offer_fixed_flavor_ids?: string[]
+          offer_fixed_size_id?: string | null
+          offer_included_product_id?: string | null
+          offer_max_flavors?: number | null
+          offer_original_price?: number | null
+          offer_pieces?: number | null
           prep_time?: string | null
           price?: number
           promo_price?: number | null
@@ -1133,6 +1157,7 @@ export type Database = {
           accepts_takeout: boolean
           active: boolean
           address: string | null
+          business_types: string[]
           city: string | null
           created_at: string
           delivery_fee: number
@@ -1165,6 +1190,7 @@ export type Database = {
           accepts_takeout?: boolean
           active?: boolean
           address?: string | null
+          business_types?: string[]
           city?: string | null
           created_at?: string
           delivery_fee?: number
@@ -1197,6 +1223,7 @@ export type Database = {
           accepts_takeout?: boolean
           active?: boolean
           address?: string | null
+          business_types?: string[]
           city?: string | null
           created_at?: string
           delivery_fee?: number
