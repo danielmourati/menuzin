@@ -28,7 +28,7 @@ type Editing = {
   description: string;
   sort_order: number;
   active: boolean;
-  kind: "standard" | "pizza";
+  kind: "standard" | "pizza" | "oferta";
 };
 
 function CategoriesPage() {
@@ -80,7 +80,7 @@ function CategoriesPage() {
 
   const list = data ?? [];
 
-  const openNew = (kind: "standard" | "pizza") => {
+  const openNew = (kind: "standard" | "pizza" | "oferta") => {
     setPickerOpen(false);
     setEditing({ name: "", description: "", sort_order: list.length + 1, active: true, kind });
     setOpen(true);
