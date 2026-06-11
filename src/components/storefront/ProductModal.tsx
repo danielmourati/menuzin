@@ -30,7 +30,7 @@ type PizzaFlavorOption = {
 };
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [],
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct,
 }: {
   product: Product | null;
   open: boolean;
@@ -39,6 +39,7 @@ export function ProductModal({
   pizzaFlavors?: PizzaFlavorOption[];
   pizzaDoughs?: PizzaExtra[];
   pizzaCrusts?: PizzaExtra[];
+  freeGiftProduct?: Product | null;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -195,6 +196,16 @@ export function ProductModal({
       basePrice,
       note: note || undefined,
     });
+    // Free gift: auto add a separate item at price 0 for each pizza
+    if (product.freeGiftKind === "product" && freeGiftProduct) {
+      add({
+        product: freeGiftProduct,
+        qty,
+        addons: [{ id: "brinde", name: `Brinde com ${product.name}`, price: 0 }],
+        basePrice: 0,
+        note: "🎁 Brinde",
+      });
+    }
     toast.success("Adicionado ao carrinho", { description: `${qty}x ${product.name}` });
     onOpenChange(false);
   };
