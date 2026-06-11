@@ -213,8 +213,10 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }).eq("id", ownerId);
     }
 
-    // === Clone de catálogo a partir de outro tenant (default: Burger Prime) ===
-    const sourceSlug = data.clone_from_slug ?? "burgerprime";
+    // === Clone de catálogo apenas se explicitamente solicitado ===
+    const sourceSlug = data.clone_from_slug && data.clone_from_slug.trim().length > 0
+      ? data.clone_from_slug.trim()
+      : null;
     if (sourceSlug) {
       const { data: src } = await supabaseAdmin
         .from("tenants").select("id").eq("slug", sourceSlug).maybeSingle();
@@ -224,7 +226,7 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
     }
 
     // Seed de categorias por tipo de negócio (apenas se não houver clone)
-    if (!data.clone_from_slug && (data.business_types?.length ?? 0) > 0) {
+    if (!sourceSlug && (data.business_types?.length ?? 0) > 0) {
       await seedCategoriesForBusinessTypes(tenant.id as string, data.business_types as string[]);
     }
 
