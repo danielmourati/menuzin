@@ -255,7 +255,7 @@ function Landing() {
                   }`}
                 >
                   Anual
-                  <span className="ml-2 inline-flex items-center rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success">
+                  <span className="ml-2 inline-flex items-center rounded-full bg-success px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success-foreground">
                     2 meses grátis
                   </span>
                 </button>
