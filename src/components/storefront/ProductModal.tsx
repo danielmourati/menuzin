@@ -188,6 +188,10 @@ export function ProductModal({
       toast.error("Escolha a massa da pizza");
       return;
     }
+    if (showPizzaExtras && crustMode === "customer_choice" && !selectedCrust) {
+      toast.error("Escolha sua borda grátis");
+      return;
+    }
     const extras: ProductAddon[] = [];
     if (isPizzaCategory && selectedPizzaSize) {
       extras.push({ id: `psize-${selectedPizzaSize.id}`, name: `Tamanho: ${selectedPizzaSize.name}`, price: 0 });
