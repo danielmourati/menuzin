@@ -45,6 +45,7 @@ type Editing = {
   allow_observations: boolean;
   free_gift_kind: "crust" | "product" | null;
   free_gift_ref_id: string | null;
+  free_crust_mode: "none" | "fixed" | "customer_choice";
 };
 
 function ProductsPage() {
@@ -128,7 +129,7 @@ function ProductsPage() {
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, prep_time: null, sort_order: products.length + 1,
       type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
-      free_gift_kind: null, free_gift_ref_id: null,
+      free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     });
     setOpen(true);
   };
@@ -212,6 +213,7 @@ function ProductsPage() {
                       allow_observations: p.allow_observations ?? true,
                       free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
                       free_gift_ref_id: p.free_gift_ref_id ?? null,
+                      free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
                     });
                     setOpen(true);
                   }}><Edit2 className="h-4 w-4" /></Button>
