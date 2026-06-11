@@ -42,6 +42,7 @@ import {
 } from "@/lib/platform.functions";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
+import { useAuth } from "@/lib/auth-context";
 import { setActiveTenantId } from "@/lib/active-tenant";
 
 export const Route = createFileRoute("/platform/lojas")({ component: PlatformStores });
@@ -60,9 +61,11 @@ function PlatformStores() {
     qc.invalidateQueries();
     navigate({ to: "/admin/dashboard" });
   };
+  const { isPlatformAdmin, loading: authLoading } = useAuth();
   const { data, isLoading, error } = useQuery({
     queryKey: ["platform", "stores"],
     queryFn: () => listPlatformStores(),
+    enabled: !authLoading && isPlatformAdmin,
   });
   const stores = data?.stores ?? [];
 
