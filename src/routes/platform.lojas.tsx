@@ -325,3 +325,82 @@ function EditTenantDialog({
     </Dialog>
   );
 }
+
+function OwnerEditor({ tenantId }: { tenantId: string }) {
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["platform", "tenant-owner", tenantId],
+    queryFn: () => adminGetTenantOwner({ data: { tenant_id: tenantId } }),
+  });
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  useState(() => {
+    return () => undefined;
+  });
+  if (data && fullName === "" && email === "" && (data.full_name || data.email)) {
+    setFullName(data.full_name ?? "");
+    setEmail(data.email ?? "");
+  }
+
+  const hasOwner = !!data?.user_id;
+  const mut = useMutation({
+    mutationFn: () => {
+      const payload: {
+        tenant_id: string;
+        full_name?: string;
+        email?: string;
+        new_password?: string;
+        create_if_missing?: boolean;
+      } = { tenant_id: tenantId };
+      if (fullName) payload.full_name = fullName;
+      if (email && email !== (data?.email ?? "")) payload.email = email;
+      if (!hasOwner && email) payload.email = email;
+      if (pw) payload.new_password = pw;
+      if (!hasOwner) payload.create_if_missing = true;
+      return adminUpdateTenantOwner({ data: payload });
+    },
+    onSuccess: (r) => {
+      toast.success(r.created ? "Administrador criado." : "Administrador atualizado.");
+      setPw("");
+      refetch();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="rounded-lg border p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">Administrador da loja</p>
+        {!hasOwner && !isLoading && (
+          <span className="text-xs text-warning">Nenhum admin vinculado</span>
+        )}
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <Label className="text-xs">Nome completo</Label>
+          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs">E-mail de acesso</Label>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label className="text-xs">
+            {hasOwner ? "Nova senha (opcional)" : "Senha inicial"}
+          </Label>
+          <Input
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder={hasOwner ? "Deixe em branco para manter" : "Defina a senha inicial"}
+          />
+        </div>
+      </div>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
+          {mut.isPending ? "Salvando..." : hasOwner ? "Atualizar admin" : "Criar admin"}
+        </Button>
+      </div>
+    </div>
+  );
+}
