@@ -103,13 +103,17 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
 }
 
 function PlatformDashboard() {
+  const { isPlatformAdmin, loading: authLoading } = useAuth();
+  const enabled = !authLoading && isPlatformAdmin;
   const { data: storesData, isLoading: storesLoading, error: storesError } = useQuery({
     queryKey: ["platform", "stores"],
     queryFn: () => listPlatformStores(),
+    enabled,
   });
   const { data: growthData } = useQuery({
     queryKey: ["platform", "growth"],
     queryFn: () => getPlatformGrowth(),
+    enabled,
   });
 
   if (storesLoading) {
