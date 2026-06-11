@@ -66,7 +66,11 @@ export const updateMyAdminAccount = createServerFn({ method: "POST" })
       } as never);
       if (error) throw new Error(error.message);
     }
-    const profPatch: Record<string, unknown> = {};
+    const profPatch: {
+      full_name?: string;
+      email?: string;
+      must_change_password?: boolean;
+    } = {};
     if (data.full_name) profPatch.full_name = data.full_name;
     if (data.email) profPatch.email = data.email;
     if (data.new_password) profPatch.must_change_password = false;
