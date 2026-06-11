@@ -13,6 +13,7 @@ import { CurrencyInput } from "@/components/ui/currency-input";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
+import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
 import {
   defaultSchedule,
   normalizeSchedule,
@@ -148,6 +149,9 @@ function SettingsPage() {
               <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
               <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>
+              <div className="md:col-span-2">
+                <AdminAccountCard />
+              </div>
             </TabsContent>
 
             <TabsContent value="horarios" className="mt-6 space-y-3">
@@ -283,3 +287,77 @@ function Row({ label, value, onChange }: { label: string; value: boolean; onChan
     </div>
   );
 }
+
+function AdminAccountCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["my-admin-account"],
+    queryFn: () => getMyAdminAccount(),
+  });
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  useEffect(() => {
+    if (!data) return;
+    setFullName(data.full_name ?? "");
+    setEmail(data.email ?? "");
+  }, [data]);
+
+  const mut = useMutation({
+    mutationFn: () => {
+      const payload: { full_name?: string; email?: string; new_password?: string } = {};
+      if (fullName && fullName !== (data?.full_name ?? "")) payload.full_name = fullName;
+      if (email && email !== (data?.email ?? "")) payload.email = email;
+      if (pw) payload.new_password = pw;
+      if (Object.keys(payload).length === 0) throw new Error("Nada para atualizar.");
+      return updateMyAdminAccount({ data: payload });
+    },
+    onSuccess: () => {
+      toast.success("Dados do administrador atualizados.");
+      setPw("");
+      qc.invalidateQueries({ queryKey: ["my-admin-account"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="rounded-2xl border bg-card p-4 mt-2">
+      <div className="mb-3">
+        <h3 className="text-base font-bold">Dados do administrador</h3>
+        <p className="text-xs text-muted-foreground">
+          Atualize o nome, e-mail de acesso e senha do seu usuário.
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <Label>Nome completo</Label>
+          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="mt-1.5" />
+        </div>
+        <div>
+          <Label>E-mail de acesso</Label>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5" />
+        </div>
+        <div className="md:col-span-2">
+          <Label>Nova senha (opcional)</Label>
+          <Input
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="Deixe em branco para manter a atual"
+            className="mt-1.5"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Mín. 8 caracteres, com maiúscula, minúscula, número e caractere especial.
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 flex justify-end">
+        <Button onClick={() => mut.mutate()} disabled={mut.isPending}>
+          {mut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Salvar dados do administrador
+        </Button>
+      </div>
+    </div>
+  );
+}
+
