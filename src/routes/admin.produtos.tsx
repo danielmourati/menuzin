@@ -263,7 +263,19 @@ function ProductsPage() {
                     setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
                   }}>
                     <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}{c.kind === "pizza" ? " 🍕" : ""}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      {categories.filter((c) => c.kind !== "pizza").map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                      {pizzaCatIds.size > 0 && (
+                        <>
+                          <div className="px-2 pt-2 pb-1 text-xs font-semibold text-muted-foreground">🍕 Pizza</div>
+                          {categories.filter((c) => c.kind === "pizza").map((c) => (
+                            <SelectItem key={c.id} value={c.id}>&nbsp;&nbsp;↳ {c.name}</SelectItem>
+                          ))}
+                        </>
+                      )}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
