@@ -95,10 +95,17 @@ function Landing() {
             <a href="#contato">Contato</a>
             {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
           </nav>
-          <div className="relative flex items-center">
-            <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-primary/60" aria-hidden />
-            <Button asChild size="sm" className="relative gap-2 shadow-lg">
-              <a href="#plans">Começar agora <ArrowRight className="h-4 w-4" /></a>
+          <div className="relative group">
+            <span
+              className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-primary via-primary/70 to-primary opacity-60 blur-md transition duration-300 group-hover:opacity-100 group-hover:blur-lg"
+              aria-hidden
+            />
+            <Button
+              asChild
+              size="sm"
+              className="relative shadow-lg transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:shadow-xl"
+            >
+              <a href="#plans">Começar agora</a>
             </Button>
           </div>
         </div>
