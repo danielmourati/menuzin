@@ -20,6 +20,7 @@ import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entr
 import { Route as AdminRelatoriosRouteImport } from './routes/admin.relatorios'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
@@ -92,6 +93,11 @@ const AdminProdutosRoute = AdminProdutosRouteImport.update({
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
   id: '/admin/pedidos',
   path: '/admin/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
+  id: '/admin/observacoes',
+  path: '/admin/observacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/relatorios': typeof AdminRelatoriosRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByTo {
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/relatorios': typeof AdminRelatoriosRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/relatorios': typeof AdminRelatoriosRoute
@@ -296,6 +305,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/login'
+    | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/relatorios'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/login'
+    | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/relatorios'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/login'
+    | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/relatorios'
@@ -388,6 +400,7 @@ export interface RootRouteChildren {
   AdminCuponsRoute: typeof AdminCuponsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminObservacoesRoute: typeof AdminObservacoesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
   AdminRelatoriosRoute: typeof AdminRelatoriosRoute
@@ -479,6 +492,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/pedidos'
       fullPath: '/admin/pedidos'
       preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/observacoes': {
+      id: '/admin/observacoes'
+      path: '/admin/observacoes'
+      fullPath: '/admin/observacoes'
+      preLoaderRoute: typeof AdminObservacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -663,6 +683,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminCuponsRoute: AdminCuponsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminObservacoesRoute: AdminObservacoesRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
   AdminRelatoriosRoute: AdminRelatoriosRoute,
