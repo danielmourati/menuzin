@@ -503,9 +503,11 @@ export function ProductModal({
                   {activeOptions.map((o) => {
                     const checked = isOptionSelected(g, o);
                     return (
-                      <label
+                      <button
+                        type="button"
                         key={`${g.id}-${o.id}`}
-                        className={`flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
+                        onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
                       >
                         <div className="flex items-center gap-3">
                           {isRadio ? (
@@ -515,25 +517,14 @@ export function ProductModal({
                               {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
                             </span>
                           ) : (
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                            />
+                            <Checkbox checked={checked} />
                           )}
                           <span className="text-sm">{o.name}</span>
                         </div>
                         {o.price > 0 && (
                           <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
                         )}
-                        {isRadio && (
-                          <input
-                            type="radio"
-                            className="sr-only"
-                            checked={checked}
-                            onChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                          />
-                        )}
-                      </label>
+                      </button>
                     );
                   })}
                 </div>
