@@ -149,6 +149,7 @@ const ProductInput = z.object({
   image_url: z.string().max(1000).optional().nullable(),
   available: z.boolean().default(true),
   featured: z.boolean().default(false),
+  bestseller: z.boolean().default(false),
   prep_time: z.string().max(40).optional().nullable(),
   sort_order: z.number().int().min(0).max(99999).default(0),
   type: z.enum(["standard", "pizza"]).default("standard"),
