@@ -18,6 +18,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     image: p.image_url ?? "",
     available: p.available,
     featured: p.featured,
+    bestseller: p.bestseller ?? false,
     prepTime: p.prep_time ?? undefined,
     type: (p.type ?? "standard") as "standard" | "pizza",
     maxFlavors: p.max_flavors ?? undefined,
@@ -44,6 +45,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     })),
     addonGroups: (p.addonGroups ?? []).map<AddonGroup>((g) => ({
       id: g.id, name: g.name,
+      description: g.description ?? "",
       kind: (g.kind ?? "adicional"),
       required: g.required,
       minSelect: g.min_select, maxSelect: g.max_select, sortOrder: g.sort_order,

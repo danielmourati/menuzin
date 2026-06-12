@@ -42,6 +42,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          description: string
           id: string
           kind: string
           max_select: number
@@ -55,6 +56,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          description?: string
           id?: string
           kind?: string
           max_select?: number
@@ -68,6 +70,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          description?: string
           id?: string
           kind?: string
           max_select?: number
@@ -889,6 +892,7 @@ export type Database = {
         Row: {
           allow_observations: boolean
           available: boolean
+          bestseller: boolean
           category_id: string | null
           created_at: string
           description: string | null
@@ -918,6 +922,7 @@ export type Database = {
         Insert: {
           allow_observations?: boolean
           available?: boolean
+          bestseller?: boolean
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -947,6 +952,7 @@ export type Database = {
         Update: {
           allow_observations?: boolean
           available?: boolean
+          bestseller?: boolean
           category_id?: string | null
           created_at?: string
           description?: string | null

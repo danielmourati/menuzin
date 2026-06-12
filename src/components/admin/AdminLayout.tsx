@@ -23,6 +23,7 @@ const items = [
   { to: "/admin/produtos", label: "Produtos", icon: Package },
   { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
   { to: "/admin/adicionais", label: "Adicionais", icon: Layers },
+  { to: "/admin/observacoes", label: "Grupos de observação", icon: Layers },
   { to: "/admin/cupons", label: "Cupons", icon: Ticket },
   { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },

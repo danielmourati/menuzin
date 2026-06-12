@@ -38,6 +38,7 @@ type Editing = {
   image_url: string | null;
   available: boolean;
   featured: boolean;
+  bestseller: boolean;
   prep_time: string | null;
   sort_order: number;
   type: "standard" | "pizza";
@@ -127,7 +128,7 @@ function ProductsPage() {
     setEditing({
       name: "", description: "", category_id: categories[0]?.id ?? null,
       price: 0, promo_price: null, image_url: "", available: true,
-      featured: false, prep_time: null, sort_order: products.length + 1,
+      featured: false, bestseller: false, prep_time: null, sort_order: products.length + 1,
       type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     });
@@ -206,7 +207,7 @@ function ProductsPage() {
                       id: p.id, name: p.name, description: p.description ?? "",
                       category_id: p.category_id, price: Number(p.price),
                       promo_price: p.promo_price != null ? Number(p.promo_price) : null,
-                      image_url: p.image_url ?? "", available: p.available, featured: p.featured,
+                      image_url: p.image_url ?? "", available: p.available, featured: p.featured, bestseller: (p as { bestseller?: boolean }).bestseller ?? false,
                       prep_time: p.prep_time ?? null, sort_order: p.sort_order,
                       type: (p.type ?? "standard") as "standard" | "pizza",
                       max_flavors: p.max_flavors ?? null,
@@ -292,6 +293,7 @@ function ProductsPage() {
                 <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 25 min" /></div>
                 <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
                 <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
+                <div className="flex items-center justify-between rounded-xl border p-3"><Label>🔥 Mais vendido</Label><Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} /></div>
                 <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
                 <DialogFooter className="pt-3">
                   <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
@@ -386,6 +388,7 @@ function PizzaProductForm({
         <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 30 min" /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
+        <div className="flex items-center justify-between rounded-xl border p-3"><Label>🔥 Mais vendido</Label><Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
 
         <BordaGratisPicker

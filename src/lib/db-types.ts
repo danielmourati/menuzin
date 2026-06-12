@@ -115,6 +115,7 @@ export type DbAddonGroup = {
   id: string;
   tenant_id: string;
   name: string;
+  description: string;
   kind: AddonGroupKind;
   required: boolean;
   min_select: number;
@@ -142,6 +143,7 @@ export type DbProduct = {
   image_url: string | null;
   available: boolean;
   featured: boolean;
+  bestseller?: boolean;
   prep_time: string | null;
   sort_order: number;
   type: "standard" | "pizza";
