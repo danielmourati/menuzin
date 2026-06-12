@@ -192,6 +192,7 @@ export const saveProduct = createServerFn({ method: "POST" })
       image_url: data.image_url ?? null,
       available: data.available,
       featured: data.featured,
+      bestseller: data.bestseller,
       prep_time: data.prep_time ?? null,
       sort_order: data.sort_order,
       type: data.type,
