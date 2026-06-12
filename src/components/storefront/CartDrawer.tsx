@@ -899,6 +899,7 @@ export function CartDrawer({
               }
             />
             <div className="flex-1 space-y-3 overflow-y-auto bg-card p-4">
+              <UpsellSuggestions />
               {/* Customer */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-center gap-2 font-semibold"><User className="h-4 w-4" /> {name}</div>
