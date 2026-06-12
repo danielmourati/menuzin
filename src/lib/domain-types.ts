@@ -20,6 +20,7 @@ export type AddonGroupKind = "adicional" | "observacao";
 export type AddonGroup = {
   id: string;
   name: string;
+  description?: string;
   kind: AddonGroupKind;
   required: boolean;
   minSelect: number;
