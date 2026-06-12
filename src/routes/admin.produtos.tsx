@@ -207,7 +207,7 @@ function ProductsPage() {
                       id: p.id, name: p.name, description: p.description ?? "",
                       category_id: p.category_id, price: Number(p.price),
                       promo_price: p.promo_price != null ? Number(p.promo_price) : null,
-                      image_url: p.image_url ?? "", available: p.available, featured: p.featured,
+                      image_url: p.image_url ?? "", available: p.available, featured: p.featured, bestseller: (p as { bestseller?: boolean }).bestseller ?? false,
                       prep_time: p.prep_time ?? null, sort_order: p.sort_order,
                       type: (p.type ?? "standard") as "standard" | "pizza",
                       max_flavors: p.max_flavors ?? null,
