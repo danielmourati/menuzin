@@ -115,6 +115,7 @@ export type DbAddonGroup = {
   id: string;
   tenant_id: string;
   name: string;
+  description: string;
   kind: AddonGroupKind;
   required: boolean;
   min_select: number;
