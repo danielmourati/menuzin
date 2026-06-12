@@ -41,6 +41,7 @@ export type Product = {
   image: string;
   available: boolean;
   featured: boolean;
+  bestseller?: boolean;
   prepTime?: string;
   type: "standard" | "pizza";
   maxFlavors?: number;
