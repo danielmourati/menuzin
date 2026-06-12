@@ -384,6 +384,7 @@ export const listAddonGroups = createServerFn({ method: "POST" })
 const AddonGroupInput = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1).max(120),
+  description: z.string().max(500).optional().default(""),
   kind: z.enum(["adicional", "observacao"]).default("adicional"),
   required: z.boolean().default(false),
   min_select: z.number().int().min(0).max(20).default(0),
@@ -400,21 +401,24 @@ export const saveAddonGroup = createServerFn({ method: "POST" })
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     if (data.id) {
       const { error } = await sb.from("addon_groups").update({
-        name: data.name, kind: data.kind, required: data.required,
+        name: data.name, description: data.description ?? "",
+        kind: data.kind, required: data.required,
         min_select: data.min_select, max_select: data.max_select,
         active: data.active, sort_order: data.sort_order,
-      }).eq("id", data.id).eq("tenant_id", tenantId);
+      } as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
     const { data: row, error } = await sb.from("addon_groups").insert({
-      tenant_id: tenantId, name: data.name, kind: data.kind, required: data.required,
+      tenant_id: tenantId, name: data.name, description: data.description ?? "",
+      kind: data.kind, required: data.required,
       min_select: data.min_select, max_select: data.max_select,
       active: data.active, sort_order: data.sort_order,
-    }).select("id").single();
+    } as never).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
+
 
 export const deleteAddonGroup = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
