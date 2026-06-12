@@ -38,6 +38,7 @@ type Editing = {
   image_url: string | null;
   available: boolean;
   featured: boolean;
+  bestseller: boolean;
   prep_time: string | null;
   sort_order: number;
   type: "standard" | "pizza";
