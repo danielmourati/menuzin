@@ -18,6 +18,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     image: p.image_url ?? "",
     available: p.available,
     featured: p.featured,
+    bestseller: p.bestseller ?? false,
     prepTime: p.prep_time ?? undefined,
     type: (p.type ?? "standard") as "standard" | "pizza",
     maxFlavors: p.max_flavors ?? undefined,
