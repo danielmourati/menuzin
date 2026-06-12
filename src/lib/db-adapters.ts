@@ -45,6 +45,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     })),
     addonGroups: (p.addonGroups ?? []).map<AddonGroup>((g) => ({
       id: g.id, name: g.name,
+      description: g.description ?? "",
       kind: (g.kind ?? "adicional"),
       required: g.required,
       minSelect: g.min_select, maxSelect: g.max_select, sortOrder: g.sort_order,
