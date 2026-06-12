@@ -33,7 +33,12 @@ export function ProductCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
-          {product.featured && (
+          {product.bestseller && (
+            <span className="absolute left-1 top-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm">
+              🔥 Mais vendido
+            </span>
+          )}
+          {product.featured && !product.bestseller && (
             <span className="absolute left-1 top-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
               Destaque
             </span>
