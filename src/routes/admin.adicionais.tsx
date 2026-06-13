@@ -207,7 +207,7 @@ function AdicionaisPage() {
                     <p className="font-semibold">{g.name}</p>
                     {g.required && <Badge variant="destructive">Obrigatório</Badge>}
                     <Badge variant="secondary">
-                      {g.maxSelect <= 1 ? "Escolha 1" : `Até ${g.maxSelect}`}
+                      {g.max_select <= 1 ? "Escolha 1" : `Até ${g.max_select}`}
                     </Badge>
                     <Badge variant="outline">{g.options.length} opções</Badge>
                     {!g.active && <Badge variant="destructive">Inativa</Badge>}
