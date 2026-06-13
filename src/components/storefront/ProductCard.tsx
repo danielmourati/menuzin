@@ -98,15 +98,19 @@ export function ProductCard({
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-        {product.bestseller && (
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm">
-            🔥 Mais vendido
-          </span>
-        )}
-        {product.featured && !product.bestseller && (
-          <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
-            Destaque
-          </span>
+        {(product.bestseller || product.featured) && (
+          <div className="absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1">
+            {product.bestseller && (
+              <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm">
+                🔥 Mais vendido
+              </span>
+            )}
+            {product.featured && (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
+                Destaque
+              </span>
+            )}
+          </div>
         )}
         {unavailable && (
           <div className="absolute inset-0 grid place-items-center bg-background/60">
