@@ -30,8 +30,8 @@ const pricingPlans = [
   {
     id: "start",
     name: "Essencial",
-    price: 89,
-    priceLabel: "R$ 89",
+    price: 87,
+    priceLabel: "R$ 87",
     tagline: "Para vendedores autônomos (MEI) que vendem pelo WhatsApp e Instagram.",
     features: [
       "1 usuário com acesso",
@@ -46,8 +46,8 @@ const pricingPlans = [
   {
     id: "pro",
     name: "Controle",
-    price: 159,
-    priceLabel: "R$ 159",
+    price: 157,
+    priceLabel: "R$ 157",
     tagline: "Para quem tem loja física e quer controle total da operação.",
     features: [
       "Até 3 usuários ou vendedores",

@@ -444,6 +444,65 @@ export function ProductModal({
             </Section>
           )}
 
+          {/* Observações estruturadas (ponto da carne, tipo de arroz, etc.) — sempre antes dos adicionais */}
+          {observacaoGroups.map((g) => {
+            const activeOptions = g.options.filter((o) => o.price >= 0);
+            if (activeOptions.length === 0) return null;
+            const isRadio = g.maxSelect <= 1;
+            const hint = isRadio
+              ? "Escolha 1 opção"
+              : g.maxSelect === g.minSelect
+                ? `Escolha ${g.maxSelect}`
+                : `Escolha até ${g.maxSelect}`;
+            return (
+              <Section key={g.id} title={g.name}>
+                <div className="-mt-1 mb-2 flex flex-wrap items-center gap-1.5">
+                  {g.required && (
+                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                      Obrigatório
+                    </span>
+                  )}
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {hint}
+                  </span>
+                </div>
+                {g.description && (
+                  <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
+                )}
+                <div className="space-y-2">
+                  {activeOptions.map((o) => {
+                    const checked = isOptionSelected(g, o);
+                    return (
+                      <button
+                        type="button"
+                        key={`${g.id}-${o.id}`}
+                        onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {isRadio ? (
+                            <span
+                              className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}
+                            >
+                              {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                            </span>
+                          ) : (
+                            <Checkbox checked={checked} />
+                          )}
+                          <span className="text-sm">{o.name}</span>
+                        </div>
+                        {o.price > 0 && (
+                          <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
+            );
+          })}
+
+
 
           {/* Adicionais — agrupados por subcategoria no vilaboemia, flat nos demais */}
           {adicionalGroups.length > 0 && (
@@ -540,63 +599,6 @@ export function ProductModal({
             )
           )}
 
-          {/* Observações estruturadas (por grupo) */}
-          {observacaoGroups.map((g) => {
-            const activeOptions = g.options.filter((o) => o.price >= 0);
-            if (activeOptions.length === 0) return null;
-            const isRadio = g.maxSelect <= 1;
-            const hint = isRadio
-              ? "Escolha 1 opção"
-              : g.maxSelect === g.minSelect
-                ? `Escolha ${g.maxSelect}`
-                : `Escolha até ${g.maxSelect}`;
-            return (
-              <Section key={g.id} title={g.name}>
-                <div className="-mt-1 mb-2 flex flex-wrap items-center gap-1.5">
-                  {g.required && (
-                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-                      Obrigatório
-                    </span>
-                  )}
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                    {hint}
-                  </span>
-                </div>
-                {g.description && (
-                  <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
-                )}
-                <div className="space-y-2">
-                  {activeOptions.map((o) => {
-                    const checked = isOptionSelected(g, o);
-                    return (
-                      <button
-                        type="button"
-                        key={`${g.id}-${o.id}`}
-                        onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {isRadio ? (
-                            <span
-                              className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}
-                            >
-                              {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                            </span>
-                          ) : (
-                            <Checkbox checked={checked} />
-                          )}
-                          <span className="text-sm">{o.name}</span>
-                        </div>
-                        {o.price > 0 && (
-                          <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Section>
-            );
-          })}
 
           {/* Fallback: adicionais legados quando não há addonGroups */}
           {showLegacyAddons && (
