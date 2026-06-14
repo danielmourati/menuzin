@@ -30,7 +30,7 @@ type PizzaFlavorOption = {
 };
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct,
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug,
 }: {
   product: Product | null;
   open: boolean;
@@ -40,6 +40,7 @@ export function ProductModal({
   pizzaDoughs?: PizzaExtra[];
   pizzaCrusts?: PizzaExtra[];
   freeGiftProduct?: Product | null;
+  tenantSlug?: string;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -444,34 +445,99 @@ export function ProductModal({
           )}
 
 
-          {/* Adicionais (centralizado, sem duplicação) */}
+          {/* Adicionais — agrupados por subcategoria no vilaboemia, flat nos demais */}
           {adicionalGroups.length > 0 && (
-            <Section title="Adicionais">
-              <div className="mt-2 space-y-2">
-                {adicionalGroups.flatMap((g) =>
-                  g.options.map((o) => {
-                    const checked = isOptionSelected(g, o);
-                    return (
-                      <label
-                        key={`${g.id}-${o.id}`}
-                        className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                          />
-                          <span className="text-sm">{o.name}</span>
+            tenantSlug === "vilaboemia" ? (
+              <>
+                {adicionalGroups.map((g) => {
+                  const activeOptions = g.options.filter((o) => o.price >= 0);
+                  if (activeOptions.length === 0) return null;
+                  const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
+                  const hint = g.maxSelect <= 0
+                    ? undefined
+                    : isRadio
+                      ? "Escolha 1 opção"
+                      : g.maxSelect === g.minSelect
+                        ? `Escolha ${g.maxSelect}`
+                        : `Escolha até ${g.maxSelect}`;
+                  return (
+                    <Section key={g.id} title={g.name}>
+                      {(g.required || hint) && (
+                        <div className="-mt-1 mb-2 flex flex-wrap items-center gap-1.5">
+                          {g.required && (
+                            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                              Obrigatório
+                            </span>
+                          )}
+                          {hint && (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              {hint}
+                            </span>
+                          )}
                         </div>
-                        {o.price > 0 && (
-                          <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
-                        )}
-                      </label>
-                    );
-                  }),
-                )}
-              </div>
-            </Section>
+                      )}
+                      {g.description && (
+                        <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
+                      )}
+                      <div className="space-y-2">
+                        {activeOptions.map((o) => {
+                          const checked = isOptionSelected(g, o);
+                          return (
+                            <button
+                              type="button"
+                              key={`${g.id}-${o.id}`}
+                              onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
+                            >
+                              <div className="flex items-center gap-3">
+                                {isRadio ? (
+                                  <span className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}>
+                                    {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                                  </span>
+                                ) : (
+                                  <Checkbox checked={checked} />
+                                )}
+                                <span className="text-sm">{o.name}</span>
+                              </div>
+                              {o.price > 0 && (
+                                <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </Section>
+                  );
+                })}
+              </>
+            ) : (
+              <Section title="Adicionais">
+                <div className="mt-2 space-y-2">
+                  {adicionalGroups.flatMap((g) =>
+                    g.options.map((o) => {
+                      const checked = isOptionSelected(g, o);
+                      return (
+                        <label
+                          key={`${g.id}-${o.id}`}
+                          className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                            />
+                            <span className="text-sm">{o.name}</span>
+                          </div>
+                          {o.price > 0 && (
+                            <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
+                          )}
+                        </label>
+                      );
+                    }),
+                  )}
+                </div>
+              </Section>
+            )
           )}
 
           {/* Observações estruturadas (por grupo) */}
