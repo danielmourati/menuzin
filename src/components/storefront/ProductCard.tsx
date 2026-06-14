@@ -7,17 +7,43 @@ export function ProductCard({
   product,
   onClick,
   view = "grid",
+  tenantSlug,
 }: {
   product: Product;
   onClick: () => void;
   view?: "grid" | "list";
+  tenantSlug?: string;
 }) {
   const unavailable = !product.available;
   const isPizza = product.categoryKind === "pizza";
+  const isOferta = product.categoryKind === "oferta";
   const positiveSizePrices = (product.sizes ?? []).map((s) => s.price).filter((n) => n > 0);
   const minSizePrice = positiveSizePrices.length > 0 ? Math.min(...positiveSizePrices) : undefined;
   const displayPrice = isPizza && minSizePrice != null ? minSizePrice : (product.promoPrice ?? product.price);
   const showFromPrefix = isPizza;
+  const externalBadges = tenantSlug === "vilaboemia";
+
+  const badges = (
+    <>
+      {product.bestseller && (
+        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm whitespace-nowrap">
+          🔥 Mais vendido
+        </span>
+      )}
+      {isOferta && externalBadges && (
+        <span className="rounded-full bg-destructive px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-destructive-foreground shadow-sm whitespace-nowrap">
+          Oferta
+        </span>
+      )}
+      {product.featured && (
+        <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm whitespace-nowrap">
+          Destaque
+        </span>
+      )}
+    </>
+  );
+
+  const hasAnyBadge = product.bestseller || product.featured || (isOferta && externalBadges);
 
   if (view === "list") {
     return (
@@ -33,19 +59,8 @@ export function ProductCard({
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
-          {(product.bestseller || product.featured) && (
-            <div className="absolute right-1 top-1 flex flex-wrap justify-end gap-1">
-              {product.bestseller && (
-                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm">
-                  🔥 Mais vendido
-                </span>
-              )}
-              {product.featured && (
-                <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
-                  Destaque
-                </span>
-              )}
-            </div>
+          {!externalBadges && hasAnyBadge && (
+            <div className="absolute right-1 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
           )}
           {unavailable && (
             <div className="absolute inset-0 grid place-items-center bg-background/60">
@@ -55,6 +70,9 @@ export function ProductCard({
         </div>
 
         <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-1 pr-12">
+          {externalBadges && hasAnyBadge && (
+            <div className="absolute right-12 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
+          )}
           <h3 className="line-clamp-1 text-sm font-semibold sm:text-base">{product.name}</h3>
           {product.description && (
             <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
@@ -91,6 +109,11 @@ export function ProductCard({
       disabled={unavailable}
       className="group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
     >
+      {externalBadges && hasAnyBadge && (
+        <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex flex-wrap justify-end gap-1">
+          {badges}
+        </div>
+      )}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <img
           src={product.image}
@@ -98,19 +121,8 @@ export function ProductCard({
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-        {(product.bestseller || product.featured) && (
-          <div className="absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1">
-            {product.bestseller && (
-              <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm">
-                🔥 Mais vendido
-              </span>
-            )}
-            {product.featured && (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm">
-                Destaque
-              </span>
-            )}
-          </div>
+        {!externalBadges && hasAnyBadge && (
+          <div className="absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1">{badges}</div>
         )}
         {unavailable && (
           <div className="absolute inset-0 grid place-items-center bg-background/60">
