@@ -101,7 +101,7 @@ function SettingsPage() {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
-  const publicLink = tenant?.slug ? `https://menuzin.lovable.app/${tenant.slug}` : "";
+  const publicLink = tenant?.slug ? `https://menuzin.app/${tenant.slug}` : "";
 
   return (
     <AdminLayout

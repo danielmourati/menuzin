@@ -359,6 +359,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                               key={p.id}
                               product={p}
                               view={viewMode}
+                              tenantSlug={slug}
                               onClick={() => {
                                 if (!storeOpen) return;
                                 setSelectedProduct(p);
@@ -383,6 +384,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                         key={p.id}
                         product={p}
                         view={viewMode}
+                        tenantSlug={slug}
                         onClick={() => {
                           if (!storeOpen) return;
                           setSelectedProduct(p);
@@ -425,6 +427,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         product={selectedProduct}
         open={modalOpen && storeOpen}
         onOpenChange={setModalOpen}
+        tenantSlug={slug}
         pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors })) : []}
         pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
           ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available).map((p) => ({
