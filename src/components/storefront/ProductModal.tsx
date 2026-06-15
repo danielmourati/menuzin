@@ -451,11 +451,13 @@ export function ProductModal({
             const activeOptions = g.options.filter((o) => o.price >= 0);
             if (activeOptions.length === 0) return null;
             const isRadio = g.maxSelect <= 1;
+            const useDropdown = tenantSlug === "vilaboemia" && isRadio;
             const hint = isRadio
               ? "Escolha 1 opção"
               : g.maxSelect === g.minSelect
                 ? `Escolha ${g.maxSelect}`
                 : `Escolha até ${g.maxSelect}`;
+            const selectedId = (groupSelections[g.id] ?? [])[0] ?? "";
             return (
               <Section key={g.id} title={g.name}>
                 <div className="-mt-1 mb-2 flex flex-wrap items-center gap-1.5">
@@ -471,35 +473,58 @@ export function ProductModal({
                 {g.description && (
                   <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
                 )}
-                <div className="space-y-2">
-                  {activeOptions.map((o) => {
-                    const checked = isOptionSelected(g, o);
-                    return (
-                      <button
-                        type="button"
-                        key={`${g.id}-${o.id}`}
-                        onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                        className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {isRadio ? (
-                            <span
-                              className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}
-                            >
-                              {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                            </span>
-                          ) : (
-                            <Checkbox checked={checked} />
+                {useDropdown ? (
+                  <Select
+                    value={selectedId}
+                    onValueChange={(v) => setGroupSelections((prev) => ({ ...prev, [g.id]: [v] }))}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl">
+                      <SelectValue placeholder={`Selecione: ${g.name.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeOptions.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          <span className="flex w-full items-center justify-between gap-3">
+                            <span>{o.name}</span>
+                            {o.price > 0 && (
+                              <span className="text-xs font-semibold text-primary">+ {brl(o.price)}</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="space-y-2">
+                    {activeOptions.map((o) => {
+                      const checked = isOptionSelected(g, o);
+                      return (
+                        <button
+                          type="button"
+                          key={`${g.id}-${o.id}`}
+                          onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                          className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isRadio ? (
+                              <span
+                                className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}
+                              >
+                                {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                              </span>
+                            ) : (
+                              <Checkbox checked={checked} />
+                            )}
+                            <span className="text-sm">{o.name}</span>
+                          </div>
+                          {o.price > 0 && (
+                            <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
                           )}
-                          <span className="text-sm">{o.name}</span>
-                        </div>
-                        {o.price > 0 && (
-                          <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </Section>
             );
           })}
