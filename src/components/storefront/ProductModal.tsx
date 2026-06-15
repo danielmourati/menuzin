@@ -239,9 +239,10 @@ export function ProductModal({
             <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
           </div>
           <Button
-            size="icon" variant="secondary"
+            size="icon" variant="default"
             onClick={() => onOpenChange(false)}
-            className="absolute left-3 top-3 z-10 h-10 w-10 rounded-full bg-card/95 text-foreground shadow-md backdrop-blur hover:bg-card"
+            className="absolute left-3 top-3 z-10 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-background hover:bg-primary/90"
+            aria-label="Voltar"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
