@@ -68,7 +68,7 @@ function DashboardPage() {
 
   if (isLoading || !analytics) {
     return (
-      <AdminLayout title="Dashboard">
+      <AdminLayout title="Dashboard" action={<LiveClock />}>
         <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       </AdminLayout>
     );
