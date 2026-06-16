@@ -15,12 +15,14 @@ import { LiveClock } from "@/components/admin/LiveClock";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
+import { useAuth } from "@/lib/auth-context";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: OrdersPage,
 });
 
 function OrdersPage() {
+  const { isAuthenticated, loading: authLoading, profile } = useAuth();
   const {
     orders,
     acceptOrder,
@@ -29,8 +31,9 @@ function OrdersPage() {
     simulateNewOrder,
   } = useOrdersRealtime();
   const { data: tenantData } = useQuery({
-    queryKey: ["my-tenant"],
+    queryKey: ["my-tenant", profile?.tenant_id ?? "none"],
     queryFn: () => getMyTenant(),
+    enabled: !authLoading && isAuthenticated && !!profile?.tenant_id,
   });
   const tenantName = tenantData?.tenant?.name ?? "Sua loja";
 
