@@ -11,6 +11,7 @@ import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth-context";
+import { LiveClock } from "@/components/admin/LiveClock";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
