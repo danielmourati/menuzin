@@ -5,7 +5,7 @@ import { brl, modeLabel, timeAgo, formatDateTime } from "@/lib/format";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { PrintOrderButton } from "./PrintOrderButton";
-import { Clock, MapPin, Utensils, Eye, Check, XCircle, ArrowRight } from "lucide-react";
+import { Clock, MapPin, Utensils, Eye, Check, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
@@ -139,39 +139,41 @@ export function OrderCard({
 
       {/* AÇÕES */}
       <div className="mt-3 px-3 pb-3 pl-4 flex items-center gap-2 border-t bg-muted/20 pt-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onViewDetails}
-          className="flex-1 h-9 text-xs font-semibold"
-        >
-          <Eye className="h-3.5 w-3.5 mr-1.5" />
-          {isNew ? "Ler pedido" : "Abrir"}
-        </Button>
-
-        {primaryCta && (
+        {isNew ? (
+          /* Pedidos novos: apenas "Ler pedido" prominente. Demais ações dentro do modal. */
           <Button
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); primaryCta.action(); }}
-            className={`flex-1 h-9 text-xs font-semibold ${primaryCta.className}`}
+            size="lg"
+            onClick={onViewDetails}
+            className="flex-1 h-11 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
           >
-            <primaryCta.icon className="h-3.5 w-3.5 mr-1.5" />
-            {primaryCta.label}
+            <Eye className="h-4 w-4 mr-2" />
+            Ler pedido
           </Button>
-        )}
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onViewDetails}
+              className="flex-1 h-9 text-xs font-semibold"
+            >
+              <Eye className="h-3.5 w-3.5 mr-1.5" />
+              Abrir
+            </Button>
 
-        <PrintOrderButton order={order} size="icon" className="h-9 w-9 shrink-0" paperWidth={paperWidth} />
+            {primaryCta && (
+              <Button
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); primaryCta.action(); }}
+                className={`flex-1 h-9 text-xs font-semibold ${primaryCta.className}`}
+              >
+                <primaryCta.icon className="h-3.5 w-3.5 mr-1.5" />
+                {primaryCta.label}
+              </Button>
+            )}
 
-        {isNew && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            onClick={(e) => { e.stopPropagation(); onCancel(); }}
-            title="Recusar"
-          >
-            <XCircle className="h-4 w-4" />
-          </Button>
+            <PrintOrderButton order={order} size="icon" className="h-9 w-9 shrink-0" paperWidth={paperWidth} />
+          </>
         )}
       </div>
     </div>

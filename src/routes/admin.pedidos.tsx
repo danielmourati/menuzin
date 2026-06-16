@@ -5,14 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, PlusCircle, Settings2, Printer } from "lucide-react";
+import { Search, PlusCircle } from "lucide-react";
 import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
 import { OrdersStatusGroups } from "@/components/orders/OrdersStatusGroups";
 import { OrdersMobileTabs } from "@/components/orders/OrdersMobileTabs";
 import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
 import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
-import { PrinterSettingsDialog } from "@/components/printer/PrinterSettingsDialog";
-import { Link } from "@tanstack/react-router";
+import { LiveClock } from "@/components/admin/LiveClock";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
@@ -38,7 +37,8 @@ function OrdersPage() {
   const [q, setQ] = useState("");
   const [modeFilter, setModeFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<string>("ativos");
-  const [printerOpen, setPrinterOpen] = useState(false);
+
+
   
   const [detailedOrderId, setDetailedOrderId] = useState<string | null>(null);
   const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
@@ -100,39 +100,16 @@ function OrdersPage() {
       title="Gestão de Pedidos"
       action={
         <div className="flex items-center gap-2">
+          <LiveClock />
           <Button
             onClick={handleManualSimulate}
+            variant="outline"
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/95 font-bold text-xs"
+            className="hidden sm:inline-flex h-9 text-xs"
+            title="Simular um pedido fictício para teste"
           >
             <PlusCircle className="mr-1.5 h-4 w-4" />
-            Simular Pedido
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPrinterOpen(true)}
-            className="hidden sm:inline-flex h-9 text-xs"
-          >
-            <Printer className="mr-1.5 h-4 w-4" />
-            Configurar impressora
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPrinterOpen(true)}
-            className="sm:hidden h-9 w-9"
-            title="Configurar impressora"
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
-
-          <Button asChild variant="outline" size="icon" className="h-9 w-9">
-            <Link to="/admin/configuracoes/pedidos" title="Alertas e Notificações">
-              <Settings2 className="h-4 w-4 text-foreground/80" />
-            </Link>
+            Simular
           </Button>
         </div>
       }
@@ -210,7 +187,7 @@ function OrdersPage() {
         </div>
       </div>
 
-      <PrinterSettingsDialog open={printerOpen} onOpenChange={setPrinterOpen} />
+
 
 
       {/* Drawer de Detalhes do Pedido */}

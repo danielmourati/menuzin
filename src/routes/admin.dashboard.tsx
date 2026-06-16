@@ -11,6 +11,7 @@ import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth-context";
+import { LiveClock } from "@/components/admin/LiveClock";
 
 export const Route = createFileRoute("/admin/dashboard")({
   component: DashboardPage,
@@ -67,14 +68,14 @@ function DashboardPage() {
 
   if (isLoading || !analytics) {
     return (
-      <AdminLayout title="Dashboard">
+      <AdminLayout title="Dashboard" action={<LiveClock />}>
         <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       </AdminLayout>
     );
   }
 
   return (
-    <AdminLayout title="Dashboard">
+    <AdminLayout title="Dashboard" action={<LiveClock />}>
       <div className="space-y-6">
         <div className="rounded-2xl border bg-gradient-to-r from-primary/10 via-card to-card p-5 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-muted-foreground">Bem-vindo de volta</p>
