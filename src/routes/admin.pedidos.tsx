@@ -187,7 +187,7 @@ function OrdersPage() {
         </div>
       </div>
 
-      <PrinterSettingsDialog open={printerOpen} onOpenChange={setPrinterOpen} />
+
 
 
       {/* Drawer de Detalhes do Pedido */}
