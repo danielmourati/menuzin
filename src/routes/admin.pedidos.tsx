@@ -100,39 +100,16 @@ function OrdersPage() {
       title="Gestão de Pedidos"
       action={
         <div className="flex items-center gap-2">
+          <LiveClock />
           <Button
             onClick={handleManualSimulate}
+            variant="outline"
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/95 font-bold text-xs"
+            className="hidden sm:inline-flex h-9 text-xs"
+            title="Simular um pedido fictício para teste"
           >
             <PlusCircle className="mr-1.5 h-4 w-4" />
-            Simular Pedido
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPrinterOpen(true)}
-            className="hidden sm:inline-flex h-9 text-xs"
-          >
-            <Printer className="mr-1.5 h-4 w-4" />
-            Configurar impressora
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setPrinterOpen(true)}
-            className="sm:hidden h-9 w-9"
-            title="Configurar impressora"
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
-
-          <Button asChild variant="outline" size="icon" className="h-9 w-9">
-            <Link to="/admin/configuracoes/pedidos" title="Alertas e Notificações">
-              <Settings2 className="h-4 w-4 text-foreground/80" />
-            </Link>
+            Simular
           </Button>
         </div>
       }
