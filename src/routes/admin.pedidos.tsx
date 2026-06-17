@@ -93,19 +93,12 @@ function OrdersPage() {
     });
   }, [orders, q, modeFilter, statusFilter]);
 
-  const tenant = tenantData?.tenant as { open?: boolean | null; open_mode?: "auto" | "open" | "closed" | null } | null | undefined;
-
   return (
     <AdminLayout
       title="Gestão de Pedidos"
       action={
         <div className="flex items-center gap-2">
           <LiveClock />
-          <StoreOpenToggle
-            openMode={tenant?.open_mode ?? "auto"}
-            isOpen={tenant?.open ?? true}
-            disabled={!tenant}
-          />
         </div>
       }
     >
