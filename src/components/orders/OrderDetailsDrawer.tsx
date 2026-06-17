@@ -169,7 +169,12 @@ export function OrderDetailsDrawer({
             <div className="flex flex-col">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Linha do tempo</h3>
               <div className="bg-muted/30 border rounded-lg p-4 flex-1">
-                <OrderStatusTimeline order={order} />
+                <div className="hidden md:block">
+                  <OrderStatusTimeline order={order} orientation="vertical" />
+                </div>
+                <div className="md:hidden">
+                  <OrderStatusTimeline order={order} orientation="horizontal" />
+                </div>
               </div>
             </div>
 
