@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, PlusCircle } from "lucide-react";
+import { Search } from "lucide-react";
+import { StoreOpenToggle } from "@/components/admin/StoreOpenToggle";
 import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
 import { OrdersStatusGroups } from "@/components/orders/OrdersStatusGroups";
 import { OrdersMobileTabs } from "@/components/orders/OrdersMobileTabs";
@@ -28,7 +29,6 @@ function OrdersPage() {
     acceptOrder,
     cancelOrder,
     updateOrderStatus,
-    simulateNewOrder,
   } = useOrdersRealtime();
   const { data: tenantData } = useQuery({
     queryKey: ["my-tenant", profile?.tenant_id ?? "none"],
@@ -93,10 +93,7 @@ function OrdersPage() {
     });
   }, [orders, q, modeFilter, statusFilter]);
 
-  const handleManualSimulate = () => {
-    simulateNewOrder();
-    toast.success("Novo pedido recebido!");
-  };
+  const tenant = tenantData?.tenant as { open?: boolean | null; open_mode?: "auto" | "open" | "closed" | null } | null | undefined;
 
   return (
     <AdminLayout
@@ -104,16 +101,11 @@ function OrdersPage() {
       action={
         <div className="flex items-center gap-2">
           <LiveClock />
-          <Button
-            onClick={handleManualSimulate}
-            variant="outline"
-            size="sm"
-            className="hidden sm:inline-flex h-9 text-xs"
-            title="Simular um pedido fictício para teste"
-          >
-            <PlusCircle className="mr-1.5 h-4 w-4" />
-            Simular
-          </Button>
+          <StoreOpenToggle
+            openMode={tenant?.open_mode ?? "auto"}
+            isOpen={tenant?.open ?? true}
+            disabled={!tenant}
+          />
         </div>
       }
     >
