@@ -4,10 +4,18 @@ import { Check, Clock, Play } from "lucide-react";
 
 interface OrderStatusTimelineProps {
   order: Order;
+  orientation?: "vertical" | "horizontal";
   className?: string;
 }
 
-export function OrderStatusTimeline({ order, className = "" }: OrderStatusTimelineProps) {
+export function OrderStatusTimeline({ order, orientation = "vertical", className = "" }: OrderStatusTimelineProps) {
+  if (orientation === "horizontal") {
+    return <HorizontalTimeline order={order} className={className} />;
+  }
+  return <VerticalTimeline order={order} className={className} />;
+}
+
+function VerticalTimeline({ order, className }: { order: Order; className: string }) {
   const steps = getTimelineSteps(order.mode);
   const currentIndex = getTimelineIndex(order.mode, order.status);
   const isCancelled = order.status === "cancelado";
@@ -22,9 +30,7 @@ export function OrderStatusTimeline({ order, className = "" }: OrderStatusTimeli
           <div>
             <h4 className="font-semibold text-destructive">Pedido Cancelado</h4>
             {order.cancelledAt && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {formatTime(order.cancelledAt)}
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{formatTime(order.cancelledAt)}</p>
             )}
             {order.cancelReason && (
               <p className="text-sm text-muted-foreground mt-1 bg-destructive/5 border border-destructive/10 rounded px-2.5 py-1.5 inline-block">
@@ -43,7 +49,6 @@ export function OrderStatusTimeline({ order, className = "" }: OrderStatusTimeli
 
         let icon = <Clock className="h-3 w-3 text-muted-foreground" />;
         let iconBg = "bg-muted border border-border";
-
         if (isDone) {
           icon = <Check className="h-3.5 w-3.5 text-white" />;
           iconBg = "bg-success border-none shadow-sm";
@@ -63,15 +68,11 @@ export function OrderStatusTimeline({ order, className = "" }: OrderStatusTimeli
                   {step.label}
                 </h4>
                 {historyEntry && (
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {formatTime(historyEntry.createdAt)}
-                  </span>
+                  <span className="text-xs text-muted-foreground shrink-0">{formatTime(historyEntry.createdAt)}</span>
                 )}
               </div>
               {historyEntry?.note && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {historyEntry.note}
-                </p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{historyEntry.note}</p>
               )}
             </div>
           </div>
@@ -81,16 +82,65 @@ export function OrderStatusTimeline({ order, className = "" }: OrderStatusTimeli
   );
 }
 
+function HorizontalTimeline({ order, className }: { order: Order; className: string }) {
+  const steps = getTimelineSteps(order.mode);
+  const currentIndex = getTimelineIndex(order.mode, order.status);
+  const isCancelled = order.status === "cancelado";
+
+  return (
+    <div className={`overflow-x-auto -mx-1 px-1 pb-1 ${className}`}>
+      {isCancelled && (
+        <div className="mb-3 flex items-center gap-2 rounded-md bg-destructive/5 border border-destructive/20 px-3 py-2 text-xs">
+          <span className="h-5 w-5 rounded-full bg-destructive flex items-center justify-center text-white">
+            <XIcon className="h-3 w-3" />
+          </span>
+          <span className="font-semibold text-destructive">Pedido cancelado</span>
+          {order.cancelReason && <span className="text-muted-foreground truncate">— {order.cancelReason}</span>}
+        </div>
+      )}
+      <div className="flex items-start gap-0 min-w-max">
+        {steps.map((step, idx) => {
+          const historyEntry = order.statusHistory.find((h) => h.newStatus === step.key);
+          const isDone = !isCancelled && idx < currentIndex;
+          const isCurrent = !isCancelled && idx === currentIndex;
+          const isLast = idx === steps.length - 1;
+
+          let icon = <Clock className="h-3 w-3 text-muted-foreground" />;
+          let iconBg = "bg-muted border border-border";
+          if (isDone) {
+            icon = <Check className="h-3.5 w-3.5 text-white" />;
+            iconBg = "bg-success border-none";
+          } else if (isCurrent) {
+            icon = <Play className="h-3 w-3 text-white animate-pulse" />;
+            iconBg = "bg-primary border-none ring-4 ring-primary/20";
+          }
+          const connectorColor = isDone ? "bg-success" : "bg-muted";
+
+          return (
+            <div key={step.key} className="flex items-start min-w-[88px]">
+              <div className="flex flex-col items-center w-[88px]">
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${iconBg}`}>
+                  {icon}
+                </div>
+                <span className={`mt-1.5 text-[11px] text-center leading-tight font-medium px-1 ${isCurrent ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"}`}>
+                  {step.label}
+                </span>
+                {historyEntry && (
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{formatTime(historyEntry.createdAt)}</span>
+                )}
+              </div>
+              {!isLast && <div className={`h-0.5 mt-3.5 w-6 ${connectorColor} transition-colors`} />}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function XIcon({ className = "" }: { className?: string }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2.5}
-      stroke="currentColor"
-      className={className}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );
