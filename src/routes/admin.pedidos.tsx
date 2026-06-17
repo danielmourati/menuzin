@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
-import { StoreOpenToggle } from "@/components/admin/StoreOpenToggle";
+
 import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
 import { OrdersStatusGroups } from "@/components/orders/OrdersStatusGroups";
 import { OrdersMobileTabs } from "@/components/orders/OrdersMobileTabs";
@@ -93,19 +93,12 @@ function OrdersPage() {
     });
   }, [orders, q, modeFilter, statusFilter]);
 
-  const tenant = tenantData?.tenant as { open?: boolean | null; open_mode?: "auto" | "open" | "closed" | null } | null | undefined;
-
   return (
     <AdminLayout
       title="Gestão de Pedidos"
       action={
         <div className="flex items-center gap-2">
           <LiveClock />
-          <StoreOpenToggle
-            openMode={tenant?.open_mode ?? "auto"}
-            isOpen={tenant?.open ?? true}
-            disabled={!tenant}
-          />
         </div>
       }
     >
