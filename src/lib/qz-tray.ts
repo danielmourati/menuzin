@@ -246,18 +246,19 @@ export async function printQzTextTest(
   printerName: string | undefined,
   text: string,
 ): Promise<void> {
-  const qz = await ensureQzConnected();
-  let target = printerName?.trim();
-  if (!target) {
-    try {
-      target = await qz.printers.getDefault();
-    } catch {
-      throw new Error("Nenhuma impressora encontrada.");
+  await withQzRetry(async (qz) => {
+    let target = printerName?.trim();
+    if (!target) {
+      try {
+        target = await qz.printers.getDefault();
+      } catch {
+        throw new Error("Nenhuma impressora encontrada.");
+      }
     }
-  }
-  if (!target) throw new Error("Nenhuma impressora encontrada.");
-  const config = qz.configs.create(target, { encoding: "CP860" });
-  await qz.print(config, [text + "\n\n\n"]);
+    if (!target) throw new Error("Nenhuma impressora encontrada.");
+    const config = qz.configs.create(target, { encoding: "CP860" });
+    await qz.print(config, [text + "\n\n\n"]);
+  });
 }
 
 /**
