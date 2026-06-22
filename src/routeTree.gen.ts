@@ -37,6 +37,7 @@ import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenan
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
+import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
 import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
@@ -184,6 +185,12 @@ const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
   path: '/api/public/qz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConfiguracoesPromocaoRoute =
+  AdminConfiguracoesPromocaoRouteImport.update({
+    id: '/promocao',
+    path: '/promocao',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
 const AdminConfiguracoesPedidosRoute =
   AdminConfiguracoesPedidosRouteImport.update({
     id: '/pedidos',
@@ -242,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
+  '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -276,6 +284,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
+  '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -312,6 +321,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
+  '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -349,6 +359,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
+    | '/admin/configuracoes/promocao'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
+    | '/admin/configuracoes/promocao'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
@@ -418,6 +430,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
+    | '/admin/configuracoes/promocao'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
@@ -652,6 +665,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicQzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/configuracoes/promocao': {
+      id: '/admin/configuracoes/promocao'
+      path: '/promocao'
+      fullPath: '/admin/configuracoes/promocao'
+      preLoaderRoute: typeof AdminConfiguracoesPromocaoRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
     '/admin/configuracoes/pedidos': {
       id: '/admin/configuracoes/pedidos'
       path: '/pedidos'
@@ -706,6 +726,7 @@ interface AdminConfiguracoesRouteChildren {
   AdminConfiguracoesImpressoraRoute: typeof AdminConfiguracoesImpressoraRoute
   AdminConfiguracoesPagamentosRoute: typeof AdminConfiguracoesPagamentosRoute
   AdminConfiguracoesPedidosRoute: typeof AdminConfiguracoesPedidosRoute
+  AdminConfiguracoesPromocaoRoute: typeof AdminConfiguracoesPromocaoRoute
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
 }
 
@@ -713,6 +734,7 @@ const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
   AdminConfiguracoesImpressoraRoute: AdminConfiguracoesImpressoraRoute,
   AdminConfiguracoesPagamentosRoute: AdminConfiguracoesPagamentosRoute,
   AdminConfiguracoesPedidosRoute: AdminConfiguracoesPedidosRoute,
+  AdminConfiguracoesPromocaoRoute: AdminConfiguracoesPromocaoRoute,
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
 }
 
