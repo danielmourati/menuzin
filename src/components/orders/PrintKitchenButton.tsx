@@ -7,7 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { printKitchenTicket } from "@/lib/print-kitchen";
-import { QzNotRunningError } from "@/lib/qz-tray";
+import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 
@@ -57,14 +57,29 @@ export function PrintKitchenButton({
       return;
     }
     setPrinting(true);
+    const toastId = toast.loading("Verificando impressora...");
     try {
+      const status = await getQzPrinterStatus(kitchenPrinter.printer_name);
+      if (!status.ok) {
+        toast.error(status.reason || "Impressora indisponível.", {
+          id: toastId,
+          action: { label: "Tentar novamente", onClick: () => handlePrint() },
+        });
+        return;
+      }
+      toast.loading("Enviando comanda para a cozinha...", { id: toastId });
       const { printer } = await printKitchenTicket(order, kitchenPrinter);
-      toast.success(`Comanda enviada para ${printer}`);
+      toast.success(`Comanda enviada para ${printer}`, { id: toastId });
     } catch (err) {
       if (err instanceof QzNotRunningError) {
-        toast.error("QZ Tray não está aberto.");
+        toast.error("QZ Tray não está aberto.", { id: toastId });
+      } else if (err instanceof QzPrintTimeoutError) {
+        toast.error(err.message, {
+          id: toastId,
+          action: { label: "Tentar novamente", onClick: () => handlePrint() },
+        });
       } else {
-        toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda");
+        toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", { id: toastId });
       }
     } finally {
       setPrinting(false);
