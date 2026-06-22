@@ -107,7 +107,7 @@ export function OrderDetailsDrawer({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col max-h-[92dvh] gap-0 overscroll-contain">
+      <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col h-[92dvh] md:h-auto md:max-h-[92dvh] gap-0 overscroll-contain">
         <DialogHeader className="p-5 border-b shrink-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
@@ -248,7 +248,7 @@ export function OrderDetailsDrawer({
           <WhatsAppOrderActions order={order} storeName={storeName} />
           <div className="flex gap-2 flex-wrap">
             <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-sky-600 hover:bg-sky-700 text-white border-sky-600" paperWidth={paperWidth} />
-            <PrintKitchenButton order={order} size="icon" className="h-10 w-10 shrink-0 bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
+            <PrintKitchenButton order={order} className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
             <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px] border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Fechar</Button>
           </div>
           <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="w-full" />

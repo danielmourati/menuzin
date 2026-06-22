@@ -9,7 +9,7 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
 import { printOrderViaQz } from "@/lib/print-order";
-import { QzNotRunningError } from "@/lib/qz-tray";
+import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/lib/qz-tray";
 
 interface PrintOrderButtonProps {
   order: Order;
@@ -64,7 +64,17 @@ export function PrintOrderButton({
   const handlePrint = async () => {
     if (printing) return;
     setPrinting(true);
+    const toastId = toast.loading("Verificando impressora...");
     try {
+      const status = await getQzPrinterStatus(settings.printer_name);
+      if (!status.ok) {
+        toast.error(status.reason || "Impressora indisponível.", {
+          id: toastId,
+          action: { label: "Tentar novamente", onClick: () => handlePrint() },
+        });
+        return;
+      }
+      toast.loading("Enviando para a impressora...", { id: toastId });
       const { printer } = await printOrderViaQz(order, settings, {
         storeName: storeName ?? tenant?.name,
         storePhone: storePhone ?? tenant?.whatsapp,
@@ -73,13 +83,18 @@ export function PrintOrderButton({
         storePixKey: tenant?.social?.pix,
         storeCnpj: tenant?.social?.cnpj,
       });
-      toast.success(`Cupom enviado para ${printer}`);
+      toast.success(`Cupom enviado para ${printer}`, { id: toastId });
     } catch (err) {
       if (err instanceof QzNotRunningError) {
-        toast.error("QZ Tray não está aberto. Inicie o aplicativo e tente novamente.");
+        toast.error("QZ Tray não está aberto. Inicie o aplicativo e tente novamente.", { id: toastId });
+      } else if (err instanceof QzPrintTimeoutError) {
+        toast.error(err.message, {
+          id: toastId,
+          action: { label: "Tentar novamente", onClick: () => handlePrint() },
+        });
       } else {
         const msg = err instanceof Error ? err.message : "Falha ao imprimir.";
-        toast.error(msg);
+        toast.error(msg, { id: toastId });
       }
     } finally {
       setPrinting(false);

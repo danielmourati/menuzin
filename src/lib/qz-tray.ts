@@ -51,6 +51,30 @@ export class QzNotRunningError extends Error {
   }
 }
 
+/** Timeout no envio para a impressora (ex.: impressora offline ou travada). */
+export class QzPrintTimeoutError extends Error {
+  constructor(message = "Demora ao imprimir — verifique se a impressora está ligada e conectada.") {
+    super(message);
+    this.name = "QzPrintTimeoutError";
+  }
+}
+
+/** Falha ao consultar/encontrar a impressora configurada. */
+export class QzPrinterUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QzPrinterUnavailableError";
+  }
+}
+
+export type QzPrinterStatus = {
+  ok: boolean;
+  /** Mensagem amigável (em PT-BR) descrevendo o estado, quando `ok=false`. */
+  reason?: string;
+  /** Código bruto retornado pelo QZ (quando disponível). */
+  code?: string;
+};
+
 let loadingPromise: Promise<QZ> | null = null;
 let securityConfigured = false;
 
@@ -293,9 +317,106 @@ export async function printQzReceipt(
 
     const payload = text + "\n".repeat(feed) + cut;
     const config = qz.configs.create(target, { encoding: "CP860" });
-    await qz.print(config, [payload]);
+    await withTimeout(
+      qz.print(config, [payload]),
+      15_000,
+      new QzPrintTimeoutError(),
+    );
     return { printer: target };
   });
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, err: Error): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(err), ms);
+    p.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); },
+    );
+  });
+}
+
+/**
+ * Verifica se a impressora configurada está disponível no QZ Tray.
+ * Faz duas checagens:
+ *   1. `qz.printers.find(name)` — confirma que a impressora ainda existe no sistema.
+ *   2. `qz.printers.getStatus()` (quando suportado pela versão do QZ) — detecta
+ *      estados como OFFLINE, PAPER_OUT, PAPER_JAM, NOT_AVAILABLE.
+ * Nunca lança — sempre retorna `{ ok, reason }`. Erros de conexão com QZ
+ * propagam como `QzNotRunningError` via `ensureQzConnected`.
+ */
+export async function getQzPrinterStatus(
+  printerName: string | undefined,
+): Promise<QzPrinterStatus> {
+  const qz = await ensureQzConnected();
+  let target = printerName?.trim();
+  if (!target) {
+    try { target = await qz.printers.getDefault(); } catch { /* ignore */ }
+  }
+  if (!target) {
+    return { ok: false, reason: "Nenhuma impressora configurada." };
+  }
+
+  // 1) Confere existência no sistema
+  try {
+    const res = await qz.printers.find(target);
+    const arr = (Array.isArray(res) ? res : [res]).filter(Boolean) as string[];
+    const found = arr.some((n) => n.toLowerCase() === target!.toLowerCase());
+    if (!found) {
+      return {
+        ok: false,
+        reason: `Impressora "${target}" não foi encontrada no QZ Tray.`,
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      reason: `Impressora "${target}" não foi encontrada no QZ Tray.`,
+    };
+  }
+
+  // 2) Tenta consultar status nativo (API opcional, depende da versão do QZ)
+  try {
+    const printersApi = qz.printers as unknown as {
+      startListening?: (names?: string | string[]) => Promise<void>;
+      stopListening?: () => Promise<void>;
+      getStatus?: () => Promise<unknown>;
+    };
+    if (typeof printersApi.getStatus === "function") {
+      try { await printersApi.startListening?.(target); } catch { /* ignore */ }
+      const raw = await withTimeout(
+        printersApi.getStatus(),
+        3_000,
+        new Error("status-timeout"),
+      );
+      try { await printersApi.stopListening?.(); } catch { /* ignore */ }
+      const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+      const bad = list.find((s: unknown) => {
+        const obj = s as { statusText?: string; severity?: string; code?: string };
+        const text = String(obj?.statusText || obj?.code || "").toUpperCase();
+        const sev = String(obj?.severity || "").toUpperCase();
+        if (sev === "FATAL" || sev === "ERROR") return true;
+        return /OFFLINE|PAPER_OUT|PAPER_JAM|NOT_AVAILABLE|ERROR|NO_TONER|OUT_OF_PAPER/.test(text);
+      });
+      if (bad) {
+        const obj = bad as { statusText?: string; code?: string };
+        const code = String(obj?.statusText || obj?.code || "").toUpperCase();
+        const map: Record<string, string> = {
+          OFFLINE: "Impressora offline.",
+          PAPER_OUT: "Sem papel na impressora.",
+          OUT_OF_PAPER: "Sem papel na impressora.",
+          PAPER_JAM: "Atolamento de papel.",
+          NOT_AVAILABLE: "Impressora indisponível.",
+          NO_TONER: "Sem toner/tinta na impressora.",
+        };
+        return { ok: false, reason: map[code] || `Impressora com erro (${code || "desconhecido"}).`, code };
+      }
+    }
+  } catch {
+    /* status check é best-effort — segue sem falhar */
+  }
+
+  return { ok: true };
 }
 
 /** Faz o download do cert.pem servido pelo backend. */
