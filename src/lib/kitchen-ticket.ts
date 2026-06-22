@@ -1,6 +1,7 @@
 // Builder de comanda simplificada para impressora da cozinha.
 // Omite valores financeiros, dados da loja e métodos de pagamento.
-// Foco: informação operacional para preparo.
+// Foco: informação operacional para preparo, com fonte ampliada nos itens
+// para leitura rápida de longe pela cozinha.
 
 import { formatDateTime, modeLabel } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
@@ -13,30 +14,48 @@ import {
 } from "@/lib/receipt-builder";
 import { columnsFor, type PaperWidth } from "@/lib/printer-types";
 
+// ESC/POS sequences:
+// - ESC @         (\x1b@)        : initialize printer
+// - GS ! n        (\x1d!n)       : char size; high nibble = altura, low = largura
+//   0x00 = normal · 0x11 = 2x largura+altura · 0x01 = só 2x largura
+const ESC_INIT = "\x1b@";
+const ESC_BIG = "\x1d!\x11"; // 2x largura + 2x altura
+const ESC_NORMAL = "\x1d!\x00";
+
 export function buildKitchenTicket(order: Order, cols: number): string {
   const sep = lineOf("=", cols);
   const sepThin = lineOf("-", cols);
+  // Em fonte 2x largura, cada char ocupa o dobro -> reduzimos cols pela metade
+  // para o bloco de itens. Mantemos um mínimo seguro.
+  const bigCols = Math.max(12, Math.floor(cols / 2));
+  const bigSep = lineOf("=", bigCols);
+  const bigSepThin = lineOf("-", bigCols);
+
   const out: string[] = [];
 
-  out.push(sep);
-  out.push(center(`COZINHA - PEDIDO #${order.number}`, cols));
-  out.push(sep);
+  // Reset inicial
+  out.push(ESC_INIT);
+
+  // ── CABEÇALHO (fonte grande) ─────────────────────────────
+  out.push(ESC_BIG);
+  out.push(center(`COZINHA`, bigCols));
+  out.push(center(`PEDIDO #${order.number}`, bigCols));
+  out.push(bigSep);
 
   const mode = stripAccents(modeLabel[order.mode] ?? order.mode).toUpperCase();
-  out.push(center(mode, cols));
+  out.push(center(mode, bigCols));
 
   if (order.mode === "consumo_local" && order.table) {
-    out.push(center(`MESA/LOCAL: ${stripAccents(order.table)}`, cols));
+    wrap(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) => out.push(center(l, bigCols)));
   } else if (order.customerName) {
-    out.push(center(`Cliente: ${stripAccents(order.customerName)}`, cols));
+    wrap(stripAccents(order.customerName), bigCols).forEach((l) => out.push(center(l, bigCols)));
   }
+  out.push(bigSepThin);
 
-  out.push(center(formatDateTime(order.createdAt), cols));
-  out.push(sepThin);
-
+  // ── ITENS (fonte grande) ──────────────────────────────────
   for (const item of order.items) {
     const head = `${item.qty}x ${stripAccents(item.name).toUpperCase()}`;
-    wrap(head, cols).forEach((l) => out.push(l));
+    wrap(head, bigCols).forEach((l) => out.push(l));
 
     const sizes: string[] = [];
     const flavors: string[] = [];
@@ -54,24 +73,28 @@ export function buildKitchenTicket(order: Order, cols: number): string {
       } else extras.push(label);
     }
 
-    if (sizes.length) wrap(`  Tamanho: ${sizes.join(", ")}`, cols).forEach((l) => out.push(l));
-    if (flavors.length) wrap(`  Sabores: ${flavors.join(" + ")}`, cols).forEach((l) => out.push(l));
+    if (sizes.length) wrap(` Tam: ${sizes.join(", ")}`, bigCols).forEach((l) => out.push(l));
+    if (flavors.length) wrap(` Sabores: ${flavors.join(" + ")}`, bigCols).forEach((l) => out.push(l));
     for (const [g, opts] of Object.entries(groups)) {
-      wrap(`  ${g}: ${opts.join(", ")}`, cols).forEach((l) => out.push(l));
+      wrap(` ${g}: ${opts.join(", ")}`, bigCols).forEach((l) => out.push(l));
     }
-    if (extras.length) wrap(`  + ${extras.join(", ")}`, cols).forEach((l) => out.push(l));
-    if (item.note) wrap(`  >> Obs: ${stripAccents(item.note)}`, cols).forEach((l) => out.push(l));
+    if (extras.length) wrap(` + ${extras.join(", ")}`, bigCols).forEach((l) => out.push(l));
+    if (item.note) wrap(` >> OBS: ${stripAccents(item.note).toUpperCase()}`, bigCols).forEach((l) => out.push(l));
 
     out.push("");
   }
 
+  // ── RODAPÉ (fonte normal) ────────────────────────────────
+  out.push(ESC_NORMAL);
   if (order.note) {
     out.push(sepThin);
     out.push("NOTA GERAL:");
     wrap(stripAccents(order.note), cols).forEach((l) => out.push(l));
   }
-
   out.push(sep);
+  out.push(center(formatDateTime(order.createdAt), cols));
+  out.push(sep);
+
   return out.join("\n");
 }
 
