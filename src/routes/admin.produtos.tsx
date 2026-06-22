@@ -327,16 +327,19 @@ function ProductsPage() {
                 </DialogFooter>
               </TabsContent>
 
-              <TabsContent value="tamanhos" className="mt-4">
-                {currentProduct && (
-                  <SizesEditor
-                    productId={currentProduct.id}
-                    sizes={currentProduct.sizes ?? []}
-                    onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "products"] })}
-                  />
-                )}
-              </TabsContent>
+              {isPizzaria && (
+                <TabsContent value="tamanhos" className="mt-4">
+                  {currentProduct && (
+                    <SizesEditor
+                      productId={currentProduct.id}
+                      sizes={currentProduct.sizes ?? []}
+                      onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "products"] })}
+                    />
+                  )}
+                </TabsContent>
+              )}
             </Tabs>
+
           )}
         </DialogContent>
       </Dialog>
