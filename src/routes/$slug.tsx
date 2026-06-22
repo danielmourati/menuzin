@@ -77,7 +77,7 @@ function StoreRoute() {
   const isStorefront = useRouterState({
     select: (state) => state.location.pathname === `/${slug}`,
   });
-  const { data } = useSuspenseQuery(catalogQueryOptions(isReserved ? "__reserved__" : slug));
+  const { data } = useSuspenseQuery(catalogQueryOptions(isReserved ? "--reserved--" : slug));
 
   if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
