@@ -77,6 +77,12 @@ function LoginPage() {
               Entrar
             </Button>
           </form>
+
+          <p className="mt-4 text-center text-sm">
+            <Link to="/admin/recuperar-senha" className="font-medium text-primary hover:underline">
+              Esqueci minha senha
+            </Link>
+          </p>
         </div>
       </div>
     </div>
