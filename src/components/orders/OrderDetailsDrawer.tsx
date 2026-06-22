@@ -244,14 +244,13 @@ export function OrderDetailsDrawer({
         </ScrollArea>
 
         {/* FOOTER */}
-        <div className="p-4 bg-muted/30 border-t shrink-0 flex flex-col gap-3">
+        <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
           <WhatsAppOrderActions order={order} storeName={storeName} />
           <div className="flex gap-2 flex-wrap">
             <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-sky-600 hover:bg-sky-700 text-white border-sky-600" paperWidth={paperWidth} />
-            <PrintKitchenButton order={order} className="flex-1 min-w-[160px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
+            <PrintKitchenButton order={order} size="icon" className="h-10 w-10 shrink-0 bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
             <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px] border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Fechar</Button>
           </div>
-          <Separator className="my-1" />
           <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="w-full" />
         </div>
       </DialogContent>
