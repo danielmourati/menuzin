@@ -27,10 +27,10 @@ function OrdersPage() {
   const { isAuthenticated, loading: authLoading, profile } = useAuth();
   const {
     orders,
-    acceptOrder,
     cancelOrder,
     updateOrderStatus,
   } = useOrdersRealtime();
+  const acceptOrder = useAcceptOrderWithKitchenPrint(orders, updateOrderStatus);
   const { data: tenantData } = useQuery({
     queryKey: ["my-tenant", profile?.tenant_id ?? "none"],
     queryFn: () => getMyTenant(),
