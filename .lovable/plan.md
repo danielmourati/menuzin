@@ -1,96 +1,79 @@
-## 1. Modal de detalhes do pedido (`OrderDetailsDrawer.tsx`)
+## Diagnóstico
 
-Novo grid em 2 colunas (md+):
+Tenants atuais: `burgerprime` (hamburgueria), `vilaboemia` (espetaria) e `restauranteonego` (churrascaria). Comparando o que cada um tem:
+
+| Recurso | burgerprime | vilaboemia | restauranteonego |
+|---|---|---|---|
+| hours_schedule | ✓ | ✓ | ✓ |
+| logo / tema | ✓ | ✓ | ✓ |
+| printer_settings | ✓ | ✓ | ✓ |
+| tenant_printers (QZ) | ✓ | – | ✓ |
+| store_payment_settings | ✓ | ✓ | ✓ |
+| addon_groups | 2 | 8 | 2 |
+| delivery_zones | 2 | – | – |
+| cupons | 1 | – | – |
+| prep_time / min_order / delivery_fee | preenchidos | preenchidos | parcial (delivery_fee=0) |
+| accepts_delivery/takeout/dinein, open_mode, delivery_mode, pos_paper_width | configurado | configurado | configurado |
+
+Hoje o `adminCreateTenant` (em `src/lib/platform.functions.ts`) só faz seed mínimo de categorias por business_type. Não cria `store_payment_settings`, nem `printer_settings`, nem garante `accepts_*`, `hours_schedule`, `pos_paper_width`, etc.
+
+## Estratégia
+
+Tenant de referência **por tipo de negócio** (escolha do usuário) com **merge não-destrutivo** (só preenche o que está faltando):
 
 ```text
-┌─────────────────────────────┬─────────────────────────────┐
-│ ITENS DO PEDIDO (esquerda)  │ CLIENTE (direita)           │
-│ - lista, obs, valores       │ - nome, telefone, endereço  │
-│                             │   ou mesa, enviado às…      │
-├─────────────────────────────┴─────────────────────────────┤
-│ LINHA DO TEMPO — horizontal, full-width, ícones grandes   │
-└───────────────────────────────────────────────────────────┘
+business_types contém     →  template
+─────────────────────────────────────────
+hamburgueria, lanchonete,    burgerprime
+pastelaria, food_truck,
+marmitaria, padaria,
+cafeteria, conveniencia
+─────────────────────────────────────────
+espetaria, churrascaria,     vilaboemia
+bar, restaurante, sushi,
+acaiteria, sorveteria,
+pizzaria (fallback)
 ```
 
-Mobile: empilha (itens → cliente → timeline).
+Regra de merge: cada campo / linha só é tocada quando o tenant alvo está vazio/nulo. Catálogo (categorias, produtos, addons existentes) **nunca** é sobrescrito; só completa o que falta.
 
-**Timeline horizontal mais explicativa** (`OrderStatusTimeline.tsx`, modo `horizontal`):
-- Ícones por etapa em vez do `Clock` genérico, derivados do `step.key`:
-  - `novo` → `Inbox`
-  - `aceito` → `CheckCircle2`
-  - `preparo` → `ChefHat` (`Flame` quando current)
-  - `saiu_entrega` → `Bike`
-  - `pronto_retirada` → `PackageCheck`
-  - `servido` → `Utensils`
-  - `finalizado` → `Award`
-- Bolha 40px, label maior (text-xs → text-sm), horário sob o label.
-- Conector mais grosso (h-1) entre etapas; verde quando concluído.
+## Backend
 
-Restante (header, valores, botões de pagamento/imprimir/fechar) preservado; rodapé fica abaixo da timeline.
+### 1. Novo módulo `src/lib/tenant-template.server.ts`
+Helper server-only com `applyTenantTemplate(tenantId)`:
 
-## 2. Fluxo Kanban simplificado (`OrdersStatusGroups.tsx` + `OrdersKanbanBoard.tsx` + `OrdersMobileTabs.tsx`)
+1. Carrega tenant alvo + referência (resolvida pelo business_types).
+2. **Tabela `tenants` (UPDATE parcial — só campos nulos/zero/string vazia):**
+   `prep_time`, `min_order`, `delivery_fee`, `pos_paper_width`, `open_mode`, `delivery_mode`, `accepts_delivery`, `accepts_takeout`, `accepts_dinein`, `hours_schedule`, `theme_from`, `theme_to`. `logo_url`, `name`, `whatsapp`, `description` nunca tocados.
+3. **`store_payment_settings`**: se não existir linha para o tenant, clona a do tenant de referência (sem segredos de gateway — só métodos aceitos e flags).
+4. **`printer_settings`**: idem; cria linha default se ausente.
+5. **`addon_groups` + `addon_options` + `addon_group_targets`**: só cria grupos cujo `name` ainda não existe no alvo (case-insensitive). Targets só são copiados quando conseguem ser remapeados para uma categoria/produto existente do alvo (mesmo nome).
+6. **`categories`**: completa apenas as categorias `kind = standard|pizza` do template que faltam por nome (reaproveita `seedCategoriesForBusinessTypes` já existente).
+7. **Não copia**: `products`, `coupons`, `delivery_zones`, `tenant_printers` (são dados específicos do dono / impressora física).
 
-Reduzir para 3 colunas/grupos ativos + 1 lista de arquivados:
+Retorna um relatório `{ updated: string[], created: string[], skipped: string[] }`.
 
-1. **Novos pedidos** — `novo`
-2. **Em preparo** — `aceito` + `preparo` (unificados; Aceitar já manda para preparo)
-3. **Prontos / Despachados** — `pronto_retirada`, `saiu_entrega`, `servido`
-4. **Finalizados** — `finalizado` + `cancelado`, exibidos como **lista compacta** (1 linha cada: #nº · cliente · modo · total · hora · botão "Visualizar"), em vez de cards.
+### 2. Server functions em `src/lib/platform.functions.ts`
+- `adminApplyTenantTemplate({ tenant_id })` — chama o helper. Requer `requireSupabaseAuth` + `ensurePlatformAdmin`.
+- `adminApplyTemplateToAll()` — itera todos os tenants existentes e aplica o merge. Mesmo gate.
+- `adminCreateTenant` — ao final do fluxo de criação, chamar `applyTenantTemplate(tenant.id)` automaticamente (depois do `seedCategoriesForBusinessTypes`, antes do return). Assim **todo novo tenant** nasce no padrão.
 
-Implementação:
-- Remover/ocultar o grupo `aceito` separado; juntar `["aceito","preparo"]` em "Em preparo".
-- Criar componente `OrdersFinalizedList` (lista densa) substituindo o grid de cards no grupo de arquivados.
-- `OrdersMobileTabs`: mesma simplificação (Novos, Em preparo, Prontos, Finalizados).
+## Frontend
 
-## 3. Aceitar pedido = inicia preparo + imprime cozinha
+### 3. `src/routes/platform.lojas.tsx`
+- Botão "Aplicar template padrão" em cada linha da tabela de lojas → chama `adminApplyTenantTemplate` e mostra toast com o relatório.
+- Botão no topo "Padronizar todas" → chama `adminApplyTemplateToAll`, com confirmação.
 
-Centralizar em um helper `acceptAndStartPreparation(order)` em `useOrdersRealtime`:
-- Atualiza status diretamente para `"preparo"` (uma única chamada server: `updateOrderStatus(orderId, "preparo", "Pedido aceito e em preparo")`).
-- Em seguida tenta imprimir a comanda de cozinha automaticamente (mesmo fluxo do `PrintKitchenButton`).
-- Falha silenciosa de impressão → toast de aviso com link "Configurar impressora"; não bloqueia a transição.
+Nenhuma mudança em `platform.tenants.novo.tsx` — o merge automático no backend basta.
 
-Pontos de chamada atualizados:
-- `OrderCard` botão "Aceitar".
-- `OrderDetailsDrawer` botão "Aceitar Pedido".
-- `OrderStatusActions` quando `next` inclui `aceito` no estado `novo` (transforma em ação única "Aceitar e iniciar preparo").
+## Execução manual (one-shot)
 
-`nextStatuses` em `src/lib/format.ts`:
-- `novo` → `["preparo","cancelado"]` (sem passar por `aceito` no novo fluxo).
-- Mantém `aceito` como status válido para pedidos legados; trata `aceito` no UI como "Em preparo".
+Após o deploy, rodar `adminApplyTemplateToAll` uma vez pelo botão para já alinhar `restauranteonego` (vai herdar de `vilaboemia` por ser churrascaria).
 
-## 4. Comanda de cozinha com fonte ampliada
+## Arquivos
 
-Em `src/lib/print-kitchen.ts`:
-- Antes do texto, prefixar ESC/POS `\x1B@` (init) e `\x1D!\x11` (double width + double height) no cabeçalho/itens; voltar a normal `\x1D!\x00` no rodapé.
-- Aplicar fonte grande aos itens (qty, nome, sabores/adicionais) e manter observações em fonte normal para caber.
-- Atualizar `buildKitchenTicket(order, cols)` para devolver blocos marcados; `print-kitchen.ts` monta o stream final com os bytes ESC/POS intercalados (a string segue sendo enviada como antes por `printQzReceipt`).
+- `src/lib/tenant-template.server.ts` (novo)
+- `src/lib/platform.functions.ts` (edit: 2 novas server fns + chamada no create)
+- `src/routes/platform.lojas.tsx` (edit: botões)
 
-## 5. Botão de reimpressão da cozinha
-
-- `PrintKitchenButton` já existe — manter no rodapé do `OrderDetailsDrawer` com rótulo "Reimprimir cozinha" quando `order.status !== "novo"`.
-- Adicionar atalho na lista de arquivados/finalizados e no `OrderCard` (ícone `ChefHat`) para reimprimir sem abrir o modal.
-
-## 6. Acompanhamento do cliente simplificado (`CustomerOrderTracking.tsx` + `getTimelineSteps`)
-
-Nova função `getCustomerTimelineSteps(mode)` (ou flag em `getTimelineSteps`) que remove `novo` e produz:
-- entrega: `aceito` → `preparo` → `saiu_entrega` → `finalizado` (Entregue)
-- retirada: `aceito` → `preparo` → `pronto_retirada` → `finalizado` (Retirado)
-- consumo_local: `aceito` → `preparo` → `servido` → `finalizado`
-
-`CustomerOrderTracking` usa o `OrderStatusTimeline` horizontal com a variante "cliente" (sem a etapa "Pedido enviado") e mesma iconografia explicativa.
-
-## Arquivos afetados
-
-- `src/components/orders/OrderDetailsDrawer.tsx`
-- `src/components/orders/OrderStatusTimeline.tsx`
-- `src/components/orders/OrderStatusActions.tsx`
-- `src/components/orders/OrdersStatusGroups.tsx`
-- `src/components/orders/OrdersMobileTabs.tsx`
-- `src/components/orders/OrderCard.tsx`
-- `src/components/orders/OrdersFinalizedList.tsx` *(novo)*
-- `src/hooks/useOrdersRealtime.ts` (helper `acceptAndStartPreparation`)
-- `src/lib/format.ts` (`nextStatuses`, `getCustomerTimelineSteps`)
-- `src/lib/kitchen-ticket.ts` + `src/lib/print-kitchen.ts` (fonte ampliada)
-- `src/components/storefront/CustomerOrderTracking.tsx`
-
-Sem mudanças de schema/migração.
+Sem migrations; sem mudança de schema.

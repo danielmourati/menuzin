@@ -230,7 +230,50 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       await seedCategoriesForBusinessTypes(tenant.id as string, data.business_types as string[]);
     }
 
+    // Padroniza o novo tenant com base nos templates (burgerprime / vilaboemia)
+    try {
+      const { applyTenantTemplate } = await import("@/lib/tenant-template.server");
+      await applyTenantTemplate(tenant.id as string);
+    } catch {
+      // não falhar a criação se o merge der erro
+    }
+
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
+  });
+
+// ===== Padronização de tenants (aplicar template burgerprime/vilaboemia) =====
+
+export const adminApplyTenantTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ tenant_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensurePlatformAdmin(context.userId);
+    const { applyTenantTemplate } = await import("@/lib/tenant-template.server");
+    return await applyTenantTemplate(data.tenant_id);
+  });
+
+export const adminApplyTemplateToAll = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensurePlatformAdmin(context.userId);
+    const { applyTenantTemplate } = await import("@/lib/tenant-template.server");
+    const { data: tenants } = await supabaseAdmin
+      .from("tenants").select("id, slug");
+    const results: { slug: string; ok: boolean; error?: string; updated?: number; created?: number }[] = [];
+    for (const t of (tenants ?? [])) {
+      try {
+        const r = await applyTenantTemplate(t.id as string);
+        results.push({
+          slug: t.slug as string,
+          ok: true,
+          updated: r.updated_fields.length,
+          created: r.created.length,
+        });
+      } catch (e) {
+        results.push({ slug: t.slug as string, ok: false, error: (e as Error).message });
+      }
+    }
+    return { results };
   });
 
 const BUSINESS_TYPE_CATEGORIES: Record<string, { name: string; kind: "standard" | "pizza" }[]> = {
