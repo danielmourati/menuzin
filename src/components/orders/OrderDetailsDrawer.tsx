@@ -107,7 +107,7 @@ export function OrderDetailsDrawer({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col max-h-[92vh] gap-0">
+      <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col max-h-[92dvh] gap-0 overscroll-contain">
         <DialogHeader className="p-5 border-b shrink-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
