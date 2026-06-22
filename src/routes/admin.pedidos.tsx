@@ -28,9 +28,12 @@ function OrdersPage() {
   const {
     orders,
     cancelOrder,
-    updateOrderStatus,
+    updateOrderStatus: rawUpdateOrderStatus,
   } = useOrdersRealtime();
-  const acceptOrder = useAcceptOrderWithKitchenPrint(orders, updateOrderStatus);
+  const { acceptOrder, updateOrderStatus } = useAcceptOrderWithKitchenPrint(
+    orders,
+    rawUpdateOrderStatus,
+  );
   const { data: tenantData } = useQuery({
     queryKey: ["my-tenant", profile?.tenant_id ?? "none"],
     queryFn: () => getMyTenant(),
