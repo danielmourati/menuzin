@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2, Loader2, Layers } from "lucide-react";
+import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
   listAddonGroups, saveAddonGroup, deleteAddonGroup,
