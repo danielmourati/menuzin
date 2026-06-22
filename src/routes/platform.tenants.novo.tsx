@@ -31,7 +31,7 @@ function NewTenantPage() {
   const [themeFrom, setThemeFrom] = useState("#FF6A1F");
   const [themeTo, setThemeTo] = useState("#FF9A3C");
   const [active, setActive] = useState(true);
-  const [cloneBurger, setCloneBurger] = useState(false);
+  
   const [businessTypes, setBusinessTypes] = useState<string[]>([]);
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
