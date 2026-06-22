@@ -1,23 +1,81 @@
-import { getTimelineSteps, getTimelineIndex, formatTime } from "@/lib/format";
-import type { Order } from "@/lib/domain-types";
-import { Check, Clock, Play } from "lucide-react";
+import {
+  getTimelineSteps,
+  getCustomerTimelineSteps,
+  getTimelineIndex,
+  formatTime,
+} from "@/lib/format";
+import type { Order, OrderStatus } from "@/lib/domain-types";
+import {
+  Clock,
+  Inbox,
+  CheckCircle2,
+  ChefHat,
+  Flame,
+  Bike,
+  PackageCheck,
+  Utensils,
+  Award,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface OrderStatusTimelineProps {
   order: Order;
   orientation?: "vertical" | "horizontal";
+  audience?: "admin" | "customer";
   className?: string;
 }
 
-export function OrderStatusTimeline({ order, orientation = "vertical", className = "" }: OrderStatusTimelineProps) {
-  if (orientation === "horizontal") {
-    return <HorizontalTimeline order={order} className={className} />;
+function iconForStep(
+  key: OrderStatus,
+  state: "done" | "current" | "pending",
+): LucideIcon {
+  switch (key) {
+    case "novo":
+      return Inbox;
+    case "aceito":
+      return CheckCircle2;
+    case "preparo":
+      return state === "current" ? Flame : ChefHat;
+    case "saiu_entrega":
+      return Bike;
+    case "pronto_retirada":
+      return PackageCheck;
+    case "servido":
+      return Utensils;
+    case "finalizado":
+      return Award;
+    default:
+      return Clock;
   }
-  return <VerticalTimeline order={order} className={className} />;
 }
 
-function VerticalTimeline({ order, className }: { order: Order; className: string }) {
-  const steps = getTimelineSteps(order.mode);
-  const currentIndex = getTimelineIndex(order.mode, order.status);
+function useSteps(order: Order, audience: "admin" | "customer") {
+  const steps =
+    audience === "customer"
+      ? getCustomerTimelineSteps(order.mode)
+      : getTimelineSteps(order.mode);
+  const currentIndex = getTimelineIndex(order.mode, order.status, steps);
+  return { steps, currentIndex };
+}
+
+export function OrderStatusTimeline({
+  order,
+  orientation = "vertical",
+  audience = "admin",
+  className = "",
+}: OrderStatusTimelineProps) {
+  if (orientation === "horizontal") {
+    return <HorizontalTimeline order={order} audience={audience} className={className} />;
+  }
+  return <VerticalTimeline order={order} audience={audience} className={className} />;
+}
+
+function VerticalTimeline({
+  order,
+  audience,
+  className,
+}: { order: Order; audience: "admin" | "customer"; className: string }) {
+  const { steps, currentIndex } = useSteps(order, audience);
   const isCancelled = order.status === "cancelado";
 
   return (
@@ -46,21 +104,23 @@ function VerticalTimeline({ order, className }: { order: Order; className: strin
         const isDone = !isCancelled && idx < currentIndex;
         const isCurrent = !isCancelled && idx === currentIndex;
         const isPending = isCancelled || idx > currentIndex;
+        const state = isDone ? "done" : isCurrent ? "current" : "pending";
+        const Icon = iconForStep(step.key, state);
 
-        let icon = <Clock className="h-3 w-3 text-muted-foreground" />;
         let iconBg = "bg-muted border border-border";
+        let iconColor = "text-muted-foreground";
         if (isDone) {
-          icon = <Check className="h-3.5 w-3.5 text-white" />;
           iconBg = "bg-success border-none shadow-sm";
+          iconColor = "text-white";
         } else if (isCurrent) {
-          icon = <Play className="h-3.5 w-3.5 text-white animate-pulse" />;
           iconBg = "bg-primary border-none shadow-md ring-4 ring-primary/20";
+          iconColor = "text-white";
         }
 
         return (
           <div key={step.key} className="flex gap-4 relative z-10">
-            <div className={`h-6.5 w-6.5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${iconBg}`}>
-              {icon}
+            <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${iconBg}`}>
+              <Icon className={`h-3.5 w-3.5 ${iconColor} ${isCurrent ? "animate-pulse" : ""}`} />
             </div>
             <div className="flex-1 min-w-0 pt-0.5">
               <div className="flex items-center justify-between gap-2">
@@ -82,13 +142,16 @@ function VerticalTimeline({ order, className }: { order: Order; className: strin
   );
 }
 
-function HorizontalTimeline({ order, className }: { order: Order; className: string }) {
-  const steps = getTimelineSteps(order.mode);
-  const currentIndex = getTimelineIndex(order.mode, order.status);
+function HorizontalTimeline({
+  order,
+  audience,
+  className,
+}: { order: Order; audience: "admin" | "customer"; className: string }) {
+  const { steps, currentIndex } = useSteps(order, audience);
   const isCancelled = order.status === "cancelado";
 
   return (
-    <div className={`overflow-x-auto -mx-1 px-1 pb-1 ${className}`}>
+    <div className={`w-full ${className}`}>
       {isCancelled && (
         <div className="mb-3 flex items-center gap-2 rounded-md bg-destructive/5 border border-destructive/20 px-3 py-2 text-xs">
           <span className="h-5 w-5 rounded-full bg-destructive flex items-center justify-center text-white">
@@ -98,38 +161,48 @@ function HorizontalTimeline({ order, className }: { order: Order; className: str
           {order.cancelReason && <span className="text-muted-foreground truncate">— {order.cancelReason}</span>}
         </div>
       )}
-      <div className="flex items-start gap-0 min-w-max">
+      <div className="flex items-start justify-between gap-1 w-full">
         {steps.map((step, idx) => {
           const historyEntry = order.statusHistory.find((h) => h.newStatus === step.key);
           const isDone = !isCancelled && idx < currentIndex;
           const isCurrent = !isCancelled && idx === currentIndex;
           const isLast = idx === steps.length - 1;
+          const state = isDone ? "done" : isCurrent ? "current" : "pending";
+          const Icon = iconForStep(step.key, state);
 
-          let icon = <Clock className="h-3 w-3 text-muted-foreground" />;
           let iconBg = "bg-muted border border-border";
+          let iconColor = "text-muted-foreground";
           if (isDone) {
-            icon = <Check className="h-3.5 w-3.5 text-white" />;
-            iconBg = "bg-success border-none";
+            iconBg = "bg-success border-none shadow-sm";
+            iconColor = "text-white";
           } else if (isCurrent) {
-            icon = <Play className="h-3 w-3 text-white animate-pulse" />;
-            iconBg = "bg-primary border-none ring-4 ring-primary/20";
+            iconBg = "bg-primary border-none ring-4 ring-primary/20 shadow-md";
+            iconColor = "text-white";
           }
           const connectorColor = isDone ? "bg-success" : "bg-muted";
 
           return (
-            <div key={step.key} className="flex items-start min-w-[88px]">
-              <div className="flex flex-col items-center w-[88px]">
-                <div className={`h-7 w-7 rounded-full flex items-center justify-center transition-all ${iconBg}`}>
-                  {icon}
+            <div key={step.key} className="flex items-start flex-1 min-w-0">
+              <div className="flex flex-col items-center flex-1 min-w-0">
+                <div className={`h-11 w-11 rounded-full flex items-center justify-center transition-all ${iconBg}`}>
+                  <Icon className={`h-5 w-5 ${iconColor} ${isCurrent ? "animate-pulse" : ""}`} />
                 </div>
-                <span className={`mt-1.5 text-[11px] text-center leading-tight font-medium px-1 ${isCurrent ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"}`}>
+                <span
+                  className={`mt-2 text-xs sm:text-sm text-center leading-tight font-semibold px-1 ${
+                    isCurrent ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
                   {step.label}
                 </span>
                 {historyEntry && (
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{formatTime(historyEntry.createdAt)}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                    {formatTime(historyEntry.createdAt)}
+                  </span>
                 )}
               </div>
-              {!isLast && <div className={`h-0.5 mt-3.5 w-6 ${connectorColor} transition-colors`} />}
+              {!isLast && (
+                <div className={`h-1 mt-5 flex-1 min-w-[12px] rounded-full ${connectorColor} transition-colors`} />
+              )}
             </div>
           );
         })}

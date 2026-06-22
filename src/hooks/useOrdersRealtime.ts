@@ -118,8 +118,9 @@ export function useOrdersRealtime() {
     }
   }, [refetch, queryClient]);
 
+  // Fluxo simplificado: "Aceitar" já manda direto para "preparo".
   const acceptOrder = useCallback((orderId: string, note?: string) => {
-    return updateOrderStatus(orderId, "aceito", note || "Pedido aceito.");
+    return updateOrderStatus(orderId, "preparo", note || "Pedido aceito — iniciou preparo");
   }, [updateOrderStatus]);
 
   const cancelOrder = useCallback((orderId: string, reason: string, note?: string) => {

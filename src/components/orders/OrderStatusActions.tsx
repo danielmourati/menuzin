@@ -29,7 +29,9 @@ export function OrderStatusActions({
       case "aceito":
         return <Check className="h-4 w-4 mr-1.5" />;
       case "preparo":
-        return <Flame className="h-4 w-4 mr-1.5" />;
+        return order.status === "novo"
+          ? <Check className="h-4 w-4 mr-1.5" />
+          : <Flame className="h-4 w-4 mr-1.5" />;
       case "saiu_entrega":
         return <Truck className="h-4 w-4 mr-1.5" />;
       case "pronto_retirada":
@@ -50,7 +52,9 @@ export function OrderStatusActions({
       case "aceito":
         return "Aceitar Pedido";
       case "preparo":
-        return "Iniciar Preparo";
+        // Quando vier de "novo", o botão representa "Aceitar Pedido"
+        // (fluxo simplificado: aceitar já inicia o preparo).
+        return order.status === "novo" ? "Aceitar Pedido" : "Iniciar Preparo";
       case "saiu_entrega":
         return "Saiu para Entrega";
       case "pronto_retirada":
@@ -69,7 +73,7 @@ export function OrderStatusActions({
       case "aceito":
         return "success";
       case "preparo":
-        return "warning";
+        return order.status === "novo" ? "success" : "warning";
       case "saiu_entrega":
         return "info";
       case "pronto_retirada":

@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
+import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: OrdersPage,
@@ -26,10 +27,13 @@ function OrdersPage() {
   const { isAuthenticated, loading: authLoading, profile } = useAuth();
   const {
     orders,
-    acceptOrder,
     cancelOrder,
-    updateOrderStatus,
+    updateOrderStatus: rawUpdateOrderStatus,
   } = useOrdersRealtime();
+  const { acceptOrder, updateOrderStatus } = useAcceptOrderWithKitchenPrint(
+    orders,
+    rawUpdateOrderStatus,
+  );
   const { data: tenantData } = useQuery({
     queryKey: ["my-tenant", profile?.tenant_id ?? "none"],
     queryFn: () => getMyTenant(),

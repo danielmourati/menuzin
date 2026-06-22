@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import { OrderCard } from "./OrderCard";
+import { OrdersFinalizedList } from "./OrdersFinalizedList";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -22,12 +23,12 @@ type Group = {
   defaultOpen?: boolean;
 };
 
+// Fluxo simplificado: 3 colunas ativas (Novos · Em preparo · Prontos)
+// + lista de Finalizados/Cancelados separada.
 const GROUPS: Group[] = [
   { id: "novo", title: "Novos pedidos", statuses: ["novo"], dotClass: "bg-primary", badgeClass: "bg-primary text-primary-foreground", defaultOpen: true },
-  { id: "aceito", title: "Pedidos lidos / aceitos", statuses: ["aceito"], dotClass: "bg-amber-500", badgeClass: "bg-amber-500 text-white", defaultOpen: true },
-  { id: "preparo", title: "Em preparo", statuses: ["preparo"], dotClass: "bg-blue-500", badgeClass: "bg-blue-500 text-white", defaultOpen: true },
+  { id: "preparo", title: "Em preparo", statuses: ["aceito", "preparo"], dotClass: "bg-blue-500", badgeClass: "bg-blue-500 text-white", defaultOpen: true },
   { id: "prontos", title: "Prontos / Despachados", statuses: ["pronto_retirada", "saiu_entrega", "servido"], dotClass: "bg-emerald-500", badgeClass: "bg-success text-success-foreground", defaultOpen: true },
-  { id: "arquivados", title: "Finalizados / Cancelados", statuses: ["finalizado", "cancelado"], dotClass: "bg-zinc-400", badgeClass: "bg-muted text-muted-foreground", defaultOpen: false },
 ];
 
 export function OrdersStatusGroups({ orders, onViewDetails, onAccept, onCancel, onUpdateStatus }: OrdersStatusGroupsProps) {
@@ -36,11 +37,12 @@ export function OrdersStatusGroups({ orders, onViewDetails, onAccept, onCancel, 
   );
   const toggle = (id: string) => setOpenMap((m) => ({ ...m, [id]: !m[id] }));
 
+  const finalizedOrders = orders.filter((o) => o.status === "finalizado" || o.status === "cancelado");
+
   return (
     <div className="space-y-6">
       {GROUPS.map((g) => {
         const list = orders.filter((o) => g.statuses.includes(o.status));
-        if (g.id === "arquivados" && list.length === 0) return null;
         const open = openMap[g.id];
 
         return (
@@ -83,6 +85,8 @@ export function OrdersStatusGroups({ orders, onViewDetails, onAccept, onCancel, 
           </section>
         );
       })}
+
+      <OrdersFinalizedList orders={finalizedOrders} onViewDetails={onViewDetails} />
     </div>
   );
 }

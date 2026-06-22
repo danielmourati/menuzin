@@ -16,6 +16,7 @@ interface PrintKitchenButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary" | "ghost";
   className?: string;
+  label?: string;
 }
 
 export function PrintKitchenButton({
@@ -23,6 +24,7 @@ export function PrintKitchenButton({
   size = "default",
   variant = "outline",
   className = "",
+  label,
 }: PrintKitchenButtonProps) {
   const { isAuthenticated } = useAuth();
   const { can } = useTenantPlan();
@@ -69,6 +71,10 @@ export function PrintKitchenButton({
     }
   };
 
+  const isNew = order.status === "novo";
+  const defaultLabel = isNew ? "Imprimir cozinha" : "Reimprimir cozinha";
+  const finalLabel = label ?? defaultLabel;
+
   return (
     <Button
       variant={variant}
@@ -76,14 +82,14 @@ export function PrintKitchenButton({
       className={className}
       onClick={handlePrint}
       disabled={printing}
-      title="Imprimir comanda da cozinha"
+      title={finalLabel}
     >
       {printing ? (
         <Loader2 className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"} />
       ) : (
         <ChefHat className={size === "icon" ? "h-3.5 w-3.5" : "mr-2 h-4 w-4"} />
       )}
-      {size !== "icon" && (printing ? "Imprimindo..." : "Imprimir comanda cozinha")}
+      {size !== "icon" && (printing ? "Imprimindo..." : finalLabel)}
     </Button>
   );
 }
