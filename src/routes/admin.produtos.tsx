@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza } from "lucide-react";
+import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { toast } from "sonner";
