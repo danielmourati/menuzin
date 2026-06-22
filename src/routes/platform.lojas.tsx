@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Eye, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Eye, ExternalLink, Loader2, Pencil, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listPlatformStores,
@@ -40,6 +40,8 @@ import {
   adminDeleteTenant,
   adminGetTenantOwner,
   adminUpdateTenantOwner,
+  adminApplyTenantTemplate,
+  adminApplyTemplateToAll,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
 import { brl } from "@/lib/format";
