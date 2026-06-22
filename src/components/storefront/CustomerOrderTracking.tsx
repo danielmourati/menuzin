@@ -11,6 +11,7 @@ import { MessageCircle, ArrowLeft, ShoppingBag, MapPin, Utensils, Clock, Loader2
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
 import { OrderStatusBadge, PaymentStatusBadge } from "../orders/OrderStatusBadge";
+import { OrderRatingCard } from "./OrderRatingCard";
 
 interface CustomerOrderTrackingProps {
   slug: string;
@@ -207,6 +208,10 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
             </div>
           </CardContent>
         </Card>
+
+        {(["saiu_entrega", "pronto_retirada", "servido", "finalizado"] as const).includes(order.status as never) && (
+          <OrderRatingCard orderId={order.id} />
+        )}
 
         <div className="space-y-2">
           <Button asChild className="h-12 w-full bg-success hover:bg-success/90 text-success-foreground font-semibold">
