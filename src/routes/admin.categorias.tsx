@@ -36,15 +36,19 @@ type Editing = {
 
 function CategoriesPage() {
   const qc = useQueryClient();
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["admin", "categories"],
-    queryFn: async () => (await listMyCategories()).categories,
-  });
   const tenantQ = useQuery({
     queryKey: ["tenant-probe"],
     queryFn: () => getMyTenant({ data: {} }),
   });
+  const hasTenant = !!tenantQ.data?.tenant?.id;
   const isPizzaria = (tenantQ.data?.tenant?.business_types ?? []).includes("pizzaria");
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => (await listMyCategories()).categories,
+    enabled: hasTenant,
+    retry: false,
+  });
+
 
 
   const [pickerOpen, setPickerOpen] = useState(false);
