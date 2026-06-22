@@ -6,7 +6,6 @@ import {
 } from "@/lib/format";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import {
-  Check,
   Clock,
   Inbox,
   CheckCircle2,
