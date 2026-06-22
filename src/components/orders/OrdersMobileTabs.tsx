@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import { OrderCard } from "./OrderCard";
+import { OrdersFinalizedList } from "./OrdersFinalizedList";
 import { Badge } from "@/components/ui/badge";
 
 interface OrdersMobileTabsProps {
@@ -11,7 +12,7 @@ interface OrdersMobileTabsProps {
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
 }
 
-type TabType = "novo" | "preparo" | "despachado" | "todos";
+type TabType = "novo" | "preparo" | "despachado" | "finalizado";
 
 export function OrdersMobileTabs({
   orders,
@@ -22,49 +23,24 @@ export function OrdersMobileTabs({
 }: OrdersMobileTabsProps) {
   const [activeTab, setActiveTab] = useState<TabType>("novo");
 
-  // Filtra apenas pedidos ativos (não finalizados nem cancelados)
-  const activeOrders = orders.filter(
-    (o) => o.status !== "finalizado" && o.status !== "cancelado"
-  );
+  const byStatus = (statuses: OrderStatus[]) =>
+    orders.filter((o) => statuses.includes(o.status));
 
-  const getFilteredOrders = () => {
-    switch (activeTab) {
-      case "novo":
-        return activeOrders.filter((o) => o.status === "novo");
-      case "preparo":
-        return activeOrders.filter((o) => o.status === "aceito" || o.status === "preparo");
-      case "despachado":
-        return activeOrders.filter((o) =>
-          ["pronto_retirada", "saiu_entrega", "servido"].includes(o.status)
-        );
-      case "todos":
-        return activeOrders;
-    }
-  };
-
-  const getCount = (tab: TabType) => {
-    switch (tab) {
-      case "novo":
-        return activeOrders.filter((o) => o.status === "novo").length;
-      case "preparo":
-        return activeOrders.filter((o) => o.status === "aceito" || o.status === "preparo").length;
-      case "despachado":
-        return activeOrders.filter((o) =>
-          ["pronto_retirada", "saiu_entrega", "servido"].includes(o.status)
-        ).length;
-      case "todos":
-        return activeOrders.length;
-    }
+  const lists: Record<TabType, Order[]> = {
+    novo: byStatus(["novo"]),
+    preparo: byStatus(["aceito", "preparo"]),
+    despachado: byStatus(["pronto_retirada", "saiu_entrega", "servido"]),
+    finalizado: byStatus(["finalizado", "cancelado"]),
   };
 
   const tabs: { id: TabType; label: string; color: string }[] = [
     { id: "novo", label: "Novos", color: "bg-primary" },
-    { id: "preparo", label: "Preparando", color: "bg-amber-500" },
+    { id: "preparo", label: "Em preparo", color: "bg-blue-500" },
     { id: "despachado", label: "Prontos", color: "bg-success" },
-    { id: "todos", label: "Todos", color: "bg-zinc-500" },
+    { id: "finalizado", label: "Finalizados", color: "bg-zinc-500" },
   ];
 
-  const filtered = getFilteredOrders();
+  const filtered = lists[activeTab];
 
   return (
     <div className="flex flex-col gap-4 md:hidden">
@@ -72,7 +48,7 @@ export function OrdersMobileTabs({
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 shrink-0">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          const count = getCount(tab.id);
+          const count = lists[tab.id].length;
 
           return (
             <button
@@ -97,9 +73,17 @@ export function OrdersMobileTabs({
         })}
       </div>
 
-      {/* Lista de Cards */}
+      {/* Conteúdo da aba */}
       <div className="space-y-3 pb-8">
-        {filtered.length === 0 ? (
+        {activeTab === "finalizado" ? (
+          filtered.length === 0 ? (
+            <div className="py-12 text-center border border-dashed rounded-xl bg-card/50 text-muted-foreground">
+              <p className="font-semibold text-sm">Nenhum pedido finalizado ainda.</p>
+            </div>
+          ) : (
+            <OrdersFinalizedList orders={filtered} onViewDetails={onViewDetails} />
+          )
+        ) : filtered.length === 0 ? (
           <div className="py-12 text-center border border-dashed rounded-xl bg-card/50 text-muted-foreground flex flex-col items-center justify-center">
             <span className="text-3xl mb-2">🎈</span>
             <p className="font-semibold text-sm">Sem pedidos nesta aba</p>
