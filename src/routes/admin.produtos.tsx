@@ -24,6 +24,8 @@ import {
   saveProductSize, deleteProductSize, saveProductFlavor, deleteProductFlavor,
   listCategoryPizzaConfig,
 } from "@/lib/catalog-admin.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
+
 
 export const Route = createFileRoute("/admin/produtos")({
   component: ProductsPage,
