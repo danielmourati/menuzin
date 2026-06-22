@@ -29,7 +29,9 @@ export function OrderStatusActions({
       case "aceito":
         return <Check className="h-4 w-4 mr-1.5" />;
       case "preparo":
-        return <Flame className="h-4 w-4 mr-1.5" />;
+        return order.status === "novo"
+          ? <Check className="h-4 w-4 mr-1.5" />
+          : <Flame className="h-4 w-4 mr-1.5" />;
       case "saiu_entrega":
         return <Truck className="h-4 w-4 mr-1.5" />;
       case "pronto_retirada":
