@@ -16,8 +16,10 @@ import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, deleteCategory,
 } from "@/lib/catalog-admin.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 import type { DbCategory } from "@/lib/db-types";
 import { PizzaCategoryConfigDialog } from "@/components/admin/PizzaCategoryConfigDialog";
+
 
 export const Route = createFileRoute("/admin/categorias")({
   component: CategoriesPage,
