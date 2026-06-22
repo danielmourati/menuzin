@@ -181,6 +181,15 @@ function PlatformStores() {
                 <Button
                   size="icon"
                   variant="outline"
+                  title="Aplicar template padrão (não sobrescreve)"
+                  onClick={() => applyOneMut.mutate(s.id)}
+                  disabled={applyOneMut.isPending}
+                >
+                  <Wand2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
                   title="Editar"
                   onClick={() => setEditing(s)}
                 >
