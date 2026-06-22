@@ -6,7 +6,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+// separator removido — footer compacto usa gap em vez de divisor
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, modeLabel, formatDateTime } from "@/lib/format";
@@ -107,7 +107,7 @@ export function OrderDetailsDrawer({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col max-h-[92vh] gap-0">
+      <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col max-h-[92dvh] gap-0 overscroll-contain">
         <DialogHeader className="p-5 border-b shrink-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
@@ -244,14 +244,13 @@ export function OrderDetailsDrawer({
         </ScrollArea>
 
         {/* FOOTER */}
-        <div className="p-4 bg-muted/30 border-t shrink-0 flex flex-col gap-3">
+        <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
           <WhatsAppOrderActions order={order} storeName={storeName} />
           <div className="flex gap-2 flex-wrap">
             <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-sky-600 hover:bg-sky-700 text-white border-sky-600" paperWidth={paperWidth} />
-            <PrintKitchenButton order={order} className="flex-1 min-w-[160px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
+            <PrintKitchenButton order={order} size="icon" className="h-10 w-10 shrink-0 bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
             <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px] border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Fechar</Button>
           </div>
-          <Separator className="my-1" />
           <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="w-full" />
         </div>
       </DialogContent>
