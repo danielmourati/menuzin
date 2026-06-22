@@ -30,6 +30,9 @@ import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
+import { PromoModal } from "@/components/storefront/PromoModal";
+import { getActivePromoModal } from "@/lib/promo-modal.functions";
+import { useQuery } from "@tanstack/react-query";
 import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
 import { MobileBottomNav } from "@/components/storefront/MobileBottomNav";
@@ -124,6 +127,39 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const { count, subtotal } = useCart();
+
+  // Modal promocional — carrega na abertura da loja, 1x por sessão
+  const promoQ = useQuery({
+    queryKey: ["promo-modal", tenant.id],
+    queryFn: () => getActivePromoModal({ data: { tenantId: tenant.id } }),
+    staleTime: 60_000,
+  });
+  const [promoOpen, setPromoOpen] = useState(false);
+  useEffect(() => {
+    const promo = promoQ.data;
+    if (!promo) return;
+    const key = `promo_seen_${promo.id}`;
+    if (typeof window !== "undefined" && !window.sessionStorage.getItem(key)) {
+      setPromoOpen(true);
+    }
+  }, [promoQ.data]);
+  const closePromo = () => {
+    const promo = promoQ.data;
+    if (promo && typeof window !== "undefined") {
+      window.sessionStorage.setItem(`promo_seen_${promo.id}`, "1");
+    }
+    setPromoOpen(false);
+  };
+  const handlePromoCta = () => {
+    const promo = promoQ.data;
+    closePromo();
+    if (!promo?.product) return;
+    const target = products.find((p) => p.id === promo.product!.id);
+    if (target) {
+      setSelectedProduct(target);
+      setModalOpen(true);
+    }
+  };
 
   // Recalcula o status a cada minuto para fechar/abrir sozinho conforme o
   // relógio do cliente — não depende de re-render no servidor.
@@ -457,6 +493,15 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         onOpenCart={() => storeOpen && setCartOpen(true)}
         hidden={cartOpen || (storeOpen && count > 0) || !storeOpen}
       />
+      {promoQ.data && storeOpen ? (
+        <PromoModal
+          open={promoOpen}
+          imageUrl={promoQ.data.imageUrl}
+          ctaLabel={promoQ.data.ctaLabel}
+          onCta={handlePromoCta}
+          onClose={closePromo}
+        />
+      ) : null}
     </div>
   );
 }

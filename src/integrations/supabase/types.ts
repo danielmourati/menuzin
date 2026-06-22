@@ -1088,6 +1088,72 @@ export type Database = {
           },
         ]
       }
+      promo_modals: {
+        Row: {
+          created_at: string
+          cta_label: string
+          enabled: boolean
+          ends_at: string | null
+          id: string
+          image_url: string
+          product_id: string | null
+          schedule_mode: string
+          starts_at: string | null
+          tenant_id: string
+          time_end: string | null
+          time_start: string | null
+          updated_at: string
+          weekdays: number[] | null
+        }
+        Insert: {
+          created_at?: string
+          cta_label?: string
+          enabled?: boolean
+          ends_at?: string | null
+          id?: string
+          image_url: string
+          product_id?: string | null
+          schedule_mode?: string
+          starts_at?: string | null
+          tenant_id: string
+          time_end?: string | null
+          time_start?: string | null
+          updated_at?: string
+          weekdays?: number[] | null
+        }
+        Update: {
+          created_at?: string
+          cta_label?: string
+          enabled?: boolean
+          ends_at?: string | null
+          id?: string
+          image_url?: string
+          product_id?: string | null
+          schedule_mode?: string
+          starts_at?: string | null
+          tenant_id?: string
+          time_end?: string | null
+          time_start?: string | null
+          updated_at?: string
+          weekdays?: number[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_modals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promo_modals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_payment_settings: {
         Row: {
           card_on_delivery_enabled: boolean
