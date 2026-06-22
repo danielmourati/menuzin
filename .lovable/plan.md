@@ -1,77 +1,122 @@
-# Melhorias para /vilaboemia (reutilizáveis por todos os tenants)
 
-A maior parte da infraestrutura já existe — vou reaproveitar `addon_groups` (`kind='observacao'`), `addon_options` e `addon_group_targets` em vez de criar tabelas novas. As mudanças se dividem em 4 frentes.
+# Plano de melhorias — Admin & Fluxo do Cliente
 
-## 1) Subcategorias de observação (admin)
+Vou aplicar as mudanças em fases incrementais, sem refatorar módulos não relacionados e preservando multi-tenant, RLS, checkout, impressão e notificações.
 
-A tabela `addon_groups` já tem `name`, `required`, `min_select`, `max_select`, `active`, `sort_order`, `kind`. Falta apenas um campo de instrução para o cliente.
+---
 
-**Migration:** adicionar `description text` em `addon_groups` (opcional, default `''`).
+## Fase 1 — Correções rápidas de admin
 
-**UI em `/admin/adicionais`** (tab Observações) — hoje cada item é uma opção solta. Vou trocar por **gestão de grupos** quando `kind='observacao'`:
-- Listar grupos com nome, descrição, obrigatório/min/max, alvos (categorias/produtos) e contagem de opções.
-- Dialog do grupo: nome, descrição, obrigatório (switch), min/max, alvos (multi-select de categorias e/ou produtos), ativo.
-- Dentro do grupo: lista de opções com nome, ativo, ordem, editar/excluir/reordenar.
-- A tab "Adicionais" continua igual (já funciona por grupo via `kind='adicional'`).
+**1. Modal "Vamos criar sua loja" não deve aparecer para tenants existentes**
+- Em `admin.index.tsx` (e/ou layout admin) validar `profile.tenant_id` antes de renderizar o onboarding.
+- Se já existe tenant → redirecionar para `/admin/dashboard`.
+- Onboarding só aparece quando: usuário autenticado **sem** `tenant_id` vinculado.
 
-Exemplos atendidos:
-- Grupo "Escolha o arroz" → required, min=1, max=1, alvo categoria "Espeto Completo", opções Arroz branco / Baião / Grega.
-- Grupo "Ponto da carne" → required, min=1, max=1, alvo categoria "Espetos", opções Mal / Ao ponto / Bem.
+**2. Aumentar limite de caracteres na saudação do dashboard**
+- Em `admin.dashboard.tsx` remover truncamento agressivo do nome.
+- Layout com `min-w-0` + `truncate` somente quando realmente necessário (mobile estreito).
+- Suportar nomes completos tipo "João Pedro Almeida".
 
-Server fns novos em `catalog-admin.functions.ts`: `listObservationGroups`, `saveObservationGroup`, `deleteObservationGroup`, `saveObservationOption`, `deleteObservationOption`, `reorderObservationOptions`.
+---
 
-## 2) Fluxo sequencial no cliente (ProductModal)
+## Fase 2 — Modal de detalhes do pedido (admin)
 
-Hoje `ProductModal.tsx` renderiza todas as observações como uma única lista achatada de checkboxes, ignorando nome do grupo, descrição, required e min/max.
+**3. Accordion exclusivo + borda ativa**
+- Em `OrderDetailsDrawer.tsx` / `OrderStatusTimeline.tsx`: trocar `<Accordion type="multiple">` por `type="single" collapsible`.
+- Item ativo recebe `border border-[#FDE8DE]`; inativos sem borda.
+- Transições suaves via classes utilitárias já existentes do Radix.
 
-Mudanças:
-- Renderizar **uma seção por grupo de observação**, ordenadas por `sort_order`, com título = `group.name` e subtítulo = `group.description` + chip "Obrigatório" e "Escolha N".
-- Radio quando `max_select === 1`, checkbox quando > 1.
-- Validação já existe em `validateSelection` (em `product-selection.ts`) — observation groups já são tratados igual aos adicionais. Mensagens de erro já saem como `${group.name}: selecione N`. Vou só ajustar o texto para ficar amigável ("Escolha o ponto da carne", etc.) usando o próprio nome do grupo.
-- Botão "Adicionar ao carrinho" continua bloqueado até validations limparem (`canAdd`).
+---
 
-As opções selecionadas já se propagam para carrinho/checkout/pedido/recibo/comanda via `extras` salvos como `${group.name}: ${option.name}` — nada a mudar nessa parte.
+## Fase 3 — Ordenação manual (produtos, categorias, adicionais, observações)
 
-## 3) Upsell de bebidas no checkout
+**Migração de banco** (uma única migração):
+- Adicionar coluna `sort_order int not null default 0` em:
+  - `products`, `categories`, `addition_groups`, `additions`, `observation_groups`, `observations` (confirmar nomes exatos ao explorar).
+- Backfill: `sort_order = row_number()` por tenant/grupo.
+- Índices `(tenant_id, sort_order)`.
 
-Hoje `UpsellSuggestions` aparece **dentro do `CartDrawer`** (sacola). O pedido é levar também ao **checkout**.
+**UI admin (arrow buttons ▲▼ — mais simples e robusto que DnD)**:
+- `admin.produtos.tsx`, `admin.categorias.tsx`, `admin.adicionais.tsx`, `admin.observacoes.tsx`: botões mover-acima/mover-abaixo em cada linha.
+- Server fn `reorder` por entidade que troca `sort_order` entre o item alvo e o vizinho.
 
-- Reaproveitar o componente `UpsellSuggestions` (já detecta categorias `bebida/refri/suco/cerveja/drink/água`, oculta se já houver bebida no carrinho, e adiciona sem sair da tela).
-- Inserir o bloco no topo do checkout em `src/routes/loja.$slug.tsx` (página de checkout), acima do resumo, com a copy "🥤 Que tal adicionar uma bebida ao seu pedido?".
+**Leitura**:
+- `catalog.functions.ts` e `catalog-admin.functions.ts`: ordenar por `sort_order asc, created_at asc`.
+- Storefront público (`loja.$slug.tsx`, `$slug.tsx`) já consome `getCatalog` → respeitará a ordem automaticamente.
 
-## 4) Checkbox "Mais vendido" + badge
+---
 
-**Migration:** adicionar `bestseller boolean not null default false` em `products`.
+## Fase 4 — Modal criar/editar produto (admin)
 
-**Admin (`/admin/produtos`)** — nos dois dialogs de edição (criar/editar), adicionar `Switch` "Mais vendido" abaixo de "Em destaque". Persistir em `saveProduct`.
+**4. Não fechar acidentalmente**
+- No `Dialog` do produto em `admin.produtos.tsx`:
+  - `onPointerDownOutside={e => e.preventDefault()}`
+  - `onEscapeKeyDown={e => e.preventDefault()}`
+  - `onInteractOutside={e => e.preventDefault()}`
+- Fechar somente em: botão "Cancelar", botão "X" explícito, ou após `Salvar` bem-sucedido (try/catch — mantém aberto em erro).
 
-**Domain types / db-adapters:** mapear `bestseller` → `Product.bestseller`.
+---
 
-**Storefront (`ProductCard.tsx`)** — exibir badge "🔥 Mais vendido" (cor `bg-accent`/`text-accent-foreground`) ao lado/sobre o badge "Destaque" existente, sem sobrepor preço/nome. Mesmo tratamento responsivo (mobile/desktop).
+## Fase 5 — Navegação inferior mobile (storefront)
 
-## Compatibilidade / escopo
-- Todas as mudanças são **multi-tenant** (filtros já por `tenant_id`); nada hard-codado para vila-boemia.
-- Produtos existentes sem grupo de observação continuam funcionando (a seção só aparece se houver grupos ativos com opções ativas).
-- Não mexo em fluxo de checkout/criação de pedido — apenas adiciono o upsell na página.
-- O dado já flui para recibo/comanda (`receipt-builder.ts` / `kitchen-ticket.ts` iteram sobre `item.addons`).
+**5. Bottom nav fixa**
+- Novo componente `src/components/storefront/MobileBottomNav.tsx`.
+- Ícones: Início, Cardápio, Carrinho (com badge), Pedidos, Perfil.
+- `fixed bottom-0` + `pb-[env(safe-area-inset-bottom)]`, `md:hidden`.
+- Adicionar `pb-20 md:pb-0` no container do storefront para não sobrepor conteúdo.
+- Esconder quando `CartDrawer`/checkout footer estiver visível (via context do carrinho) para não duplicar CTA.
+- Renderizar em `loja.$slug.tsx` e `$slug.tsx` (storefront).
 
-## Detalhes técnicos (rápido)
+---
 
-```text
-DB:
-  ALTER TABLE addon_groups ADD COLUMN description text NOT NULL DEFAULT '';
-  ALTER TABLE products     ADD COLUMN bestseller  boolean NOT NULL DEFAULT false;
+## Fase 6 — Persistência do fluxo de pedido
 
-Arquivos editados:
-  src/lib/catalog-admin.functions.ts   (CRUDs de grupo/opção de observação)
-  src/routes/admin.adicionais.tsx      (UI por grupo na tab Observações)
-  src/routes/admin.produtos.tsx        (Switch "Mais vendido")
-  src/lib/domain-types.ts              (+ bestseller, + group.description)
-  src/lib/db-adapters.ts               (mapeamento)
-  src/components/storefront/ProductModal.tsx     (render por grupo + radio/checkbox + descrição + chips)
-  src/components/storefront/ProductCard.tsx      (badge "Mais vendido")
-  src/components/storefront/UpsellSuggestions.tsx (reuso)
-  src/routes/loja.$slug.tsx            (inserir upsell no checkout)
-```
+**6. Carrinho + checkout em localStorage**
+- Estender `cart-context.tsx` para serializar/restaurar:
+  - itens, opções selecionadas, nome, telefone, tipo (entrega/retirada), endereço, pagamento, cupom, observações, step atual.
+- Chave por tenant: `menuzin:order:<slug>`.
+- TTL: 24h (timestamp ao salvar; descartar se expirado).
+- Limpar após: pedido criado com sucesso (`/pedido-confirmado`), clique em "Limpar carrinho", ou expiração.
 
-Posso seguir?
+---
+
+## Fase 7 — Tela de dados do cliente (retirada)
+
+**7. Remover e-mail e CPF/CNPJ em pickup**
+- No componente de dados do cliente (drawer de checkout): renderizar e-mail/CPF apenas quando `orderType === 'delivery'` (ou conforme configuração da loja).
+- Atualizar validação Zod correspondente para não exigir esses campos em retirada.
+
+---
+
+## Fase 8 — Avaliação pós-pedido
+
+**8. Star rating + NPS opcional**
+- Migração: tabela `public.order_ratings`
+  - `tenant_id`, `order_id` (unique), `customer_phone`, `stars` (1–5), `nps` (0–10 nullable), `comment` text, timestamps.
+  - GRANTs + RLS: insert público anônimo permitido apenas quando o `order_id` existe; select restrito ao tenant.
+  - Constraint `unique(order_id)` previne duplicatas.
+- Server fn `submitOrderRating` (pública, valida que o pedido existe).
+- UI: card de avaliação nas páginas `/$slug/acompanhar/$orderId` e `/loja/$slug/acompanhar/$orderId` quando status = `delivered/completed`.
+- Admin: nova rota `admin.avaliacoes.tsx` listando avaliações do tenant (média de estrelas, NPS, comentários).
+- Rating é não-bloqueante: pedido é finalizado independente.
+
+---
+
+## Detalhes técnicos
+
+- Todas as server fns novas usam `requireSupabaseAuth` (exceto `submitOrderRating` que é pública com validação).
+- Migrações seguem ordem: CREATE → GRANT → RLS → POLICY.
+- Tokens semânticos (sem cor hardcoded em componentes) — exceto a borda `#FDE8DE` que o usuário pediu explicitamente, que vou adicionar como token `--accordion-active-border` em `src/styles.css`.
+- DnD descartado em favor de botões ▲▼ por robustez mobile e simplicidade.
+- Sem mudanças em QZ Tray, impressão, webhooks ou notificações.
+
+## Ordem de execução
+
+1. Fases 1, 2, 4, 9 (rápidas, sem migração)
+2. Migração ordenação + Fase 3
+3. Fase 5 (bottom nav)
+4. Fase 6 (persistência)
+5. Fase 7 (pickup)
+6. Migração rating + Fase 8
+
+Posso ajustar prioridades se preferir começar por alguma fase específica.
