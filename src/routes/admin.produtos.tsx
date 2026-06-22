@@ -272,10 +272,13 @@ function ProductsPage() {
           )}
           {editing && !isPizzaCategory && (
             <Tabs defaultValue="geral">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="geral">Geral</TabsTrigger>
-                <TabsTrigger value="tamanhos" disabled={!editing.id}>Tamanhos</TabsTrigger>
-              </TabsList>
+              {isPizzaria && (
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="geral">Geral</TabsTrigger>
+                  <TabsTrigger value="tamanhos" disabled={!editing.id}>Tamanhos</TabsTrigger>
+                </TabsList>
+              )}
+
 
               <TabsContent value="geral" className="mt-4 space-y-3">
                 <div><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" /></div>
