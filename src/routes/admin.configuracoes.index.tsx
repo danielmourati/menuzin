@@ -247,6 +247,20 @@ function SettingsPage() {
               </div>
             </TabsContent>
 
+            <TabsContent value="promocao" className="mt-6 space-y-4">
+              <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
+                <h3 className="text-lg font-bold tracking-tight">Modal promocional</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Exiba um banner promocional na abertura da loja com botão CTA que abre um produto.
+                </p>
+                <div className="pt-2">
+                  <Button asChild className="h-11 px-6 rounded-xl font-semibold">
+                    <Link to="/admin/configuracoes/promocao">Configurar modal</Link>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
             <TabsContent value="entrega" className="mt-6 grid gap-3 md:grid-cols-2">
               <Row label="Aceita entrega" value={form.accepts_delivery} onChange={(v) => set("accepts_delivery", v)} />
               <Row label="Aceita retirada" value={form.accepts_takeout} onChange={(v) => set("accepts_takeout", v)} />
