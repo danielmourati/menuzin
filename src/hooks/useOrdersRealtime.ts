@@ -20,6 +20,7 @@ function notifyListeners() { listeners.forEach((l) => l()); }
 const CLIENT_NAMES = ["Guilherme Santos","Beatriz Oliveira","Roberto Carlos","Juliana Mello","Renato Augusto","Fernanda Lima"];
 
 let _alertAudio: HTMLAudioElement | null = null;
+let _audioUnlocked = false;
 function getAlertAudio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
   if (!_alertAudio) {
@@ -28,6 +29,31 @@ function getAlertAudio(): HTMLAudioElement | null {
     _alertAudio.volume = 0.9;
   }
   return _alertAudio;
+}
+
+function unlockAudioOnFirstGesture() {
+  if (typeof window === "undefined" || _audioUnlocked) return;
+  const unlock = () => {
+    const audio = getAlertAudio();
+    if (!audio) return;
+    const prevVol = audio.volume;
+    audio.volume = 0;
+    const p = audio.play();
+    if (p && typeof p.then === "function") {
+      p.then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.volume = prevVol;
+        _audioUnlocked = true;
+      }).catch(() => {
+        audio.volume = prevVol;
+      });
+    }
+    window.removeEventListener("pointerdown", unlock);
+    window.removeEventListener("keydown", unlock);
+  };
+  window.addEventListener("pointerdown", unlock, { once: true });
+  window.addEventListener("keydown", unlock, { once: true });
 }
 
 export function playNotificationSound() {
@@ -43,6 +69,7 @@ export function playNotificationSound() {
     console.warn("Falha ao tocar alert.mp3:", e);
   }
 }
+
 
 export function useOrdersRealtime() {
   const queryClient = useQueryClient();
@@ -74,6 +101,7 @@ export function useOrdersRealtime() {
   // mais recente do que o último visto.
   const lastSeenIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
+    unlockAudioOnFirstGesture();
     let cancelled = false;
     const tick = async () => {
       try {
@@ -81,10 +109,45 @@ export function useOrdersRealtime() {
         if (cancelled) return;
         const ui = res.orders.map((o) => dbOrderToUi(o));
         const known = lastSeenIdsRef.current;
-        const hasNew = known.size > 0 && ui.some((o) => !known.has(o.id));
+        const isFirstLoad = known.size === 0;
+        const newOnes = isFirstLoad ? [] : ui.filter((o) => !known.has(o.id));
         ui.forEach((o) => known.add(o.id));
         setOrders(ui);
-        if (hasNew && soundEnabledRef.current) playNotificationSound();
+        if (newOnes.length > 0) {
+          // ordena por createdAt desc — mais recente primeiro
+          const sorted = [...newOnes].sort((a, b) => {
+            const ta = new Date(a.createdAt).getTime();
+            const tb = new Date(b.createdAt).getTime();
+            return tb - ta;
+          });
+          const newest = sorted[0];
+          // Evita sobrescrever um alerta que ainda não foi consumido
+          if (!globalNewOrderAlert || globalNewOrderAlert.id !== newest.id) {
+            globalNewOrderAlert = newest;
+          }
+          // Push notifications (dedupe por orderId)
+          const existingOrderIds = new Set(
+            globalNotifications.map((n) => n.orderId).filter(Boolean) as string[],
+          );
+          for (const o of sorted) {
+            if (existingOrderIds.has(o.id)) continue;
+            globalNotifications = [
+              {
+                id: `notif-${o.id}`,
+                storeId: o.storeId ?? "",
+                orderId: o.id,
+                type: "new_order",
+                title: "Novo pedido recebido",
+                message: `Pedido #${o.number} · ${o.customerName}`,
+                read: false,
+                createdAt: o.createdAt,
+              },
+              ...globalNotifications,
+            ];
+          }
+          notifyListeners();
+          if (soundEnabledRef.current) playNotificationSound();
+        }
       } catch (err) {
         console.error("Falha ao recarregar pedidos:", err);
       }
@@ -93,6 +156,7 @@ export function useOrdersRealtime() {
     const id = window.setInterval(tick, 10000);
     return () => { cancelled = true; window.clearInterval(id); };
   }, [instanceId]);
+
 
   // bridge para listeners locais (notificações)
   useEffect(() => {
