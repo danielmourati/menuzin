@@ -38,6 +38,9 @@ import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters
 import type { Product, Tenant, Category } from "@/lib/domain-types";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 
+const STORE_SLUG_PATTERN = /^[a-z0-9-]+$/;
+const isCatalogSlug = (slug: string) => STORE_SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.has(slug);
+
 const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
@@ -60,7 +63,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
 
 export const Route = createFileRoute("/$slug")({
   loader: ({ context, params }) => {
-    if (RESERVED_SLUGS.has(params.slug)) return null;
+    if (!isCatalogSlug(params.slug)) return null;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
   },
   component: StoreRoute,
@@ -73,14 +76,18 @@ export const Route = createFileRoute("/$slug")({
 
 function StoreRoute() {
   const { slug } = Route.useParams();
-  const isReserved = RESERVED_SLUGS.has(slug);
   const isStorefront = useRouterState({
     select: (state) => state.location.pathname === `/${slug}`,
   });
-  const { data } = useSuspenseQuery(catalogQueryOptions(isReserved ? "--reserved--" : slug));
 
-  if (isReserved) return <StoreNotFound slug={slug} />;
   if (!isStorefront) return <Outlet />;
+  if (!isCatalogSlug(slug)) return <StoreNotFound slug={slug} />;
+  return <StorefrontRoute slug={slug} />;
+}
+
+function StorefrontRoute({ slug }: { slug: string }) {
+  const { data } = useSuspenseQuery(catalogQueryOptions(slug));
+
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
   return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaSizes={data.pizzaSizes ?? []} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
 }
