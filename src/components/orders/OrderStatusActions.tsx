@@ -50,7 +50,9 @@ export function OrderStatusActions({
       case "aceito":
         return "Aceitar Pedido";
       case "preparo":
-        return "Iniciar Preparo";
+        // Quando vier de "novo", o botão representa "Aceitar Pedido"
+        // (fluxo simplificado: aceitar já inicia o preparo).
+        return order.status === "novo" ? "Aceitar Pedido" : "Iniciar Preparo";
       case "saiu_entrega":
         return "Saiu para Entrega";
       case "pronto_retirada":
