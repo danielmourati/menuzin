@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +26,7 @@ const items = [
   { to: "/admin/observacoes", label: "Grupos de observação", icon: Layers },
   { to: "/admin/cupons", label: "Cupons", icon: Ticket },
   { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
+  { to: "/admin/avaliacoes", label: "Avaliações", icon: Star },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
 
   { to: "/admin/aparencia", label: "Aparência", icon: Palette },
