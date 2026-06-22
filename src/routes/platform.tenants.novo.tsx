@@ -232,15 +232,8 @@ function NewTenantPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border p-4">
-            <div>
-              <p className="font-medium">Clonar catálogo do Burger Prime</p>
-              <p className="text-xs text-muted-foreground">
-                Copia categorias, produtos, tamanhos, sabores e grupos de complementos como ponto de partida.
-              </p>
-            </div>
-            <Switch checked={cloneBurger} onCheckedChange={setCloneBurger} />
-          </div>
+
+
 
 
           <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
