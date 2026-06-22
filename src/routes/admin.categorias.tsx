@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, GripVertical, Loader2, Pizza, UtensilsCrossed, Settings2, Tag } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Pizza, UtensilsCrossed, Settings2, Tag } from "lucide-react";
+import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, deleteCategory,
