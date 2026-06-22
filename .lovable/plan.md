@@ -1,52 +1,71 @@
-## Mudanças solicitadas
+## Modal promocional da loja
 
-### 1. Remover E-mail e CPF/CNPJ do formulário do cliente
-**Arquivo:** `src/components/storefront/CartDrawer.tsx` (etapa `step === "customer"`, linhas ~877–882)
-- Remover os blocos `<Label>E-mail</Label>` + `Input` e `<Label>CPF/CNPJ</Label>` + `Input`.
-- Remover estados/efeitos `email`, `setEmail`, `doc`, `setDoc` apenas no que se refere à UI; manter envio dos campos como string vazia/null no `createOrder` (e remover validações que dependam deles).
-- No `requestPayment` (linha ~387) onde o `doc` é usado para `identification.CPF`, manter fallback `"11111111111"` (já existe) e parar de ler `doc` do form (passa direto o fallback).
-- Manter `clearForm` funcionando (apenas remover `setEmail("")`/`setDoc("")` se restarem referências).
+Modal de cantos arredondados, com imagem full, configurado pelo admin do tenant, exibido na abertura da storefront uma vez por sessão e com CTA "EU QUERO!" que abre o `ProductModal` do produto vinculado.
 
-### 2. Reposicionar botão "Limpar" para não sobrepor o X de fechar
-**Arquivo:** `src/components/storefront/CartDrawer.tsx`, componente `Header` (linhas 477–487)
-- O `SheetContent` da shadcn já renderiza um botão X fixo no canto superior direito. Hoje o `right={<ClearBtn />}` cai exatamente embaixo desse X.
-- Adicionar `pr-10` (ou `mr-9`) no container do `Header` para reservar espaço do X, OU mover o `ClearBtn` para a linha do título (logo após o `<h2>`), no lado esquerdo. **Proposta:** mover `ClearBtn` para ficar ao lado do título (mesma linha do botão "voltar"), assim:
-  ```
-  [←] Insira seus dados  ⌫ Limpar          [X]
-  ```
-- Aplica automaticamente a todas as etapas que usam `right={<ClearBtn />}` (endereço, mesa, customer, review).
+### 1. Banco de dados (migration)
 
-### 3. Scroller no modal de pedido em telas < desktop / tablets
-**Arquivo:** `src/components/orders/OrderDetailsDrawer.tsx`
-- O `ScrollArea` já existe (linha 126), mas o problema no print é que em ~1024px o footer com `Aceitar Pedido / Recusar` empurra o conteúdo e o scroll some por falta de altura disponível.
-- Ajustar `DialogContent` para usar altura útil em tablets/mobile: trocar `max-h-[92dvh]` por `h-[92dvh] md:h-auto md:max-h-[92dvh]` para garantir altura fixa abaixo de desktop, dando ao `ScrollArea` espaço efetivo para rolar.
-- Garantir que `ScrollArea` use `h-full` em vez de `flex-1` quando `h-[92dvh]` está ativo (manter `flex-1 min-h-0` funciona; apenas confirmar).
-- Tornar o footer mais compacto em telas pequenas (já está em `p-3`, manter).
+Nova tabela `public.promo_modals` (uma campanha ativa por tenant):
 
-### 4. Botão de impressão/reimpressão da comanda da cozinha
-- Já existe `PrintKitchenButton` em `OrderCard.tsx` (linha 177) e `OrderDetailsDrawer.tsx` (linha 251) como ícone. **Refinamento:** no `OrderDetailsDrawer` exibir o botão com label visível (não só ícone) para destaque, ao lado do "Imprimir pedido completo":
-  ```
-  [🖨 Imprimir pedido completo]  [👨‍🍳 Imprimir cozinha]  [Fechar]
-  ```
-  Trocar `size="icon" className="h-10 w-10..."` por `className="flex-1 min-w-[140px] bg-amber-600..."` no `OrderDetailsDrawer.tsx` linha 251.
-- No `OrderCard.tsx` manter como ícone (espaço apertado).
-- O label do componente já alterna entre "Imprimir cozinha" e "Reimprimir cozinha" conforme `order.status === "novo"` — sem mudança.
+```
+id uuid PK
+tenant_id uuid FK tenants(id) ON DELETE CASCADE
+enabled boolean default false
+image_url text not null
+cta_label text default 'EU QUERO!'
+product_id uuid FK products(id) ON DELETE SET NULL
+schedule_mode text check in ('window','recurring')
+-- janela única:
+starts_at timestamptz null
+ends_at timestamptz null
+-- recorrência (TZ America/Sao_Paulo):
+weekdays smallint[] null   -- 0=Dom..6=Sáb
+time_start time null
+time_end time null
+created_at, updated_at timestamptz
+unique (tenant_id)
+```
 
-### 5. Verificação de status da impressora + tratar demora/falha
-**Arquivos:** `src/lib/qz-tray.ts`, `src/lib/print-kitchen.ts`, `src/lib/print-order.ts`, `src/components/orders/PrintKitchenButton.tsx`, `src/components/orders/PrintOrderButton.tsx`
+GRANTs: `SELECT` para `anon` + `authenticated` (leitura pública para storefront); `INSERT/UPDATE/DELETE` para `authenticated` via RLS por `tenant_id` (admin/owner do tenant); `ALL` para `service_role`. RLS habilitada. Trigger `set_updated_at`. Validação por trigger (em vez de CHECK) garantindo coerência (`window` exige datas; `recurring` exige weekdays + horas).
 
-- **Pré-check de status no QZ Tray:** adicionar nova função `getQzPrinterStatus(printerName)` em `qz-tray.ts` que usa `qz.printers.startListening()` + `qz.printers.getStatus()` (API nativa do QZ) para detectar `OFFLINE`, `PAPER_OUT`, `PAPER_JAM`, etc. Se indisponível na versão do QZ, faz fallback para `qz.printers.find(printerName)` — se não retornar o nome, marca como "não encontrada".
-- **Timeout no envio:** envolver `qz.print()` dentro de `printQzReceipt` com `Promise.race([print, timeout(15000)])`. Em timeout, lança `QzPrintTimeoutError` (nova classe).
-- **Tratamento na UI (`PrintKitchenButton` e `PrintOrderButton`):**
-  1. Antes de `printKitchenTicket`/`printOrder`, chamar `getQzPrinterStatus(printer.printer_name)`. Se status indicar falha, mostra toast vermelho com causa específica ("Impressora offline", "Sem papel", "Impressora não encontrada no QZ Tray") + ação "Tentar novamente".
-  2. Mostrar um `toast.loading("Enviando para impressora...")` ao iniciar, atualizando para success/error ao concluir (sonner `toast.promise`).
-  3. Capturar `QzPrintTimeoutError` separadamente: "Demora ao imprimir — verifique a impressora" com ação "Tentar novamente".
+### 2. Backend (server functions)
 
-### Resumo de arquivos a editar
-- `src/components/storefront/CartDrawer.tsx` — itens 1 e 2
-- `src/components/orders/OrderDetailsDrawer.tsx` — itens 3 e 4
-- `src/lib/qz-tray.ts` — item 5 (status + timeout)
-- `src/lib/print-kitchen.ts` e `src/lib/print-order.ts` — propagar status/timeout
-- `src/components/orders/PrintKitchenButton.tsx` e `src/components/orders/PrintOrderButton.tsx` — pré-check + toast.promise + tratamento de timeout
+`src/lib/promo-modal.functions.ts`:
+- `getActivePromoModal({ tenantId })` — público, usa client publishable; retorna apenas se `enabled`, dentro da janela/recorrência (avaliado server-side em America/Sao_Paulo) e com produto válido/ativo. Devolve `{ id, imageUrl, ctaLabel, product: { id, slug, name } }` ou `null`.
+- `getPromoModalAdmin()` / `upsertPromoModal(input)` / `deletePromoModal()` — protegidos por `requireSupabaseAuth` + checagem `has_tenant_role` (admin/owner).
 
-Sem mudanças de backend, schema, RLS ou edge functions.
+### 3. Admin UI
+
+Nova aba em `src/routes/admin.configuracoes.index.tsx` (ou novo arquivo `admin.configuracoes.promocao.tsx`): "Modal promocional".
+
+Campos:
+- Toggle "Ativar modal"
+- Upload de imagem (bucket `tenant-assets`, pasta `promo-modals/<tenant>/`)
+- Select de produto (lista produtos ativos do tenant)
+- Input do texto do CTA (default "EU QUERO!")
+- Radio "Tipo de agendamento": Janela única | Recorrente
+  - Janela: DatePicker início + fim (com hora)
+  - Recorrente: checkboxes dias da semana + dois TimePicker (início/fim)
+- Botão Salvar; preview do modal ao lado
+
+### 4. Storefront
+
+`src/components/storefront/PromoModal.tsx`:
+- Dialog do shadcn com `rounded-2xl`, imagem `object-cover` ocupando o card, botão "EU QUERO!" sobreposto na base com gradiente.
+- Botão fechar (X) no canto, sem sobrepor o CTA.
+
+Em `src/routes/loja.$slug.tsx`:
+- Após carregar tenant e produtos, chamar `getActivePromoModal({ tenantId })` via `useQuery`.
+- Exibir 1x por sessão: `sessionStorage.getItem(`promo_seen_${id}`)`.
+- CTA: fecha modal, marca sessão, abre `ProductModal` existente com o produto carregado (reutiliza o mesmo handler de clique do `ProductCard`).
+- Se produto inativo/removido: não exibe modal.
+
+### 5. Arquivos afetados
+
+- migration nova (tabela + grants + RLS + trigger)
+- `src/lib/promo-modal.functions.ts` (novo)
+- `src/components/admin/PromoModalSettings.tsx` (novo)
+- `src/routes/admin.configuracoes.index.tsx` (adicionar seção/aba) ou nova rota
+- `src/components/storefront/PromoModal.tsx` (novo)
+- `src/routes/loja.$slug.tsx` (montar PromoModal + integração com ProductModal)
+
+Sem mudanças em fluxo de pedidos/pagamentos. Frequência: 1 vez por sessão.
