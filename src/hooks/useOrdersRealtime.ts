@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useId } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type Order,
@@ -14,6 +14,8 @@ import { useNotificationPrefs } from "./useNotificationPrefs";
 let globalNotifications: AdminNotification[] = [];
 let globalNewOrderAlert: Order | null = null;
 let autoSimulationActive = false;
+let globalSeenOrderIds = new Set<string>();
+let globalHasLoadedOrderSnapshot = false;
 const listeners = new Set<() => void>();
 function notifyListeners() { listeners.forEach((l) => l()); }
 
@@ -21,6 +23,8 @@ const CLIENT_NAMES = ["Guilherme Santos","Beatriz Oliveira","Roberto Carlos","Ju
 
 let _alertAudio: HTMLAudioElement | null = null;
 let _audioUnlocked = false;
+let _unlockListenersAttached = false;
+let _audioContext: AudioContext | null = null;
 function getAlertAudio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
   if (!_alertAudio) {
@@ -31,43 +35,114 @@ function getAlertAudio(): HTMLAudioElement | null {
   return _alertAudio;
 }
 
-function unlockAudioOnFirstGesture() {
-  if (typeof window === "undefined" || _audioUnlocked) return;
-  const unlock = () => {
-    const audio = getAlertAudio();
-    if (!audio) return;
-    const prevVol = audio.volume;
-    audio.volume = 0;
-    const p = audio.play();
-    if (p && typeof p.then === "function") {
-      p.then(() => {
-        audio.pause();
-        audio.currentTime = 0;
-        audio.volume = prevVol;
-        _audioUnlocked = true;
-      }).catch(() => {
-        audio.volume = prevVol;
-      });
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextCtor) return null;
+  if (!_audioContext || _audioContext.state === "closed") {
+    _audioContext = new AudioContextCtor();
+  }
+  return _audioContext;
+}
+
+async function unlockNotificationAudio(): Promise<boolean> {
+  let unlocked = false;
+
+  const context = getAudioContext();
+  if (context) {
+    try {
+      if (context.state === "suspended") await context.resume();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      gain.gain.value = 0.0001;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.03);
+      unlocked = context.state === "running";
+    } catch {
+      // Continua para o fallback em HTMLAudioElement.
     }
-    window.removeEventListener("pointerdown", unlock);
-    window.removeEventListener("keydown", unlock);
+  }
+
+  const audio = getAlertAudio();
+  if (audio) {
+    const prevVol = audio.volume;
+    try {
+      audio.volume = 0;
+      await audio.play();
+      audio.pause();
+      audio.currentTime = 0;
+      unlocked = true;
+    } catch {
+      // O Web Audio acima já cobre navegadores que bloqueiam <audio> após gesto.
+    } finally {
+      audio.volume = prevVol;
+    }
+  }
+
+  _audioUnlocked = unlocked;
+  return unlocked;
+}
+
+function unlockAudioOnFirstGesture() {
+  if (typeof window === "undefined" || _audioUnlocked || _unlockListenersAttached) return;
+  const unlock = () => {
+    void unlockNotificationAudio().then((ok) => {
+      if (!ok) return;
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+      _unlockListenersAttached = false;
+    });
   };
+  _unlockListenersAttached = true;
   window.addEventListener("pointerdown", unlock, { once: true });
   window.addEventListener("keydown", unlock, { once: true });
+  window.addEventListener("touchstart", unlock, { once: true });
+}
+
+function playGeneratedChime(context: AudioContext) {
+  const now = context.currentTime;
+  [880, 1174.66, 1567.98].forEach((frequency, index) => {
+    const start = now + index * 0.11;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.22, start + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.32);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + 0.34);
+  });
 }
 
 export function playNotificationSound() {
-  try {
+  const play = async () => {
+    const context = getAudioContext();
+    if (context) {
+      if (context.state === "suspended") await context.resume();
+      if (context.state === "running") {
+        playGeneratedChime(context);
+        _audioUnlocked = true;
+        return;
+      }
+    }
+
     const audio = getAlertAudio();
     if (!audio) return;
     audio.currentTime = 0;
-    const p = audio.play();
-    if (p && typeof p.catch === "function") {
-      p.catch((err) => console.warn("Autoplay bloqueado:", err));
-    }
-  } catch (e) {
-    console.warn("Falha ao tocar alert.mp3:", e);
-  }
+    await audio.play();
+    _audioUnlocked = true;
+  };
+
+  void play().catch((e) => {
+    console.warn("Falha ao tocar alerta sonoro de novo pedido:", e);
+    unlockAudioOnFirstGesture();
+  });
 }
 
 
