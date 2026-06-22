@@ -16,6 +16,7 @@ interface PrintKitchenButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary" | "ghost";
   className?: string;
+  label?: string;
 }
 
 export function PrintKitchenButton({
