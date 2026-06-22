@@ -5,6 +5,7 @@ import { brl, modeLabel, timeAgo, formatDateTime } from "@/lib/format";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { PrintOrderButton } from "./PrintOrderButton";
+import { PrintKitchenButton } from "./PrintKitchenButton";
 import { Clock, MapPin, Utensils, Eye, Check, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
