@@ -1,28 +1,25 @@
-## O que vai ser feito
+## Problema
 
-### 1. Reimpressão para cozinha em ambos os modais do pedido
+O alerta sonoro e o toast de novo pedido não funcionam corretamente:
 
-**Card pequeno (`OrderCard.tsx`)** — hoje aparece só o ícone de impressora normal no canto. Vou adicionar um segundo ícone, ao lado, usando `PrintKitchenButton` no modo `size="icon"` (mesmo padrão visual do botão de impressão atual). Aparece apenas quando o pedido já foi aceito (`status !== "novo"`), evitando duplicar a impressão automática que ocorre no aceite.
+1. **Toast nunca aparece** — em `useOrdersRealtime.ts`, o `globalNewOrderAlert` é declarado e lido pelo `OrdersRealtimeListener`, mas **nunca é atribuído** quando um pedido novo chega no polling de 10s. Só toca o som (linha 87) e atualiza a lista, mas não dispara o alerta visual.
+2. **Notificações na sineta também ficam vazias** — `globalNotifications` nunca recebe um item quando um pedido novo é detectado.
+3. **Som pode falhar silenciosamente** por política de autoplay do navegador quando o usuário ainda não interagiu com a página — o `.catch` apenas loga `warn`, sem fallback.
 
-**Modal de detalhes (`OrderDetailsDrawer.tsx`)** — já tem o `PrintKitchenButton`, mas ele só aparece quando o plano libera `kitchenPrinter`. Vou manter o gate de plano (regra de negócio), porém:
-- substituir o botão grande "Reimprimir cozinha" por um botão compacto (`size="icon"`) ao lado de "Imprimir pedido completo", liberando espaço horizontal e mantendo a paridade com o card.
-- garantir que o tooltip/`title` mostre "Reimprimir cozinha" quando o pedido não está mais novo.
+## Correção
 
-### 2. Overflow do modal de Pedido
+Editar **somente** `src/hooks/useOrdersRealtime.ts`, no bloco de polling (`tick`):
 
-Hoje o `DialogContent` usa `max-h-[92vh]`, com header + footer fixos e um `ScrollArea` no meio. Em telas pequenas, o footer (WhatsApp + 3 botões de impressão/fechar + separador + barra de status) fica alto demais e empurra o conteúdo, fazendo a Linha do Tempo "encostar" no rodapé.
+- Quando `hasNew` for verdadeiro, identificar os pedidos realmente novos (`ui.filter((o) => !known.has(o.id))`), ordenar pelo `createdAt` desc e:
+  - Atribuir o mais recente a `globalNewOrderAlert`.
+  - Adicionar uma entrada em `globalNotifications` para cada pedido novo (`{ id, type: "new_order", orderId, title, message, createdAt, read: false }`, respeitando o tipo `AdminNotification`).
+  - Chamar `notifyListeners()` para propagar para todas as instâncias do hook (a sineta e o `OrdersRealtimeListener`).
+- Manter `playNotificationSound()` como hoje, mas adicionar tentativa de "desbloquear" o áudio no primeiro clique/toque do usuário (listener `pointerdown` global one-shot que chama `audio.play().then(() => audio.pause())`), garantindo que o `Audio` esteja autorizado a tocar quando o pedido chegar.
 
-Ajustes pontuais:
-- `max-h-[92vh]` → `max-h-[92dvh]` para considerar a barra do navegador mobile.
-- Reduzir padding do footer (`p-4` → `p-3`) e do separador (`my-1` → remover, usar `gap`).
-- Compactar a linha de impressão: `PrintOrderButton` (texto) + `PrintKitchenButton` (ícone) + `Fechar`, em vez de três botões de largura `flex-1 min-w-[140px]` que quebram em duas linhas.
-- Garantir `min-h-0` no `ScrollArea` (já existe) e adicionar `overscroll-contain` para evitar scroll do body acidental.
+A deduplicação de toast permanece garantida pelo `notifiedIdsRef` já existente em `OrdersRealtimeListener`, então múltiplas instâncias do hook que detectem o mesmo pedido não geram toasts duplicados.
 
-Nada muda na lógica de impressão, gating de plano, ou estrutura de dados — só apresentação.
+Nenhuma mudança em backend, RLS, server functions ou outros componentes.
 
-## Arquivos afetados
+## Arquivos alterados
 
-- `src/components/orders/OrderCard.tsx` — adicionar `PrintKitchenButton` (icon) na barra de ações dos pedidos não-novos.
-- `src/components/orders/OrderDetailsDrawer.tsx` — trocar o botão grande de cozinha por ícone, compactar footer, trocar `vh` por `dvh`.
-
-Sem migrations, sem mudança de API, sem mexer em `PrintKitchenButton.tsx` (já suporta `size="icon"`).
+- `src/hooks/useOrdersRealtime.ts` (atribuição do alert, push de notification, unlock de áudio)
