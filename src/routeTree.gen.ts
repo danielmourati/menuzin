@@ -28,6 +28,7 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
+import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
@@ -137,6 +138,11 @@ const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
   path: '/admin/categorias',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
+  id: '/admin/avaliacoes',
+  path: '/admin/avaliacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
   id: '/admin/aparencia',
   path: '/admin/aparencia',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/cupons': typeof AdminCuponsRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/cupons': typeof AdminCuponsRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/cupons'
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/cupons'
     | '/admin/dashboard'
@@ -385,6 +396,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/cupons'
@@ -419,6 +431,7 @@ export interface RootRouteChildren {
   SlugRoute: typeof SlugRouteWithChildren
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
+  AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminCuponsRoute: typeof AdminCuponsRoute
@@ -576,6 +589,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/avaliacoes': {
+      id: '/admin/avaliacoes'
+      path: '/admin/avaliacoes'
+      fullPath: '/admin/avaliacoes'
+      preLoaderRoute: typeof AdminAvaliacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/aparencia': {
       id: '/admin/aparencia'
       path: '/admin/aparencia'
@@ -718,6 +738,7 @@ const rootRouteChildren: RootRouteChildren = {
   SlugRoute: SlugRouteWithChildren,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
+  AdminAvaliacoesRoute: AdminAvaliacoesRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminCuponsRoute: AdminCuponsRoute,
