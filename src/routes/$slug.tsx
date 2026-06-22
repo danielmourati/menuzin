@@ -493,6 +493,15 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         onOpenCart={() => storeOpen && setCartOpen(true)}
         hidden={cartOpen || (storeOpen && count > 0) || !storeOpen}
       />
+      {promoQ.data && storeOpen ? (
+        <PromoModal
+          open={promoOpen}
+          imageUrl={promoQ.data.imageUrl}
+          ctaLabel={promoQ.data.ctaLabel}
+          onCta={handlePromoCta}
+          onClose={closePromo}
+        />
+      ) : null}
     </div>
   );
 }
