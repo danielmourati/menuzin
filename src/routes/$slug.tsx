@@ -32,6 +32,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
+import { MobileBottomNav } from "@/components/storefront/MobileBottomNav";
 import { whatsappLink } from "@/lib/whatsapp";
 import { getCatalog } from "@/lib/catalog.functions";
 import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters";
@@ -451,6 +452,11 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
       />
       <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} />
+      <MobileBottomNav
+        slug={tenant.slug}
+        onOpenCart={() => storeOpen && setCartOpen(true)}
+        hidden={cartOpen || (storeOpen && count > 0) || !storeOpen}
+      />
     </div>
   );
 }

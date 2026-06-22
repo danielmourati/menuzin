@@ -454,6 +454,10 @@ export function CartDrawer({
         note: generalNote,
       };
       try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
+      try {
+        const { saveLastOrderForSlug } = await import("@/components/storefront/MobileBottomNav");
+        if (slug || tenant?.slug) saveLastOrderForSlug((slug || tenant?.slug)!, orderId, order.number);
+      } catch {}
       toast.success(`Pedido #${order.number} criado`);
       clear();
       onOpenChange(false);
