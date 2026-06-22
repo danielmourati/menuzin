@@ -124,6 +124,7 @@ function SettingsPage() {
               <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
               <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
               <TabsTrigger value="impressora">Impressora</TabsTrigger>
+              <TabsTrigger value="promocao">Promoção</TabsTrigger>
               <TabsTrigger value="entrega">Entrega</TabsTrigger>
               <TabsTrigger value="redes">Redes sociais</TabsTrigger>
               <TabsTrigger value="link">Link público</TabsTrigger>
