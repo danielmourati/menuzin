@@ -37,7 +37,9 @@ function getAlertAudio(): HTMLAudioElement | null {
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
-  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  type AudioContextConstructor = new () => AudioContext;
+  const AudioContextCtor: AudioContextConstructor | undefined =
+    window.AudioContext ?? (window as Window & typeof globalThis & { webkitAudioContext?: AudioContextConstructor }).webkitAudioContext;
   if (!AudioContextCtor) return null;
   if (!_audioContext || _audioContext.state === "closed") {
     _audioContext = new AudioContextCtor();
@@ -145,6 +147,42 @@ export function playNotificationSound() {
   });
 }
 
+function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
+  if (newOnes.length === 0) return;
+
+  const sorted = [...newOnes].sort((a, b) => {
+    const ta = new Date(a.createdAt).getTime();
+    const tb = new Date(b.createdAt).getTime();
+    return tb - ta;
+  });
+  const newest = sorted[0];
+  if (!globalNewOrderAlert || globalNewOrderAlert.id !== newest.id) {
+    globalNewOrderAlert = newest;
+  }
+
+  const existingOrderIds = new Set(
+    globalNotifications.map((n) => n.orderId).filter(Boolean) as string[],
+  );
+  for (const o of sorted) {
+    if (existingOrderIds.has(o.id)) continue;
+    globalNotifications = [
+      {
+        id: `notif-${o.id}`,
+        storeId: o.storeId ?? "",
+        orderId: o.id,
+        type: "new_order",
+        title: "Novo pedido recebido",
+        message: `Pedido #${o.number} · ${o.customerName}`,
+        read: false,
+        createdAt: o.createdAt,
+      },
+      ...globalNotifications,
+    ];
+  }
+  notifyListeners();
+  if (soundEnabled) playNotificationSound();
+}
+
 
 export function useOrdersRealtime() {
   const queryClient = useQueryClient();
@@ -155,7 +193,6 @@ export function useOrdersRealtime() {
   const { prefs } = useNotificationPrefs();
   const soundEnabledRef = useRef(prefs.soundEnabled);
   useEffect(() => { soundEnabledRef.current = prefs.soundEnabled; }, [prefs.soundEnabled]);
-  const instanceId = useId();
 
   // load initial + refetch
   const refetch = useCallback(async () => {
