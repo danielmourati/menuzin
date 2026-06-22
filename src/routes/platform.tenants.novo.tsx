@@ -93,7 +93,7 @@ function NewTenantPage() {
           owner_email: ownerEmail.trim().toLowerCase(),
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
-          clone_from_slug: cloneBurger ? "burgerprime" : null,
+          clone_from_slug: null,
         },
       }),
     onSuccess: () => {
