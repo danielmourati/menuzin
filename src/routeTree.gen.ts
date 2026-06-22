@@ -18,6 +18,8 @@ import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
 import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
 import { Route as AdminRelatoriosRouteImport } from './routes/admin.relatorios'
+import { Route as AdminRedefinirSenhaRouteImport } from './routes/admin.redefinir-senha'
+import { Route as AdminRecuperarSenhaRouteImport } from './routes/admin.recuperar-senha'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
@@ -83,6 +85,16 @@ const AdminTaxasEntregaRoute = AdminTaxasEntregaRouteImport.update({
 const AdminRelatoriosRoute = AdminRelatoriosRouteImport.update({
   id: '/admin/relatorios',
   path: '/admin/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRedefinirSenhaRoute = AdminRedefinirSenhaRouteImport.update({
+  id: '/admin/redefinir-senha',
+  path: '/admin/redefinir-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRecuperarSenhaRoute = AdminRecuperarSenhaRouteImport.update({
+  id: '/admin/recuperar-senha',
+  path: '/admin/recuperar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
@@ -210,6 +222,8 @@ export interface FileRoutesByFullPath {
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/recuperar-senha': typeof AdminRecuperarSenhaRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
@@ -241,6 +255,8 @@ export interface FileRoutesByTo {
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/recuperar-senha': typeof AdminRecuperarSenhaRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
@@ -274,6 +290,8 @@ export interface FileRoutesById {
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
+  '/admin/recuperar-senha': typeof AdminRecuperarSenhaRoute
+  '/admin/redefinir-senha': typeof AdminRedefinirSenhaRoute
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
@@ -308,6 +326,8 @@ export interface FileRouteTypes {
     | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
+    | '/admin/recuperar-senha'
+    | '/admin/redefinir-senha'
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
@@ -339,6 +359,8 @@ export interface FileRouteTypes {
     | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
+    | '/admin/recuperar-senha'
+    | '/admin/redefinir-senha'
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
@@ -371,6 +393,8 @@ export interface FileRouteTypes {
     | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
+    | '/admin/recuperar-senha'
+    | '/admin/redefinir-senha'
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
@@ -403,6 +427,8 @@ export interface RootRouteChildren {
   AdminObservacoesRoute: typeof AdminObservacoesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
+  AdminRecuperarSenhaRoute: typeof AdminRecuperarSenhaRoute
+  AdminRedefinirSenhaRoute: typeof AdminRedefinirSenhaRoute
   AdminRelatoriosRoute: typeof AdminRelatoriosRoute
   AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
   AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
@@ -478,6 +504,20 @@ declare module '@tanstack/react-router' {
       path: '/admin/relatorios'
       fullPath: '/admin/relatorios'
       preLoaderRoute: typeof AdminRelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/redefinir-senha': {
+      id: '/admin/redefinir-senha'
+      path: '/admin/redefinir-senha'
+      fullPath: '/admin/redefinir-senha'
+      preLoaderRoute: typeof AdminRedefinirSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/recuperar-senha': {
+      id: '/admin/recuperar-senha'
+      path: '/admin/recuperar-senha'
+      fullPath: '/admin/recuperar-senha'
+      preLoaderRoute: typeof AdminRecuperarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/produtos': {
@@ -686,6 +726,8 @@ const rootRouteChildren: RootRouteChildren = {
   AdminObservacoesRoute: AdminObservacoesRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
+  AdminRecuperarSenhaRoute: AdminRecuperarSenhaRoute,
+  AdminRedefinirSenhaRoute: AdminRedefinirSenhaRoute,
   AdminRelatoriosRoute: AdminRelatoriosRoute,
   AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
   AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
