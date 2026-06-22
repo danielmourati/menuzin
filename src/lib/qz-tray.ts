@@ -9,6 +9,7 @@ type QZ = {
     isActive: () => boolean;
     connect: (opts?: Record<string, unknown>) => Promise<void>;
     disconnect: () => Promise<void>;
+    connection?: unknown;
   };
   printers: {
     find: (name?: string) => Promise<string[] | string>;
@@ -168,7 +169,26 @@ function loadQzScript(): Promise<QZ> {
 
 export async function ensureQzConnected(): Promise<QZ> {
   const qz = await loadQzScript();
-  if (!qz.websocket.isActive()) {
+  // Em algumas versões/condições do qz-tray, `isActive()` continua retornando
+  // true mesmo após o socket interno ser invalidado (`connection.sendData is
+  // not a function`). Detecta esse estado “fantasma” e força reconexão.
+  const wsAny = qz.websocket as unknown as {
+    isActive: () => boolean;
+    connection?: { sendData?: unknown } | null;
+  };
+  const active = wsAny.isActive();
+  const conn = wsAny.connection;
+  const stale =
+    active &&
+    (!conn || typeof (conn as { sendData?: unknown }).sendData !== "function");
+  if (stale) {
+    try {
+      await qz.websocket.disconnect();
+    } catch {
+      /* ignore */
+    }
+  }
+  if (!qz.websocket.isActive() || stale) {
     try {
       await qz.websocket.connect({ retries: 1, delay: 1 });
     } catch {
@@ -176,6 +196,24 @@ export async function ensureQzConnected(): Promise<QZ> {
     }
   }
   return qz;
+}
+
+/** Executa uma ação QZ e, em caso de erro de socket “fantasma”, reconecta e tenta uma vez. */
+async function withQzRetry<T>(fn: (qz: QZ) => Promise<T>): Promise<T> {
+  const qz = await ensureQzConnected();
+  try {
+    return await fn(qz);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/sendData is not a function|not connected|WebSocket/i.test(msg)) throw err;
+    try {
+      await qz.websocket.disconnect();
+    } catch {
+      /* ignore */
+    }
+    const qz2 = await ensureQzConnected();
+    return await fn(qz2);
+  }
 }
 
 export async function listQzPrinters(): Promise<string[]> {
@@ -208,18 +246,19 @@ export async function printQzTextTest(
   printerName: string | undefined,
   text: string,
 ): Promise<void> {
-  const qz = await ensureQzConnected();
-  let target = printerName?.trim();
-  if (!target) {
-    try {
-      target = await qz.printers.getDefault();
-    } catch {
-      throw new Error("Nenhuma impressora encontrada.");
+  await withQzRetry(async (qz) => {
+    let target = printerName?.trim();
+    if (!target) {
+      try {
+        target = await qz.printers.getDefault();
+      } catch {
+        throw new Error("Nenhuma impressora encontrada.");
+      }
     }
-  }
-  if (!target) throw new Error("Nenhuma impressora encontrada.");
-  const config = qz.configs.create(target, { encoding: "CP860" });
-  await qz.print(config, [text + "\n\n\n"]);
+    if (!target) throw new Error("Nenhuma impressora encontrada.");
+    const config = qz.configs.create(target, { encoding: "CP860" });
+    await qz.print(config, [text + "\n\n\n"]);
+  });
 }
 
 /**
@@ -233,29 +272,30 @@ export async function printQzReceipt(
   text: string,
   opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" },
 ): Promise<{ printer: string }> {
-  const qz = await ensureQzConnected();
-  let target = printerName?.trim();
-  if (!target) {
-    try {
-      target = await qz.printers.getDefault();
-    } catch {
-      throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+  return withQzRetry(async (qz) => {
+    let target = printerName?.trim();
+    if (!target) {
+      try {
+        target = await qz.printers.getDefault();
+      } catch {
+        throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+      }
     }
-  }
-  if (!target) throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+    if (!target) throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
 
-  const feed = Math.max(0, opts?.feedLines ?? 3);
-  const cut =
-    opts?.cutType === "full"
-      ? "\x1DV\x00"
-      : opts?.cutType === "partial"
-        ? "\x1Dm"
-        : "";
+    const feed = Math.max(0, opts?.feedLines ?? 3);
+    const cut =
+      opts?.cutType === "full"
+        ? "\x1DV\x00"
+        : opts?.cutType === "partial"
+          ? "\x1Dm"
+          : "";
 
-  const payload = text + "\n".repeat(feed) + cut;
-  const config = qz.configs.create(target, { encoding: "CP860" });
-  await qz.print(config, [payload]);
-  return { printer: target };
+    const payload = text + "\n".repeat(feed) + cut;
+    const config = qz.configs.create(target, { encoding: "CP860" });
+    await qz.print(config, [payload]);
+    return { printer: target };
+  });
 }
 
 /** Faz o download do cert.pem servido pelo backend. */
