@@ -47,13 +47,14 @@ export const paymentStatusColor: Record<string, string> = {
   manual: "bg-muted text-muted-foreground",
 };
 
-// Retorna os próximos status válidos de acordo com a modalidade
+// Fluxo simplificado: "Aceitar" pula direto para "preparo".
+// "aceito" continua como destino válido só para retrocompat com pedidos legados.
 export function nextStatuses(mode: OrderMode, current: OrderStatus): OrderStatus[] {
   if (current === "finalizado" || current === "cancelado") return [];
 
   const flowMap: Record<OrderMode, Partial<Record<OrderStatus, OrderStatus[]>>> = {
     entrega: {
-      novo: ["aceito", "cancelado"],
+      novo: ["preparo", "cancelado"],
       aceito: ["preparo", "cancelado"],
       preparo: ["saiu_entrega", "cancelado"],
       saiu_entrega: ["finalizado"],
@@ -61,7 +62,7 @@ export function nextStatuses(mode: OrderMode, current: OrderStatus): OrderStatus
       servido: [],
     },
     retirada: {
-      novo: ["aceito", "cancelado"],
+      novo: ["preparo", "cancelado"],
       aceito: ["preparo", "cancelado"],
       preparo: ["pronto_retirada", "cancelado"],
       pronto_retirada: ["finalizado"],
@@ -69,7 +70,7 @@ export function nextStatuses(mode: OrderMode, current: OrderStatus): OrderStatus
       servido: [],
     },
     consumo_local: {
-      novo: ["aceito", "cancelado"],
+      novo: ["preparo", "cancelado"],
       aceito: ["preparo", "cancelado"],
       preparo: ["servido", "cancelado"],
       servido: ["finalizado"],
@@ -81,7 +82,7 @@ export function nextStatuses(mode: OrderMode, current: OrderStatus): OrderStatus
   return flowMap[mode]?.[current] ?? [];
 }
 
-// Retorna timeline de etapas por modalidade (para o cliente e histórico)
+// Timeline completa (admin) — inclui "Pedido enviado".
 export function getTimelineSteps(mode: OrderMode): { key: OrderStatus; label: string }[] {
   if (mode === "entrega") {
     return [
@@ -111,12 +112,22 @@ export function getTimelineSteps(mode: OrderMode): { key: OrderStatus; label: st
   ];
 }
 
-// Retorna index do status atual na timeline (para marcar done/current/pending)
-export function getTimelineIndex(mode: OrderMode, status: OrderStatus): number {
-  const steps = getTimelineSteps(mode);
-  const idx = steps.findIndex((s) => s.key === status);
+// Timeline simplificada para o cliente — sem a etapa "Pedido enviado".
+export function getCustomerTimelineSteps(mode: OrderMode): { key: OrderStatus; label: string }[] {
+  return getTimelineSteps(mode).filter((s) => s.key !== "novo");
+}
+
+// Retorna index do status atual na timeline.
+export function getTimelineIndex(
+  mode: OrderMode,
+  status: OrderStatus,
+  steps?: { key: OrderStatus; label: string }[],
+): number {
+  const list = steps ?? getTimelineSteps(mode);
+  const idx = list.findIndex((s) => s.key === status);
   if (idx !== -1) return idx;
-  // cancelado — trata como -1 (nenhum step ativo)
+  // No timeline do cliente "novo" não existe — tratamos como etapa 0 ("aceito").
+  if (status === "novo" && list[0]?.key === "aceito") return 0;
   return -1;
 }
 
