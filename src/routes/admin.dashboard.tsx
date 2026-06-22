@@ -63,8 +63,10 @@ function DashboardPage() {
   const recentOrders = (ordersData?.orders ?? []).slice(0, 5);
 
   const greet = greetingFor(new Date());
-  const firstName = profile?.full_name?.trim().split(/\s+/)[0];
-  const greetingText = firstName ? `${greet}, ${firstName}!` : `${greet}!`;
+  // Usa nome completo (até 60 chars) em vez de só o primeiro nome, e trunca apenas se ultrapassar.
+  const fullName = profile?.full_name?.trim() ?? "";
+  const displayName = fullName.length > 60 ? fullName.slice(0, 60).trimEnd() + "…" : fullName;
+  const greetingText = displayName ? `${greet}, ${displayName}!` : `${greet}!`;
 
   if (isLoading || !analytics) {
     return (
@@ -79,7 +81,7 @@ function DashboardPage() {
       <div className="space-y-6">
         <div className="rounded-2xl border bg-gradient-to-r from-primary/10 via-card to-card p-5 shadow-[var(--shadow-soft)]">
           <p className="text-sm text-muted-foreground">Bem-vindo de volta</p>
-          <h2 className="mt-0.5 text-2xl font-bold tracking-tight">{greetingText}</h2>
+          <h2 className="mt-0.5 text-xl sm:text-2xl font-bold tracking-tight break-words">{greetingText}</h2>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={ShoppingBag} label="Pedidos hoje" value={String(analytics.todayOrdersCount)} />

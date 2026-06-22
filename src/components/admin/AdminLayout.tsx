@@ -130,6 +130,18 @@ function AuthGate({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
+  const hasOwnTenant = !!profile?.tenant_id;
+  // Fallback: confirma no servidor se realmente não existe tenant antes de mostrar onboarding,
+  // evitando mostrar "Vamos criar sua loja" quando o profile está stale logo após login.
+  const needsTenantCheck =
+    !loading && isAuthenticated && !profile?.must_change_password && !hasOwnTenant && !activeTenantId && !isPlatformAdmin;
+  const { data: tenantProbe, isLoading: probingTenant } = useQuery({
+    queryKey: ["tenant-probe", profile?.id ?? "anon"],
+    queryFn: () => getMyTenant(),
+    enabled: needsTenantCheck,
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate({ to: "/admin/login" });
@@ -162,9 +174,19 @@ function AuthGate({ children }: { children: ReactNode }) {
   }
   if (profile?.must_change_password) return null;
 
-  const hasOwnTenant = !!profile?.tenant_id;
   if (!hasOwnTenant && !activeTenantId) {
     if (isPlatformAdmin) return <PlatformAdminEmptyState />;
+    // Aguarda confirmação do servidor antes de decidir mostrar onboarding.
+    if (probingTenant || tenantProbe === undefined) {
+      return (
+        <div className="grid min-h-screen place-items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+    // Se o servidor confirma que existe um tenant vinculado, renderiza o painel
+    // (o restante da app usa getMyTenant para resolver o tenant ativo).
+    if (tenantProbe?.tenant) return <>{children}</>;
     return <OnboardingClaim />;
   }
   return <>{children}</>;
