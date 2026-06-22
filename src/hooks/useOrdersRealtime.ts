@@ -155,16 +155,18 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
     const tb = new Date(b.createdAt).getTime();
     return tb - ta;
   });
-  const newest = sorted[0];
+  const existingOrderIds = new Set(
+    globalNotifications.map((n) => n.orderId).filter(Boolean) as string[],
+  );
+  const alertable = sorted.filter((o) => !existingOrderIds.has(o.id));
+  if (alertable.length === 0) return;
+
+  const newest = alertable[0];
   if (!globalNewOrderAlert || globalNewOrderAlert.id !== newest.id) {
     globalNewOrderAlert = newest;
   }
 
-  const existingOrderIds = new Set(
-    globalNotifications.map((n) => n.orderId).filter(Boolean) as string[],
-  );
-  for (const o of sorted) {
-    if (existingOrderIds.has(o.id)) continue;
+  for (const o of alertable) {
     globalNotifications = [
       {
         id: `notif-${o.id}`,
