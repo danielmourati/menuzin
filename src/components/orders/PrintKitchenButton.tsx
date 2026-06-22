@@ -24,6 +24,7 @@ export function PrintKitchenButton({
   size = "default",
   variant = "outline",
   className = "",
+  label,
 }: PrintKitchenButtonProps) {
   const { isAuthenticated } = useAuth();
   const { can } = useTenantPlan();
