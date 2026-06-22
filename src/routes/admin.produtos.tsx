@@ -62,6 +62,12 @@ function ProductsPage() {
     queryKey: ["admin", "categories"],
     queryFn: async () => (await listMyCategories()).categories,
   });
+  const tenantQ = useQuery({
+    queryKey: ["tenant-probe"],
+    queryFn: () => getMyTenant({ data: {} }),
+  });
+  const isPizzaria = (tenantQ.data?.tenant?.business_types ?? []).includes("pizzaria");
+
 
   const [q, setQ] = useState("");
   const [catFilter, setCatFilter] = useState("todas");
