@@ -780,3 +780,72 @@ export const deleteCategoryPizzaCrust = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ===== Reordenação manual (move up/down por sort_order) =====
+
+const ReorderInput = z.object({
+  entity: z.enum(["category", "product", "addonGroup", "addonOption"]),
+  id: z.string().uuid(),
+  direction: z.enum(["up", "down"]),
+});
+
+type ReorderEntity = "category" | "product" | "addonGroup" | "addonOption";
+
+const TABLE_BY_ENTITY: Record<ReorderEntity, string> = {
+  category: "categories",
+  product: "products",
+  addonGroup: "addon_groups",
+  addonOption: "addon_options",
+};
+
+export const reorderCatalogItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ReorderInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as SB;
+    const tenantId = await getAuthorizedTenantId(sb, context.userId);
+    const table = TABLE_BY_ENTITY[data.entity];
+
+    // Carrega item atual e valida ownership pelo escopo apropriado.
+    let scopeFilter: { column: string; value: string };
+    let currentSort: number;
+    if (data.entity === "addonOption") {
+      const { data: opt, error: oErr } = await sbAny(sb)
+        .from("addon_options").select("id, group_id, sort_order").eq("id", data.id).maybeSingle();
+      if (oErr || !opt) throw new Error("Item não encontrado.");
+      // Verifica que o grupo pertence ao tenant.
+      const { data: g, error: gErr } = await sb
+        .from("addon_groups").select("id, tenant_id").eq("id", (opt as { group_id: string }).group_id).maybeSingle();
+      if (gErr || !g || g.tenant_id !== tenantId) throw new Error("Sem permissão.");
+      scopeFilter = { column: "group_id", value: (opt as { group_id: string }).group_id };
+      currentSort = Number((opt as { sort_order: number }).sort_order ?? 0);
+    } else {
+      const { data: row, error } = await sbAny(sb)
+        .from(table).select("id, tenant_id, sort_order").eq("id", data.id).maybeSingle();
+      if (error || !row) throw new Error("Item não encontrado.");
+      if ((row as { tenant_id: string }).tenant_id !== tenantId) throw new Error("Sem permissão.");
+      scopeFilter = { column: "tenant_id", value: tenantId };
+      currentSort = Number((row as { sort_order: number }).sort_order ?? 0);
+    }
+
+    // Busca o vizinho na direção desejada (próximo sort_order acima/abaixo).
+    const neighborQuery = sbAny(sb)
+      .from(table)
+      .select("id, sort_order")
+      .eq(scopeFilter.column, scopeFilter.value);
+    const neighborRes = data.direction === "up"
+      ? await neighborQuery.lt("sort_order", currentSort).order("sort_order", { ascending: false }).limit(1)
+      : await neighborQuery.gt("sort_order", currentSort).order("sort_order", { ascending: true }).limit(1);
+    if (neighborRes.error) throw new Error(neighborRes.error.message);
+    const neighbor = (neighborRes.data ?? [])[0] as { id: string; sort_order: number } | undefined;
+    if (!neighbor) return { ok: true, swapped: false };
+
+    // Swap atômico — duas updates.
+    const [u1, u2] = await Promise.all([
+      sbAny(sb).from(table).update({ sort_order: neighbor.sort_order }).eq("id", data.id),
+      sbAny(sb).from(table).update({ sort_order: currentSort }).eq("id", neighbor.id),
+    ]);
+    if (u1.error) throw new Error(u1.error.message);
+    if (u2.error) throw new Error(u2.error.message);
+    return { ok: true, swapped: true };
+  });

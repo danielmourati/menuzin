@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza } from "lucide-react";
+import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { toast } from "sonner";
@@ -187,9 +188,16 @@ function ProductsPage() {
           {!productsQ.isLoading && filtered.length === 0 && (
             <Card><CardContent className="p-10 text-center text-muted-foreground">Nenhum produto.</CardContent></Card>
           )}
-          {filtered.map((p) => (
+          {filtered.map((p, idx) => (
             <Card key={p.id}>
               <CardContent className="flex gap-4 p-4">
+                <ReorderButtons
+                  entity="product"
+                  id={p.id}
+                  invalidateKeys={[["admin", "products"]]}
+                  isFirst={idx === 0}
+                  isLast={idx === filtered.length - 1}
+                />
                 <img src={p.image_url || "https://placehold.co/120x120?text=Foto"} alt="" className="h-20 w-20 rounded-xl object-cover" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

@@ -15,6 +15,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2, Loader2, Layers } from "lucide-react";
+import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
   listAddonGroups, saveAddonGroup, deleteAddonGroup,
@@ -196,12 +197,13 @@ function AdicionaisPage() {
             Nenhuma subcategoria criada ainda.
           </CardContent></Card>
         )}
-        {groups.map((g) => {
+        {groups.map((g, idx) => {
           const cats = g.targets.filter((t) => t.category_id).map((t) => catName.get(t.category_id as string)).filter(Boolean) as string[];
           const prods = g.targets.filter((t) => t.product_id).map((t) => prodName.get(t.product_id as string)).filter(Boolean) as string[];
           return (
             <Card key={g.id}>
               <CardContent className="flex flex-wrap items-center gap-3 p-4">
+                <ReorderButtons entity="addonGroup" id={g.id} invalidateKeys={[["admin", "addon-groups"]]} isFirst={idx === 0} isLast={idx === groups.length - 1} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{g.name}</p>

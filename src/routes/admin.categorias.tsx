@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, GripVertical, Loader2, Pizza, UtensilsCrossed, Settings2, Tag } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Pizza, UtensilsCrossed, Settings2, Tag } from "lucide-react";
+import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, deleteCategory,
@@ -105,9 +106,15 @@ function CategoriesPage() {
             <p className="p-8 text-center text-muted-foreground">Nenhuma categoria.</p>
           )}
           <ul className="divide-y">
-            {list.map((c) => (
+            {list.map((c, idx) => (
               <li key={c.id} className="flex items-center gap-3 p-3">
-                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                <ReorderButtons
+                  entity="category"
+                  id={c.id}
+                  invalidateKeys={[["admin", "categories"]]}
+                  isFirst={idx === 0}
+                  isLast={idx === list.length - 1}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold">{c.name}</p>

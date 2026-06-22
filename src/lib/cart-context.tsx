@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonOption } from "./domain-types";
 
 export type CartSelectedGroupOption = AddonOption & { groupName: string };
@@ -45,8 +46,84 @@ export function computeUnitPrice(i: Pick<CartItem, "product" | "addons" | "size"
   return base + addonsSum + groupSum;
 }
 
+const RESERVED_FIRST_SEGMENTS = new Set([
+  "admin", "platform", "auth", "api", "_serverFn", "loja",
+  "pedido-confirmado", "acompanhar", "",
+]);
+
+/** Deriva o slug da loja a partir do pathname para escopar o carrinho por tenant. */
+function deriveSlugFromPath(pathname: string): string | null {
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length === 0) return null;
+  // /loja/<slug>/...
+  if (parts[0] === "loja" && parts[1]) return parts[1];
+  // /<slug>/...
+  if (!RESERVED_FIRST_SEGMENTS.has(parts[0])) return parts[0];
+  return null;
+}
+
+const TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const STORAGE_PREFIX = "menuzin:cart:";
+
+type StoredCart = { items: CartItem[]; ts: number };
+
+function storageKey(slug: string) {
+  return `${STORAGE_PREFIX}${slug}`;
+}
+
+function loadCart(slug: string): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(storageKey(slug));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as StoredCart;
+    if (!parsed?.items || !Array.isArray(parsed.items)) return [];
+    if (Date.now() - (parsed.ts ?? 0) > TTL_MS) {
+      window.localStorage.removeItem(storageKey(slug));
+      return [];
+    }
+    return parsed.items;
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(slug: string, items: CartItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    if (items.length === 0) {
+      window.localStorage.removeItem(storageKey(slug));
+      return;
+    }
+    const payload: StoredCart = { items, ts: Date.now() };
+    window.localStorage.setItem(storageKey(slug), JSON.stringify(payload));
+  } catch {
+    /* quota cheio / privado — ignora silenciosamente */
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const slug = deriveSlugFromPath(pathname);
   const [items, setItems] = useState<CartItem[]>([]);
+  const currentSlugRef = useRef<string | null>(null);
+
+  // Carrega o carrinho do slug atual e troca em memória ao mudar de loja.
+  useEffect(() => {
+    if (!slug) {
+      currentSlugRef.current = null;
+      return;
+    }
+    if (currentSlugRef.current === slug) return;
+    currentSlugRef.current = slug;
+    setItems(loadCart(slug));
+  }, [slug]);
+
+  // Persiste a cada mudança, escopado ao slug atual.
+  useEffect(() => {
+    if (!slug) return;
+    saveCart(slug, items);
+  }, [slug, items]);
 
   const value = useMemo<CartCtx>(() => {
     const subtotal = items.reduce((sum, i) => sum + computeUnitPrice(i) * i.qty, 0);
