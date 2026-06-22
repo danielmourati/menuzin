@@ -272,29 +272,30 @@ export async function printQzReceipt(
   text: string,
   opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" },
 ): Promise<{ printer: string }> {
-  const qz = await ensureQzConnected();
-  let target = printerName?.trim();
-  if (!target) {
-    try {
-      target = await qz.printers.getDefault();
-    } catch {
-      throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+  return withQzRetry(async (qz) => {
+    let target = printerName?.trim();
+    if (!target) {
+      try {
+        target = await qz.printers.getDefault();
+      } catch {
+        throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+      }
     }
-  }
-  if (!target) throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
+    if (!target) throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
 
-  const feed = Math.max(0, opts?.feedLines ?? 3);
-  const cut =
-    opts?.cutType === "full"
-      ? "\x1DV\x00"
-      : opts?.cutType === "partial"
-        ? "\x1Dm"
-        : "";
+    const feed = Math.max(0, opts?.feedLines ?? 3);
+    const cut =
+      opts?.cutType === "full"
+        ? "\x1DV\x00"
+        : opts?.cutType === "partial"
+          ? "\x1Dm"
+          : "";
 
-  const payload = text + "\n".repeat(feed) + cut;
-  const config = qz.configs.create(target, { encoding: "CP860" });
-  await qz.print(config, [payload]);
-  return { printer: target };
+    const payload = text + "\n".repeat(feed) + cut;
+    const config = qz.configs.create(target, { encoding: "CP860" });
+    await qz.print(config, [payload]);
+    return { printer: target };
+  });
 }
 
 /** Faz o download do cert.pem servido pelo backend. */
