@@ -73,7 +73,7 @@ export function OrderStatusActions({
       case "aceito":
         return "success";
       case "preparo":
-        return "warning";
+        return order.status === "novo" ? "success" : "warning";
       case "saiu_entrega":
         return "info";
       case "pronto_retirada":
