@@ -99,9 +99,9 @@ function unlockAudioOnFirstGesture() {
     });
   };
   _unlockListenersAttached = true;
-  window.addEventListener("pointerdown", unlock, { once: true });
-  window.addEventListener("keydown", unlock, { once: true });
-  window.addEventListener("touchstart", unlock, { once: true });
+  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("keydown", unlock);
+  window.addEventListener("touchstart", unlock);
 }
 
 function playGeneratedChime(context: AudioContext) {
