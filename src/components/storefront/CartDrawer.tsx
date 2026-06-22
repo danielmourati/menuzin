@@ -867,14 +867,18 @@ export function CartDrawer({
                   <Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="h-11 flex-1" />
                 </div>
               </div>
-              <div>
-                <Label>E-mail</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Insira seu e-mail" className="mt-1.5 h-11" />
-              </div>
-              <div>
-                <Label>CPF/CNPJ</Label>
-                <Input value={doc} onChange={(e) => setDoc(maskCpfCnpj(e.target.value))} placeholder="Insira seu CPF ou CNPJ" inputMode="numeric" maxLength={18} className="mt-1.5 h-11" />
-              </div>
+              {mode === "entrega" && (
+                <>
+                  <div>
+                    <Label>E-mail</Label>
+                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Insira seu e-mail" className="mt-1.5 h-11" />
+                  </div>
+                  <div>
+                    <Label>CPF/CNPJ</Label>
+                    <Input value={doc} onChange={(e) => setDoc(maskCpfCnpj(e.target.value))} placeholder="Insira seu CPF ou CNPJ" inputMode="numeric" maxLength={18} className="mt-1.5 h-11" />
+                  </div>
+                </>
+              )}
               <div>
                 <Label>Observação geral</Label>
                 <Textarea value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} placeholder="Alguma observação para o pedido?" className="mt-1.5" />

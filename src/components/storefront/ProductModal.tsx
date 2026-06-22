@@ -449,7 +449,7 @@ export function ProductModal({
           {/* Observações estruturadas (ponto da carne, tipo de arroz, etc.) — sempre antes dos adicionais */}
           {observacaoGroups.length > 0 && (
             <Section title="Observações">
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion type="single" collapsible className="space-y-2">
                 {observacaoGroups.map((g) => {
                   const activeOptions = g.options.filter((o) => o.price >= 0);
                   if (activeOptions.length === 0) return null;
@@ -464,7 +464,7 @@ export function ProductModal({
                     .filter((o) => selectedIds.includes(o.id))
                     .map((o) => o.name);
                   return (
-                    <AccordionItem key={g.id} value={g.id} className="overflow-hidden rounded-xl border bg-card">
+                    <AccordionItem key={g.id} value={g.id} className="overflow-hidden rounded-xl border bg-card transition-colors data-[state=open]:border-[#FDE8DE]">
                       <AccordionTrigger className="px-3 py-3 hover:no-underline">
                         <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -528,7 +528,7 @@ export function ProductModal({
           {adicionalGroups.length > 0 && (
             tenantSlug === "vilaboemia" ? (
               <Section title="Adicionais">
-                <Accordion type="multiple" className="space-y-2">
+                <Accordion type="single" collapsible className="space-y-2">
                   {adicionalGroups.map((g) => {
                     const activeOptions = g.options.filter((o) => o.price >= 0);
                     if (activeOptions.length === 0) return null;
@@ -543,7 +543,7 @@ export function ProductModal({
                     const selectedIds = groupSelections[g.id] ?? [];
                     const selectedCount = selectedIds.length;
                     return (
-                      <AccordionItem key={g.id} value={g.id} className="overflow-hidden rounded-xl border bg-card">
+                      <AccordionItem key={g.id} value={g.id} className="overflow-hidden rounded-xl border bg-card transition-colors data-[state=open]:border-[#FDE8DE]">
                         <AccordionTrigger className="px-3 py-3 hover:no-underline">
                           <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
                             <div className="flex flex-wrap items-center gap-1.5">
