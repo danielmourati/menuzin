@@ -174,6 +174,7 @@ export function OrderCard({
             )}
 
             <PrintOrderButton order={order} size="icon" className="h-9 w-9 shrink-0" paperWidth={paperWidth} />
+            <PrintKitchenButton order={order} size="icon" className="h-9 w-9 shrink-0" />
           </>
         )}
       </div>
