@@ -94,9 +94,13 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
       <div className="gradient-brand text-primary-foreground py-6 px-4 shadow-sm">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-lg font-bold">
-              {tenant.logoLetter}
-            </div>
+            {tenant.logoUrl ? (
+              <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-10 w-auto object-contain rounded" />
+            ) : (
+              <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-lg font-bold">
+                {tenant.logoLetter}
+              </div>
+            )}
             <div>
               <h2 className="font-bold text-sm tracking-wide uppercase">{tenant.name}</h2>
               <p className="text-xs opacity-80">Acompanhamento do Pedido</p>
