@@ -40,6 +40,12 @@ function CategoriesPage() {
     queryKey: ["admin", "categories"],
     queryFn: async () => (await listMyCategories()).categories,
   });
+  const tenantQ = useQuery({
+    queryKey: ["tenant-probe"],
+    queryFn: () => getMyTenant({ data: {} }),
+  });
+  const isPizzaria = (tenantQ.data?.tenant?.business_types ?? []).includes("pizzaria");
+
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [open, setOpen] = useState(false);
