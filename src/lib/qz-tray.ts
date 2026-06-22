@@ -9,6 +9,7 @@ type QZ = {
     isActive: () => boolean;
     connect: (opts?: Record<string, unknown>) => Promise<void>;
     disconnect: () => Promise<void>;
+    connection?: unknown;
   };
   printers: {
     find: (name?: string) => Promise<string[] | string>;
