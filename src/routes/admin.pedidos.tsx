@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
+import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: OrdersPage,
