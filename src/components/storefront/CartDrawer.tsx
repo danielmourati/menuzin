@@ -475,14 +475,14 @@ export function CartDrawer({
 
   // ----- UI building blocks -----
   const Header = ({ title, right }: { title: string; right?: ReactNode }) => (
-    <div className="flex items-center justify-between border-b bg-card px-4 py-3.5">
-      <div className="flex items-center gap-2">
-        <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => (history.length ? goBack() : onOpenChange(false))}>
+    <div className="flex items-center justify-between gap-2 border-b bg-card px-4 py-3.5 pr-12">
+      <div className="flex min-w-0 items-center gap-2">
+        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => (history.length ? goBack() : onOpenChange(false))}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+        <h2 className="truncate text-lg font-semibold tracking-tight">{title}</h2>
+        {right && <div className="ml-2 shrink-0">{right}</div>}
       </div>
-      {right}
     </div>
   );
 
@@ -871,18 +871,6 @@ export function CartDrawer({
                   <Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="h-11 flex-1" />
                 </div>
               </div>
-              {mode === "entrega" && (
-                <>
-                  <div>
-                    <Label>E-mail</Label>
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Insira seu e-mail" className="mt-1.5 h-11" />
-                  </div>
-                  <div>
-                    <Label>CPF/CNPJ</Label>
-                    <Input value={doc} onChange={(e) => setDoc(maskCpfCnpj(e.target.value))} placeholder="Insira seu CPF ou CNPJ" inputMode="numeric" maxLength={18} className="mt-1.5 h-11" />
-                  </div>
-                </>
-              )}
               <div>
                 <Label>Observação geral</Label>
                 <Textarea value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} placeholder="Alguma observação para o pedido?" className="mt-1.5" />
