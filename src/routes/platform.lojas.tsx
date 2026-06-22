@@ -86,15 +86,48 @@ function PlatformStores() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const applyOneMut = useMutation({
+    mutationFn: (id: string) => adminApplyTenantTemplate({ data: { tenant_id: id } }),
+    onSuccess: (r) => {
+      toast.success(
+        `Padronizado com base em ${r.template_slug}. ${r.updated_fields.length} campo(s), ${r.created.length} registro(s) novos.`,
+      );
+      qc.invalidateQueries({ queryKey: ["platform"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const applyAllMut = useMutation({
+    mutationFn: () => adminApplyTemplateToAll(),
+    onSuccess: (r) => {
+      const ok = r.results.filter((x) => x.ok).length;
+      const fail = r.results.length - ok;
+      toast.success(`Padronização concluída: ${ok} ok${fail ? `, ${fail} com erro` : ""}.`);
+      qc.invalidateQueries({ queryKey: ["platform"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <PlatformLayout title="Lojas">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
           {stores.length} estabelecimentos cadastrados
         </p>
-        <Button asChild>
-          <Link to="/platform/tenants/novo">+ Novo estabelecimento</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => applyAllMut.mutate()}
+            disabled={applyAllMut.isPending}
+            title="Aplica o template padrão (burgerprime/vilaboemia) em todas as lojas, sem sobrescrever dados existentes"
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            {applyAllMut.isPending ? "Padronizando..." : "Padronizar todas"}
+          </Button>
+          <Button asChild>
+            <Link to="/platform/tenants/novo">+ Novo estabelecimento</Link>
+          </Button>
+        </div>
       </div>
 
       {isLoading && (
