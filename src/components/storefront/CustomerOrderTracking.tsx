@@ -124,7 +124,7 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
             </div>
 
             <div className="border-t pt-4">
-              <OrderStatusTimeline order={order} />
+              <OrderStatusTimeline order={order} audience="customer" orientation="horizontal" />
             </div>
           </CardContent>
         </Card>
