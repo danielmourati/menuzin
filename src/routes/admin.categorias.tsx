@@ -16,8 +16,10 @@ import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, deleteCategory,
 } from "@/lib/catalog-admin.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 import type { DbCategory } from "@/lib/db-types";
 import { PizzaCategoryConfigDialog } from "@/components/admin/PizzaCategoryConfigDialog";
+
 
 export const Route = createFileRoute("/admin/categorias")({
   component: CategoriesPage,
@@ -38,6 +40,12 @@ function CategoriesPage() {
     queryKey: ["admin", "categories"],
     queryFn: async () => (await listMyCategories()).categories,
   });
+  const tenantQ = useQuery({
+    queryKey: ["tenant-probe"],
+    queryFn: () => getMyTenant({ data: {} }),
+  });
+  const isPizzaria = (tenantQ.data?.tenant?.business_types ?? []).includes("pizzaria");
+
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [open, setOpen] = useState(false);
@@ -164,26 +172,31 @@ function CategoriesPage() {
                 </div>
               </div>
             </button>
-            <button onClick={() => openNew("pizza")}
-              className="w-full rounded-xl border-2 p-4 text-left transition hover:border-primary hover:bg-primary/5">
-              <div className="flex items-start gap-3">
-                <Pizza className="mt-1 h-6 w-6 text-primary" />
-                <div>
-                  <p className="font-bold">Pizza</p>
-                  <p className="text-sm text-muted-foreground">Defina o tamanho, tipos de massa, bordas e sabores</p>
-                </div>
-              </div>
-            </button>
-            <button onClick={() => openNew("oferta")}
-              className="w-full rounded-xl border-2 p-4 text-left transition hover:border-primary hover:bg-primary/5">
-              <div className="flex items-start gap-3">
-                <Tag className="mt-1 h-6 w-6 text-success" />
-                <div>
-                  <p className="font-bold">Oferta do Dia</p>
-                  <p className="text-sm text-muted-foreground">Pizzas promocionais fechadas com sabores e brindes já definidos</p>
-                </div>
-              </div>
-            </button>
+            {isPizzaria && (
+              <>
+                <button onClick={() => openNew("pizza")}
+                  className="w-full rounded-xl border-2 p-4 text-left transition hover:border-primary hover:bg-primary/5">
+                  <div className="flex items-start gap-3">
+                    <Pizza className="mt-1 h-6 w-6 text-primary" />
+                    <div>
+                      <p className="font-bold">Pizza</p>
+                      <p className="text-sm text-muted-foreground">Defina o tamanho, tipos de massa, bordas e sabores</p>
+                    </div>
+                  </div>
+                </button>
+                <button onClick={() => openNew("oferta")}
+                  className="w-full rounded-xl border-2 p-4 text-left transition hover:border-primary hover:bg-primary/5">
+                  <div className="flex items-start gap-3">
+                    <Tag className="mt-1 h-6 w-6 text-success" />
+                    <div>
+                      <p className="font-bold">Oferta do Dia</p>
+                      <p className="text-sm text-muted-foreground">Pizzas promocionais fechadas com sabores e brindes já definidos</p>
+                    </div>
+                  </div>
+                </button>
+              </>
+            )}
+
           </div>
         </DialogContent>
       </Dialog>
