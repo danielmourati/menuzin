@@ -211,7 +211,6 @@ export function useOrdersRealtime() {
   // staff de uma loja receba eventos de outra loja), então recarregamos a
   // lista a cada 10s. O som de novo pedido toca quando aparece um pedido
   // mais recente do que o último visto.
-  const lastSeenIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     unlockAudioOnFirstGesture();
     let cancelled = false;
@@ -220,46 +219,12 @@ export function useOrdersRealtime() {
         const res = await listOrdersForMyTenant();
         if (cancelled) return;
         const ui = res.orders.map((o) => dbOrderToUi(o));
-        const known = lastSeenIdsRef.current;
-        const isFirstLoad = known.size === 0;
-        const newOnes = isFirstLoad ? [] : ui.filter((o) => !known.has(o.id));
-        ui.forEach((o) => known.add(o.id));
+        const isFirstLoad = !globalHasLoadedOrderSnapshot;
+        const newOnes = isFirstLoad ? [] : ui.filter((o) => !globalSeenOrderIds.has(o.id));
+        globalSeenOrderIds = new Set(ui.map((o) => o.id));
+        globalHasLoadedOrderSnapshot = true;
         setOrders(ui);
-        if (newOnes.length > 0) {
-          // ordena por createdAt desc — mais recente primeiro
-          const sorted = [...newOnes].sort((a, b) => {
-            const ta = new Date(a.createdAt).getTime();
-            const tb = new Date(b.createdAt).getTime();
-            return tb - ta;
-          });
-          const newest = sorted[0];
-          // Evita sobrescrever um alerta que ainda não foi consumido
-          if (!globalNewOrderAlert || globalNewOrderAlert.id !== newest.id) {
-            globalNewOrderAlert = newest;
-          }
-          // Push notifications (dedupe por orderId)
-          const existingOrderIds = new Set(
-            globalNotifications.map((n) => n.orderId).filter(Boolean) as string[],
-          );
-          for (const o of sorted) {
-            if (existingOrderIds.has(o.id)) continue;
-            globalNotifications = [
-              {
-                id: `notif-${o.id}`,
-                storeId: o.storeId ?? "",
-                orderId: o.id,
-                type: "new_order",
-                title: "Novo pedido recebido",
-                message: `Pedido #${o.number} · ${o.customerName}`,
-                read: false,
-                createdAt: o.createdAt,
-              },
-              ...globalNotifications,
-            ];
-          }
-          notifyListeners();
-          if (soundEnabledRef.current) playNotificationSound();
-        }
+        processNewOrders(newOnes, soundEnabledRef.current);
       } catch (err) {
         console.error("Falha ao recarregar pedidos:", err);
       }
@@ -267,7 +232,7 @@ export function useOrdersRealtime() {
     void tick();
     const id = window.setInterval(tick, 10000);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [instanceId]);
+  }, []);
 
 
   // bridge para listeners locais (notificações)
@@ -312,7 +277,7 @@ export function useOrdersRealtime() {
       const { getMyTenant } = await import("@/lib/tenants.functions");
       const { tenant } = await getMyTenant();
       if (!tenant?.slug) return;
-      await createOrder({
+      const created = await createOrder({
         data: {
           tenant_slug: tenant.slug,
           customer_name: name,
@@ -330,11 +295,17 @@ export function useOrdersRealtime() {
           }],
         },
       });
-      await refetch();
+      const res = await listOrdersForMyTenant();
+      const ui = res.orders.map((o) => dbOrderToUi(o));
+      const createdOrder = ui.find((o) => o.id === created.order.id);
+      globalSeenOrderIds = new Set(ui.map((o) => o.id));
+      globalHasLoadedOrderSnapshot = true;
+      setOrders(ui);
+      if (createdOrder) processNewOrders([createdOrder], soundEnabledRef.current);
     } catch (err) {
       console.error("Falha ao simular pedido:", err);
     }
-  }, [refetch]);
+  }, []);
 
   const toggleSimulation = (active: boolean) => {
     autoSimulationActive = active;
