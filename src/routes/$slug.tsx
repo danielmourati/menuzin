@@ -128,6 +128,39 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const { count, subtotal } = useCart();
 
+  // Modal promocional — carrega na abertura da loja, 1x por sessão
+  const promoQ = useQuery({
+    queryKey: ["promo-modal", tenant.id],
+    queryFn: () => getActivePromoModal({ data: { tenantId: tenant.id } }),
+    staleTime: 60_000,
+  });
+  const [promoOpen, setPromoOpen] = useState(false);
+  useEffect(() => {
+    const promo = promoQ.data;
+    if (!promo) return;
+    const key = `promo_seen_${promo.id}`;
+    if (typeof window !== "undefined" && !window.sessionStorage.getItem(key)) {
+      setPromoOpen(true);
+    }
+  }, [promoQ.data]);
+  const closePromo = () => {
+    const promo = promoQ.data;
+    if (promo && typeof window !== "undefined") {
+      window.sessionStorage.setItem(`promo_seen_${promo.id}`, "1");
+    }
+    setPromoOpen(false);
+  };
+  const handlePromoCta = () => {
+    const promo = promoQ.data;
+    closePromo();
+    if (!promo?.product) return;
+    const target = products.find((p) => p.id === promo.product!.id);
+    if (target) {
+      setSelectedProduct(target);
+      setModalOpen(true);
+    }
+  };
+
   // Recalcula o status a cada minuto para fechar/abrir sozinho conforme o
   // relógio do cliente — não depende de re-render no servidor.
   const [tick, setTick] = useState(0);
