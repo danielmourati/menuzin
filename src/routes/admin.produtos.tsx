@@ -54,19 +54,25 @@ type Editing = {
 
 function ProductsPage() {
   const qc = useQueryClient();
-  const productsQ = useQuery({
-    queryKey: ["admin", "products"],
-    queryFn: async () => (await listMyProducts()).products,
-  });
-  const categoriesQ = useQuery({
-    queryKey: ["admin", "categories"],
-    queryFn: async () => (await listMyCategories()).categories,
-  });
   const tenantQ = useQuery({
     queryKey: ["tenant-probe"],
     queryFn: () => getMyTenant({ data: {} }),
   });
+  const hasTenant = !!tenantQ.data?.tenant?.id;
   const isPizzaria = (tenantQ.data?.tenant?.business_types ?? []).includes("pizzaria");
+  const productsQ = useQuery({
+    queryKey: ["admin", "products"],
+    queryFn: async () => (await listMyProducts()).products,
+    enabled: hasTenant,
+    retry: false,
+  });
+  const categoriesQ = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => (await listMyCategories()).categories,
+    enabled: hasTenant,
+    retry: false,
+  });
+
 
 
   const [q, setQ] = useState("");
