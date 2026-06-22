@@ -51,6 +51,30 @@ export class QzNotRunningError extends Error {
   }
 }
 
+/** Timeout no envio para a impressora (ex.: impressora offline ou travada). */
+export class QzPrintTimeoutError extends Error {
+  constructor(message = "Demora ao imprimir — verifique se a impressora está ligada e conectada.") {
+    super(message);
+    this.name = "QzPrintTimeoutError";
+  }
+}
+
+/** Falha ao consultar/encontrar a impressora configurada. */
+export class QzPrinterUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QzPrinterUnavailableError";
+  }
+}
+
+export type QzPrinterStatus = {
+  ok: boolean;
+  /** Mensagem amigável (em PT-BR) descrevendo o estado, quando `ok=false`. */
+  reason?: string;
+  /** Código bruto retornado pelo QZ (quando disponível). */
+  code?: string;
+};
+
 let loadingPromise: Promise<QZ> | null = null;
 let securityConfigured = false;
 
