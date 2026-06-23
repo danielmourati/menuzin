@@ -212,18 +212,7 @@ function PrinterSettingsPage() {
   const isDemoCert = !!qzCert?.subjectCN && /QZ Industries/i.test(qzCert.subjectCN);
   const serverCertReady = !!qzCert?.configured && !isDemoCert;
 
-  // Auto-abre o wizard na primeira visita do tenant a esta página: se ainda
-  // não há impressora salva OU o cert do servidor não está pronto OU o usuário
-  // nunca passou pelo wizard nesta máquina, mostramos o fluxo guiado.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isLoading) return;
-    if (!qzCert) return; // espera carregar status do servidor
-    const seen = window.localStorage.getItem(wizardSeenKey) === "1";
-    const needs = !seen || !form.printer_name || !serverCertReady || qzTrustState !== "trusted";
-    if (needs && !wizardOpen) setWizardOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, qzCert, wizardSeenKey]);
+  // Wizard não abre automaticamente — usuário precisa clicar em "Configurar impressora".
 
   const markWizardSeen = () => {
     if (typeof window !== "undefined") window.localStorage.setItem(wizardSeenKey, "1");
