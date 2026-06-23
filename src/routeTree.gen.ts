@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
 import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
 import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
+import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
 import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
@@ -61,6 +63,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
+  id: '/platform/planos',
+  path: '/platform/planos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlatformLojasRoute = PlatformLojasRouteImport.update({
   id: '/platform/lojas',
   path: '/platform/lojas',
@@ -69,6 +76,11 @@ const PlatformLojasRoute = PlatformLojasRouteImport.update({
 const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
   id: '/platform/dashboard',
   path: '/platform/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformAssinaturasRoute = PlatformAssinaturasRouteImport.update({
+  id: '/platform/assinaturas',
+  path: '/platform/assinaturas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaSlugRoute = LojaSlugRouteImport.update({
@@ -256,8 +268,10 @@ export interface FileRoutesByFullPath {
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
+  '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
@@ -293,8 +307,10 @@ export interface FileRoutesByTo {
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
+  '/platform/planos': typeof PlatformPlanosRoute
   '/admin': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
@@ -332,8 +348,10 @@ export interface FileRoutesById {
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
+  '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
@@ -372,8 +390,10 @@ export interface FileRouteTypes {
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
+    | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
+    | '/platform/planos'
     | '/admin/'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
@@ -409,8 +429,10 @@ export interface FileRouteTypes {
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
+    | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
+    | '/platform/planos'
     | '/admin'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
@@ -447,8 +469,10 @@ export interface FileRouteTypes {
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
+    | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
+    | '/platform/planos'
     | '/admin/'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
@@ -485,8 +509,10 @@ export interface RootRouteChildren {
   AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
   AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  PlatformAssinaturasRoute: typeof PlatformAssinaturasRoute
   PlatformDashboardRoute: typeof PlatformDashboardRoute
   PlatformLojasRoute: typeof PlatformLojasRoute
+  PlatformPlanosRoute: typeof PlatformPlanosRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
@@ -517,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform/planos': {
+      id: '/platform/planos'
+      path: '/platform/planos'
+      fullPath: '/platform/planos'
+      preLoaderRoute: typeof PlatformPlanosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/platform/lojas': {
       id: '/platform/lojas'
       path: '/platform/lojas'
@@ -529,6 +562,13 @@ declare module '@tanstack/react-router' {
       path: '/platform/dashboard'
       fullPath: '/platform/dashboard'
       preLoaderRoute: typeof PlatformDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/assinaturas': {
+      id: '/platform/assinaturas'
+      path: '/platform/assinaturas'
+      fullPath: '/platform/assinaturas'
+      preLoaderRoute: typeof PlatformAssinaturasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja/$slug': {
@@ -817,8 +857,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
   AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  PlatformAssinaturasRoute: PlatformAssinaturasRoute,
   PlatformDashboardRoute: PlatformDashboardRoute,
   PlatformLojasRoute: PlatformLojasRoute,
+  PlatformPlanosRoute: PlatformPlanosRoute,
   AdminIndexRoute: AdminIndexRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
