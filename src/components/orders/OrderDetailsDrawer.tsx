@@ -9,16 +9,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // separator removido — footer compacto usa gap em vez de divisor
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { brl, modeLabel, formatDateTime } from "@/lib/format";
+import { brl, modeLabel, formatDateTime, whatsappOrderMessage } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
+import { whatsappLink } from "@/lib/whatsapp";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
 import { OrderStatusActions } from "./OrderStatusActions";
 import { WhatsAppOrderActions } from "./WhatsAppOrderActions";
 import { PrintOrderButton } from "./PrintOrderButton";
 import { PrintKitchenButton } from "./PrintKitchenButton";
-import { MapPin, Phone, Clipboard, Check, Utensils, Calendar } from "lucide-react";
+import { MapPin, Phone, Clipboard, Check, Utensils, Calendar, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -198,7 +199,25 @@ export function OrderDetailsDrawer({
                 <div className="font-medium text-foreground text-base">{order.customerName}</div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Phone className="h-4 w-4 shrink-0 text-success" />
-                  <a href={`tel:${order.whatsapp}`} className="hover:underline text-foreground">{order.whatsapp}</a>
+                  <a href={`tel:${order.whatsapp}`} className="hover:underline text-foreground flex-1">{order.whatsapp}</a>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const msg = whatsappOrderMessage("conversa", {
+                        cliente: order.customerName,
+                        numero: order.number,
+                        loja: storeName,
+                      });
+                      window.open(whatsappLink(order.whatsapp, msg), "_blank", "noreferrer");
+                    }}
+                    className="h-7 px-2 gap-1.5 border-success/40 bg-success/10 hover:bg-success/15 text-success font-medium"
+                    title="Iniciar conversa no WhatsApp"
+                    aria-label="Conversar no WhatsApp"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Conversar
+                  </Button>
                 </div>
 
                 {order.mode === "entrega" && order.address && (
@@ -244,19 +263,18 @@ export function OrderDetailsDrawer({
         {/* FOOTER */}
         <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
           <div className="flex gap-2 flex-wrap">
-            {order.status === "preparo" ? (
+            <WhatsAppOrderActions
+              order={order}
+              storeName={storeName}
+              className="flex-1 min-w-[140px]"
+            />
+            {order.status === "preparo" && (
               <PrintKitchenButton
                 order={order}
                 label="Reimprimir Cozinha"
                 className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
               />
-            ) : null}
-            <WhatsAppOrderActions
-              order={order}
-              storeName={storeName}
-              hideStatusButton={order.status === "preparo"}
-              className="flex-1 min-w-[140px]"
-            />
+            )}
           </div>
           <div className="flex gap-2 flex-wrap">
             <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-orange-600 hover:bg-orange-700 text-white border-orange-600" paperWidth={paperWidth} />
