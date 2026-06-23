@@ -67,6 +67,7 @@ function CouponsPage() {
   });
 
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"cupons" | "promocoes">("cupons");
   const [editing, setEditing] = useState<Editing | null>(null);
 
   const saveMut = useMutation({
