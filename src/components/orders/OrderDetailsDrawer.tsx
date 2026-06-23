@@ -211,11 +211,11 @@ export function OrderDetailsDrawer({
                       });
                       window.open(whatsappLink(order.whatsapp, msg), "_blank", "noreferrer");
                     }}
-                    className="h-7 px-2 gap-1.5 border-success/40 bg-success/10 hover:bg-success/15 text-success font-medium"
+                    className="h-7 px-2 gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success font-medium"
                     title="Iniciar conversa no WhatsApp"
                     aria-label="Conversar no WhatsApp"
                   >
-                    <MessageCircle className="h-3.5 w-3.5" />
+                    <MessageCircle className="h-3.5 w-3.5 text-success" />
                     Conversar
                   </Button>
                 </div>
