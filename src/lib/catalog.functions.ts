@@ -153,6 +153,7 @@ export const getCatalog = createServerFn({ method: "POST" })
       pizzaSizes: (pSizes ?? []) as unknown as DbCategoryPizzaSize[],
       pizzaDoughs: (pDoughs ?? []) as unknown as DbCategoryPizzaDough[],
       pizzaCrusts: (pCrusts ?? []) as unknown as DbCategoryPizzaCrust[],
+      blocked: false,
     };
   });
 
