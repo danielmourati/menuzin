@@ -1,15 +1,14 @@
-## Mover Promoção para Cupons
+## Reduzir fonte do cupom da cozinha em 50%
 
-**Página `/admin/cupons` (renomear):**
-- Título do AdminLayout: `Cupons` → `Cupons e Promoções`
-- Envolver o conteúdo em `Tabs` com duas abas:
-  - **Cupons** — conteúdo atual da página (lista, modal de criação/edição, botão "Novo cupom" continua como action no header, exibido apenas quando a aba Cupons estiver ativa)
-  - **Promoções** — card com o mesmo bloco que existe hoje em Configurações > Promoção (título "Modal promocional", descrição e botão `Configurar modal` → `/admin/configuracoes/promocao`)
+Hoje o cupom da cozinha (`src/lib/kitchen-ticket.ts`) imprime cabeçalho e itens com fonte **2x largura + 2x altura** (ESC/POS `GS ! 0x11`). Reduzir 50% significa voltar à fonte normal da impressora (`GS ! 0x00`) nesses blocos — o tamanho padrão do ESC/POS é exatamente metade em largura e altura.
 
-**Sidebar (`src/components/admin/AdminLayout.tsx`):**
-- Label do item `/admin/cupons`: `Cupons` → `Cupons e Promoções` (ícone `Ticket` mantido)
+### Mudança
 
-**Configurações (`src/routes/admin.configuracoes.index.tsx`):**
-- Remover `<TabsTrigger value="promocao">` e o `<TabsContent value="promocao">` correspondente
+Arquivo único: `src/lib/kitchen-ticket.ts`
 
-**Fora do escopo:** rota `/admin/configuracoes/promocao` continua existindo e funcional (apenas o atalho muda de lugar); nenhuma mudança em backend, schema, RLS ou lógica de cupons/promoção.
+- Trocar `ESC_BIG = "\x1d!\x11"` por `"\x1d!\x00"` (fonte normal), ou simplesmente parar de emitir `ESC_BIG`/`ESC_NORMAL` e usar largura total `cols` em vez de `bigCols` para cabeçalho e itens.
+- Ajustar `bigCols` para usar `cols` (sem dividir por 2), já que não há mais fonte dobrada.
+- Separadores (`bigSep`, `bigSepThin`) passam a ocupar a largura completa do papel.
+- Rodapé permanece igual (já era fonte normal).
+
+Sem mudanças em backend, schema, ou em outros arquivos. O preview (`PrintableOrder`) não usa este builder, então nada muda na UI.
