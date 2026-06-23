@@ -198,7 +198,25 @@ export function OrderDetailsDrawer({
                 <div className="font-medium text-foreground text-base">{order.customerName}</div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Phone className="h-4 w-4 shrink-0 text-success" />
-                  <a href={`tel:${order.whatsapp}`} className="hover:underline text-foreground">{order.whatsapp}</a>
+                  <a href={`tel:${order.whatsapp}`} className="hover:underline text-foreground flex-1">{order.whatsapp}</a>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const msg = whatsappOrderMessage("conversa", {
+                        cliente: order.customerName,
+                        numero: order.number,
+                        loja: storeName,
+                      });
+                      window.open(whatsappLink(order.whatsapp, msg), "_blank", "noreferrer");
+                    }}
+                    className="h-7 px-2 gap-1.5 border-success/40 bg-success/10 hover:bg-success/15 text-success font-medium"
+                    title="Iniciar conversa no WhatsApp"
+                    aria-label="Conversar no WhatsApp"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    Conversar
+                  </Button>
                 </div>
 
                 {order.mode === "entrega" && order.address && (
