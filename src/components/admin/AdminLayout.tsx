@@ -48,6 +48,7 @@ const sections = [
     items: [
       { to: "/admin/aparencia", label: "Aparência", icon: Palette },
       { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+      { to: "/admin/assinatura", label: "Minha assinatura", icon: CreditCard },
     ],
   },
 ] as const;
