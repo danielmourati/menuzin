@@ -38,7 +38,7 @@ const sections = [
   {
     label: "Vendas",
     items: [
-      { to: "/admin/cupons", label: "Cupons", icon: Ticket },
+      { to: "/admin/cupons", label: "Cupons e Promoções", icon: Ticket },
       { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
     ],
   },
