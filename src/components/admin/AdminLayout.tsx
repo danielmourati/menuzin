@@ -220,8 +220,20 @@ function AuthGate({ children }: { children: ReactNode }) {
     }
     // Se o servidor confirma que existe um tenant vinculado, renderiza o painel
     // (o restante da app usa getMyTenant para resolver o tenant ativo).
-    if (tenantProbe?.tenant) return <>{children}</>;
+    if (tenantProbe?.tenant) return <SubscriptionGuard pathname={pathname}>{children}</SubscriptionGuard>;
     return <OnboardingClaim />;
+  }
+  return <SubscriptionGuard pathname={pathname}>{children}</SubscriptionGuard>;
+}
+
+function SubscriptionGuard({ children, pathname }: { children: ReactNode; pathname: string }) {
+  const { isPlatformAdmin } = useAuth();
+  const { computed, loading } = useEffectiveSubscription();
+  if (loading) return <>{children}</>;
+  // Super-admin nunca é bloqueado pela assinatura do tenant impersonado.
+  if (isPlatformAdmin) return <>{children}</>;
+  if (computed.blocked && pathname !== "/admin/assinatura") {
+    return <SubscriptionBlockedScreen />;
   }
   return <>{children}</>;
 }
