@@ -108,18 +108,16 @@ export function OrderDetailsDrawer({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col h-[92dvh] md:h-auto md:max-h-[92dvh] gap-0 overscroll-contain">
-        <DialogHeader className="p-5 border-b shrink-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
-            <Button variant="outline" size="sm" onClick={handleCopySummary} className="h-8 text-xs gap-1.5">
-              {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Clipboard className="h-3.5 w-3.5" />}
-              {copied ? "Copiado!" : "Copiar Resumo"}
-            </Button>
-          </div>
+        <DialogHeader className="p-5 border-b shrink-0 pr-12">
+          <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-2 mt-1">
             <Badge variant="secondary" className="font-semibold">{modeLabel[order.mode]}</Badge>
             <OrderStatusBadge status={order.status} />
             <PaymentStatusBadge status={order.paymentStatus} />
+            <Button variant="outline" size="sm" onClick={handleCopySummary} className="h-7 text-xs gap-1.5 ml-auto">
+              {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Clipboard className="h-3.5 w-3.5" />}
+              {copied ? "Copiado!" : "Copiar Resumo"}
+            </Button>
           </DialogDescription>
         </DialogHeader>
 
@@ -245,13 +243,31 @@ export function OrderDetailsDrawer({
 
         {/* FOOTER */}
         <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
-          <WhatsAppOrderActions order={order} storeName={storeName} />
           <div className="flex gap-2 flex-wrap">
-            <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-sky-600 hover:bg-sky-700 text-white border-sky-600" paperWidth={paperWidth} />
-            <PrintKitchenButton order={order} className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
-            <Button variant="outline" onClick={onClose} className="flex-1 min-w-[100px] border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Fechar</Button>
+            {order.status === "preparo" ? (
+              <PrintKitchenButton
+                order={order}
+                label="Reimprimir Cozinha"
+                className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
+              />
+            ) : null}
+            <WhatsAppOrderActions
+              order={order}
+              storeName={storeName}
+              hideStatusButton={order.status === "preparo"}
+              className="flex-1 min-w-[140px]"
+            />
           </div>
-          <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="w-full" />
+          <div className="flex gap-2 flex-wrap">
+            <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-orange-600 hover:bg-orange-700 text-white border-orange-600" paperWidth={paperWidth} />
+            {order.status !== "preparo" && (
+              <PrintKitchenButton order={order} className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="flex-1" />
+            <Button onClick={onClose} className="flex-1 min-w-[100px] bg-destructive hover:bg-destructive/90 text-destructive-foreground border-destructive">Fechar</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
