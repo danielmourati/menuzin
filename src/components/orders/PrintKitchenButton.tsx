@@ -102,7 +102,7 @@ export function PrintKitchenButton({
       {printing ? (
         <Loader2 className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"} />
       ) : (
-        <ChefHat className={size === "icon" ? "h-3.5 w-3.5" : "mr-2 h-4 w-4"} />
+        <ChefHat className={size === "icon" ? "h-3.5 w-3.5 text-warning" : "mr-2 h-4 w-4 text-warning"} />
       )}
       {size !== "icon" && (printing ? "Imprimindo..." : finalLabel)}
     </Button>
