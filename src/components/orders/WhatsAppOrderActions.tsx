@@ -19,6 +19,7 @@ export function WhatsAppOrderActions({
   storeName = "Burger Prime",
   className = "",
   size = "default",
+  hideStatusButton = false,
 }: WhatsAppOrderActionsProps) {
   const getTemplateType = (): WhatsAppMsgType => {
     switch (order.status) {
