@@ -77,10 +77,6 @@ export const Route = createFileRoute("/$slug")({
       <p className="text-sm text-muted-foreground">Erro ao carregar a loja: {error.message}</p>
     </div>
   ),
-  notFoundComponent: () => {
-    const { slug } = Route.useParams();
-    return <StoreNotFound slug={slug} />;
-  },
 });
 
 function StoreRoute() {
