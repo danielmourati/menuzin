@@ -64,6 +64,8 @@ export function useTenantPlan() {
     enabled,
     staleTime: 60_000,
   });
+  // Tenta primeiro derivar do plano da assinatura (via my-subscription cache, se já estiver carregado).
+  // Fallback: tenants.plan.
   const rawPlan = (data?.tenant as { plan?: string } | null | undefined)?.plan ?? null;
   const plan: TenantPlan = normalizePlan(rawPlan);
   return {

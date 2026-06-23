@@ -744,6 +744,51 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          active: boolean
+          annual_price: number | null
+          billing_periods: Database["public"]["Enums"]["subscription_billing_period"][]
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          monthly_price: number
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          annual_price?: number | null
+          billing_periods?: Database["public"]["Enums"]["subscription_billing_period"][]
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          monthly_price?: number
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          annual_price?: number | null
+          billing_periods?: Database["public"]["Enums"]["subscription_billing_period"][]
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          monthly_price?: number
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       printer_settings: {
         Row: {
           auto_connect: boolean
@@ -1226,6 +1271,142 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          subscription_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          subscription_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          subscription_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_events_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_payments: {
+        Row: {
+          amount: number
+          billing_period: Database["public"]["Enums"]["subscription_billing_period"]
+          created_at: string
+          due_date: string | null
+          id: string
+          mercado_pago_external_reference: string | null
+          mercado_pago_payment_id: string | null
+          mercado_pago_preference_id: string | null
+          paid_at: string | null
+          payment_status: Database["public"]["Enums"]["subscription_payment_status"]
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
+          pix_ticket_url: string | null
+          plan_id: string
+          raw_response: Json | null
+          reference_month: string | null
+          subscription_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          billing_period: Database["public"]["Enums"]["subscription_billing_period"]
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          mercado_pago_external_reference?: string | null
+          mercado_pago_payment_id?: string | null
+          mercado_pago_preference_id?: string | null
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["subscription_payment_status"]
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          pix_ticket_url?: string | null
+          plan_id: string
+          raw_response?: Json | null
+          reference_month?: string | null
+          subscription_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          billing_period?: Database["public"]["Enums"]["subscription_billing_period"]
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          mercado_pago_external_reference?: string | null
+          mercado_pago_payment_id?: string | null
+          mercado_pago_preference_id?: string | null
+          paid_at?: string | null
+          payment_status?: Database["public"]["Enums"]["subscription_payment_status"]
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          pix_ticket_url?: string | null
+          plan_id?: string
+          raw_response?: Json | null
+          reference_month?: string | null
+          subscription_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_printers: {
         Row: {
           created_at: string
@@ -1268,6 +1449,75 @@ export type Database = {
             foreignKeyName: "tenant_printers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_subscriptions: {
+        Row: {
+          amount: number
+          auto_block_enabled: boolean
+          billing_period: Database["public"]["Enums"]["subscription_billing_period"]
+          blocked_at: string | null
+          created_at: string
+          due_date: string | null
+          grace_days: number
+          id: string
+          notes: string | null
+          plan_id: string
+          start_date: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          tenant_id: string
+          unblocked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          auto_block_enabled?: boolean
+          billing_period?: Database["public"]["Enums"]["subscription_billing_period"]
+          blocked_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          grace_days?: number
+          id?: string
+          notes?: string | null
+          plan_id: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tenant_id: string
+          unblocked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          auto_block_enabled?: boolean
+          billing_period?: Database["public"]["Enums"]["subscription_billing_period"]
+          blocked_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          grace_days?: number
+          id?: string
+          notes?: string | null
+          plan_id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tenant_id?: string
+          unblocked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -1449,6 +1699,29 @@ export type Database = {
         | "rejected"
         | "refunded"
         | "manual"
+      subscription_billing_period:
+        | "mensal"
+        | "trimestral"
+        | "semestral"
+        | "anual"
+        | "personalizado"
+      subscription_payment_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "refunded"
+        | "expired"
+        | "manual"
+      subscription_status:
+        | "ativa"
+        | "pendente"
+        | "vencida"
+        | "tolerancia"
+        | "bloqueada"
+        | "cancelada"
+        | "teste"
+        | "cortesia"
       tenant_status: "ativa" | "teste" | "suspensa"
     }
     CompositeTypes: {
@@ -1591,6 +1864,32 @@ export const Constants = {
         "cancelado",
       ],
       payment_status: ["pending", "approved", "rejected", "refunded", "manual"],
+      subscription_billing_period: [
+        "mensal",
+        "trimestral",
+        "semestral",
+        "anual",
+        "personalizado",
+      ],
+      subscription_payment_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled",
+        "refunded",
+        "expired",
+        "manual",
+      ],
+      subscription_status: [
+        "ativa",
+        "pendente",
+        "vencida",
+        "tolerancia",
+        "bloqueada",
+        "cancelada",
+        "teste",
+        "cortesia",
+      ],
       tenant_status: ["ativa", "teste", "suspensa"],
     },
   },

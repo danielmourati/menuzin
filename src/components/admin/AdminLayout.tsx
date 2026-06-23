@@ -1,5 +1,6 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard } from "lucide-react";
+import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,6 +48,7 @@ const sections = [
     items: [
       { to: "/admin/aparencia", label: "Aparência", icon: Palette },
       { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+      { to: "/admin/assinatura", label: "Minha assinatura", icon: CreditCard },
     ],
   },
 ] as const;
@@ -218,8 +220,20 @@ function AuthGate({ children }: { children: ReactNode }) {
     }
     // Se o servidor confirma que existe um tenant vinculado, renderiza o painel
     // (o restante da app usa getMyTenant para resolver o tenant ativo).
-    if (tenantProbe?.tenant) return <>{children}</>;
+    if (tenantProbe?.tenant) return <SubscriptionGuard pathname={pathname}>{children}</SubscriptionGuard>;
     return <OnboardingClaim />;
+  }
+  return <SubscriptionGuard pathname={pathname}>{children}</SubscriptionGuard>;
+}
+
+function SubscriptionGuard({ children, pathname }: { children: ReactNode; pathname: string }) {
+  const { isPlatformAdmin } = useAuth();
+  const { computed, loading } = useEffectiveSubscription();
+  if (loading) return <>{children}</>;
+  // Super-admin nunca é bloqueado pela assinatura do tenant impersonado.
+  if (isPlatformAdmin) return <>{children}</>;
+  if (computed.blocked && pathname !== "/admin/assinatura") {
+    return <SubscriptionBlockedScreen />;
   }
   return <>{children}</>;
 }
@@ -328,6 +342,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
         </aside>
         <div className="flex flex-1 flex-col min-w-0">
           <ImpersonationBanner />
+          <SubscriptionAlertBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>

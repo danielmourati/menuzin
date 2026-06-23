@@ -49,7 +49,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
-    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [] };
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: false };
     const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
     const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
     return {
@@ -61,6 +61,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
       pizzaSizes: res.pizzaSizes ?? [],
       pizzaDoughs: res.pizzaDoughs ?? [],
       pizzaCrusts: res.pizzaCrusts ?? [],
+      blocked: res.blocked ?? false,
     };
   },
 });
@@ -93,7 +94,22 @@ function StorefrontRoute({ slug }: { slug: string }) {
   const { data } = useSuspenseQuery(catalogQueryOptions(slug));
 
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
+  if (data.blocked) return <StoreUnavailable name={data.tenant.name} />;
   return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaSizes={data.pizzaSizes ?? []} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
+}
+
+function StoreUnavailable({ name }: { name: string }) {
+  return (
+    <div className="grid min-h-screen place-items-center bg-muted/30 p-6 text-center">
+      <div className="max-w-md">
+        <StoreIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h1 className="mt-4 text-2xl font-bold">{name}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Esta loja está temporariamente indisponível. Volte em breve.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 

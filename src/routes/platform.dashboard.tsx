@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Menu, Loader2, LogOut } from "lucide-react";
+import { LayoutDashboard, Store, Menu, Loader2, LogOut, CreditCard, Package } from "lucide-react";
 import { toast } from "sonner";
 import { clearActiveTenant } from "@/lib/active-tenant";
 import { useEffect, useState, type ReactNode } from "react";
@@ -18,6 +18,8 @@ export const Route = createFileRoute("/platform/dashboard")({ component: Platfor
 const navItems = [
   { to: "/platform/dashboard", label: "Visão geral", icon: LayoutDashboard },
   { to: "/platform/lojas", label: "Lojas", icon: Store },
+  { to: "/platform/assinaturas", label: "Assinaturas", icon: CreditCard },
+  { to: "/platform/planos", label: "Planos", icon: Package },
 ] as const;
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {

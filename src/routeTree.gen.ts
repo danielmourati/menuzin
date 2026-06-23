@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
 import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
 import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
+import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
 import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
@@ -29,6 +31,7 @@ import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
+import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
@@ -37,6 +40,7 @@ import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenan
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
+import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
 import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
@@ -59,6 +63,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
+  id: '/platform/planos',
+  path: '/platform/planos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlatformLojasRoute = PlatformLojasRouteImport.update({
   id: '/platform/lojas',
   path: '/platform/lojas',
@@ -67,6 +76,11 @@ const PlatformLojasRoute = PlatformLojasRouteImport.update({
 const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
   id: '/platform/dashboard',
   path: '/platform/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformAssinaturasRoute = PlatformAssinaturasRouteImport.update({
+  id: '/platform/assinaturas',
+  path: '/platform/assinaturas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaSlugRoute = LojaSlugRouteImport.update({
@@ -144,6 +158,11 @@ const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
   path: '/admin/avaliacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
+  id: '/admin/assinatura',
+  path: '/admin/assinatura',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
   id: '/admin/aparencia',
   path: '/admin/aparencia',
@@ -185,6 +204,12 @@ const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
   path: '/api/public/qz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMenuzinMpWebhookRoute =
+  ApiPublicMenuzinMpWebhookRouteImport.update({
+    id: '/api/public/menuzin-mp-webhook',
+    path: '/api/public/menuzin-mp-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AdminConfiguracoesPromocaoRoute =
   AdminConfiguracoesPromocaoRouteImport.update({
     id: '/promocao',
@@ -227,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
@@ -242,14 +268,17 @@ export interface FileRoutesByFullPath {
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
+  '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -263,6 +292,7 @@ export interface FileRoutesByTo {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/cupons': typeof AdminCuponsRoute
@@ -277,14 +307,17 @@ export interface FileRoutesByTo {
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
+  '/platform/planos': typeof PlatformPlanosRoute
   '/admin': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -299,6 +332,7 @@ export interface FileRoutesById {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
@@ -314,14 +348,17 @@ export interface FileRoutesById {
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
+  '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
+  '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
@@ -337,6 +374,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/assinatura'
     | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/configuracoes'
@@ -352,14 +390,17 @@ export interface FileRouteTypes {
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
+    | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
+    | '/platform/planos'
     | '/admin/'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
@@ -373,6 +414,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/assinatura'
     | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/cupons'
@@ -387,14 +429,17 @@ export interface FileRouteTypes {
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
+    | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
+    | '/platform/planos'
     | '/admin'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
@@ -408,6 +453,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/assinatura'
     | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/configuracoes'
@@ -423,14 +469,17 @@ export interface FileRouteTypes {
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
     | '/loja/$slug'
+    | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
+    | '/platform/planos'
     | '/admin/'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/loja/$slug/pedido-confirmado'
@@ -444,6 +493,7 @@ export interface RootRouteChildren {
   SlugRoute: typeof SlugRouteWithChildren
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
+  AdminAssinaturaRoute: typeof AdminAssinaturaRoute
   AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
@@ -459,9 +509,12 @@ export interface RootRouteChildren {
   AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
   AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  PlatformAssinaturasRoute: typeof PlatformAssinaturasRoute
   PlatformDashboardRoute: typeof PlatformDashboardRoute
   PlatformLojasRoute: typeof PlatformLojasRoute
+  PlatformPlanosRoute: typeof PlatformPlanosRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
@@ -490,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform/planos': {
+      id: '/platform/planos'
+      path: '/platform/planos'
+      fullPath: '/platform/planos'
+      preLoaderRoute: typeof PlatformPlanosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/platform/lojas': {
       id: '/platform/lojas'
       path: '/platform/lojas'
@@ -502,6 +562,13 @@ declare module '@tanstack/react-router' {
       path: '/platform/dashboard'
       fullPath: '/platform/dashboard'
       preLoaderRoute: typeof PlatformDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/assinaturas': {
+      id: '/platform/assinaturas'
+      path: '/platform/assinaturas'
+      fullPath: '/platform/assinaturas'
+      preLoaderRoute: typeof PlatformAssinaturasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja/$slug': {
@@ -609,6 +676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAvaliacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/assinatura': {
+      id: '/admin/assinatura'
+      path: '/admin/assinatura'
+      fullPath: '/admin/assinatura'
+      preLoaderRoute: typeof AdminAssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/aparencia': {
       id: '/admin/aparencia'
       path: '/admin/aparencia'
@@ -663,6 +737,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/qz'
       fullPath: '/api/public/qz'
       preLoaderRoute: typeof ApiPublicQzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/menuzin-mp-webhook': {
+      id: '/api/public/menuzin-mp-webhook'
+      path: '/api/public/menuzin-mp-webhook'
+      fullPath: '/api/public/menuzin-mp-webhook'
+      preLoaderRoute: typeof ApiPublicMenuzinMpWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/configuracoes/promocao': {
@@ -760,6 +841,7 @@ const rootRouteChildren: RootRouteChildren = {
   SlugRoute: SlugRouteWithChildren,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
+  AdminAssinaturaRoute: AdminAssinaturaRoute,
   AdminAvaliacoesRoute: AdminAvaliacoesRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
@@ -775,9 +857,12 @@ const rootRouteChildren: RootRouteChildren = {
   AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
   AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  PlatformAssinaturasRoute: PlatformAssinaturasRoute,
   PlatformDashboardRoute: PlatformDashboardRoute,
   PlatformLojasRoute: PlatformLojasRoute,
+  PlatformPlanosRoute: PlatformPlanosRoute,
   AdminIndexRoute: AdminIndexRoute,
+  ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
