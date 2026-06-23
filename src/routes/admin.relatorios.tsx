@@ -108,6 +108,42 @@ function ReportsPage() {
                   {p.label}
                 </Button>
               ))}
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoading || !data}
+                  onClick={() => {
+                    try {
+                      exportReportToPdf(data!, range);
+                      toast.success("PDF exportado");
+                    } catch (e) {
+                      toast.error("Falha ao exportar PDF");
+                    }
+                  }}
+                  aria-label="Exportar PDF"
+                >
+                  <FileText className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Exportar PDF</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isLoading || !data}
+                  onClick={() => {
+                    try {
+                      exportReportToExcel(data!, range);
+                      toast.success("Excel exportado");
+                    } catch (e) {
+                      toast.error("Falha ao exportar Excel");
+                    }
+                  }}
+                  aria-label="Exportar Excel"
+                >
+                  <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Exportar Excel</span>
+                </Button>
+              </div>
             </div>
             {preset === "custom" && (
               <div className="grid gap-3 sm:grid-cols-2 max-w-md">
