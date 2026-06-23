@@ -29,20 +29,21 @@ export const Route = createFileRoute("/api/public/menuzin-mp-webhook")({
           const status = mapMpStatus(String(mpPayment.status ?? "pending"));
 
           // Localiza por mp_payment_id ou external_reference (= subscription_payments.id)
-          let payRow: { id: string; tenant_id: string; subscription_id: string; payment_status: string } | null = null;
+          type PayRow = { id: string; tenant_id: string; subscription_id: string; payment_status: string };
+          let payRow: PayRow | null = null;
           const { data: byMp } = await supabaseAdmin
             .from("subscription_payments")
             .select("id, tenant_id, subscription_id, payment_status")
             .eq("mercado_pago_payment_id", paymentId)
             .maybeSingle();
-          if (byMp) payRow = byMp as never;
+          if (byMp) payRow = byMp as unknown as PayRow;
           else if (externalRef) {
             const { data: byRef } = await supabaseAdmin
               .from("subscription_payments")
               .select("id, tenant_id, subscription_id, payment_status")
               .eq("id", externalRef)
               .maybeSingle();
-            if (byRef) payRow = byRef as never;
+            if (byRef) payRow = byRef as unknown as PayRow;
           }
           if (!payRow) return new Response("ok", { status: 200 });
 
