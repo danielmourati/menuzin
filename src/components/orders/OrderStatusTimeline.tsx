@@ -161,51 +161,53 @@ function HorizontalTimeline({
           {order.cancelReason && <span className="text-muted-foreground truncate">— {order.cancelReason}</span>}
         </div>
       )}
-      <div className="flex items-start justify-between gap-1 w-full">
-        {steps.map((step, idx) => {
-          const historyEntry = order.statusHistory.find((h) => h.newStatus === step.key);
-          const isDone = !isCancelled && idx < currentIndex;
-          const isCurrent = !isCancelled && idx === currentIndex;
-          const isLast = idx === steps.length - 1;
-          const state = isDone ? "done" : isCurrent ? "current" : "pending";
-          const Icon = iconForStep(step.key, state);
+      <div className="w-full overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="flex items-start gap-1 min-w-max sm:min-w-0 sm:w-full">
+          {steps.map((step, idx) => {
+            const historyEntry = order.statusHistory.find((h) => h.newStatus === step.key);
+            const isDone = !isCancelled && idx < currentIndex;
+            const isCurrent = !isCancelled && idx === currentIndex;
+            const isLast = idx === steps.length - 1;
+            const state = isDone ? "done" : isCurrent ? "current" : "pending";
+            const Icon = iconForStep(step.key, state);
 
-          let iconBg = "bg-muted border border-border";
-          let iconColor = "text-muted-foreground";
-          if (isDone) {
-            iconBg = "bg-success border-none shadow-sm";
-            iconColor = "text-white";
-          } else if (isCurrent) {
-            iconBg = "bg-primary border-none ring-4 ring-primary/20 shadow-md";
-            iconColor = "text-white";
-          }
-          const connectorColor = isDone ? "bg-success" : "bg-muted";
+            let iconBg = "bg-muted border border-border";
+            let iconColor = "text-muted-foreground";
+            if (isDone) {
+              iconBg = "bg-success border-none shadow-sm";
+              iconColor = "text-white";
+            } else if (isCurrent) {
+              iconBg = "bg-primary border-none ring-4 ring-primary/20 shadow-md";
+              iconColor = "text-white";
+            }
+            const connectorColor = isDone ? "bg-success" : "bg-muted";
 
-          return (
-            <div key={step.key} className="flex items-start flex-1 min-w-0">
-              <div className="flex flex-col items-center flex-1 min-w-0">
-                <div className={`h-11 w-11 rounded-full flex items-center justify-center transition-all ${iconBg}`}>
-                  <Icon className={`h-5 w-5 ${iconColor} ${isCurrent ? "animate-pulse" : ""}`} />
-                </div>
-                <span
-                  className={`mt-2 text-xs sm:text-sm text-center leading-tight font-semibold px-1 ${
-                    isCurrent ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {step.label}
-                </span>
-                {historyEntry && (
-                  <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                    {formatTime(historyEntry.createdAt)}
+            return (
+              <div key={step.key} className="flex items-start flex-1 sm:min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-[88px] sm:min-w-0">
+                  <div className={`h-11 w-11 rounded-full flex items-center justify-center transition-all ${iconBg}`}>
+                    <Icon className={`h-5 w-5 ${iconColor} ${isCurrent ? "animate-pulse" : ""}`} />
+                  </div>
+                  <span
+                    className={`mt-2 text-xs sm:text-sm text-center leading-tight font-semibold px-1 ${
+                      isCurrent ? "text-primary" : isDone ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {step.label}
                   </span>
+                  {historyEntry && (
+                    <span className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                      {formatTime(historyEntry.createdAt)}
+                    </span>
+                  )}
+                </div>
+                {!isLast && (
+                  <div className={`h-1 mt-5 flex-1 min-w-[24px] rounded-full ${connectorColor} transition-colors`} />
                 )}
               </div>
-              {!isLast && (
-                <div className={`h-1 mt-5 flex-1 min-w-[12px] rounded-full ${connectorColor} transition-colors`} />
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
