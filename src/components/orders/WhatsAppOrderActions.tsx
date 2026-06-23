@@ -9,6 +9,7 @@ interface WhatsAppOrderActionsProps {
   storeName?: string;
   className?: string;
   size?: "default" | "sm" | "lg";
+  hideStatusButton?: boolean;
 }
 
 type WhatsAppMsgType = "aceito" | "preparo" | "saiu_entrega" | "pronto_retirada" | "cancelado" | "conversa";
