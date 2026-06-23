@@ -49,7 +49,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
-    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [] };
+    if (!res.tenant) return { tenant: null as Tenant | null, categories: [] as Category[], products: [] as Product[], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: false };
     const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
     const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
     return {
@@ -61,6 +61,7 @@ const catalogQueryOptions = (slug: string) => queryOptions({
       pizzaSizes: res.pizzaSizes ?? [],
       pizzaDoughs: res.pizzaDoughs ?? [],
       pizzaCrusts: res.pizzaCrusts ?? [],
+      blocked: res.blocked ?? false,
     };
   },
 });
