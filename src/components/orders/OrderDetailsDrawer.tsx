@@ -108,18 +108,16 @@ export function OrderDetailsDrawer({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl w-[calc(100%-2rem)] p-0 flex flex-col h-[92dvh] md:h-auto md:max-h-[92dvh] gap-0 overscroll-contain">
-        <DialogHeader className="p-5 border-b shrink-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
-            <Button variant="outline" size="sm" onClick={handleCopySummary} className="h-8 text-xs gap-1.5">
-              {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Clipboard className="h-3.5 w-3.5" />}
-              {copied ? "Copiado!" : "Copiar Resumo"}
-            </Button>
-          </div>
+        <DialogHeader className="p-5 border-b shrink-0 pr-12">
+          <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-2 mt-1">
             <Badge variant="secondary" className="font-semibold">{modeLabel[order.mode]}</Badge>
             <OrderStatusBadge status={order.status} />
             <PaymentStatusBadge status={order.paymentStatus} />
+            <Button variant="outline" size="sm" onClick={handleCopySummary} className="h-7 text-xs gap-1.5 ml-auto">
+              {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Clipboard className="h-3.5 w-3.5" />}
+              {copied ? "Copiado!" : "Copiar Resumo"}
+            </Button>
           </DialogDescription>
         </DialogHeader>
 
