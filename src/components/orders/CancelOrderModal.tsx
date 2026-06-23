@@ -47,7 +47,7 @@ export function CancelOrderModal({ order, isOpen, onClose, onConfirm }: CancelOr
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85dvh] overflow-y-auto overscroll-contain">
         <DialogHeader>
           <DialogTitle>Cancelar Pedido #{order.number}</DialogTitle>
           <DialogDescription>

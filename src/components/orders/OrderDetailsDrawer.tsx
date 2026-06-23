@@ -5,7 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 // separator removido — footer compacto usa gap em vez de divisor
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -122,8 +122,8 @@ export function OrderDetailsDrawer({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="flex flex-col gap-4 p-5 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+          <div className="flex flex-col gap-4 p-5 pb-2">
             {/* Linha do tempo — topo, full width, sempre visível */}
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Linha do tempo</h3>
@@ -260,7 +260,7 @@ export function OrderDetailsDrawer({
             </div>
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         {/* FOOTER — hierarquia: secundárias à esquerda, primárias à direita */}
         <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-wrap items-center gap-2">
