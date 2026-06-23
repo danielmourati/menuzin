@@ -156,7 +156,7 @@ export function OrderDetailsDrawer({
               {order.note && (
                 <div className="mt-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Observações gerais</h3>
-                  <p className="text-sm border rounded-lg bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/30 p-3 italic text-foreground/80">
+                  <p className="text-sm border border-border border-l-2 border-l-warning rounded-lg bg-muted/40 p-3 italic text-foreground/80">
                     "{order.note}"
                   </p>
                 </div>
