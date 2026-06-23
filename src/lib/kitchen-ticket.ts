@@ -19,17 +19,16 @@ import { columnsFor, type PaperWidth } from "@/lib/printer-types";
 // - GS ! n        (\x1d!n)       : char size; high nibble = altura, low = largura
 //   0x00 = normal · 0x11 = 2x largura+altura · 0x01 = só 2x largura
 const ESC_INIT = "\x1b@";
-const ESC_BIG = "\x1d!\x11"; // 2x largura + 2x altura
+const ESC_BIG = "\x1d!\x00"; // fonte normal (reduzida 50% vs. 2x)
 const ESC_NORMAL = "\x1d!\x00";
 
 export function buildKitchenTicket(order: Order, cols: number): string {
   const sep = lineOf("=", cols);
   const sepThin = lineOf("-", cols);
-  // Em fonte 2x largura, cada char ocupa o dobro -> reduzimos cols pela metade
-  // para o bloco de itens. Mantemos um mínimo seguro.
-  const bigCols = Math.max(12, Math.floor(cols / 2));
-  const bigSep = lineOf("=", bigCols);
-  const bigSepThin = lineOf("-", bigCols);
+  // Fonte normal: usa a largura total do papel.
+  const bigCols = cols;
+  const bigSep = sep;
+  const bigSepThin = sepThin;
 
   const out: string[] = [];
 
