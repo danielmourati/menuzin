@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, DollarSign, ShoppingBag, TrendingUp } from "lucide-react";
+import { Loader2, DollarSign, ShoppingBag, TrendingUp, FileText, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import { brl, statusLabel, modeLabel } from "@/lib/format";
 import { getBasicReports } from "@/lib/reports.functions";
 import { useAuth } from "@/lib/auth-context";
+import { exportReportToPdf, exportReportToExcel } from "@/lib/reports-export";
 
 export const Route = createFileRoute("/admin/relatorios")({
   component: ReportsPage,
