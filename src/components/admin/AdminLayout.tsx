@@ -16,57 +16,88 @@ import { computeStoreOpen } from "@/lib/store-hours";
 import { toast } from "sonner";
 
 
-const items = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
-  { to: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
-  { to: "/admin/produtos", label: "Produtos", icon: Package },
-  { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
-  { to: "/admin/adicionais", label: "Adicionais", icon: Layers },
-  { to: "/admin/observacoes", label: "Grupos de observação", icon: Layers },
-  { to: "/admin/cupons", label: "Cupons", icon: Ticket },
-  { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
-  { to: "/admin/avaliacoes", label: "Avaliações", icon: Star },
-  { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
-
-  { to: "/admin/aparencia", label: "Aparência", icon: Palette },
+const sections = [
+  {
+    label: "Operação",
+    items: [
+      { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
+      { to: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
+      { to: "/admin/avaliacoes", label: "Avaliações", icon: Star },
+    ],
+  },
+  {
+    label: "Cardápio",
+    items: [
+      { to: "/admin/produtos", label: "Produtos", icon: Package },
+      { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
+      { to: "/admin/adicionais", label: "Adicionais", icon: Layers },
+      { to: "/admin/observacoes", label: "Grupos de observação", icon: Layers },
+    ],
+  },
+  {
+    label: "Vendas",
+    items: [
+      { to: "/admin/cupons", label: "Cupons", icon: Ticket },
+      { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
+    ],
+  },
+  {
+    label: "Personalização",
+    items: [
+      { to: "/admin/aparencia", label: "Aparência", icon: Palette },
+      { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
+    ],
+  },
 ] as const;
 
 function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   return (
     <TooltipProvider delayDuration={200}>
-      <nav className={`flex flex-1 flex-col gap-1 py-4 ${collapsed ? "px-2" : "px-3"}`}>
-        {items.map((i) => {
-          const active = pathname === i.to;
-          const Icon = i.icon;
-          const link = (
-            <Link
-              key={i.to}
-              to={i.to}
-              onClick={onClick}
-              className={`flex items-center gap-3 rounded-xl text-sm font-medium transition ${
-                collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
-              } ${
-                active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"
-              }`}
-            >
-              <Icon className="h-4 w-4 shrink-0" /> {!collapsed && i.label}
-            </Link>
-          );
-          return collapsed ? (
-            <Tooltip key={i.to}>
-              <TooltipTrigger asChild>{link}</TooltipTrigger>
-              <TooltipContent side="right">{i.label}</TooltipContent>
-            </Tooltip>
-          ) : (
-            link
-          );
-        })}
+      <nav className={`flex flex-1 flex-col gap-0.5 py-4 ${collapsed ? "px-2" : "px-3"}`}>
+        {sections.map((section, idx) => (
+          <div key={section.label} className="flex flex-col gap-0.5">
+            {collapsed ? (
+              idx > 0 && <div className="my-1.5 h-px bg-sidebar-border/60" />
+            ) : (
+              <p className={`px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ${idx === 0 ? "mb-1" : "mb-1 mt-3"}`}>
+                {section.label}
+              </p>
+            )}
+            {section.items.map((i) => {
+              const active = pathname === i.to;
+              const Icon = i.icon;
+              const link = (
+                <Link
+                  key={i.to}
+                  to={i.to}
+                  onClick={onClick}
+                  className={`flex items-center gap-3 rounded-xl text-sm font-medium transition ${
+                    collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+                  } ${
+                    active ? "bg-primary text-primary-foreground shadow-sm" : "text-sidebar-foreground hover:bg-sidebar-accent"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" /> {!collapsed && i.label}
+                </Link>
+              );
+              return collapsed ? (
+                <Tooltip key={i.to}>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{i.label}</TooltipContent>
+                </Tooltip>
+              ) : (
+                link
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </TooltipProvider>
   );
 }
+
 
 function SidebarInner({ onNav, collapsed }: { onNav?: () => void; collapsed?: boolean }) {
   const { signOut, profile } = useAuth();
