@@ -195,8 +195,9 @@ export const getChargeStatus = createServerFn({ method: "POST" })
 
 // ============= SUPER-ADMIN =============
 
-async function assertPlatformAdmin(supabase: { rpc: (n: string, p?: Record<string, unknown>) => Promise<{ data: unknown }> }, userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" });
+async function assertPlatformAdmin(supabase: unknown, userId: string) {
+  const { data } = await (supabase as { rpc: (n: string, p: Record<string, unknown>) => Promise<{ data: unknown }> })
+    .rpc("has_role", { _user_id: userId, _role: "platform_admin" });
   if (!data) throw new Error("Acesso restrito ao super-admin");
 }
 
