@@ -43,7 +43,7 @@ function OrdersPage() {
 
   const [q, setQ] = useState("");
   const [modeFilter, setModeFilter] = useState<string>("todos");
-  const [statusFilter, setStatusFilter] = useState<string>("ativos");
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
 
 
   
