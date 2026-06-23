@@ -57,7 +57,7 @@ export function CancelOrderModal({ order, isOpen, onClose, onConfirm }: CancelOr
 
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {isOnlinePaymentApproved && (
-            <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive dark:text-red-400">
+            <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle className="font-bold">Atenção: Pagamento Online Aprovado</AlertTitle>
               <AlertDescription className="text-xs mt-1">

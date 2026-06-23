@@ -75,9 +75,10 @@ export function WhatsAppOrderActions({
     <Button
       onClick={handleSendStatus}
       size={size}
-      className={`bg-success hover:bg-success/90 text-success-foreground font-medium ${className}`}
+      variant="outline"
+      className={`border-success/30 text-success hover:bg-success/10 hover:text-success font-medium ${className}`}
     >
-      <MessageCircle className="mr-2 h-4 w-4" />
+      <MessageCircle className="mr-2 h-4 w-4 text-success" />
       {getButtonLabel()}
     </Button>
   );

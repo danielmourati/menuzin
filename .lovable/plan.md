@@ -1,63 +1,81 @@
-# Mover "Conversar (WhatsApp)" para o card Cliente
+# Refatoração de cores dos modais de pedido
+
+## Problema atual
+
+O footer do `OrderDetailsDrawer` empilha botões em cores fortes concorrentes — laranja (imprimir), âmbar (cozinha), verde (WhatsApp), azul/verde/amarelo (status), vermelho (fechar/cancelar). Cada botão grita pelo mesmo nível de atenção, gerando poluição visual e aparência amadora. O mesmo padrão aparece em `CancelOrderModal` e em ações de status. Falta hierarquia clara: primária / secundária / destrutiva / neutra.
+
+## Princípios (UX/UI)
+
+1. **Uma ação primária por contexto** — só o próximo passo do fluxo recebe preenchimento sólido na cor da marca (`primary`).
+2. **Secundárias = `outline` neutro** — imprimir, reimprimir cozinha, conversar/notificar WhatsApp deixam de ser botões sólidos coloridos; viram `outline` com ícone colorido (cor = significado, não preenchimento).
+3. **Destrutiva = `ghost`/`outline` discreto** — "Fechar" não é destrutivo, vira `ghost`; "Cancelar pedido" mantém `outline` vermelho (não sólido).
+4. **Tokens semânticos** — remover hex/utilitários crus (`bg-orange-600`, `bg-amber-600`, `bg-blue-600`) e usar tokens (`primary`, `success`, `warning`, `destructive`, `muted`). Apenas o **ícone** carrega a cor de categoria.
+5. **Footer agrupado por hierarquia**, não por funcionalidade — linha única quando couber: `[secundárias à esquerda] … [primária à direita]`.
 
 ## Escopo
 
-Único modal do fluxo de pedidos que exibe esse botão hoje é o `OrderDetailsDrawer.tsx` (usado em `/admin/pedidos` para todos os status: pendente, aceito, preparo, saiu_entrega, pronto_retirada, finalizado, cancelado). Os outros modais (`CancelOrderModal`, toasts) não têm WhatsApp, então mantêm-se inalterados — o "padrão de cores" será consolidado a partir deste.
+Apenas frontend/apresentação. Sem mudanças em lógica, schema, RLS, server functions, templates de WhatsApp, fluxo de impressão.
 
-## Mudanças
+Arquivos afetados:
+- `src/components/orders/OrderDetailsDrawer.tsx` (footer + card cliente)
+- `src/components/orders/WhatsAppOrderActions.tsx`
+- `src/components/orders/OrderStatusActions.tsx`
+- `src/components/orders/PrintOrderButton.tsx` (apenas remoção do default sólido laranja, se houver)
+- `src/components/orders/PrintKitchenButton.tsx` (idem)
+- `src/components/orders/CancelOrderModal.tsx` (ajuste do Alert e botões)
 
-### 1. `src/components/orders/OrderDetailsDrawer.tsx` — Card Cliente
+Fora do escopo: `OrderCard`, `OrdersKanbanBoard`, `OrdersStatusGroups`, `NewOrderToast`, badges de status (mantêm cor para leitura rápida no kanban).
 
-No bloco do telefone (linhas 199-202), adicionar o botão "Conversar" ao lado do número:
+## Mudanças por arquivo
 
-```text
-[📞 ícone]  (11) 99999-9999     [💬 Conversar]
-```
+### 1. `OrderDetailsDrawer.tsx` — footer
 
-- Botão `size="sm"`, variant outline, padrão verde já em uso: `border-success/40 bg-success/10 hover:bg-success/15 text-success`
-- Ícone `MessageCircle` à esquerda, label "Conversar"
-- `onClick` abre `whatsappLink(order.whatsapp, chatMessage)` com template `"conversa"` (mesma lógica de `WhatsAppOrderActions.handleOpenChat`)
-- Acessível: `title="Iniciar conversa no WhatsApp"`, `aria-label` equivalente
-
-### 2. `OrderDetailsDrawer.tsx` — Rodapé reorganizado
-
-Remover o `<WhatsAppOrderActions />` do rodapé. Para preservar a notificação de status (Notificar Aceite/Preparo/Envio/Retirada/Cancelamento), criar um botão dedicado inline no rodapé que só aparece quando `order.status ∈ {aceito, preparo, saiu_entrega, pronto_retirada, cancelado}`, reutilizando `whatsappOrderMessage(templateType, …)`.
-
-Layout final do rodapé (3 linhas, padrão de cores unificado):
+Substituir o bloco atual (3 linhas, cores competindo) por **uma faixa única** com hierarquia:
 
 ```text
-Linha 1 — Notificações & Reimpressão (verde + âmbar)
-  [💬 Notificar <status>]   [🖨 Reimprimir Cozinha (se preparo)]
-
-Linha 2 — Impressões (laranja + âmbar)
-  [🖨 Imprimir Pedido Completo]   [🖨 Imprimir Cozinha (se ≠ preparo)]
-
-Linha 3 — Ações de fluxo & fechar (azul/primário + vermelho)
-  [Ações de status do pedido…]   [Fechar]
+[Fechar (ghost)] [Imprimir pedido (outline)] [Reimprimir cozinha* (outline)] [Conversar/Notificar (outline verde)]   ───   [Ação primária do status (primary sólido)]   [Cancelar (outline destructive)]
 ```
 
-Paleta unificada (já existente no projeto, sem cores novas):
-- Verde WhatsApp: `bg-success/10 text-success border-success/40` (outline) ou `bg-success hover:bg-success/90 text-success-foreground` (sólido para "Notificar")
-- Âmbar (cozinha): `bg-amber-600 hover:bg-amber-700 text-white border-amber-600`
-- Laranja (impressão completa): `bg-orange-600 hover:bg-orange-700 text-white border-orange-600`
-- Vermelho (fechar): `bg-destructive hover:bg-destructive/90 text-destructive-foreground`
-- Primário (ações de status): variantes default do `OrderStatusActions`
+- "Fechar" → `variant="ghost"` (sem destaque, sem vermelho).
+- "Imprimir pedido completo" → `variant="outline"`, ícone `Printer` em `text-foreground/70`. Sem `bg-orange-*`.
+- "Reimprimir cozinha" (só em `preparo`) → `variant="outline"`, ícone `ChefHat` em `text-warning`. Sem `bg-amber-*`.
+- "Notificar <status>" (WhatsApp) → `variant="outline"` com borda `border-success/30`, ícone `MessageCircle` em `text-success`. Remove preenchimento verde sólido.
+- Ação de status (Aceitar / Iniciar Preparo / Saiu para Entrega / Pronto para Retirada / Finalizar) → único botão **sólido** no footer, usando `variant="default"` (primary da marca) com ícone. Remove `bg-success`, `bg-warning`, `bg-blue-600`.
+- "Cancelar pedido" → mantém `outline` destructive (já está correto).
 
-### 3. `src/components/orders/WhatsAppOrderActions.tsx`
+Card Cliente (linha 198-221): botão "Conversar" continua, mas alinha à paleta — `variant="outline"` com ícone verde, sem fundo verde (`bg-success/10` sai). Fica visualmente leve ao lado do telefone.
 
-- Simplificar: remover o segundo botão "Conversar (WhatsApp)" e a prop `hideStatusButton`.
-- Componente passa a renderizar apenas o botão "Notificar <status>" no estilo verde sólido, ou nada quando o status é "pendente"/"recebido".
-- Alternativa equivalente: deletar o componente e inlinar a lógica no rodapé do drawer (menos arquivos). Vou pelo refactor in-place para manter o componente reusável.
+Bloco "Observações gerais" (linha 159): remover paleta âmbar customizada (`bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50`). Usar `bg-muted/40 border-border` com ícone/indicador `text-warning` na borda esquerda (`border-l-2 border-l-warning`) — sinal sutil, sem invadir a leitura.
 
-## Fora de escopo
+Obs por item (linha 151): mesma lógica — trocar `border-amber-400 text-amber-700` por `border-l-warning text-foreground/70`.
 
-- Sem mudanças de backend, schema, RLS ou rotas.
-- `CancelOrderModal`, `NewOrderToast`, `OrderCard` não têm botão "Conversar" e não serão tocados.
-- Lógica de templates de mensagem (`whatsappOrderMessage`) permanece igual.
+### 2. `WhatsAppOrderActions.tsx`
 
-## Verificação
+- Trocar classes sólidas `bg-success hover:bg-success/90 text-success-foreground` por `variant="outline"` com `border-success/30 text-success hover:bg-success/10`. Mantém o ícone `MessageCircle` em `text-success`.
 
-- Abrir modal em cada status (pendente, aceito, preparo, saiu_entrega, pronto_retirada, finalizado, cancelado) e confirmar:
-  - "Conversar" aparece no card Cliente em todos os status.
-  - "Notificar <status>" aparece no rodapé apenas nos status notificáveis.
-  - Cores consistentes; nenhum botão sobrepõe o X de fechar.
+### 3. `OrderStatusActions.tsx`
+
+- Remover branches `bg-success`, `bg-warning`, `bg-blue-600` no modo "full". Todos os botões de avanço de status passam a usar `variant="default"` (primary). O ícone carrega a semântica (Flame, Truck, PackageCheck, etc.).
+- Modo `compact` (usado em listas/cards) **mantém** as cores fortes — ali a cor ajuda a escanear status rapidamente. Não mexer.
+- "Recusar/Cancelar" mantém `outline` destructive.
+
+### 4. `PrintOrderButton.tsx` / `PrintKitchenButton.tsx`
+
+- Se tiverem `className` default colorido, trocar para `variant="outline"` por padrão. Permitir override via `className` do consumidor (mas o drawer não vai mais sobrescrever).
+
+### 5. `CancelOrderModal.tsx`
+
+- Alert de pagamento online: substituir `bg-destructive/10 border-destructive/20 text-destructive dark:text-red-400` por uso direto do `Alert variant="destructive"` já estilizado pelo design-system (remove o override redundante e o `dark:text-red-400` cru).
+- Botões do footer já estão corretos (`outline` + `destructive`). Sem mudança.
+
+## Resultado esperado
+
+- Modal "Em preparo" abre com **um único botão preenchido** (a ação de avançar status). Demais ações são reconhecíveis pelo ícone colorido + outline neutro.
+- Mesma linguagem em todos os modais do fluxo: foco visual no próximo passo, ferramentas auxiliares discretas.
+- Sem regressão funcional: todos os handlers, props e fluxos permanecem idênticos.
+
+## Detalhes técnicos
+
+- Não criar tokens novos em `src/styles.css`; `primary`, `success`, `warning`, `destructive`, `muted`, `border` já existem.
+- Substituições devem usar `cn(...)` quando combinarem `variant` + className do consumidor para não vazar `bg-*` antigo.
+- Verificar visualmente o modal `[Em preparo]` (rota `/admin/pedidos`, abrir um pedido em preparo) após a build para confirmar hierarquia.

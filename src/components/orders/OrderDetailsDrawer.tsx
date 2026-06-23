@@ -148,7 +148,7 @@ export function OrderDetailsDrawer({
                         })}
                       </div>
                     )}
-                    {item.note && <p className="mt-1.5 pl-3 border-l-2 border-amber-400 text-xs text-amber-700 dark:text-amber-500 italic">Obs: {item.note}</p>}
+                    {item.note && <p className="mt-1.5 pl-3 border-l-2 border-l-warning text-xs text-foreground/70 italic">Obs: {item.note}</p>}
                   </div>
                 ))}
               </div>
@@ -156,7 +156,7 @@ export function OrderDetailsDrawer({
               {order.note && (
                 <div className="mt-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Observações gerais</h3>
-                  <p className="text-sm border rounded-lg bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/30 p-3 italic text-foreground/80">
+                  <p className="text-sm border border-border border-l-2 border-l-warning rounded-lg bg-muted/40 p-3 italic text-foreground/80">
                     "{order.note}"
                   </p>
                 </div>
@@ -211,11 +211,11 @@ export function OrderDetailsDrawer({
                       });
                       window.open(whatsappLink(order.whatsapp, msg), "_blank", "noreferrer");
                     }}
-                    className="h-7 px-2 gap-1.5 border-success/40 bg-success/10 hover:bg-success/15 text-success font-medium"
+                    className="h-7 px-2 gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success font-medium"
                     title="Iniciar conversa no WhatsApp"
                     aria-label="Conversar no WhatsApp"
                   >
-                    <MessageCircle className="h-3.5 w-3.5" />
+                    <MessageCircle className="h-3.5 w-3.5 text-success" />
                     Conversar
                   </Button>
                 </div>
@@ -260,28 +260,20 @@ export function OrderDetailsDrawer({
           </div>
         </ScrollArea>
 
-        {/* FOOTER */}
-        <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
-          {order.status !== "preparo" && (
-            <div className="flex gap-2 flex-wrap">
-              <WhatsAppOrderActions
-                order={order}
-                storeName={storeName}
-                className="flex-1 min-w-[140px]"
-              />
-            </div>
+        {/* FOOTER — hierarquia: secundárias à esquerda, primárias à direita */}
+        <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-wrap items-center gap-2">
+          <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            Fechar
+          </Button>
+          <PrintOrderButton order={order} paperWidth={paperWidth} />
+          {order.status === "preparo" && (
+            <PrintKitchenButton order={order} label="Reimprimir cozinha" />
           )}
-          <div className="flex gap-2 flex-wrap">
-            <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-orange-600 hover:bg-orange-700 text-white border-orange-600" paperWidth={paperWidth} />
-            <PrintKitchenButton
-              order={order}
-              label={order.status === "preparo" ? "Reimprimir Cozinha" : undefined}
-              className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="flex-1" />
-            <Button onClick={onClose} className="flex-1 min-w-[100px] bg-destructive hover:bg-destructive/90 text-destructive-foreground border-destructive">Fechar</Button>
+          {order.status !== "preparo" && (
+            <WhatsAppOrderActions order={order} storeName={storeName} />
+          )}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} />
           </div>
         </div>
       </DialogContent>
