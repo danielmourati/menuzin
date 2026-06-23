@@ -157,24 +157,12 @@ export function OrderStatusActions({
           );
         }
 
-        const variant = getStatusButtonVariant(status);
-        
-        // Custom color classes for custom variants like success, warning, info
-        let btnClass = "flex-1 sm:flex-initial ";
-        if (variant === "success") {
-          btnClass += "bg-success hover:bg-success/90 text-success-foreground font-semibold";
-        } else if (variant === "warning") {
-          btnClass += "bg-warning hover:bg-warning/90 text-warning-foreground font-semibold";
-        } else if (variant === "info") {
-          btnClass += "bg-blue-600 hover:bg-blue-700 text-white font-semibold";
-        }
-
         return (
           <Button
             key={status}
-            variant={variant === "success" || variant === "warning" || variant === "info" ? "default" : variant}
+            variant="default"
             size={size}
-            className={btnClass}
+            className="flex-1 sm:flex-initial font-semibold"
             onClick={(e) => {
               e.stopPropagation();
               onUpdateStatus(status);
