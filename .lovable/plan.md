@@ -1,47 +1,45 @@
-## Problema
+## Objetivo
 
-No `OrderDetailsDrawer` (modal usado para todos os status do fluxo de pedidos: novo, aceito, preparo, saiu_entrega, pronto_retirada, servido, finalizado), o card **"Linha do tempo"** está praticamente escondido:
+Garantir que o conteúdo do modal de detalhes do pedido (`OrderDetailsDrawer`) tenha scroll vertical confiável e visível quando os cards (Itens, Valores e pagamento, Cliente, Observações) não couberem na altura disponível — especialmente em telas baixas (ex.: 1034×503) e dispositivos móveis.
 
-- Está como último bloco do grid (`md:col-span-2`), depois de **Itens**, **Observações**, **Valores** e **Cliente** — o usuário precisa rolar bastante para encontrá-lo.
-- Em telas baixas (ex.: 1034×503 atual) o `ScrollArea` mostra apenas a parte de cima e o usuário não percebe que existe timeline abaixo.
-- A `HorizontalTimeline` usa `flex-1 min-w-0` por etapa: quando há 5–6 etapas em telas estreitas, os ícones (44×44) e os labels se espremem/clipam, parecendo "vazio" ou cortado.
+## Diagnóstico
 
-## Solução
+O `ScrollArea` já existe envolvendo o conteúdo, mas:
 
-Reorganizar a hierarquia do modal para dar destaque à linha do tempo e garantir que ela sempre apareça e tenha scroll horizontal próprio quando o espaço for insuficiente.
+1. O `ScrollArea` do shadcn (Radix) **esconde a scrollbar até o hover**, dando impressão visual de que o conteúdo está cortado sem possibilidade de rolagem.
+2. O `ScrollAreaPrimitive.Viewport` interno aplica `display: table` por padrão, o que em alguns casos quebra a medição de altura do conteúdo filho e impede o overflow de disparar scroll corretamente.
+3. O footer ocupa ~60px e o header ~90px; numa janela de 503px isso deixa só ~310px de área útil — sem scrollbar visível o usuário não percebe que pode rolar.
 
-### 1. `OrderDetailsDrawer.tsx` — reordenar o grid
+## Mudanças
 
-Mover a "Linha do tempo" para o **topo do conteúdo** (acima da grid Itens/Cliente), em largura total. Assim ela é a primeira coisa visível ao abrir o modal, sem depender de scroll.
+### `src/components/orders/OrderDetailsDrawer.tsx`
+- Substituir o `ScrollArea` (Radix) por uma `div` simples com `flex-1 min-h-0 overflow-y-auto overscroll-contain` no container que envolve o conteúdo do modal. Scroll nativo do navegador → scrollbar sempre visível quando há overflow, comportamento previsível em mobile e desktop, sem o wrapper `display: table` do Radix.
+- Remover o import de `ScrollArea` (não usado em outro lugar do arquivo).
+- Garantir que o wrapper interno tenha `pb-2` para não colar o último card no footer durante o scroll.
+- Manter a estrutura atual: Linha do tempo no topo (full width) + grid `md:grid-cols-[1.4fr_1fr]` com Itens/Valores à esquerda e Cliente à direita. Em telas estreitas o grid já empilha verticalmente e agora rola normalmente.
 
-Nova ordem dentro do `ScrollArea`:
-
-```text
-[ Linha do tempo — full width, destacada ]
-[ Itens do pedido      |  Cliente ]
-[ Observações          |  (continua Cliente) ]
-[ Valores e pagamento  |  ]
-```
-
-### 2. `OrderStatusTimeline.tsx` — scroll horizontal seguro
-
-Na `HorizontalTimeline`:
-
-- Trocar `flex items-start justify-between gap-1 w-full` por um wrapper com `overflow-x-auto` + `pb-1` e um inner `flex` com **`min-w-max`**, para que em telas estreitas (≤ ~640px) os steps mantenham tamanho legível e o usuário role horizontalmente.
-- Definir largura mínima por step (`min-w-[88px] sm:min-w-0 sm:flex-1`), preservando o layout distribuído em telas médias/grandes.
-- Manter o conector (`h-1`) com largura mínima visível também quando em modo scroll (`min-w-[24px]`).
-
-Resultado: em desktop continua distribuído full width; em mobile vira uma faixa rolável horizontalmente, sem clipar ícones nem labels.
-
-### 3. `OrderDetailsDrawer.tsx` — robustez do scroll vertical
-
-- Manter `DialogContent` com `flex flex-col h-[92dvh] md:h-auto md:max-h-[92dvh]` (já está) e `ScrollArea` com `flex-1 min-h-0` (já está).
-- Adicionar `min-h-0` explícito no wrapper interno do grid para evitar que o `ScrollArea` colapse em telas muito baixas (~500px de altura), garantindo que a barra de rolagem apareça e o footer continue visível e sticky.
-- Reduzir o padding do card da timeline em mobile (`p-3 sm:p-4`) para ganhar altura útil.
+### `src/components/orders/CancelOrderModal.tsx` (verificação)
+- Modal pequeno (Alert + Textarea). Adicionar `max-h-[85dvh] overflow-y-auto` no `DialogContent` apenas se ainda não houver, para o caso de motivos longos em telas muito baixas. Sem outras mudanças visuais.
 
 ## Fora de escopo
 
-- `CustomerOrderTracking` (página pública do cliente, não é modal).
-- Conteúdo dos cards Itens/Cliente/Valores.
-- `CancelOrderModal` (não exibe timeline).
-- Lógica de status, dados ou backend.
+- `CustomerOrderTracking` (página pública, não é modal).
+- Lógica de status, backend, RLS, schema, server functions.
+- Mudanças visuais nos cards (cores, espaçamento, tipografia) — apenas comportamento de scroll.
+- `OrderStatusTimeline`, `WhatsAppOrderActions`, `PrintOrderButton`, `PrintKitchenButton`, `OrderStatusActions`.
+
+## Detalhes técnicos
+
+```tsx
+// antes
+<ScrollArea className="flex-1 min-h-0">
+  <div className="flex flex-col gap-4 p-5 min-h-0">...</div>
+</ScrollArea>
+
+// depois
+<div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+  <div className="flex flex-col gap-4 p-5 pb-2">...</div>
+</div>
+```
+
+O `DialogContent` já tem `flex flex-col h-[92dvh] md:h-auto md:max-h-[92dvh]`, então `flex-1 min-h-0` no novo wrapper continua dando a altura correta ao container rolável.
