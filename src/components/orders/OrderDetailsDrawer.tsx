@@ -123,7 +123,16 @@ export function OrderDetailsDrawer({
         </DialogHeader>
 
         <ScrollArea className="flex-1 min-h-0">
-          <div className="grid gap-4 p-5 md:grid-cols-[1.4fr_1fr]">
+          <div className="flex flex-col gap-4 p-5 min-h-0">
+            {/* Linha do tempo — topo, full width, sempre visível */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Linha do tempo</h3>
+              <div className="bg-muted/30 border rounded-lg p-3 sm:p-4">
+                <OrderStatusTimeline order={order} orientation="horizontal" audience="admin" />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
             {/* Itens do pedido — esquerda */}
             <div className="flex flex-col">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Itens do pedido</h3>
@@ -249,13 +258,6 @@ export function OrderDetailsDrawer({
                 </div>
               </div>
             </div>
-
-            {/* Linha do tempo — embaixo, horizontal, full width */}
-            <div className="md:col-span-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Linha do tempo</h3>
-              <div className="bg-muted/30 border rounded-lg p-4">
-                <OrderStatusTimeline order={order} orientation="horizontal" audience="admin" />
-              </div>
             </div>
           </div>
         </ScrollArea>
