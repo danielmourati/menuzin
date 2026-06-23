@@ -233,7 +233,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
             <div className="relative">
               {tenant.logoUrl ? (
-                <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-20 w-auto object-contain sm:h-24" />
+                <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-20 w-auto object-contain sm:h-24" loading="eager" fetchPriority="high" decoding="async" />
               ) : (
                 <div
                   className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-card text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl"

@@ -58,6 +58,7 @@ export function ProductCard({
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
+            decoding="async"
           />
           {!externalBadges && hasAnyBadge && (
             <div className="absolute right-1 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
@@ -120,6 +121,7 @@ export function ProductCard({
           alt={product.name}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
+          decoding="async"
         />
         {!externalBadges && hasAnyBadge && (
           <div className="absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1">{badges}</div>

@@ -236,7 +236,7 @@ export function ProductModal({
 
         <div className="relative shrink-0">
           <div className="relative h-48 w-full overflow-hidden bg-muted sm:h-56">
-            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+            <img src={product.image} alt={product.name} className="h-full w-full object-cover" loading="eager" fetchPriority="high" decoding="async" />
           </div>
           <Button
             size="icon" variant="default"

@@ -51,7 +51,7 @@ export function UpsellSuggestions() {
             className="group flex w-32 shrink-0 flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm transition hover:border-primary/40"
           >
             <div className="aspect-square w-full bg-muted">
-              <img src={p.image} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+              <img src={p.image} alt={p.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
             </div>
             <div className="flex flex-col gap-1 p-2">
               <p className="line-clamp-2 text-xs font-medium leading-tight">{p.name}</p>

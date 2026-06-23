@@ -1,71 +1,43 @@
-## Modal promocional da loja
+## Conversão automática para WebP nos uploads
 
-Modal de cantos arredondados, com imagem full, configurado pelo admin do tenant, exibido na abertura da storefront uma vez por sessão e com CTA "EU QUERO!" que abre o `ProductModal` do produto vinculado.
+Centralizar a conversão no `uploadTenantImage` (única entrada para uploads de imagens do tenant — logos, capas, produtos, promo modal, etc.). Sem mudanças nos call sites.
 
-### 1. Banco de dados (migration)
+### 1. Conversão client-side para WebP (`src/lib/storage.ts`)
 
-Nova tabela `public.promo_modals` (uma campanha ativa por tenant):
+Antes do upload, converter `File` → `Blob` WebP via `<canvas>`:
 
-```
-id uuid PK
-tenant_id uuid FK tenants(id) ON DELETE CASCADE
-enabled boolean default false
-image_url text not null
-cta_label text default 'EU QUERO!'
-product_id uuid FK products(id) ON DELETE SET NULL
-schedule_mode text check in ('window','recurring')
--- janela única:
-starts_at timestamptz null
-ends_at timestamptz null
--- recorrência (TZ America/Sao_Paulo):
-weekdays smallint[] null   -- 0=Dom..6=Sáb
-time_start time null
-time_end time null
-created_at, updated_at timestamptz
-unique (tenant_id)
-```
+- Pular conversão para `image/svg+xml` e `image/gif` (animados) — sobem como estão.
+- Carregar via `createImageBitmap(file)` (mais rápido e sem CORS de `Image`).
+- Redimensionar para no máx. **1600px** no maior lado (mantém proporção). Evita megabytes de fotos de celular sem perda visual perceptível em telas.
+- Render em `OffscreenCanvas` quando disponível, fallback `HTMLCanvasElement`.
+- `canvas.toBlob(blob, "image/webp", 0.82)`.
+- Se a conversão falhar (browser sem suporte / erro de decode), faz fallback e sobe o arquivo original.
+- Aumenta limite para 10MB **antes** da conversão (arquivo final raramente passa de 300–500KB) e valida 5MB **depois**.
+- Caminho final passa a usar extensão `.webp` e `contentType: "image/webp"` quando convertido.
+- `cacheControl` sobe para `31536000` (1 ano) — nomes de arquivo já são UUID, então cache imutável é seguro e acelera reaberturas.
 
-GRANTs: `SELECT` para `anon` + `authenticated` (leitura pública para storefront); `INSERT/UPDATE/DELETE` para `authenticated` via RLS por `tenant_id` (admin/owner do tenant); `ALL` para `service_role`. RLS habilitada. Trigger `set_updated_at`. Validação por trigger (em vez de CHECK) garantindo coerência (`window` exige datas; `recurring` exige weekdays + horas).
+### 2. Otimizar abertura/exibição
 
-### 2. Backend (server functions)
+- Adicionar `loading="lazy"` e `decoding="async"` nos `<img>` de listas pesadas:
+  - `src/components/storefront/ProductCard.tsx`
+  - `src/components/storefront/FeaturedScroller.tsx`
+  - `src/components/storefront/UpsellSuggestions.tsx`
+  - Thumbs no `admin.produtos.tsx` e `admin.categorias.tsx`
+- Imagens "above the fold" (logo do header, banner da loja, imagem principal do `ProductModal`, imagem do `PromoModal`) recebem `loading="eager"` + `fetchPriority="high"` + `decoding="async"`.
 
-`src/lib/promo-modal.functions.ts`:
-- `getActivePromoModal({ tenantId })` — público, usa client publishable; retorna apenas se `enabled`, dentro da janela/recorrência (avaliado server-side em America/Sao_Paulo) e com produto válido/ativo. Devolve `{ id, imageUrl, ctaLabel, product: { id, slug, name } }` ou `null`.
-- `getPromoModalAdmin()` / `upsertPromoModal(input)` / `deletePromoModal()` — protegidos por `requireSupabaseAuth` + checagem `has_tenant_role` (admin/owner).
+### Arquivos alterados
 
-### 3. Admin UI
+- `src/lib/storage.ts` — função `convertToWebp()` + integração no `uploadTenantImage`.
+- `src/components/storefront/ProductCard.tsx`
+- `src/components/storefront/FeaturedScroller.tsx`
+- `src/components/storefront/UpsellSuggestions.tsx`
+- `src/components/storefront/ProductModal.tsx`
+- `src/components/storefront/PromoModal.tsx`
+- `src/routes/admin.produtos.tsx`
+- `src/routes/admin.categorias.tsx`
+- `src/routes/$slug.tsx` (logo/banner header, se aplicável)
 
-Nova aba em `src/routes/admin.configuracoes.index.tsx` (ou novo arquivo `admin.configuracoes.promocao.tsx`): "Modal promocional".
+### Fora do escopo
 
-Campos:
-- Toggle "Ativar modal"
-- Upload de imagem (bucket `tenant-assets`, pasta `promo-modals/<tenant>/`)
-- Select de produto (lista produtos ativos do tenant)
-- Input do texto do CTA (default "EU QUERO!")
-- Radio "Tipo de agendamento": Janela única | Recorrente
-  - Janela: DatePicker início + fim (com hora)
-  - Recorrente: checkboxes dias da semana + dois TimePicker (início/fim)
-- Botão Salvar; preview do modal ao lado
-
-### 4. Storefront
-
-`src/components/storefront/PromoModal.tsx`:
-- Dialog do shadcn com `rounded-2xl`, imagem `object-cover` ocupando o card, botão "EU QUERO!" sobreposto na base com gradiente.
-- Botão fechar (X) no canto, sem sobrepor o CTA.
-
-Em `src/routes/loja.$slug.tsx`:
-- Após carregar tenant e produtos, chamar `getActivePromoModal({ tenantId })` via `useQuery`.
-- Exibir 1x por sessão: `sessionStorage.getItem(`promo_seen_${id}`)`.
-- CTA: fecha modal, marca sessão, abre `ProductModal` existente com o produto carregado (reutiliza o mesmo handler de clique do `ProductCard`).
-- Se produto inativo/removido: não exibe modal.
-
-### 5. Arquivos afetados
-
-- migration nova (tabela + grants + RLS + trigger)
-- `src/lib/promo-modal.functions.ts` (novo)
-- `src/components/admin/PromoModalSettings.tsx` (novo)
-- `src/routes/admin.configuracoes.index.tsx` (adicionar seção/aba) ou nova rota
-- `src/components/storefront/PromoModal.tsx` (novo)
-- `src/routes/loja.$slug.tsx` (montar PromoModal + integração com ProductModal)
-
-Sem mudanças em fluxo de pedidos/pagamentos. Frequência: 1 vez por sessão.
+- Reprocessar imagens antigas já no bucket (não pediu).
+- Servir múltiplas resoluções / `srcset` (exigiria edge transformer; pode ser próximo passo se quiser).
