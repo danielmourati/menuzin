@@ -9,6 +9,14 @@ function normalize(raw: string | null | undefined): ServerTenantPlan {
 }
 
 export async function getTenantPlan(tenantId: string): Promise<ServerTenantPlan> {
+  // Plano efetivo = slug do plano da assinatura (quando existe), senão tenants.plan.
+  const { data: sub } = await supabaseAdmin
+    .from("tenant_subscriptions")
+    .select("plan:plans(slug)")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  const subSlug = (sub as { plan?: { slug?: string } | null } | null)?.plan?.slug ?? null;
+  if (subSlug) return normalize(subSlug);
   const { data } = await supabaseAdmin
     .from("tenants")
     .select("plan")
