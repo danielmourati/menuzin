@@ -262,25 +262,22 @@ export function OrderDetailsDrawer({
 
         {/* FOOTER */}
         <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
-          <div className="flex gap-2 flex-wrap">
-            <WhatsAppOrderActions
-              order={order}
-              storeName={storeName}
-              className="flex-1 min-w-[140px]"
-            />
-            {order.status === "preparo" && (
-              <PrintKitchenButton
+          {order.status !== "preparo" && (
+            <div className="flex gap-2 flex-wrap">
+              <WhatsAppOrderActions
                 order={order}
-                label="Reimprimir Cozinha"
-                className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
+                storeName={storeName}
+                className="flex-1 min-w-[140px]"
               />
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex gap-2 flex-wrap">
             <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-orange-600 hover:bg-orange-700 text-white border-orange-600" paperWidth={paperWidth} />
-            {order.status !== "preparo" && (
-              <PrintKitchenButton order={order} className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600" />
-            )}
+            <PrintKitchenButton
+              order={order}
+              label={order.status === "preparo" ? "Reimprimir Cozinha" : undefined}
+              className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
+            />
           </div>
           <div className="flex gap-2 flex-wrap">
             <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="flex-1" />
