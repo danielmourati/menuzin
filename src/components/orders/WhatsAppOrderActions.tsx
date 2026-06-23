@@ -79,7 +79,7 @@ export function WhatsAppOrderActions({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {templateType !== "conversa" && (
+      {!hideStatusButton && templateType !== "conversa" && (
         <Button
           onClick={handleSendStatus}
           variant="outline"
@@ -94,10 +94,10 @@ export function WhatsAppOrderActions({
         onClick={handleOpenChat}
         variant="outline"
         size={size}
-        className="flex-1"
+        className="flex-1 border-success/40 bg-success/10 hover:bg-success/15 text-success font-medium"
         title="Iniciar conversa livre no WhatsApp"
       >
-        <MessageCircle className="mr-2 h-4 w-4 text-muted-foreground" />
+        <MessageCircle className="mr-2 h-4 w-4 text-success" />
         Conversar (WhatsApp)
       </Button>
     </div>
