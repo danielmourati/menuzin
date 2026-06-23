@@ -40,6 +40,7 @@ export function FeaturedScroller({
                     alt={p.name}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
+                    decoding="async"
                   />
                   <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide shadow-sm ${badgeClassName}`}>
                     {badgeLabel}

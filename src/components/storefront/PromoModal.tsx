@@ -35,6 +35,9 @@ export function PromoModal({ open, imageUrl, ctaLabel, onCta, onClose }: Props) 
           alt="Promoção"
           className="block h-auto w-full object-cover"
           draggable={false}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="bg-card p-4">
           <Button
