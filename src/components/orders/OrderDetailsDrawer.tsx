@@ -148,7 +148,7 @@ export function OrderDetailsDrawer({
                         })}
                       </div>
                     )}
-                    {item.note && <p className="mt-1.5 pl-3 border-l-2 border-amber-400 text-xs text-amber-700 dark:text-amber-500 italic">Obs: {item.note}</p>}
+                    {item.note && <p className="mt-1.5 pl-3 border-l-2 border-l-warning text-xs text-foreground/70 italic">Obs: {item.note}</p>}
                   </div>
                 ))}
               </div>
