@@ -9,19 +9,21 @@ interface WhatsAppOrderActionsProps {
   storeName?: string;
   className?: string;
   size?: "default" | "sm" | "lg";
-  hideStatusButton?: boolean;
 }
 
 type WhatsAppMsgType = "aceito" | "preparo" | "saiu_entrega" | "pronto_retirada" | "cancelado" | "conversa";
 
+/**
+ * Botão "Notificar <status>" via WhatsApp. Renderiza apenas para status notificáveis.
+ * O botão "Conversar" foi movido para o card Cliente do OrderDetailsDrawer.
+ */
 export function WhatsAppOrderActions({
   order,
   storeName = "Burger Prime",
   className = "",
   size = "default",
-  hideStatusButton = false,
 }: WhatsAppOrderActionsProps) {
-  const getTemplateType = (): WhatsAppMsgType => {
+  const getTemplateType = (): WhatsAppMsgType | null => {
     switch (order.status) {
       case "aceito":
         return "aceito";
@@ -34,7 +36,7 @@ export function WhatsAppOrderActions({
       case "cancelado":
         return "cancelado";
       default:
-        return "conversa";
+        return null;
     }
   };
 
@@ -51,11 +53,13 @@ export function WhatsAppOrderActions({
       case "cancelado":
         return "Notificar Cancelamento";
       default:
-        return "Enviar Mensagem";
+        return "";
     }
   };
 
   const templateType = getTemplateType();
+  if (!templateType) return null;
+
   const message = whatsappOrderMessage(templateType, {
     cliente: order.customerName,
     numero: order.number,
@@ -63,43 +67,18 @@ export function WhatsAppOrderActions({
     motivo: order.cancelReason,
   });
 
-  const chatMessage = whatsappOrderMessage("conversa", {
-    cliente: order.customerName,
-    numero: order.number,
-    loja: storeName,
-  });
-
   const handleSendStatus = () => {
     window.open(whatsappLink(order.whatsapp, message), "_blank", "noreferrer");
   };
 
-  const handleOpenChat = () => {
-    window.open(whatsappLink(order.whatsapp, chatMessage), "_blank", "noreferrer");
-  };
-
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      {!hideStatusButton && templateType !== "conversa" && (
-        <Button
-          onClick={handleSendStatus}
-          variant="outline"
-          size={size}
-          className="flex-1 border-success/30 hover:border-success/50 hover:bg-success/5 text-success font-medium"
-        >
-          <MessageCircle className="mr-2 h-4 w-4 text-success" />
-          {getButtonLabel()}
-        </Button>
-      )}
-      <Button
-        onClick={handleOpenChat}
-        variant="outline"
-        size={size}
-        className="flex-1 border-success/40 bg-success/10 hover:bg-success/15 text-success font-medium"
-        title="Iniciar conversa livre no WhatsApp"
-      >
-        <MessageCircle className="mr-2 h-4 w-4 text-success" />
-        Conversar (WhatsApp)
-      </Button>
-    </div>
+    <Button
+      onClick={handleSendStatus}
+      size={size}
+      className={`bg-success hover:bg-success/90 text-success-foreground font-medium ${className}`}
+    >
+      <MessageCircle className="mr-2 h-4 w-4" />
+      {getButtonLabel()}
+    </Button>
   );
 }
