@@ -138,67 +138,91 @@ function CouponsPage() {
 
   return (
     <AdminLayout
-      title="Cupons"
+      title="Cupons e Promoções"
       action={
-        <Button size="sm" onClick={openNew} className="font-bold text-xs">
-          <Plus className="mr-1.5 h-4 w-4" /> Novo cupom
-        </Button>
+        tab === "cupons" ? (
+          <Button size="sm" onClick={openNew} className="font-bold text-xs">
+            <Plus className="mr-1.5 h-4 w-4" /> Novo cupom
+          </Button>
+        ) : undefined
       }
     >
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="grid place-items-center py-16">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : list.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
-                <Ticket className="h-10 w-10" />
-                <p className="text-sm">Nenhum cupom criado.</p>
-                <Button size="sm" onClick={openNew}>
-                  <Plus className="mr-1.5 h-4 w-4" /> Criar primeiro cupom
-                </Button>
-              </div>
-            ) : (
-              <div className="divide-y">
-                {list.map((c) => (
-                  <div key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-base">{c.code}</span>
-                        <Badge variant={c.active ? "default" : "secondary"}>{c.active ? "Ativo" : "Inativo"}</Badge>
-                        <Badge variant="outline">
-                          {c.discount_type === "percent"
-                            ? `${Number(c.discount_value)}% off`
-                            : `${brl(Number(c.discount_value))} off`}
-                        </Badge>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "cupons" | "promocoes")} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="cupons">Cupons</TabsTrigger>
+          <TabsTrigger value="promocoes">Promoções</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cupons" className="space-y-4">
+          <Card>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="grid place-items-center py-16">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : list.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-16 text-center text-muted-foreground">
+                  <Ticket className="h-10 w-10" />
+                  <p className="text-sm">Nenhum cupom criado.</p>
+                  <Button size="sm" onClick={openNew}>
+                    <Plus className="mr-1.5 h-4 w-4" /> Criar primeiro cupom
+                  </Button>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {list.map((c) => (
+                    <div key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-base">{c.code}</span>
+                          <Badge variant={c.active ? "default" : "secondary"}>{c.active ? "Ativo" : "Inativo"}</Badge>
+                          <Badge variant="outline">
+                            {c.discount_type === "percent"
+                              ? `${Number(c.discount_value)}% off`
+                              : `${brl(Number(c.discount_value))} off`}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {Number(c.min_order_total) > 0 && <>Mín. {brl(Number(c.min_order_total))} · </>}
+                          Usos: {c.used_count}{c.max_uses ? ` / ${c.max_uses}` : ""}
+                          {c.valid_until && <> · até {new Date(c.valid_until).toLocaleDateString("pt-BR")}</>}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {Number(c.min_order_total) > 0 && <>Mín. {brl(Number(c.min_order_total))} · </>}
-                        Usos: {c.used_count}{c.max_uses ? ` / ${c.max_uses}` : ""}
-                        {c.valid_until && <> · até {new Date(c.valid_until).toLocaleDateString("pt-BR")}</>}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <Switch checked={c.active} onCheckedChange={() => toggleMut.mutate(c)} />
+                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="outline" size="icon" className="h-8 w-8 text-destructive"
+                          onClick={() => { if (confirm(`Excluir o cupom ${c.code}?`)) delMut.mutate(c.id); }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch checked={c.active} onCheckedChange={() => toggleMut.mutate(c)} />
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}>
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline" size="icon" className="h-8 w-8 text-destructive"
-                        onClick={() => { if (confirm(`Excluir o cupom ${c.code}?`)) delMut.mutate(c.id); }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="promocoes" className="space-y-4">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
+            <h3 className="text-lg font-bold tracking-tight">Modal promocional</h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Exiba um banner promocional na abertura da loja com botão CTA que abre um produto.
+            </p>
+            <div className="pt-2">
+              <Button asChild className="h-11 px-6 rounded-xl font-semibold">
+                <Link to="/admin/configuracoes/promocao">Configurar modal</Link>
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
