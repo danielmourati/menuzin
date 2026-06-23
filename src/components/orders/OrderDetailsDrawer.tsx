@@ -260,28 +260,20 @@ export function OrderDetailsDrawer({
           </div>
         </ScrollArea>
 
-        {/* FOOTER */}
-        <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-col gap-2">
-          {order.status !== "preparo" && (
-            <div className="flex gap-2 flex-wrap">
-              <WhatsAppOrderActions
-                order={order}
-                storeName={storeName}
-                className="flex-1 min-w-[140px]"
-              />
-            </div>
+        {/* FOOTER — hierarquia: secundárias à esquerda, primárias à direita */}
+        <div className="p-3 bg-muted/30 border-t shrink-0 flex flex-wrap items-center gap-2">
+          <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            Fechar
+          </Button>
+          <PrintOrderButton order={order} paperWidth={paperWidth} />
+          {order.status === "preparo" && (
+            <PrintKitchenButton order={order} label="Reimprimir cozinha" />
           )}
-          <div className="flex gap-2 flex-wrap">
-            <PrintOrderButton order={order} className="flex-1 min-w-[140px] bg-orange-600 hover:bg-orange-700 text-white border-orange-600" paperWidth={paperWidth} />
-            <PrintKitchenButton
-              order={order}
-              label={order.status === "preparo" ? "Reimprimir Cozinha" : undefined}
-              className="flex-1 min-w-[140px] bg-amber-600 hover:bg-amber-700 text-white border-amber-600"
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} className="flex-1" />
-            <Button onClick={onClose} className="flex-1 min-w-[100px] bg-destructive hover:bg-destructive/90 text-destructive-foreground border-destructive">Fechar</Button>
+          {order.status !== "preparo" && (
+            <WhatsAppOrderActions order={order} storeName={storeName} />
+          )}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <OrderStatusActions order={order} onUpdateStatus={onUpdateStatus} onCancel={onCancel} />
           </div>
         </div>
       </DialogContent>
