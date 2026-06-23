@@ -29,6 +29,7 @@ import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
+import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
@@ -145,6 +146,11 @@ const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
   path: '/admin/avaliacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
+  id: '/admin/assinatura',
+  path: '/admin/assinatura',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
   id: '/admin/aparencia',
   path: '/admin/aparencia',
@@ -234,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/cupons': typeof AdminCuponsRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
@@ -347,6 +356,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/assinatura'
     | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/configuracoes'
@@ -384,6 +394,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/assinatura'
     | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/cupons'
@@ -420,6 +431,7 @@ export interface FileRouteTypes {
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
+    | '/admin/assinatura'
     | '/admin/avaliacoes'
     | '/admin/categorias'
     | '/admin/configuracoes'
@@ -457,6 +469,7 @@ export interface RootRouteChildren {
   SlugRoute: typeof SlugRouteWithChildren
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
+  AdminAssinaturaRoute: typeof AdminAssinaturaRoute
   AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
@@ -623,6 +636,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAvaliacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/assinatura': {
+      id: '/admin/assinatura'
+      path: '/admin/assinatura'
+      fullPath: '/admin/assinatura'
+      preLoaderRoute: typeof AdminAssinaturaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/aparencia': {
       id: '/admin/aparencia'
       path: '/admin/aparencia'
@@ -781,6 +801,7 @@ const rootRouteChildren: RootRouteChildren = {
   SlugRoute: SlugRouteWithChildren,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
+  AdminAssinaturaRoute: AdminAssinaturaRoute,
   AdminAvaliacoesRoute: AdminAvaliacoesRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
