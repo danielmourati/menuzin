@@ -34,7 +34,7 @@ export const getCatalog = createServerFn({ method: "POST" })
 
     const { isTenantBlocked } = await import("@/lib/tenant-access.server");
     if (await isTenantBlocked(tenantId)) {
-      return { tenant, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: true };
+      return { tenant: tenant as DbTenant, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: true };
     }
 
     const [
