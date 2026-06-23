@@ -42,6 +42,11 @@ export const createOrder = createServerFn({ method: "POST" })
     if (tErr) throw new Error(tErr.message);
     if (!tenant) throw new Error("Loja não encontrada");
 
+    const { isTenantBlocked } = await import("@/lib/tenant-access.server");
+    if (await isTenantBlocked(tenant.id as string)) {
+      throw new Error("Esta loja está temporariamente indisponível.");
+    }
+
     const subtotal = data.items.reduce((s, it) => {
       const addonsSum = it.addons.reduce((a, x) => a + x.price, 0);
       return s + it.qty * (it.unit_price + addonsSum);
