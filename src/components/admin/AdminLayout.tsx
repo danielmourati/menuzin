@@ -342,6 +342,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
         </aside>
         <div className="flex flex-1 flex-col min-w-0">
           <ImpersonationBanner />
+          <SubscriptionAlertBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
