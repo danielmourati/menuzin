@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -48,6 +49,11 @@ import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SlugRoute = SlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -249,6 +255,7 @@ const LojaSlugAcompanharOrderIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
@@ -289,6 +296,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
@@ -329,6 +337,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
@@ -371,6 +380,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$slug'
+    | '/sitemap.xml'
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
@@ -411,6 +421,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$slug'
+    | '/sitemap.xml'
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$slug'
+    | '/sitemap.xml'
     | '/$slug/pedido-confirmado'
     | '/admin/adicionais'
     | '/admin/aparencia'
@@ -491,6 +503,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminAssinaturaRoute: typeof AdminAssinaturaRoute
@@ -522,6 +535,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$slug': {
       id: '/$slug'
       path: '/$slug'
@@ -839,6 +859,7 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminAssinaturaRoute: AdminAssinaturaRoute,
