@@ -91,6 +91,9 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
 
   return (
     <div className="min-h-screen bg-muted/10 pb-12">
+      <h1 className="sr-only">
+        Acompanhamento do pedido #{order.number} — {tenant.name}
+      </h1>
       <div className="gradient-brand text-primary-foreground py-6 px-4 shadow-sm">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -102,7 +105,7 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
               </div>
             )}
             <div>
-              <h2 className="font-bold text-sm tracking-wide uppercase">{tenant.name}</h2>
+              <p className="font-bold text-sm tracking-wide uppercase">{tenant.name}</p>
               <p className="text-xs opacity-80">Acompanhamento do Pedido</p>
             </div>
           </div>

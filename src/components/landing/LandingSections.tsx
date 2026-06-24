@@ -287,7 +287,7 @@ export function ContactSpecialistSection() {
   );
 }
 
-const faqs = [
+export const faqs = [
   {
     q: "O que é o Menuzin?",
     a: "O Menuzin é uma vitrine digital para negócios food. Com ele você cria um cardápio online, recebe pedidos pelo WhatsApp e gerencia tudo em um painel simples.",
@@ -341,9 +341,9 @@ export function LandingFooter() {
       <div className="container mx-auto grid gap-10 px-4 py-12 md:grid-cols-4">
         <div className="md:col-span-1">
           <img
-            src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png"
-            alt="Menuzin"
-            className="h-9 w-auto"
+          src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png"
+          alt="Logo Menuzin"
+          className="h-9 w-auto"
           />
           <p className="mt-4 text-sm text-muted-foreground">
             Vitrine digital para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias.

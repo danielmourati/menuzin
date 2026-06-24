@@ -14,6 +14,13 @@ import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
 
 export const Route = createFileRoute("/admin/dashboard")({
+  head: () => ({
+    meta: [
+      { title: "Painel administrativo — Menuzin" },
+      { name: "description", content: "Painel administrativo da sua loja Menuzin: pedidos, produtos, relatórios e configurações." },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+  }),
   component: DashboardPage,
 });
 
