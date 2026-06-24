@@ -1,0 +1,9 @@
+# Menuzin
+
+> Vitrine digital para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias — cardápio online, pedidos pelo WhatsApp, pagamento online e gestão completa em um só lugar.
+
+O Menuzin é um SaaS brasileiro que permite a qualquer negócio food publicar seu cardápio digital em poucos minutos, receber pedidos direto pelo WhatsApp e gerenciar produtos, categorias, cupons, taxas de entrega e impressoras a partir de um painel único. Funciona 100% no navegador, sem instalação, em celular, tablet ou computador.
+
+## Pages
+
+- [Home](/): Visão geral do produto, planos e perguntas frequentes.

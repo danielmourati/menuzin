@@ -17,6 +17,7 @@ import {
   ContactSpecialistSection,
   FaqSection,
   LandingFooter,
+  faqs,
 } from "@/components/landing/LandingSections";
 
 const demoProducts = [
@@ -61,13 +62,46 @@ const pricingPlans = [
   },
 ] as const;
 
+const HOME_TITLE = "Menuzin — Cardápio digital e pedidos por WhatsApp";
+const HOME_DESC =
+  "Catálogo digital com pedidos pelo WhatsApp, pagamento online e gestão completa para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias.";
+const HOME_OG_TITLE = "Menuzin — Vitrine digital para o seu negócio food";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Menuzin — Cardápio digital e pedidos por WhatsApp" },
-      { name: "description", content: "Catálogo digital com pedidos pelo WhatsApp, pagamento online e gestão completa para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias." },
-      { property: "og:title", content: "Menuzin" },
-      { property: "og:description", content: "A vitrine digital do seu negócio food." },
+      { title: HOME_TITLE },
+      { name: "description", content: HOME_DESC },
+      { property: "og:title", content: HOME_OG_TITLE },
+      { property: "og:description", content: HOME_DESC },
+      { property: "og:url", content: "https://menuzin.app/" },
+      { name: "twitter:title", content: HOME_OG_TITLE },
+      { name: "twitter:description", content: HOME_DESC },
+    ],
+    links: [{ rel: "canonical", href: "https://menuzin.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Menuzin",
+          url: "https://menuzin.app",
+          description: HOME_DESC,
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faqs.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        }),
+      },
     ],
   }),
   component: Landing,
@@ -86,7 +120,7 @@ function Landing() {
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
         <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Menuzin" className="h-9 w-auto" />
+            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Logo Menuzin" className="h-9 w-auto" />
           </Link>
           <div className="flex items-center gap-3 md:gap-4">
             <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">

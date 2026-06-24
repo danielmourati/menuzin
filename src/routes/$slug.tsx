@@ -71,6 +71,66 @@ export const Route = createFileRoute("/$slug")({
     if (!isCatalogSlug(params.slug)) return null;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
   },
+  head: ({ params, loaderData }) => {
+    const tenant = loaderData?.tenant ?? null;
+    const url = `https://menuzin.app/${params.slug}`;
+    if (!tenant) {
+      return {
+        meta: [
+          { title: `Loja — Menuzin` },
+          { name: "robots", content: "noindex" },
+          { property: "og:url", content: url },
+        ],
+        links: [{ rel: "canonical", href: url }],
+      };
+    }
+    const titleRaw = `${tenant.name} — Cardápio digital`;
+    const title = titleRaw.length > 60 ? `${tenant.name}` : titleRaw;
+    const descSource = (tenant.description ?? "").trim();
+    const fallbackDesc = `Veja o cardápio digital de ${tenant.name} e peça pelo WhatsApp com entrega ou retirada.`;
+    let description = descSource && descSource.length >= 50 ? descSource : fallbackDesc;
+    if (description.length > 160) description = description.slice(0, 157).trimEnd() + "…";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "website" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        ...(tenant.logoUrl ? [
+          { property: "og:image", content: tenant.logoUrl },
+          { name: "twitter:image", content: tenant.logoUrl },
+        ] : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FoodEstablishment",
+            name: tenant.name,
+            description,
+            url,
+            ...(tenant.logoUrl ? { image: tenant.logoUrl } : {}),
+            ...(tenant.address ? { address: tenant.address } : {}),
+          }),
+        },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: `Cardápio — ${tenant.name}`,
+            url,
+          }),
+        },
+      ],
+    };
+  },
   component: StoreRoute,
   errorComponent: ({ error }) => (
     <div className="grid min-h-screen place-items-center px-4 text-center">
@@ -285,11 +345,14 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         </div>
 
         <div className="relative mt-4">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
+            id="storefront-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar produtos..."
+            aria-label="Buscar produtos no cardápio"
             className="h-12 rounded-2xl border-input bg-white pl-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
           />
         </div>

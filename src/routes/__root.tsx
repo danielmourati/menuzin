@@ -63,22 +63,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Menuzin — Catálogo digital para o seu negócio food" },
-      { name: "description", content: "Crie a vitrine digital do seu restaurante, receba pedidos pelo WhatsApp e gerencie tudo em um só lugar." },
-      { property: "og:title", content: "Menuzin — Catálogo digital para o seu negócio food" },
-      { name: "twitter:title", content: "Menuzin — Catálogo digital para o seu negócio food" },
-      { property: "og:description", content: "Crie a vitrine digital do seu restaurante, receba pedidos pelo WhatsApp e gerencie tudo em um só lugar." },
-      { name: "twitter:description", content: "Crie a vitrine digital do seu restaurante, receba pedidos pelo WhatsApp e gerencie tudo em um só lugar." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f6a98ec5-9127-4d74-a1bf-b4b42e74cd00/id-preview-f50bc79c--ebe8f6a8-8539-4c14-8c82-92d380093cab.lovable.app-1780261392658.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f6a98ec5-9127-4d74-a1bf-b4b42e74cd00/id-preview-f50bc79c--ebe8f6a8-8539-4c14-8c82-92d380093cab.lovable.app-1780261392658.png" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:site_name", content: "Menuzin" },
       { property: "og:type", content: "website" },
+      { property: "og:locale", content: "pt_BR" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Menuzin",
+          url: "https://menuzin.app",
+          description:
+            "Vitrine digital para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias.",
+        }),
+      },
     ],
   }),
   shellComponent: RootShell,
