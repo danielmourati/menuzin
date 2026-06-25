@@ -7,16 +7,29 @@ let _alertAudio: HTMLAudioElement | null = null;
 let _audioUnlocked = false;
 let _unlockListenersAttached = false;
 let _audioContext: AudioContext | null = null;
+let _overrideUrl: string | null = null;
+
+export function setAlertSoundOverride(url: string | null) {
+  if (_overrideUrl === url) return;
+  _overrideUrl = url;
+  // força recriação do elemento Audio com a nova fonte
+  _alertAudio = null;
+}
+
+export function hasAlertSoundOverride(): boolean {
+  return !!_overrideUrl;
+}
 
 export function getAlertAudio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
   if (!_alertAudio) {
-    _alertAudio = new Audio(ALERT_SOUND_URL);
+    _alertAudio = new Audio(_overrideUrl ?? ALERT_SOUND_URL);
     _alertAudio.preload = "auto";
     _alertAudio.volume = 0.9;
   }
   return _alertAudio;
 }
+
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -109,13 +122,16 @@ function playGeneratedChime(context: AudioContext) {
 
 export function playNotificationSound() {
   const play = async () => {
-    const context = getAudioContext();
-    if (context) {
-      if (context.state === "suspended") await context.resume();
-      if (context.state === "running") {
-        playGeneratedChime(context);
-        _audioUnlocked = true;
-        return;
+    // Quando o admin enviou um som customizado, sempre tocamos esse arquivo.
+    if (!_overrideUrl) {
+      const context = getAudioContext();
+      if (context) {
+        if (context.state === "suspended") await context.resume();
+        if (context.state === "running") {
+          playGeneratedChime(context);
+          _audioUnlocked = true;
+          return;
+        }
       }
     }
 
@@ -131,6 +147,8 @@ export function playNotificationSound() {
     unlockAudioOnFirstGesture();
   });
 }
+
+
 
 // Apenas para testes: limpa estado interno do módulo.
 export function __resetAlertSoundForTests() {
