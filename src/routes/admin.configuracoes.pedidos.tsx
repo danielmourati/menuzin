@@ -119,6 +119,61 @@ function OrderSettingsPage() {
               </div>
             </div>
 
+            {/* Upload de som customizado */}
+            <div className="rounded-xl border p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    <Music className="h-4 w-4 text-primary" /> Som Personalizado
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Envie um arquivo de áudio (mp3, wav, ogg — máx. 500KB) para tocar quando chegar um novo pedido.
+                  </p>
+                </div>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+
+              {prefs.customAlertDataUrl ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-muted/30 border rounded-lg p-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Music className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-xs font-medium truncate">
+                      {prefs.customAlertName ?? "Som customizado"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={handleTestSound} className="h-8 text-xs">
+                      <Volume2 className="mr-1 h-3.5 w-3.5" /> Testar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleUploadClick} className="h-8 text-xs">
+                      <Upload className="mr-1 h-3.5 w-3.5" /> Trocar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={handleRemoveCustom} className="h-8 text-xs text-destructive hover:text-destructive">
+                      <X className="mr-1 h-3.5 w-3.5" /> Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleUploadClick}
+                  className="h-9 text-xs font-semibold"
+                >
+                  <Upload className="mr-1.5 h-3.5 w-3.5" /> Enviar arquivo de áudio
+                </Button>
+              )}
+            </div>
+
+
+
             {/* Toast Ativado */}
             <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/10 transition">
               <div className="space-y-0.5">
