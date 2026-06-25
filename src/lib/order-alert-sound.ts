@@ -122,13 +122,16 @@ function playGeneratedChime(context: AudioContext) {
 
 export function playNotificationSound() {
   const play = async () => {
-    const context = getAudioContext();
-    if (context) {
-      if (context.state === "suspended") await context.resume();
-      if (context.state === "running") {
-        playGeneratedChime(context);
-        _audioUnlocked = true;
-        return;
+    // Quando o admin enviou um som customizado, sempre tocamos esse arquivo.
+    if (!_overrideUrl) {
+      const context = getAudioContext();
+      if (context) {
+        if (context.state === "suspended") await context.resume();
+        if (context.state === "running") {
+          playGeneratedChime(context);
+          _audioUnlocked = true;
+          return;
+        }
       }
     }
 
@@ -138,6 +141,13 @@ export function playNotificationSound() {
     await audio.play();
     _audioUnlocked = true;
   };
+
+  return play().catch((e) => {
+    console.warn("Falha ao tocar alerta sonoro de novo pedido:", e);
+    unlockAudioOnFirstGesture();
+  });
+}
+
 
   return play().catch((e) => {
     console.warn("Falha ao tocar alerta sonoro de novo pedido:", e);
