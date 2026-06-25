@@ -149,11 +149,6 @@ export function playNotificationSound() {
 }
 
 
-  return play().catch((e) => {
-    console.warn("Falha ao tocar alerta sonoro de novo pedido:", e);
-    unlockAudioOnFirstGesture();
-  });
-}
 
 // Apenas para testes: limpa estado interno do módulo.
 export function __resetAlertSoundForTests() {
