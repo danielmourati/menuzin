@@ -445,3 +445,16 @@ export const adminListEvents = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false }).limit(50);
     return { events: events ?? [], payments: pays ?? [] };
   });
+
+export const adminSyncPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ payment_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    await assertPlatformAdmin(context.supabase, context.userId);
+    const { syncPaymentFromMP } = await import("@/lib/subscription-sync.server");
+    return await syncPaymentFromMP({
+      paymentId: data.payment_id,
+      actorUserId: context.userId,
+      source: "manual",
+    });
+  });
