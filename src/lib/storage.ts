@@ -133,3 +133,31 @@ export async function uploadTenantImage(file: File, folder = "uploads"): Promise
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
+
+/**
+ * Faz upload de um arquivo de áudio (alerta de novo pedido) para o bucket
+ * `tenant-assets` e retorna a URL pública persistente.
+ */
+export async function uploadTenantAudio(file: File, folder = "notifications"): Promise<string> {
+  if (!file.type.startsWith("audio/")) {
+    throw new Error("Arquivo precisa ser um áudio (mp3, wav, ogg).");
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    throw new Error("Áudio maior que 2MB. Reduza o arquivo.");
+  }
+
+  const tenantId = await getCurrentTenantId();
+  const safeFolder = folder.replace(/[^a-zA-Z0-9/_-]/g, "_");
+  const ext = (file.name.split(".").pop()?.toLowerCase() || "mp3").replace(/[^a-z0-9]/g, "");
+  const path = `${tenantId}/${safeFolder}/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: "31536000",
+    upsert: false,
+    contentType: file.type,
+  });
+  if (error) throw new Error(error.message);
+
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
