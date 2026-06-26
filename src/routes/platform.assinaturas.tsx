@@ -26,6 +26,7 @@ import {
   adminToggleBlock,
   adminRegisterManualPayment,
   adminListEvents,
+  adminSyncPayment,
   type SubscriptionPeriod,
   type SubscriptionStatusValue,
 } from "@/lib/subscriptions.functions";
