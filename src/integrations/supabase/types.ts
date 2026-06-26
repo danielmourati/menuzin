@@ -1543,6 +1543,8 @@ export type Database = {
           logo_url: string | null
           min_order: number
           name: string
+          notification_sound_name: string | null
+          notification_sound_url: string | null
           open: boolean
           open_mode: string
           plan: string
@@ -1576,6 +1578,8 @@ export type Database = {
           logo_url?: string | null
           min_order?: number
           name: string
+          notification_sound_name?: string | null
+          notification_sound_url?: string | null
           open?: boolean
           open_mode?: string
           plan?: string
@@ -1609,6 +1613,8 @@ export type Database = {
           logo_url?: string | null
           min_order?: number
           name?: string
+          notification_sound_name?: string | null
+          notification_sound_url?: string | null
           open?: boolean
           open_mode?: string
           plan?: string
