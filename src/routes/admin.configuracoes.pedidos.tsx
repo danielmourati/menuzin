@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,20 +7,24 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
 import { useOrdersRealtime, playNotificationSound } from "@/hooks/useOrdersRealtime";
-import { ArrowLeft, Volume2, Bell, AlertCircle, Play, Upload, Music, X } from "lucide-react";
+import { uploadTenantAudio } from "@/lib/storage";
+import { updateMyTenant } from "@/lib/tenants.functions";
+import { ArrowLeft, Volume2, Bell, AlertCircle, Play, Upload, Music, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/configuracoes/pedidos")({
   component: OrderSettingsPage,
 });
 
-// ~500KB em base64 (limite seguro para localStorage)
-const MAX_AUDIO_BYTES = 500 * 1024;
+// Limite generoso — o arquivo agora é hospedado no Storage, não no localStorage
+const MAX_AUDIO_BYTES = 2 * 1024 * 1024;
 
 function OrderSettingsPage() {
   const { prefs, updatePrefs } = useNotificationPrefs();
   const { isSimulating, toggleSimulation, simulateNewOrder } = useOrdersRealtime();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const handleTestSound = () => {
     playNotificationSound();
@@ -46,25 +50,35 @@ function OrderSettingsPage() {
       toast.error(`Arquivo muito grande. Máximo ${Math.round(MAX_AUDIO_BYTES / 1024)}KB.`);
       return;
     }
+    setUploading(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      updatePrefs({ customAlertDataUrl: dataUrl, customAlertName: file.name });
-      toast.success(`Som "${file.name}" salvo como alerta de novos pedidos.`);
+      const url = await uploadTenantAudio(file);
+      await updateMyTenant({ data: { notification_sound_url: url, notification_sound_name: file.name } });
+      updatePrefs({ customAlertDataUrl: url, customAlertName: file.name });
+      toast.success(`Som "${file.name}" salvo. Disponível em qualquer navegador.`);
     } catch (err) {
       console.error(err);
-      toast.error("Falha ao ler o arquivo de áudio.");
+      toast.error(err instanceof Error ? err.message : "Falha ao enviar o arquivo de áudio.");
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleRemoveCustom = () => {
-    updatePrefs({ customAlertDataUrl: null, customAlertName: null });
-    toast.success("Som customizado removido. Voltando ao padrão.");
+  const handleRemoveCustom = async () => {
+    setRemoving(true);
+    try {
+      await updateMyTenant({ data: { notification_sound_url: null, notification_sound_name: null } });
+      updatePrefs({ customAlertDataUrl: null, customAlertName: null });
+      toast.success("Som customizado removido. Voltando ao padrão.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Falha ao remover o som.");
+    } finally {
+      setRemoving(false);
+    }
   };
+
+
 
 
   return (
@@ -127,7 +141,7 @@ function OrderSettingsPage() {
                     <Music className="h-4 w-4 text-primary" /> Som Personalizado
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Envie um arquivo de áudio (mp3, wav, ogg — máx. 500KB) para tocar quando chegar um novo pedido.
+                    Envie um arquivo de áudio (mp3, wav, ogg — máx. 2MB). Fica salvo na sua loja e funciona em qualquer navegador.
                   </p>
                 </div>
               </div>
@@ -149,14 +163,16 @@ function OrderSettingsPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={handleTestSound} className="h-8 text-xs">
+                    <Button size="sm" variant="outline" onClick={handleTestSound} className="h-8 text-xs" disabled={uploading || removing}>
                       <Volume2 className="mr-1 h-3.5 w-3.5" /> Testar
                     </Button>
-                    <Button size="sm" variant="outline" onClick={handleUploadClick} className="h-8 text-xs">
-                      <Upload className="mr-1 h-3.5 w-3.5" /> Trocar
+                    <Button size="sm" variant="outline" onClick={handleUploadClick} className="h-8 text-xs" disabled={uploading || removing}>
+                      {uploading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1 h-3.5 w-3.5" />}
+                      Trocar
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={handleRemoveCustom} className="h-8 text-xs text-destructive hover:text-destructive">
-                      <X className="mr-1 h-3.5 w-3.5" /> Remover
+                    <Button size="sm" variant="ghost" onClick={handleRemoveCustom} className="h-8 text-xs text-destructive hover:text-destructive" disabled={uploading || removing}>
+                      {removing ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <X className="mr-1 h-3.5 w-3.5" />}
+                      Remover
                     </Button>
                   </div>
                 </div>
@@ -166,11 +182,14 @@ function OrderSettingsPage() {
                   variant="outline"
                   onClick={handleUploadClick}
                   className="h-9 text-xs font-semibold"
+                  disabled={uploading}
                 >
-                  <Upload className="mr-1.5 h-3.5 w-3.5" /> Enviar arquivo de áudio
+                  {uploading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
+                  {uploading ? "Enviando..." : "Enviar arquivo de áudio"}
                 </Button>
               )}
             </div>
+
 
 
 

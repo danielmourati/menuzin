@@ -120,6 +120,8 @@ const UpdateTenantInput = z.object({
   accepts_takeout: z.boolean().optional(),
   accepts_dinein: z.boolean().optional(),
   delivery_mode: z.enum(["none", "single", "neighborhood"]).optional(),
+  notification_sound_url: z.string().max(2000).nullable().optional(),
+  notification_sound_name: z.string().max(200).nullable().optional(),
 });
 
 
