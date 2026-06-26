@@ -141,7 +141,7 @@ function OrderSettingsPage() {
                     <Music className="h-4 w-4 text-primary" /> Som Personalizado
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Envie um arquivo de áudio (mp3, wav, ogg — máx. 500KB) para tocar quando chegar um novo pedido.
+                    Envie um arquivo de áudio (mp3, wav, ogg — máx. 2MB). Fica salvo na sua loja e funciona em qualquer navegador.
                   </p>
                 </div>
               </div>
@@ -163,14 +163,16 @@ function OrderSettingsPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={handleTestSound} className="h-8 text-xs">
+                    <Button size="sm" variant="outline" onClick={handleTestSound} className="h-8 text-xs" disabled={uploading || removing}>
                       <Volume2 className="mr-1 h-3.5 w-3.5" /> Testar
                     </Button>
-                    <Button size="sm" variant="outline" onClick={handleUploadClick} className="h-8 text-xs">
-                      <Upload className="mr-1 h-3.5 w-3.5" /> Trocar
+                    <Button size="sm" variant="outline" onClick={handleUploadClick} className="h-8 text-xs" disabled={uploading || removing}>
+                      {uploading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1 h-3.5 w-3.5" />}
+                      Trocar
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={handleRemoveCustom} className="h-8 text-xs text-destructive hover:text-destructive">
-                      <X className="mr-1 h-3.5 w-3.5" /> Remover
+                    <Button size="sm" variant="ghost" onClick={handleRemoveCustom} className="h-8 text-xs text-destructive hover:text-destructive" disabled={uploading || removing}>
+                      {removing ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <X className="mr-1 h-3.5 w-3.5" />}
+                      Remover
                     </Button>
                   </div>
                 </div>
@@ -180,11 +182,14 @@ function OrderSettingsPage() {
                   variant="outline"
                   onClick={handleUploadClick}
                   className="h-9 text-xs font-semibold"
+                  disabled={uploading}
                 >
-                  <Upload className="mr-1.5 h-3.5 w-3.5" /> Enviar arquivo de áudio
+                  {uploading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-1.5 h-3.5 w-3.5" />}
+                  {uploading ? "Enviando..." : "Enviar arquivo de áudio"}
                 </Button>
               )}
             </div>
+
 
 
 
