@@ -185,12 +185,27 @@ export const getChargeStatus = createServerFn({ method: "POST" })
     if (!resolved?.tenantId) throw new Error("Loja não identificada");
     const { data: pay } = await supabaseAdmin
       .from("subscription_payments")
-      .select("id, payment_status, paid_at")
+      .select("id, payment_status, paid_at, mercado_pago_payment_id, tenant_id")
       .eq("id", data.payment_id)
       .eq("tenant_id", resolved.tenantId)
       .maybeSingle();
     if (!pay) throw new Error("Cobrança não encontrada");
-    return pay;
+
+    // Self-heal: se ainda pending mas o MP já aprovou (webhook falhou/atrasou),
+    // consulta a API do MP e reconcilia antes de devolver o status pro cliente.
+    const row = pay as { id: string; payment_status: string; paid_at: string | null; mercado_pago_payment_id: string | null };
+    if (row.payment_status === "pending" && row.mercado_pago_payment_id) {
+      try {
+        const { syncPaymentFromMP } = await import("@/lib/subscription-sync.server");
+        const r = await syncPaymentFromMP({ paymentId: row.id, source: "auto" });
+        if (r.approved) {
+          return { id: row.id, payment_status: "approved", paid_at: r.message ? new Date().toISOString() : row.paid_at };
+        }
+      } catch (err) {
+        console.error("[getChargeStatus] self-heal falhou", err);
+      }
+    }
+    return { id: row.id, payment_status: row.payment_status, paid_at: row.paid_at };
   });
 
 // ============= SUPER-ADMIN =============
