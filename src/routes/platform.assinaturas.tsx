@@ -26,6 +26,7 @@ import {
   adminToggleBlock,
   adminRegisterManualPayment,
   adminListEvents,
+  adminSyncPayment,
   type SubscriptionPeriod,
   type SubscriptionStatusValue,
 } from "@/lib/subscriptions.functions";
@@ -249,9 +250,19 @@ function EditDialog({
 }
 
 function HistoryDialog({ tenantId, tenantName, onClose }: { tenantId: string; tenantName: string; onClose: () => void }) {
+  const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ["admin-sub-events", tenantId],
     queryFn: () => adminListEvents({ data: { tenant_id: tenantId } }),
+  });
+  const syncMut = useMutation({
+    mutationFn: (payment_id: string) => adminSyncPayment({ data: { payment_id } }),
+    onSuccess: (r) => {
+      toast.success(r.message ?? "Sincronizado");
+      qc.invalidateQueries({ queryKey: ["admin-sub-events", tenantId] });
+      qc.invalidateQueries({ queryKey: ["admin-subs"] });
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Falha ao sincronizar"),
   });
   return (
     <Dialog open onOpenChange={onClose}>
@@ -261,16 +272,31 @@ function HistoryDialog({ tenantId, tenantName, onClose }: { tenantId: string; te
           <section>
             <h3 className="text-sm font-semibold mb-2">Pagamentos</h3>
             <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground"><tr><th className="py-1">Data</th><th>Valor</th><th>Status</th><th>MP ID</th></tr></thead>
+              <thead className="text-left text-muted-foreground"><tr><th className="py-1">Data</th><th>Valor</th><th>Status</th><th>MP ID</th><th></th></tr></thead>
               <tbody>
                 {(data?.payments ?? []).map((p) => {
                   const row = p as { id: string; created_at: string; amount: number; payment_status: string; mercado_pago_payment_id: string | null };
+                  const canSync = row.payment_status === "pending" && !!row.mercado_pago_payment_id;
                   return (
                     <tr key={row.id} className="border-t">
                       <td className="py-1">{new Date(row.created_at).toLocaleString("pt-BR")}</td>
                       <td>{brl(Number(row.amount))}</td>
                       <td><Badge variant="outline">{row.payment_status}</Badge></td>
                       <td className="text-xs text-muted-foreground">{row.mercado_pago_payment_id ?? "—"}</td>
+                      <td className="text-right">
+                        {canSync && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={syncMut.isPending && syncMut.variables === row.id}
+                            onClick={() => syncMut.mutate(row.id)}
+                          >
+                            {syncMut.isPending && syncMut.variables === row.id
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : "Sincronizar"}
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
