@@ -98,8 +98,12 @@ function NewTenantPage() {
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
           clone_from_slug: null,
+          seed_business_categories: seedBusinessCategories,
+          seed_template_defaults: seedTemplateDefaults,
+          seed_demo_data: seedDemoData,
         },
       }),
+
     onSuccess: () => {
       toast.success(`Loja "${name.trim()}" cadastrada! O dono fará a troca de senha no primeiro acesso.`);
       navigate({ to: "/platform/lojas" });
