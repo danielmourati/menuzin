@@ -1,111 +1,81 @@
+## Objetivo
+1. Preço fracionado por sabor em pizzas multi-sabor: o admin digita o preço cheio e o sistema gera valores editáveis para 1/2, 1/3, 1/4. No pedido, o total é a soma das frações escolhidas.
+2. Garantir que novos tenants criados pelo super-admin sejam zerados por padrão — sem herdar dados de tenants modelo (burgerprime/vilaboemia).
 
-# Controle de Assinaturas Menuzin
+---
 
-Implementação completa em uma entrega: schema de planos/assinaturas, painel super-admin, área "Minha Assinatura" do tenant, cobrança PIX via Mercado Pago da plataforma, webhook de confirmação, bloqueio automático e fallback de cortesia para tenants existentes.
+## Parte 1 — Preço fracionado de pizzas
 
-## 1. Banco de dados (migration única)
+### Schema (migration)
+- `category_pizza_sizes`: adicionar `price_rule TEXT NOT NULL DEFAULT 'sum_fractions'` com check em (`sum_fractions`, `max_value`, `fixed`). `max_flavors` já existe (1..4) e atua como “permite fracionamento” (1 = não permite).
+- `product_sizes`: adicionar `fraction_prices JSONB` no formato `{"1": 60.00, "2": 30.00, "3": 20.00, "4": 15.00}`. Mantém `price` (compat = preço cheio = `fraction_prices."1"`).
+- Backfill: para linhas existentes, gerar `fraction_prices = {"1": price}` (sem partes fracionadas até o admin editar).
 
-Novas tabelas (`public`):
+### Server fns (`src/lib/catalog-admin.functions.ts`)
+- `saveProductSize`: passar a aceitar `fraction_prices` (Zod `record(z.string(), z.number())`). Validar contra `max_flavors` da categoria pizza correspondente.
+- `saveCategoryPizzaSize`: aceitar `price_rule`.
+- `listCategoryPizzaConfig`: já retorna `category_pizza_sizes`; expor o novo `price_rule`.
 
-- **plans** — `id, name, slug, description, monthly_price, annual_price, billing_periods text[], features jsonb, active, created_at, updated_at`. Seed inicial: `start` (R$ 0, cortesia) e `pro` (R$ 79/mês).
-- **tenant_subscriptions** — `id, tenant_id (unique), plan_id, status (ativa|pendente|vencida|tolerancia|bloqueada|cancelada|teste|cortesia), billing_period, amount, start_date, due_date (nullable), grace_days, auto_block_enabled, blocked_at, unblocked_at, notes, created_at, updated_at`.
-- **subscription_payments** — `id, tenant_id, subscription_id, plan_id, amount, billing_period, reference_month date, due_date, paid_at, payment_status (pending|approved|rejected|cancelled|refunded|expired|manual), mercado_pago_payment_id (unique nullable), mercado_pago_preference_id, mercado_pago_external_reference, raw_response jsonb, created_at, updated_at`.
-- **subscription_events** — `id, tenant_id, subscription_id, event_type, description, metadata jsonb, created_by, created_at`.
+### Tipos
+- `DbProductSize`/`ProductSize`: adicionar `fractionPrices?: Record<string, number>`.
+- `db-adapters.ts`: mapear o campo.
 
-Cada tabela: GRANT + RLS. Policies:
-- `plans`: SELECT para `authenticated` (lista pública dos planos); INSERT/UPDATE/DELETE só `is_platform_admin()`.
-- `tenant_subscriptions` / `subscription_payments` / `subscription_events`: SELECT para usuários com `has_tenant_role(uid, tenant_id, '{owner,manager,platform_admin}')`; ALL para `is_platform_admin()`; INSERT/UPDATE bloqueado para o tenant (mudanças via server functions com `supabaseAdmin`).
-- Triggers `set_updated_at`.
+### UI Admin (`PriceCell` em `src/routes/admin.produtos.tsx`)
+Substituir o input único por um bloco quando a categoria pizza permite fracionamento (`size.max_flavors > 1`):
+- Input principal (preço cheio).
+- Inputs editáveis automaticamente preenchidos: 1/2, 1/3, 1/4 (apenas até `max_flavors`).
+- Ao digitar o valor cheio, recalcula apenas as frações que o admin ainda não tocou (dirty flag por campo).
+- Botão "Recalcular valores" restaura cálculo automático para todos os campos.
+- Máscara `CurrencyInput` já existente.
+- Persiste `fraction_prices` (debounce/onBlur) via `saveProductSize`.
 
-Fallback de cortesia: na própria migration, INSERT em `tenant_subscriptions` para todo tenant existente com plano `start`, status `cortesia`, `due_date NULL`, `auto_block_enabled=false`.
+### UI Admin (config da categoria — `PizzaCategoryConfigDialog.tsx`)
+Adicionar select "Regra de preço" por tamanho (default Somar frações). Hoje só temos `max_flavors`; manter como controle de fracionamento.
 
-## 2. Server functions (`src/lib/subscriptions.functions.ts`)
+### Cálculo no pedido (`src/components/storefront/ProductModal.tsx`)
+Trocar a regra atual `Math.max(...)` por:
+```
+const k = selectedPizzaFlavors.length   // 1..max_flavors
+total = sum( fractionPriceOf(flavor, selectedSize, k) )
+fractionPriceOf = pricesByCategorySizeId[size.id].fraction_prices[k] ?? price/k
+```
+- `PizzaFlavorOption`: passar `fractionPricesByCategorySizeId` além de `pricesByCategorySizeId` (extraído em `$slug.tsx` na montagem dos dados de pizza).
+- Remover `priceLocked` (preço passa a refletir frações reais).
+- Quando `max_flavors === 1` ou só 1 sabor selecionado, usar valor cheio (compat).
 
-Todas autenticadas via `requireSupabaseAuth`; carregam `supabaseAdmin` dentro do handler.
+### Exibição
+- Carrinho/checkout/admin/PrintableOrder/kitchen-ticket: o snapshot já lista cada sabor como linha de addon ("Sabor: X"). Acrescentar valor fracionário no rótulo do sabor (`Sabor: Calabresa — 1/2 R$ 30,00`) construído no `ProductModal` ao montar `addons`.
 
-**Tenant (self-service):**
-- `getMySubscription()` — assinatura + plano + últimos 10 pagamentos.
-- `createSubscriptionCharge()` — gera cobrança PIX no MP da plataforma para a próxima mensalidade do tenant logado. Cria row `pending` em `subscription_payments`. Retorna `qr_code, qr_code_base64, ticket_url, payment_id`.
-- `getChargeStatus({ paymentId })` — poll opcional para UI.
+---
 
-**Super-admin (gated por `has_role(uid,'platform_admin')`):**
-- `listPlans` / `upsertPlan` / `togglePlanActive`.
-- `listSubscriptions({ filter })` — filtros: ativos, vencendo_5d, vencidos, bloqueados, plan_slug.
-- `updateTenantSubscription` — plano, valor, período, due_date, grace_days, auto_block, notes.
-- `extendDueDate({ subscription_id, days })`.
-- `blockTenant` / `unblockTenant`.
-- `registerManualPayment` — cria payment `manual/approved` e renova due_date.
-- `changeTenantPlan`.
-- Todas gravam evento em `subscription_events`.
+## Parte 2 — Tenant novo sempre zerado
 
-## 3. Mercado Pago da plataforma
+### Problema atual (`src/lib/platform.functions.ts`)
+- `adminCreateTenant` chama incondicionalmente `applyTenantTemplate(tenant.id)` (`tenant-template.server.ts`), que copia `addon_groups`, `categories`, `printer_settings`, `store_payment_settings` e campos de operação a partir de `burgerprime` / `vilaboemia`. É a fonte de vazamento.
+- Também roda `seedCategoriesForBusinessTypes` quando há `business_types`.
 
-Secret novo via `add_secret`: `MENUZIN_MP_ACCESS_TOKEN` (separado do MP por tenant — não confundir). Helper `src/lib/menuzin-mp.server.ts` com `createPixCharge(payment, payer)` chamando `POST https://api.mercadopago.com/v1/payments` (type `pix`, `notification_url` apontando para o webhook abaixo, `external_reference` = `subscription_payment_id`).
+### Mudanças
+- `CreateTenantInput`: adicionar 3 flags opcionais (default `false`) — `seed_business_categories`, `seed_demo_data`, `clone_from_slug` (já existe).
+- Por padrão (nenhuma flag ligada): criar tenant com **apenas** a linha em `tenants`, owner em `user_roles`/`profiles`, e um `store_payment_settings` mínimo + `printer_settings` zerado (sem copiar de template).
+- `applyTenantTemplate`: chamar somente quando `seed_demo_data === true`. Caso contrário, executar apenas a parte "defaults seguros" (criar registros vazios das duas tabelas de configuração obrigatórias) — extrair em helper `ensureBaselineSettings(tenantId)`.
+- `seedCategoriesForBusinessTypes`: só executar se `seed_business_categories === true`.
+- `cloneCatalog`: já é opt-in via `clone_from_slug`, manter.
+- Tela `/platform/tenants/novo`: adicionar dois checkboxes ("Criar categorias padrão pelo tipo de negócio", "Copiar dados demo do template") — ambos desmarcados por padrão; remover qualquer comportamento implícito.
 
-## 4. Webhook (`src/routes/api.public.menuzin-mp-webhook.ts`)
+### Auditoria de isolamento
+- Conferir nas server fns de catálogo/pedidos/cupons/zonas que toda query tem `.eq("tenant_id", ...)`. Como `current_tenant_id()` é usado em RLS, o risco real está nos paths admin que usam `supabaseAdmin`. Verificar:
+  - `cloneCatalog` (já filtra por `fromTenantId`).
+  - `applyTenantTemplate` (mantida apenas em opt-in).
+- Adicionar testes de fumaça em `scripts/` que: cria tenant via `adminCreateTenant` mock, confere contagem 0 em `categories`, `products`, `addon_groups`, `coupons`, `delivery_zones`, `tenant_printers`, `orders`.
 
-Server route pública. Fluxo:
-1. Lê `data.id`, busca pagamento na API MP com `MENUZIN_MP_ACCESS_TOKEN` (valida autenticidade).
-2. Resolve `subscription_payment` por `mercado_pago_payment_id` ou `external_reference`. Idempotência por unique constraint.
-3. Atualiza `payment_status` + `raw_response`. Se `approved`:
-   - marca `paid_at`,
-   - calcula próxima `due_date` (start_date/atual + período),
-   - status da subscription → `ativa`, limpa `blocked_at`,
-   - registra evento `payment_approved` / `auto_unblocked`.
-4. Sempre 200 (evita reentrega infinita), erros internos logados.
+---
 
-## 5. Lógica de status e bloqueio
+## Testes
+- `scripts/pizza-fraction-pricing-tests.mjs`: validar `fraction_prices` (recalcular, dirty flag, soma no pedido — cenários 1/2/3/4 sabores).
+- `scripts/tenant-isolation-tests.mjs`: criar tenant default → assert vazio; criar com `seed_business_categories` → assert apenas categorias da matriz; criar com `seed_demo_data` → assert template aplicado.
 
-Helper `computeSubscriptionStatus(subscription, now)` em `src/lib/subscription-status.ts` (puro):
-- `cortesia` → sempre liberado.
-- `due_date` futura > 5d → `ativa`.
-- `due_date` em ≤ 5d → `ativa` + flag `expiring_soon`.
-- Vencida e dentro de `grace_days` → `tolerancia`.
-- Vencida fora da tolerância → `vencida` ou `bloqueada` (se `auto_block_enabled`).
-- `cancelada` manual mantém.
-
-Cron job (pg_cron diário 03:00 UTC) chama `/api/public/subscriptions-tick` que percorre subscriptions, recalcula status, marca `blocked_at` quando apropriado e registra evento.
-
-## 6. Gate de acesso ("Tudo bloqueado")
-
-Conforme escolhido: storefront público também sai do ar.
-
-- Server function `getMyTenant` já usada pelo admin passa a retornar `subscription_status` e `subscription_blocked`.
-- Novo helper `src/lib/tenant-access.server.ts: assertTenantNotBlocked(tenantId)` consultado em:
-  - `loja.$slug.tsx` loader (storefront) → se bloqueado, renderiza tela "Loja temporariamente indisponível".
-  - `orders.functions.ts` `createOrder` → recusa pedidos.
-  - `admin/AdminLayout` → se bloqueado, esconde menu e renderiza componente `SubscriptionBlockedScreen` com botão "Pagar assinatura agora" (única rota liberada: `/admin/assinatura`).
-- Banner amarelo persistente quando `expiring_soon` ou `tolerancia` no `AdminLayout`.
-
-## 7. UI Super-admin
-
-Nova rota `src/routes/platform.assinaturas.tsx` no `PlatformLayout`:
-- Tabela de tenants com colunas: loja, plano, valor, período, status (badge), próximo vencimento, dias restantes, último pagamento, ações.
-- Filtros (chips): Todos, Vencendo em 5d, Vencidos, Bloqueados, Por plano.
-- Drawer de edição: trocar plano, alterar valor/período, prorrogar (input dias), bloquear/desbloquear, registrar pagamento manual, ver histórico de pagamentos + eventos.
-- Nova rota `src/routes/platform.planos.tsx` para CRUD de planos.
-- Adicionar links na nav do `PlatformLayout` ("Assinaturas", "Planos").
-
-## 8. UI Tenant — "Minha Assinatura"
-
-Nova rota `src/routes/admin.assinatura.tsx` + item no `AdminLayout`:
-- Card resumo: plano atual, recursos incluídos, valor, período, próximo vencimento, status (badge), dias restantes.
-- Alerta visual conforme status (`expiring_soon`, `tolerancia`, `vencida`, `bloqueada`).
-- Botão "Pagar assinatura via PIX" → modal com QR code + copia-e-cola + polling de status a cada 5s.
-- Tabela histórico de pagamentos (data, valor, período, status, ID MP).
-- Se plano `start`: card "Fazer upgrade para Pro" com CTA que abre fluxo de upgrade (atualiza subscription para `pro` em status `pendente` e gera cobrança).
-
-## 9. Badges e visual
-
-Componente `SubscriptionStatusBadge` reutilizado em ambas as áreas. Cores: ativa=success, vence_em_breve=warning, tolerancia=warning, vencida=destructive/outline, bloqueada=destructive, cortesia=secondary, teste=info, cancelada=muted.
-
-## 10. Detalhes técnicos
-
-- Não tocar em `tenants.plan` para preservar compatibilidade — passa a derivar de `tenant_subscriptions.plan_id` via helper `getTenantPlan` (server) e `useTenantPlan` (client) atualizados para LEFT JOIN com subscription. Plano efetivo = `subscription.plan.slug` quando existe, senão `tenants.plan`.
-- `MENUZIN_MP_ACCESS_TOKEN` solicitado via `add_secret` antes da implementação do helper MP.
-- Toda a UI em português, mantendo o design system atual (sem refator visual).
-- Não altera fluxo de MP por tenant (pedidos online) — namespaces separados (`store_payment_settings` continua intocado).
-
-## Resultado
-
-Super-admin gerencia planos/assinaturas, tenants pagam via PIX direto no admin, MP confirma via webhook, bloqueio automático após tolerância, tenants atuais ficam em cortesia sem interrupção.
+### Resumo técnico
+- Migration: `+ category_pizza_sizes.price_rule`, `+ product_sizes.fraction_prices`, backfill simples.
+- 4 arquivos editados em `src/lib` (catalog-admin, db-types, db-adapters, platform).
+- 3 arquivos UI: `admin.produtos.tsx` (PriceCell), `PizzaCategoryConfigDialog.tsx`, `platform.tenants.novo.tsx`, `ProductModal.tsx`.
+- Sem alteração em pagamentos ou rotas públicas.
