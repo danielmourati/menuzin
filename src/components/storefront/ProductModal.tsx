@@ -209,10 +209,13 @@ export function ProductModal({
     const extras: ProductAddon[] = [];
     if (isPizzaCategory && selectedPizzaSize) {
       extras.push({ id: `psize-${selectedPizzaSize.id}`, name: `Tamanho: ${selectedPizzaSize.name}`, price: 0 });
+      const nf = selectedPizzaFlavors.length;
       for (const f of selectedPizzaFlavors) {
-        extras.push({ id: `pflavor-${f.id}`, name: `Sabor: ${f.name}`, price: 0 });
+        const label = nf > 1 ? `1/${nf} ${f.name} (${brl(shareOfFlavor(f, nf))})` : f.name;
+        extras.push({ id: `pflavor-${f.id}`, name: `Sabor: ${label}`, price: 0 });
       }
     }
+
     if (selectedDough && selectedDough.extraPrice >= 0) extras.push({ id: `dough-${selectedDough.id}`, name: `Massa: ${selectedDough.name}`, price: selectedDough.extraPrice });
     if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}${isCrustFree ? " (Grátis)" : ""}`, price: isCrustFree ? 0 : selectedCrust.extraPrice });
     add({
