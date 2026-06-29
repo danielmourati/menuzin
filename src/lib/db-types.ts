@@ -90,7 +90,9 @@ export type DbProductSize = {
   price: number;
   sort_order: number;
   category_size_id: string | null;
+  fraction_prices?: Record<string, number> | null;
 };
+
 
 export type DbProductFlavor = {
   id: string;
