@@ -675,6 +675,7 @@ const PizzaSizeInput = z.object({
   pdv_code: z.string().max(40).optional().default(""),
   active: z.boolean().default(true),
   sort_order: z.number().int().min(0).max(9999).default(0),
+  price_rule: z.enum(["sum_fractions", "max_value", "fixed"]).default("sum_fractions"),
 });
 
 export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
@@ -688,6 +689,7 @@ export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
       category_id: data.category_id, name: data.name, pieces: data.pieces,
       max_flavors: data.max_flavors, pdv_code: data.pdv_code ?? "",
       active: data.active, sort_order: data.sort_order,
+      price_rule: data.price_rule,
     };
     if (data.id) {
       const { error } = await sbAny(sb).from("category_pizza_sizes").update(payload).eq("id", data.id);
@@ -698,6 +700,7 @@ export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { id: (row as { id: string }).id };
   });
+
 
 export const deleteCategoryPizzaSize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
