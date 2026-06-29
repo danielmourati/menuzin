@@ -241,8 +241,35 @@ function NewTenantPage() {
             </div>
           </div>
 
-
-
+          <div className="space-y-3 rounded-2xl border p-4">
+            <div>
+              <p className="font-medium">Dados iniciais (isolamento)</p>
+              <p className="text-xs text-muted-foreground">
+                Por padrão o novo tenant é criado <strong>totalmente vazio</strong>. Marque abaixo apenas se quiser pré-popular este tenant. Nenhum produto, pedido, cliente, cupom ou configuração específica de outra loja é copiado automaticamente.
+              </p>
+            </div>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedBusinessCategories} onCheckedChange={(v) => setSeedBusinessCategories(!!v)} />
+              <span>
+                <span className="font-medium">Criar categorias padrão pelo tipo de negócio</span>
+                <span className="block text-xs text-muted-foreground">Cria categorias vazias (ex.: Pizza, Bebidas) conforme os tipos selecionados acima.</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedTemplateDefaults} onCheckedChange={(v) => setSeedTemplateDefaults(!!v)} />
+              <span>
+                <span className="font-medium">Aplicar configurações modelo</span>
+                <span className="block text-xs text-muted-foreground">Aplica horários, taxas e formas de pagamento padrão a partir de um tenant de referência (não copia produtos nem pedidos).</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedDemoData} onCheckedChange={(v) => setSeedDemoData(!!v)} />
+              <span>
+                <span className="font-medium">Criar dados demo</span>
+                <span className="block text-xs text-muted-foreground">Apenas para testes — popula com produtos/exemplos. Não use em lojas reais.</span>
+              </span>
+            </label>
+          </div>
 
 
           <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">
