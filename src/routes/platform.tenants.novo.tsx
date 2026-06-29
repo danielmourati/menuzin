@@ -37,6 +37,10 @@ function NewTenantPage() {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   const [plan, setPlan] = useState<"start" | "pro">("start");
+  const [seedBusinessCategories, setSeedBusinessCategories] = useState(false);
+  const [seedTemplateDefaults, setSeedTemplateDefaults] = useState(false);
+  const [seedDemoData, setSeedDemoData] = useState(false);
+
 
   const toggleBusinessType = (t: string) => {
     setBusinessTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
