@@ -146,7 +146,11 @@ const CreateTenantInput = z.object({
   owner_password: z.string().min(8).max(72).optional().nullable(),
   owner_name: z.string().max(120).optional().nullable(),
   clone_from_slug: z.string().max(60).optional().nullable(),
+  seed_business_categories: z.boolean().optional().default(false),
+  seed_template_defaults: z.boolean().optional().default(false),
+  seed_demo_data: z.boolean().optional().default(false),
 });
+
 
 export const adminCreateTenant = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
