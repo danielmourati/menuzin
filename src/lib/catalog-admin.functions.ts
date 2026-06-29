@@ -263,6 +263,7 @@ const SizeInput = z.object({
   price: z.number().min(0).max(99999),
   sort_order: z.number().int().min(0).max(9999).default(0),
   category_size_id: z.string().uuid().nullable().optional(),
+  fraction_prices: z.record(z.string(), z.number().min(0).max(99999)).nullable().optional(),
 });
 
 export const saveProductSize = createServerFn({ method: "POST" })
@@ -272,10 +273,12 @@ export const saveProductSize = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     await assertProductOwnership(sb, tenantId, data.product_id);
+    const fracs = data.fraction_prices ?? { "1": data.price };
     if (data.id) {
       const { error } = await sb.from("product_sizes").update({
         name: data.name, price: data.price, sort_order: data.sort_order,
         category_size_id: data.category_size_id ?? null,
+        fraction_prices: fracs,
       } as never).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { id: data.id };
@@ -283,10 +286,12 @@ export const saveProductSize = createServerFn({ method: "POST" })
     const { data: row, error } = await sb.from("product_sizes").insert({
       product_id: data.product_id, name: data.name, price: data.price, sort_order: data.sort_order,
       category_size_id: data.category_size_id ?? null,
+      fraction_prices: fracs,
     } as never).select("id").single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
+
 
 export const deleteProductSize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -670,6 +675,7 @@ const PizzaSizeInput = z.object({
   pdv_code: z.string().max(40).optional().default(""),
   active: z.boolean().default(true),
   sort_order: z.number().int().min(0).max(9999).default(0),
+  price_rule: z.enum(["sum_fractions", "max_value", "fixed"]).default("sum_fractions"),
 });
 
 export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
@@ -683,6 +689,7 @@ export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
       category_id: data.category_id, name: data.name, pieces: data.pieces,
       max_flavors: data.max_flavors, pdv_code: data.pdv_code ?? "",
       active: data.active, sort_order: data.sort_order,
+      price_rule: data.price_rule,
     };
     if (data.id) {
       const { error } = await sbAny(sb).from("category_pizza_sizes").update(payload).eq("id", data.id);
@@ -693,6 +700,7 @@ export const saveCategoryPizzaSize = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { id: (row as { id: string }).id };
   });
+
 
 export const deleteCategoryPizzaSize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

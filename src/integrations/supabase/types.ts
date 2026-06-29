@@ -255,6 +255,7 @@ export type Database = {
           name: string
           pdv_code: string | null
           pieces: number
+          price_rule: string
           sort_order: number
           updated_at: string
         }
@@ -267,6 +268,7 @@ export type Database = {
           name: string
           pdv_code?: string | null
           pieces?: number
+          price_rule?: string
           sort_order?: number
           updated_at?: string
         }
@@ -279,6 +281,7 @@ export type Database = {
           name?: string
           pdv_code?: string | null
           pieces?: number
+          price_rule?: string
           sort_order?: number
           updated_at?: string
         }
@@ -950,6 +953,7 @@ export type Database = {
         Row: {
           category_size_id: string | null
           created_at: string
+          fraction_prices: Json | null
           id: string
           name: string
           price: number
@@ -959,6 +963,7 @@ export type Database = {
         Insert: {
           category_size_id?: string | null
           created_at?: string
+          fraction_prices?: Json | null
           id?: string
           name: string
           price?: number
@@ -968,6 +973,7 @@ export type Database = {
         Update: {
           category_size_id?: string | null
           created_at?: string
+          fraction_prices?: Json | null
           id?: string
           name?: string
           price?: number

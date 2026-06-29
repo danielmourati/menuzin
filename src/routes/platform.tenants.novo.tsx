@@ -37,6 +37,10 @@ function NewTenantPage() {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   const [plan, setPlan] = useState<"start" | "pro">("start");
+  const [seedBusinessCategories, setSeedBusinessCategories] = useState(false);
+  const [seedTemplateDefaults, setSeedTemplateDefaults] = useState(false);
+  const [seedDemoData, setSeedDemoData] = useState(false);
+
 
   const toggleBusinessType = (t: string) => {
     setBusinessTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
@@ -94,8 +98,12 @@ function NewTenantPage() {
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
           clone_from_slug: null,
+          seed_business_categories: seedBusinessCategories,
+          seed_template_defaults: seedTemplateDefaults,
+          seed_demo_data: seedDemoData,
         },
       }),
+
     onSuccess: () => {
       toast.success(`Loja "${name.trim()}" cadastrada! O dono fará a troca de senha no primeiro acesso.`);
       navigate({ to: "/platform/lojas" });
@@ -201,9 +209,10 @@ function NewTenantPage() {
             <div>
               <p className="font-medium">Tipo de negócio</p>
               <p className="text-xs text-muted-foreground">
-                Selecione um ou mais tipos. Se o catálogo não for clonado, categorias padrão serão criadas automaticamente.
+                Selecione um ou mais tipos. Por padrão, o novo tenant é criado vazio — marque abaixo se quiser pré-popular categorias padrão ou configurações modelo.
               </p>
             </div>
+
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[
                 { v: "pizzaria", l: "Pizzaria" },
@@ -232,8 +241,35 @@ function NewTenantPage() {
             </div>
           </div>
 
-
-
+          <div className="space-y-3 rounded-2xl border p-4">
+            <div>
+              <p className="font-medium">Dados iniciais (isolamento)</p>
+              <p className="text-xs text-muted-foreground">
+                Por padrão o novo tenant é criado <strong>totalmente vazio</strong>. Marque abaixo apenas se quiser pré-popular este tenant. Nenhum produto, pedido, cliente, cupom ou configuração específica de outra loja é copiado automaticamente.
+              </p>
+            </div>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedBusinessCategories} onCheckedChange={(v) => setSeedBusinessCategories(!!v)} />
+              <span>
+                <span className="font-medium">Criar categorias padrão pelo tipo de negócio</span>
+                <span className="block text-xs text-muted-foreground">Cria categorias vazias (ex.: Pizza, Bebidas) conforme os tipos selecionados acima.</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedTemplateDefaults} onCheckedChange={(v) => setSeedTemplateDefaults(!!v)} />
+              <span>
+                <span className="font-medium">Aplicar configurações modelo</span>
+                <span className="block text-xs text-muted-foreground">Aplica horários, taxas e formas de pagamento padrão a partir de um tenant de referência (não copia produtos nem pedidos).</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedDemoData} onCheckedChange={(v) => setSeedDemoData(!!v)} />
+              <span>
+                <span className="font-medium">Criar dados demo</span>
+                <span className="block text-xs text-muted-foreground">Apenas para testes — popula com produtos/exemplos. Não use em lojas reais.</span>
+              </span>
+            </label>
+          </div>
 
 
           <div className="space-y-4 rounded-2xl border bg-muted/20 p-4">

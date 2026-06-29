@@ -38,7 +38,9 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     })),
     sizes: (p.sizes ?? []).map<ProductSize>((s) => ({
       id: s.id, name: s.name, price: Number(s.price), sortOrder: s.sort_order, categorySizeId: s.category_size_id ?? null,
+      fractionPrices: (s.fraction_prices ?? null) as Record<string, number> | null,
     })),
+
     flavors: (p.flavors ?? []).map<ProductFlavor>((f) => ({
       id: f.id, name: f.name, description: f.description ?? "",
       priceDelta: Number(f.price_delta), available: f.available, sortOrder: f.sort_order,
