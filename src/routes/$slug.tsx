@@ -193,7 +193,7 @@ function StoreNotFound({ slug }: { slug: string }) {
 }
 
 type PizzaExtraRow = { id: string; category_id: string; name: string; extra_price: number };
-type PizzaSizeRow = { id: string; category_id: string; name: string; pieces: number; max_flavors: number; active: boolean; sort_order: number };
+type PizzaSizeRow = { id: string; category_id: string; name: string; pieces: number; max_flavors: number; active: boolean; sort_order: number; price_rule?: "sum_fractions" | "max_value" | "fixed" | null };
 
 function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaSizes: PizzaSizeRow[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
