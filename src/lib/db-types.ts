@@ -52,7 +52,9 @@ export type DbCategoryPizzaSize = {
   pdv_code: string | null;
   active: boolean;
   sort_order: number;
+  price_rule?: "sum_fractions" | "max_value" | "fixed" | null;
 };
+
 
 export type DbCategoryPizzaDough = {
   id: string;
