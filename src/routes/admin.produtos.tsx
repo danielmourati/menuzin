@@ -468,7 +468,7 @@ function PizzaProductForm({
   );
 }
 
-function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId: string; categoryId: string; existingSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null }[] }) {
+function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId: string; categoryId: string; existingSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null; fraction_prices?: Record<string, number> | null }[] }) {
   const qc = useQueryClient();
   const cfgQ = useQuery({
     queryKey: ["admin", "pizza-config", categoryId],
@@ -477,13 +477,13 @@ function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId:
 
   const sizes = cfgQ.data?.sizes ?? [];
   const sizeMap = useMemo(() => {
-    const m = new Map<string, { id: string; price: number }>();
-    for (const s of existingSizes) if (s.category_size_id) m.set(s.category_size_id, { id: s.id, price: Number(s.price) });
+    const m = new Map<string, { id: string; price: number; fraction_prices: Record<string, number> | null }>();
+    for (const s of existingSizes) if (s.category_size_id) m.set(s.category_size_id, { id: s.id, price: Number(s.price), fraction_prices: s.fraction_prices ?? null });
     return m;
   }, [existingSizes]);
 
   const saveMut = useMutation({
-    mutationFn: (d: { id?: string; product_id: string; name: string; price: number; sort_order: number; category_size_id: string }) => saveProductSize({ data: d }),
+    mutationFn: (d: { id?: string; product_id: string; name: string; price: number; sort_order: number; category_size_id: string; fraction_prices?: Record<string, number> }) => saveProductSize({ data: d }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
     onError: (e: Error) => toast.error(e.message),
   });
@@ -501,24 +501,27 @@ function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId:
   return (
     <div>
       <h4 className="mb-3 font-bold">Preços</h4>
-      <p className="mb-4 text-xs text-muted-foreground">Marque os tamanhos em que este sabor é vendido e defina o preço de cada um.</p>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <p className="mb-4 text-xs text-muted-foreground">Marque os tamanhos em que este sabor é vendido. Para pizzas fracionadas o valor é dividido automaticamente — você pode ajustar cada fração.</p>
+      <div className="grid gap-4 sm:grid-cols-2">
         {sizes.map((sz) => {
           const existing = sizeMap.get(sz.id);
           const enabled = !!existing;
+          const maxFlavors = (sz as { max_flavors?: number }).max_flavors ?? 1;
           return (
             <PriceCell
               key={sz.id}
               sizeName={sz.name}
+              maxFlavors={maxFlavors}
               enabled={enabled}
               price={existing?.price ?? 0}
+              fractionPrices={existing?.fraction_prices ?? null}
               onToggle={(v) => {
                 if (!v && existing) delMut.mutate(existing.id);
-                if (v && !existing) saveMut.mutate({ product_id: productId, name: sz.name, price: 0, sort_order: sz.sort_order, category_size_id: sz.id });
+                if (v && !existing) saveMut.mutate({ product_id: productId, name: sz.name, price: 0, sort_order: sz.sort_order, category_size_id: sz.id, fraction_prices: { "1": 0 } });
               }}
-              onPriceChange={(v) => {
-                if (existing) saveMut.mutate({ id: existing.id, product_id: productId, name: sz.name, price: v, sort_order: sz.sort_order, category_size_id: sz.id });
-                else if (v > 0) saveMut.mutate({ product_id: productId, name: sz.name, price: v, sort_order: sz.sort_order, category_size_id: sz.id });
+              onCommit={(price, fracs) => {
+                if (existing) saveMut.mutate({ id: existing.id, product_id: productId, name: sz.name, price, sort_order: sz.sort_order, category_size_id: sz.id, fraction_prices: fracs });
+                else if (price > 0) saveMut.mutate({ product_id: productId, name: sz.name, price, sort_order: sz.sort_order, category_size_id: sz.id, fraction_prices: fracs });
               }}
             />
           );
@@ -528,24 +531,82 @@ function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId:
   );
 }
 
-function PriceCell({ sizeName, enabled, price, onToggle, onPriceChange }: { sizeName: string; enabled: boolean; price: number; onToggle: (v: boolean) => void; onPriceChange: (v: number) => void }) {
-  const [local, setLocal] = useState(price);
-  useEffect(() => setLocal(price), [price]);
+function PriceCell({ sizeName, maxFlavors, enabled, price, fractionPrices, onToggle, onCommit }: {
+  sizeName: string;
+  maxFlavors: number;
+  enabled: boolean;
+  price: number;
+  fractionPrices: Record<string, number> | null;
+  onToggle: (v: boolean) => void;
+  onCommit: (price: number, fracs: Record<string, number>) => void;
+}) {
+  const [full, setFull] = useState(price);
+  const [fracs, setFracs] = useState<Record<string, number>>(() => fractionPrices ?? { "1": price });
+  const [edited, setEdited] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setFull(price);
+    setFracs(fractionPrices ?? { "1": price });
+    setEdited(new Set());
+  }, [price, fractionPrices]);
+
+  const recompute = (base: number, keepEdited: Set<string>) => {
+    const next: Record<string, number> = { "1": base };
+    for (let n = 2; n <= maxFlavors; n++) {
+      const key = String(n);
+      next[key] = keepEdited.has(key) ? (fracs[key] ?? base / n) : Number((base / n).toFixed(2));
+    }
+    return next;
+  };
+
+  const handleFullCommit = (v: number) => {
+    setFull(v);
+    const next = recompute(v, edited);
+    setFracs(next);
+    onCommit(v, next);
+  };
+  const handleFracCommit = (key: string, v: number) => {
+    const next = { ...fracs, [key]: v };
+    const e2 = new Set(edited); e2.add(key);
+    setEdited(e2);
+    setFracs(next);
+    onCommit(full, next);
+  };
+  const resetAuto = () => {
+    setEdited(new Set());
+    const next = recompute(full, new Set());
+    setFracs(next);
+    onCommit(full, next);
+  };
+
   return (
-    <div className="rounded-xl border p-3 text-center">
-      <div className="text-3xl">🍕</div>
-      <label className="mt-2 flex items-center justify-center gap-2 cursor-pointer">
-        <Checkbox checked={enabled} onCheckedChange={(v) => onToggle(!!v)} />
-        <span className="text-sm font-medium">{sizeName}</span>
+    <div className="rounded-xl border p-3">
+      <label className="flex items-center justify-between gap-2 cursor-pointer">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <Checkbox checked={enabled} onCheckedChange={(v) => onToggle(!!v)} />
+          🍕 {sizeName}
+          {maxFlavors > 1 && <span className="text-xs text-muted-foreground">(até {maxFlavors} sabores)</span>}
+        </span>
+        {maxFlavors > 1 && enabled && (
+          <button type="button" onClick={resetAuto} className="text-[11px] text-primary hover:underline">Recalcular</button>
+        )}
       </label>
-      <CurrencyBlurInput
-        initialValue={local}
-        onCommit={(v) => { setLocal(v); onPriceChange(v); }}
-        className="mt-2 text-center"
-      />
+      <div className="mt-3 space-y-2">
+        <div>
+          <p className="mb-1 text-[11px] text-muted-foreground">Valor cheio (1 sabor)</p>
+          <CurrencyBlurInput initialValue={full} onCommit={handleFullCommit} className="text-center" />
+        </div>
+        {maxFlavors > 1 && enabled && Array.from({ length: maxFlavors - 1 }, (_, i) => i + 2).map((n) => (
+          <div key={n}>
+            <p className="mb-1 text-[11px] text-muted-foreground">Valor 1/{n} (quando dividido em {n} sabores)</p>
+            <CurrencyBlurInput initialValue={fracs[String(n)] ?? Number((full / n).toFixed(2))} onCommit={(v) => handleFracCommit(String(n), v)} className="text-center" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
+
 
 // ===== Standard product sizes (kept) =====
 
