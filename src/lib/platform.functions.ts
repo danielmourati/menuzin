@@ -221,7 +221,7 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
     const sourceSlug = data.clone_from_slug && data.clone_from_slug.trim().length > 0
       ? data.clone_from_slug.trim()
       : null;
-    if (sourceSlug) {
+    if (sourceSlug && data.seed_demo_data) {
       const { data: src } = await supabaseAdmin
         .from("tenants").select("id").eq("slug", sourceSlug).maybeSingle();
       if (src?.id) {
@@ -229,21 +229,25 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }
     }
 
-    // Seed de categorias por tipo de negócio (apenas se não houver clone)
-    if (!sourceSlug && (data.business_types?.length ?? 0) > 0) {
+    // Seed de categorias por tipo de negócio — somente quando solicitado pelo super-admin
+    if (!sourceSlug && data.seed_business_categories && (data.business_types?.length ?? 0) > 0) {
       await seedCategoriesForBusinessTypes(tenant.id as string, data.business_types as string[]);
     }
 
-    // Padroniza o novo tenant com base nos templates (burgerprime / vilaboemia)
-    try {
-      const { applyTenantTemplate } = await import("@/lib/tenant-template.server");
-      await applyTenantTemplate(tenant.id as string);
-    } catch {
-      // não falhar a criação se o merge der erro
+    // Aplicação do template (merge não-destrutivo) — somente quando solicitado.
+    // Por padrão o novo tenant nasce vazio, sem herdar nada de outras lojas.
+    if (data.seed_template_defaults) {
+      try {
+        const { applyTenantTemplate } = await import("@/lib/tenant-template.server");
+        await applyTenantTemplate(tenant.id as string);
+      } catch {
+        // não falhar a criação se o merge der erro
+      }
     }
 
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
   });
+
 
 // ===== Padronização de tenants (aplicar template burgerprime/vilaboemia) =====
 
