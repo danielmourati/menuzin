@@ -115,16 +115,26 @@ export function ProductModal({
   // --- Pizza-category mode (size + sibling flavors from category_pizza_sizes) ---
   const selectedPizzaSize = isPizzaCategory ? visiblePizzaSizes.find((s) => s.id === sizeId) ?? visiblePizzaSizes[0] : undefined;
   const pizzaMaxFlavors = selectedPizzaSize?.maxFlavors ?? 1;
+  const pizzaPriceRule = selectedPizzaSize?.priceRule ?? "sum_fractions";
   const selectedPizzaFlavors = isPizzaCategory ? pizzaFlavors.filter((f) => flavorIds.includes(f.id)) : [];
   const priceOfFlavor = (f: PizzaFlavorOption) =>
     (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || f.fallbackPrice;
-  // Locked price: max among selected flavors (price doesn't change as user adds equal/cheaper flavors)
-  const pizzaBase = isPizzaCategory
-    ? selectedPizzaFlavors.length > 0
-      ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
-      : 0
+  // Share por sabor: usa fraction_prices[N] cadastrado, senão divide igualmente o valor cheio.
+  const shareOfFlavor = (f: PizzaFlavorOption, n: number) => {
+    if (n <= 1) return priceOfFlavor(f);
+    const fracs = selectedPizzaSize ? f.fractionPricesByCategorySizeId?.[selectedPizzaSize.id] : undefined;
+    const fromFrac = fracs?.[String(n)];
+    if (typeof fromFrac === "number" && fromFrac > 0) return fromFrac;
+    return priceOfFlavor(f) / n;
+  };
+  const n = selectedPizzaFlavors.length;
+  const pizzaBase = isPizzaCategory && n > 0 && selectedPizzaSize
+    ? (pizzaPriceRule === "max_value"
+        ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
+        : selectedPizzaFlavors.reduce((s, f) => s + shareOfFlavor(f, n), 0))
     : 0;
-  const priceLocked = isPizzaCategory && pizzaMaxFlavors > 1 && selectedPizzaFlavors.length >= 1;
+  const priceLocked = false;
+
 
   // --- Standard mode (legacy sizes/flavors on product) ---
   const maxFlavors = product.maxFlavors ?? 1;
