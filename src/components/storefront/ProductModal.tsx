@@ -20,15 +20,17 @@ import {
 } from "@/lib/product-selection";
 
 type PizzaExtra = { id: string; name: string; extraPrice: number };
-type PizzaSizeOption = { id: string; name: string; pieces: number; maxFlavors: number };
+type PizzaSizeOption = { id: string; name: string; pieces: number; maxFlavors: number; priceRule?: "sum_fractions" | "max_value" | "fixed" };
 type PizzaFlavorOption = {
   id: string;
   name: string;
   description: string;
   image: string;
   pricesByCategorySizeId: Record<string, number>;
+  fractionPricesByCategorySizeId?: Record<string, Record<string, number>>;
   fallbackPrice: number;
 };
+
 
 export function ProductModal({
   product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug,
