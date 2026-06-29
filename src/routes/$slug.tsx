@@ -551,7 +551,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         open={modalOpen && storeOpen}
         onOpenChange={setModalOpen}
         tenantSlug={tenant.slug}
-        pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors })) : []}
+        pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed" })) : []}
         pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
           ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available).map((p) => ({
               id: p.id,
@@ -559,9 +559,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               description: p.description,
               image: p.image,
               pricesByCategorySizeId: Object.fromEntries((p.sizes ?? []).filter((s) => s.categorySizeId).map((s) => [s.categorySizeId as string, s.price])),
+              fractionPricesByCategorySizeId: Object.fromEntries(
+                (p.sizes ?? []).filter((s) => s.categorySizeId && s.fractionPrices).map((s) => [s.categorySizeId as string, s.fractionPrices as Record<string, number>])
+              ),
               fallbackPrice: p.promoPrice ?? p.price,
             }))
           : []}
+
         pizzaDoughs={selectedProduct?.categoryId ? pizzaDoughs.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
