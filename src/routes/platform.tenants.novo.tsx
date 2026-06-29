@@ -209,9 +209,10 @@ function NewTenantPage() {
             <div>
               <p className="font-medium">Tipo de negócio</p>
               <p className="text-xs text-muted-foreground">
-                Selecione um ou mais tipos. Se o catálogo não for clonado, categorias padrão serão criadas automaticamente.
+                Selecione um ou mais tipos. Por padrão, o novo tenant é criado vazio — marque abaixo se quiser pré-popular categorias padrão ou configurações modelo.
               </p>
             </div>
+
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {[
                 { v: "pizzaria", l: "Pizzaria" },
