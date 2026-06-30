@@ -1004,6 +1004,7 @@ export type Database = {
           free_gift_ref_id: string | null
           id: string
           image_url: string | null
+          listed_as_flavor: boolean | null
           max_flavors: number | null
           name: string
           offer_fixed_crust_id: string | null
@@ -1034,6 +1035,7 @@ export type Database = {
           free_gift_ref_id?: string | null
           id?: string
           image_url?: string | null
+          listed_as_flavor?: boolean | null
           max_flavors?: number | null
           name: string
           offer_fixed_crust_id?: string | null
@@ -1064,6 +1066,7 @@ export type Database = {
           free_gift_ref_id?: string | null
           id?: string
           image_url?: string | null
+          listed_as_flavor?: boolean | null
           max_flavors?: number | null
           name?: string
           offer_fixed_crust_id?: string | null
