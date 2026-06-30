@@ -118,6 +118,11 @@ const baseProduct = {
     "selected flavor only shows sizes configured for that flavor",
   );
   assert.deepEqual(
+    getVisiblePizzaSizesForProduct(pizzaSizes, flavors, "calabresa", [{ categorySizeId: "g", price: 62 }]).map((s) => s.id),
+    ["g"],
+    "opened product uses its own configured sizes as the strongest source of truth",
+  );
+  assert.deepEqual(
     getVisiblePizzaSizesForProduct(pizzaSizes, flavors).map((s) => s.id),
     ["g", "f"],
     "generic pizza modal hides zero-priced sizes",
