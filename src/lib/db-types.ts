@@ -153,6 +153,7 @@ export type DbProduct = {
   type: "standard" | "pizza";
   max_flavors: number | null;
   allow_observations: boolean;
+  listed_as_flavor?: boolean | null;
   free_gift_kind: "crust" | "product" | null;
   free_gift_ref_id: string | null;
   free_crust_mode?: "none" | "fixed" | "customer_choice" | null;
