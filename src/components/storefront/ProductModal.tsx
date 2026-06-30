@@ -318,7 +318,16 @@ export function ProductModal({
           {/* Tamanhos (pizza-category) */}
           {isPizzaCategory && visiblePizzaSizes.length > 0 && (
             <Section title="Tamanho" required>
-              <RadioGroup value={sizeId ?? ""} onValueChange={(v) => { setSizeId(v); setFlavorIds([]); }} className="mt-2 space-y-2">
+              <RadioGroup value={sizeId ?? ""} onValueChange={(v) => {
+                setSizeId(v);
+                const nextSize = visiblePizzaSizes.find((s) => s.id === v);
+                const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
+                if (nextSize && !requiresExplicitFlavorSelection(nextSize.maxFlavors) && productIsListed) {
+                  setFlavorIds([product.id]);
+                } else {
+                  setFlavorIds([]);
+                }
+              }} className="mt-2 space-y-2">
                 {visiblePizzaSizes.map((s) => {
                   const prices = pizzaFlavors
                     .map((f) => positivePizzaFlavorPrice(f, s.id))
