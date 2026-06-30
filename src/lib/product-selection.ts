@@ -146,6 +146,28 @@ export function computeFractionedPizzaPrice(prices: number[], selectedFlavorCoun
   return prices.reduce((sum, price) => sum + pizzaFlavorShare(price, divisor), 0);
 }
 
+/** Indica se o tamanho exige seleção explícita de sabores no storefront. */
+export function requiresExplicitFlavorSelection(maxFlavors: number): boolean {
+  return (maxFlavors ?? 1) > 1;
+}
+
+/**
+ * Valida a quantidade de sabores escolhidos para um tamanho de pizza.
+ * Regra: deve ser exatamente igual ao maxFlavors do tamanho.
+ */
+export function validatePizzaFlavorCount(selectedCount: number, maxFlavors: number): string | null {
+  const max = Math.max(1, maxFlavors ?? 1);
+  if (selectedCount < max) {
+    return max === 1
+      ? "Escolha 1 sabor"
+      : `Escolha ${max} sabores (${selectedCount}/${max})`;
+  }
+  if (selectedCount > max) {
+    return `Máximo ${max} sabor${max > 1 ? "es" : ""}`;
+  }
+  return null;
+}
+
 export type AddonLabelKind = "size" | "flavor" | "group" | "addon";
 export type ParsedAddonLabel = {
   kind: AddonLabelKind;
