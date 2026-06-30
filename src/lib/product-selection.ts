@@ -2,6 +2,13 @@ import type { Product, ProductSize, ProductFlavor, AddonGroup } from "./domain-t
 
 export type GroupSelections = Record<string, string[]>;
 
+export type PizzaPricedSize = { id: string; maxFlavors?: number };
+
+export type PizzaPricedFlavor = {
+  id: string;
+  pricesByCategorySizeId: Record<string, number>;
+};
+
 export type SelectionInput = {
   product: Product;
   sizeId: string | null;
@@ -77,6 +84,47 @@ export function toggleGroupOptionId(
   if (cur.includes(optionId)) return cur.filter((x) => x !== optionId);
   if (cur.length >= maxSelect) return cur;
   return [...cur, optionId];
+}
+
+export function positivePizzaFlavorPrice(flavor: PizzaPricedFlavor, categorySizeId: string): number {
+  const price = Number(flavor.pricesByCategorySizeId[categorySizeId] ?? 0);
+  return Number.isFinite(price) && price > 0 ? price : 0;
+}
+
+export function getVisiblePizzaSizesForProduct<TSize extends PizzaPricedSize, TFlavor extends PizzaPricedFlavor>(
+  sizes: TSize[],
+  flavors: TFlavor[],
+  currentProductId?: string | null,
+): TSize[] {
+  const currentFlavor = currentProductId ? flavors.find((f) => f.id === currentProductId) : undefined;
+  const currentFlavorHasPrices = currentFlavor
+    ? sizes.some((size) => positivePizzaFlavorPrice(currentFlavor, size.id) > 0)
+    : false;
+
+  return sizes.filter((size) => {
+    if (currentFlavor && currentFlavorHasPrices) {
+      return positivePizzaFlavorPrice(currentFlavor, size.id) > 0;
+    }
+    return flavors.some((flavor) => positivePizzaFlavorPrice(flavor, size.id) > 0);
+  });
+}
+
+export function pizzaChargeDivisor(selectedFlavorCount: number): number {
+  return selectedFlavorCount > 1 ? selectedFlavorCount : 1;
+}
+
+export function pizzaPreviewDivisor(selectedFlavorCount: number, maxFlavors: number): number {
+  if (selectedFlavorCount > 0) return pizzaChargeDivisor(selectedFlavorCount);
+  return maxFlavors > 1 ? maxFlavors : 1;
+}
+
+export function pizzaFlavorShare(price: number, divisor: number): number {
+  return divisor > 1 ? price / divisor : price;
+}
+
+export function computeFractionedPizzaPrice(prices: number[], selectedFlavorCount: number): number {
+  const divisor = pizzaChargeDivisor(selectedFlavorCount);
+  return prices.reduce((sum, price) => sum + pizzaFlavorShare(price, divisor), 0);
 }
 
 export type AddonLabelKind = "size" | "flavor" | "group" | "addon";
