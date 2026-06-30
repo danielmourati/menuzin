@@ -9,6 +9,11 @@ export type PizzaPricedFlavor = {
   pricesByCategorySizeId: Record<string, number>;
 };
 
+export type PizzaProductSizePrice = {
+  categorySizeId?: string | null;
+  price: number;
+};
+
 export type SelectionInput = {
   product: Product;
   sizeId: string | null;
@@ -95,7 +100,13 @@ export function getVisiblePizzaSizesForProduct<TSize extends PizzaPricedSize, TF
   sizes: TSize[],
   flavors: TFlavor[],
   currentProductId?: string | null,
+  currentProductSizes: PizzaProductSizePrice[] = [],
 ): TSize[] {
+  const configuredCurrentSizeIds = getConfiguredPizzaSizeIds(currentProductSizes);
+  if (configuredCurrentSizeIds.size > 0) {
+    return sizes.filter((size) => configuredCurrentSizeIds.has(size.id));
+  }
+
   const currentFlavor = currentProductId ? flavors.find((f) => f.id === currentProductId) : undefined;
   const currentFlavorHasPrices = currentFlavor
     ? sizes.some((size) => positivePizzaFlavorPrice(currentFlavor, size.id) > 0)
@@ -107,6 +118,14 @@ export function getVisiblePizzaSizesForProduct<TSize extends PizzaPricedSize, TF
     }
     return flavors.some((flavor) => positivePizzaFlavorPrice(flavor, size.id) > 0);
   });
+}
+
+export function getConfiguredPizzaSizeIds(productSizes: PizzaProductSizePrice[]): Set<string> {
+  return new Set(
+    productSizes
+      .filter((size) => size.categorySizeId && Number(size.price) > 0)
+      .map((size) => size.categorySizeId as string),
+  );
 }
 
 export function pizzaChargeDivisor(selectedFlavorCount: number): number {
