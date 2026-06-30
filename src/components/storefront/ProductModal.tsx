@@ -23,6 +23,8 @@ import {
   pizzaChargeDivisor,
   pizzaFlavorShare,
   computeFractionedPizzaPrice,
+  requiresExplicitFlavorSelection,
+  validatePizzaFlavorCount,
 } from "@/lib/product-selection";
 
 type PizzaExtra = { id: string; name: string; extraPrice: number };
