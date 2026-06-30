@@ -116,24 +116,32 @@ export function ProductModal({
   const selectedPizzaSize = isPizzaCategory ? visiblePizzaSizes.find((s) => s.id === sizeId) ?? visiblePizzaSizes[0] : undefined;
   const pizzaMaxFlavors = selectedPizzaSize?.maxFlavors ?? 1;
   const pizzaPriceRule = selectedPizzaSize?.priceRule ?? "sum_fractions";
-  const selectedPizzaFlavors = isPizzaCategory ? pizzaFlavors.filter((f) => flavorIds.includes(f.id)) : [];
-  const priceOfFlavor = (f: PizzaFlavorOption) =>
-    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || f.fallbackPrice;
-  // Share por sabor: usa fraction_prices[N] cadastrado, senão divide igualmente o valor cheio.
-  const shareOfFlavor = (f: PizzaFlavorOption, n: number) => {
-    if (n <= 1) return priceOfFlavor(f);
-    const fracs = selectedPizzaSize ? f.fractionPricesByCategorySizeId?.[selectedPizzaSize.id] : undefined;
-    const fromFrac = fracs?.[String(n)];
-    if (typeof fromFrac === "number" && fromFrac > 0) return fromFrac;
-    return priceOfFlavor(f) / n;
-  };
+  // Preço cadastrado do sabor para o tamanho atual (0 = não cadastrado).
+  const configuredPriceOfFlavor = (f: PizzaFlavorOption) =>
+    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || 0;
+  // Sabores disponíveis = somente os que têm preço cadastrado para o tamanho atual.
+  const availablePizzaFlavors = isPizzaCategory
+    ? pizzaFlavors.filter((f) => configuredPriceOfFlavor(f) > 0)
+    : [];
+  const selectedPizzaFlavors = isPizzaCategory
+    ? availablePizzaFlavors.filter((f) => flavorIds.includes(f.id))
+    : [];
+  const priceOfFlavor = (f: PizzaFlavorOption) => configuredPriceOfFlavor(f);
+  // Fracionamento: sempre média (price / n), ignorando overrides manuais.
+  const shareOfFlavor = (f: PizzaFlavorOption, n: number) =>
+    n <= 1 ? priceOfFlavor(f) : priceOfFlavor(f) / n;
   const n = selectedPizzaFlavors.length;
   const pizzaBase = isPizzaCategory && n > 0 && selectedPizzaSize
     ? (pizzaPriceRule === "max_value"
         ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
         : selectedPizzaFlavors.reduce((s, f) => s + shareOfFlavor(f, n), 0))
     : 0;
+  // "A partir de" no header: menor preço cadastrado entre sabores disponíveis no tamanho atual.
+  const pizzaStartingFrom = isPizzaCategory && availablePizzaFlavors.length > 0
+    ? Math.min(...availablePizzaFlavors.map(configuredPriceOfFlavor))
+    : 0;
   const priceLocked = false;
+
 
 
   // --- Standard mode (legacy sizes/flavors on product) ---
