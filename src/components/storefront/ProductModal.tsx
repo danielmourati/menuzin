@@ -87,8 +87,15 @@ export function ProductModal({
       setQty(1);
       setLegacyAddons([]);
       if (product.categoryKind === "pizza" && visiblePizzaSizes.length > 0) {
-        setSizeId(visiblePizzaSizes[0].id);
-        setFlavorIds(pizzaFlavors.some((f) => f.id === product.id) ? [product.id] : []);
+        const firstSize = visiblePizzaSizes[0];
+        setSizeId(firstSize.id);
+        const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
+        // Tamanho 1 sabor: sabor é o próprio produto. 2+ sabores: cliente escolhe todos manualmente.
+        if (!requiresExplicitFlavorSelection(firstSize.maxFlavors) && productIsListed) {
+          setFlavorIds([product.id]);
+        } else {
+          setFlavorIds([]);
+        }
       } else {
         setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
         setFlavorIds([]);
