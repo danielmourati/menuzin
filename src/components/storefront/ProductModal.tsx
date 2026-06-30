@@ -192,8 +192,10 @@ export function ProductModal({
   const pizzaValidations: string[] = [];
   if (isPizzaCategory) {
     if (!selectedPizzaSize) pizzaValidations.push("Escolha um tamanho");
-    else if (selectedPizzaFlavors.length < 1) pizzaValidations.push("Escolha ao menos 1 sabor");
-    else if (selectedPizzaFlavors.length > pizzaMaxFlavors) pizzaValidations.push(`Máximo ${pizzaMaxFlavors} sabor${pizzaMaxFlavors > 1 ? "es" : ""}`);
+    else {
+      const flavorErr = validatePizzaFlavorCount(selectedPizzaFlavors.length, pizzaMaxFlavors);
+      if (flavorErr) pizzaValidations.push(flavorErr);
+    }
   }
   const validations = isPizzaCategory
     ? pizzaValidations
