@@ -379,12 +379,13 @@ function PizzaProductForm({
   onSave: () => void;
   isSaving: boolean;
 }) {
+  const [tab, setTab] = useState<string>("detalhes");
   return (
-    <Tabs defaultValue="detalhes">
+    <Tabs value={tab} onValueChange={setTab}>
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
         <TabsTrigger value="preco" disabled={!editing.id}>Preço</TabsTrigger>
-        <TabsTrigger value="classificacao">Classificação</TabsTrigger>
+        <TabsTrigger value="classificacao" disabled={!editing.id}>Classificação</TabsTrigger>
       </TabsList>
 
       <TabsContent value="detalhes" className="mt-4 space-y-3">
