@@ -405,9 +405,30 @@ function PizzaProductForm({
           folder="produtos"
         />
         <p className="text-[10px] text-muted-foreground">Formatos: JPEG, JPG, PNG. Resolução mínima: 300×275.</p>
+
+        <div className={`rounded-xl border p-3 ${editing.listed_as_flavor === null ? "border-destructive/60 bg-destructive/5" : ""}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Label className="text-sm font-semibold">Listar como sabor na montagem da pizza</Label>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Quando ativado, este item aparece como opção de sabor para o cliente montar pizzas (inclusive fracionadas — 1/2, 1/3, 1/4). Quando desativado, fica apenas como produto vendido inteiro.
+              </p>
+            </div>
+            <Switch
+              checked={editing.listed_as_flavor === true}
+              onCheckedChange={(v) => setEditing({ ...editing, listed_as_flavor: v })}
+            />
+          </div>
+          {editing.listed_as_flavor === null && (
+            <p className="mt-2 text-[11px] font-medium text-destructive">
+              Obrigatório: defina Sim ou Não antes de salvar.
+            </p>
+          )}
+        </div>
+
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSave} disabled={isSaving || !editing.name}>
+          <Button onClick={onSave} disabled={isSaving || !editing.name || editing.listed_as_flavor === null}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editing.id ? "Salvar" : "Continuar")}
           </Button>
         </DialogFooter>
