@@ -23,6 +23,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     type: (p.type ?? "standard") as "standard" | "pizza",
     maxFlavors: p.max_flavors ?? undefined,
     allowObservations: p.allow_observations ?? true,
+    listedAsFlavor: p.listed_as_flavor ?? null,
     freeGiftKind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
     freeGiftRefId: p.free_gift_ref_id ?? null,
     freeCrustMode: (p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice",
