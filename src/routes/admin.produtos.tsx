@@ -441,7 +441,7 @@ function PizzaProductForm({
         </DialogFooter>
       </TabsContent>
 
-      <TabsContent value="preco" className="mt-4">
+      <TabsContent value="preco" className="mt-4 space-y-3">
         {editing.id && editing.category_id && (
           <PizzaPriceMatrix
             productId={editing.id}
@@ -449,6 +449,10 @@ function PizzaProductForm({
             existingSizes={currentProductSizes}
           />
         )}
+        <DialogFooter className="pt-3">
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => setTab("classificacao")}>Avançar</Button>
+        </DialogFooter>
       </TabsContent>
 
       <TabsContent value="classificacao" className="mt-4 space-y-3">
