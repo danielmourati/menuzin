@@ -17,6 +17,12 @@ import {
   computeBasePrice,
   toggleFlavorId,
   toggleGroupOptionId,
+  getVisiblePizzaSizesForProduct,
+  positivePizzaFlavorPrice,
+  pizzaPreviewDivisor,
+  pizzaChargeDivisor,
+  pizzaFlavorShare,
+  computeFractionedPizzaPrice,
 } from "@/lib/product-selection";
 
 type PizzaExtra = { id: string; name: string; extraPrice: number };
@@ -60,10 +66,8 @@ export function ProductModal({
   // Hide sizes with no real price among any sibling flavor
   const visiblePizzaSizes = useMemo(() => {
     if (!isPizzaCategory) return pizzaSizes;
-    return pizzaSizes.filter((s) =>
-      pizzaFlavors.some((f) => (f.pricesByCategorySizeId[s.id] ?? 0) > 0)
-    );
-  }, [isPizzaCategory, pizzaSizes, pizzaFlavors]);
+    return getVisiblePizzaSizesForProduct(pizzaSizes, pizzaFlavors, product?.id);
+  }, [isPizzaCategory, pizzaSizes, pizzaFlavors, product?.id]);
 
   // Borda grátis: três modos
   const crustMode = (product?.freeCrustMode ?? "none") as "none" | "fixed" | "customer_choice";
@@ -118,7 +122,7 @@ export function ProductModal({
   const pizzaPriceRule = selectedPizzaSize?.priceRule ?? "sum_fractions";
   // Preço cadastrado do sabor para o tamanho atual (0 = não cadastrado).
   const configuredPriceOfFlavor = (f: PizzaFlavorOption) =>
-    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || 0;
+    selectedPizzaSize ? positivePizzaFlavorPrice(f, selectedPizzaSize.id) : 0;
   // Sabores disponíveis = somente os que têm preço cadastrado para o tamanho atual.
   const availablePizzaFlavors = isPizzaCategory
     ? pizzaFlavors.filter((f) => configuredPriceOfFlavor(f) > 0)
@@ -127,14 +131,15 @@ export function ProductModal({
     ? availablePizzaFlavors.filter((f) => flavorIds.includes(f.id))
     : [];
   const priceOfFlavor = (f: PizzaFlavorOption) => configuredPriceOfFlavor(f);
-  // Fracionamento: sempre média (price / n), ignorando overrides manuais.
-  const shareOfFlavor = (f: PizzaFlavorOption, n: number) =>
-    n <= 1 ? priceOfFlavor(f) : priceOfFlavor(f) / n;
+  // Fracionamento cobrado: 1 sabor = valor cheio; 2+ sabores = valor / quantidade escolhida.
+  const shareOfFlavor = (f: PizzaFlavorOption, divisor: number) =>
+    pizzaFlavorShare(priceOfFlavor(f), divisor);
   const n = selectedPizzaFlavors.length;
+  const chargeDivisor = pizzaChargeDivisor(n);
   const pizzaBase = isPizzaCategory && n > 0 && selectedPizzaSize
     ? (pizzaPriceRule === "max_value"
         ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
-        : selectedPizzaFlavors.reduce((s, f) => s + shareOfFlavor(f, n), 0))
+        : computeFractionedPizzaPrice(selectedPizzaFlavors.map(priceOfFlavor), n))
     : 0;
   // "A partir de" no header: menor preço cadastrado entre sabores disponíveis no tamanho atual.
   const pizzaStartingFrom = isPizzaCategory && availablePizzaFlavors.length > 0
@@ -219,7 +224,7 @@ export function ProductModal({
       extras.push({ id: `psize-${selectedPizzaSize.id}`, name: `Tamanho: ${selectedPizzaSize.name}`, price: 0 });
       const nf = selectedPizzaFlavors.length;
       for (const f of selectedPizzaFlavors) {
-        const label = nf > 1 ? `1/${nf} ${f.name} (${brl(shareOfFlavor(f, nf))})` : f.name;
+        const label = nf > 1 ? `1/${chargeDivisor} ${f.name} (${brl(shareOfFlavor(f, chargeDivisor))})` : f.name;
         extras.push({ id: `pflavor-${f.id}`, name: `Sabor: ${label}`, price: 0 });
       }
     }
@@ -305,7 +310,7 @@ export function ProductModal({
               <RadioGroup value={sizeId ?? ""} onValueChange={(v) => { setSizeId(v); setFlavorIds([]); }} className="mt-2 space-y-2">
                 {visiblePizzaSizes.map((s) => {
                   const prices = pizzaFlavors
-                    .map((f) => f.pricesByCategorySizeId[s.id] ?? 0)
+                    .map((f) => positivePizzaFlavorPrice(f, s.id))
                     .filter((n) => n > 0);
                   const minPrice = prices.length ? Math.min(...prices) : 0;
                   return (
@@ -355,7 +360,9 @@ export function ProductModal({
                 {availablePizzaFlavors.map((f) => {
                   const checked = flavorIds.includes(f.id);
                   const price = priceOfFlavor(f);
-                  const showFraction = checked && n > 1;
+                  const displayDivisor = pizzaPreviewDivisor(n, pizzaMaxFlavors);
+                  const showFraction = displayDivisor > 1;
+                  const displayShare = pizzaFlavorShare(price, displayDivisor);
                   return (
                     <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
                       <div className="flex items-start gap-3">
@@ -364,7 +371,7 @@ export function ProductModal({
                           <p className="flex items-center gap-2 text-sm font-medium">
                             {showFraction && (
                               <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                                1/{n}
+                                1/{displayDivisor}
                               </span>
                             )}
                             {f.name}
@@ -375,8 +382,8 @@ export function ProductModal({
                       <span className="shrink-0 text-right text-sm font-semibold text-primary">
                         {showFraction ? (
                           <>
-                            <span className="block text-[10px] font-normal text-muted-foreground">1/{n} de {brl(price)}</span>
-                            {brl(price / n)}
+                            <span className="block text-[10px] font-normal text-muted-foreground">1/{displayDivisor} de {brl(price)}</span>
+                            {brl(displayShare)}
                           </>
                         ) : (
                           brl(price)
