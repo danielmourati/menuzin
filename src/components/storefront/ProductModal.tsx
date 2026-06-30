@@ -279,12 +279,22 @@ export function ProductModal({
         <div className="flex-1 overflow-y-auto bg-card px-5 pt-5">
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
           <p className="mt-1 text-base">
-            <span className="font-bold">{brl(basePrice)}</span>
-            <span className="text-sm text-muted-foreground">/UN</span>
-            {product.promoPrice && !selectedSize && (
-              <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
+            {isPizzaCategory && n === 0 && pizzaStartingFrom > 0 ? (
+              <>
+                <span className="text-sm text-muted-foreground">A partir de </span>
+                <span className="font-bold">{brl(pizzaStartingFrom)}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-bold">{brl(basePrice)}</span>
+                <span className="text-sm text-muted-foreground">/UN</span>
+                {product.promoPrice && !selectedSize && !isPizzaCategory && (
+                  <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
+                )}
+              </>
             )}
           </p>
+
           {product.description && (
             <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
           )}
