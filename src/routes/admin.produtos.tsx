@@ -146,6 +146,7 @@ function ProductsPage() {
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, bestseller: false, prep_time: null, sort_order: products.length + 1,
       type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
+      listed_as_flavor: categories[0]?.kind === "pizza" ? null : null,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     });
     setOpen(true);
