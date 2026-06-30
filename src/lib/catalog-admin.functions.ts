@@ -155,6 +155,7 @@ const ProductInput = z.object({
   type: z.enum(["standard", "pizza"]).default("standard"),
   max_flavors: z.number().int().min(1).max(6).nullable().optional(),
   allow_observations: z.boolean().default(true),
+  listed_as_flavor: z.boolean().nullable().optional(),
   free_gift_kind: z.enum(["crust", "product"]).nullable().optional(),
   free_gift_ref_id: z.string().uuid().nullable().optional(),
   free_crust_mode: z.enum(["none", "fixed", "customer_choice"]).default("none"),
@@ -175,12 +176,17 @@ export const saveProduct = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
 
+    let categoryKind: string | null = null;
     if (data.category_id) {
       const { data: cat, error: cErr } = await sb
-        .from("categories").select("id").eq("id", data.category_id)
+        .from("categories").select("id, kind").eq("id", data.category_id)
         .eq("tenant_id", tenantId).maybeSingle();
       if (cErr) throw new Error(cErr.message);
       if (!cat) throw new Error("Categoria inválida para este tenant.");
+      categoryKind = (cat as { kind?: string | null }).kind ?? null;
+    }
+    if (categoryKind === "pizza" && (data.listed_as_flavor === null || data.listed_as_flavor === undefined)) {
+      throw new Error("Defina se este sabor entra na montagem de pizzas (listar como sabor).");
     }
 
     const payload = {
@@ -198,6 +204,7 @@ export const saveProduct = createServerFn({ method: "POST" })
       type: data.type,
       max_flavors: data.type === "pizza" ? (data.max_flavors ?? 1) : null,
       allow_observations: data.allow_observations,
+      listed_as_flavor: categoryKind === "pizza" ? (data.listed_as_flavor ?? null) : null,
       free_gift_kind: data.free_gift_kind ?? null,
       free_gift_ref_id: data.free_gift_ref_id ?? null,
       free_crust_mode: data.free_crust_mode,

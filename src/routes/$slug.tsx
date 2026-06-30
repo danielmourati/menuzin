@@ -553,7 +553,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         tenantSlug={tenant.slug}
         pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed" })) : []}
         pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
-          ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available).map((p) => ({
+          ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available && p.listedAsFlavor === true).map((p) => ({
               id: p.id,
               name: p.name,
               description: p.description,

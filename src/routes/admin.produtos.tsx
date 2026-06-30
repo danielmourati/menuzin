@@ -47,6 +47,7 @@ type Editing = {
   type: "standard" | "pizza";
   max_flavors: number | null;
   allow_observations: boolean;
+  listed_as_flavor: boolean | null;
   free_gift_kind: "crust" | "product" | null;
   free_gift_ref_id: string | null;
   free_crust_mode: "none" | "fixed" | "customer_choice";
@@ -145,6 +146,7 @@ function ProductsPage() {
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, bestseller: false, prep_time: null, sort_order: products.length + 1,
       type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
+      listed_as_flavor: categories[0]?.kind === "pizza" ? null : null,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     });
     setOpen(true);
@@ -153,6 +155,9 @@ function ProductsPage() {
   const save = () => {
     if (!editing) return;
     if (!editing.name) return toast.error("Nome é obrigatório");
+    if (isPizzaCategory && editing.listed_as_flavor === null) {
+      return toast.error("Defina se este sabor entra na montagem de pizzas.");
+    }
     saveMut.mutate(editing);
   };
 
@@ -217,6 +222,12 @@ function ProductsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{p.name}</p>
                     {p.type === "pizza" && <Badge variant="secondary"><Pizza className="mr-1 h-3 w-3" /> Sabor</Badge>}
+                    {p.type === "pizza" && (p as { listed_as_flavor?: boolean | null }).listed_as_flavor === false && (
+                      <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-400">Não listado na montagem</Badge>
+                    )}
+                    {p.type === "pizza" && (p as { listed_as_flavor?: boolean | null }).listed_as_flavor == null && (
+                      <Badge variant="outline" className="border-destructive/40 text-destructive">Sabor não definido</Badge>
+                    )}
                     {p.featured && <Badge className="bg-primary/15 text-primary border-0"><Star className="mr-1 h-3 w-3" /> Destaque</Badge>}
                     {!p.available && <Badge variant="destructive">Indisponível</Badge>}
                   </div>
@@ -234,6 +245,7 @@ function ProductsPage() {
                       type: (p.type ?? "standard") as "standard" | "pizza",
                       max_flavors: p.max_flavors ?? null,
                       allow_observations: p.allow_observations ?? true,
+                      listed_as_flavor: (p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? null,
                       free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
                       free_gift_ref_id: p.free_gift_ref_id ?? null,
                       free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
@@ -399,9 +411,30 @@ function PizzaProductForm({
           folder="produtos"
         />
         <p className="text-[10px] text-muted-foreground">Formatos: JPEG, JPG, PNG. Resolução mínima: 300×275.</p>
+
+        <div className={`rounded-xl border p-3 ${editing.listed_as_flavor === null ? "border-destructive/60 bg-destructive/5" : ""}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Label className="text-sm font-semibold">Listar como sabor na montagem da pizza</Label>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Quando ativado, este item aparece como opção de sabor para o cliente montar pizzas (inclusive fracionadas — 1/2, 1/3, 1/4). Quando desativado, fica apenas como produto vendido inteiro.
+              </p>
+            </div>
+            <Switch
+              checked={editing.listed_as_flavor === true}
+              onCheckedChange={(v) => setEditing({ ...editing, listed_as_flavor: v })}
+            />
+          </div>
+          {editing.listed_as_flavor === null && (
+            <p className="mt-2 text-[11px] font-medium text-destructive">
+              Obrigatório: defina Sim ou Não antes de salvar.
+            </p>
+          )}
+        </div>
+
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSave} disabled={isSaving || !editing.name}>
+          <Button onClick={onSave} disabled={isSaving || !editing.name || editing.listed_as_flavor === null}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editing.id ? "Salvar" : "Continuar")}
           </Button>
         </DialogFooter>
@@ -459,7 +492,7 @@ function PizzaProductForm({
         />
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
-          <Button onClick={onSave} disabled={isSaving}>
+          <Button onClick={onSave} disabled={isSaving || editing.listed_as_flavor === null}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
           </Button>
         </DialogFooter>

@@ -46,6 +46,7 @@ export type Product = {
   type: "standard" | "pizza";
   maxFlavors?: number;
   allowObservations: boolean;
+  listedAsFlavor?: boolean | null;
   freeGiftKind?: "crust" | "product" | null;
   freeGiftRefId?: string | null;
   freeCrustMode?: "none" | "fixed" | "customer_choice";
