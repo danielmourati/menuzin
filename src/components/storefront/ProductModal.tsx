@@ -66,8 +66,8 @@ export function ProductModal({
   // Hide sizes with no real price among any sibling flavor
   const visiblePizzaSizes = useMemo(() => {
     if (!isPizzaCategory) return pizzaSizes;
-    return getVisiblePizzaSizesForProduct(pizzaSizes, pizzaFlavors, product?.id);
-  }, [isPizzaCategory, pizzaSizes, pizzaFlavors, product?.id]);
+    return getVisiblePizzaSizesForProduct(pizzaSizes, pizzaFlavors, product?.id, product?.sizes ?? []);
+  }, [isPizzaCategory, pizzaSizes, pizzaFlavors, product?.id, product?.sizes]);
 
   // Borda grátis: três modos
   const crustMode = (product?.freeCrustMode ?? "none") as "none" | "fixed" | "customer_choice";
