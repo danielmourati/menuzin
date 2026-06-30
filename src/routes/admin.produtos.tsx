@@ -222,6 +222,12 @@ function ProductsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{p.name}</p>
                     {p.type === "pizza" && <Badge variant="secondary"><Pizza className="mr-1 h-3 w-3" /> Sabor</Badge>}
+                    {p.type === "pizza" && (p as { listed_as_flavor?: boolean | null }).listed_as_flavor === false && (
+                      <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-400">Não listado na montagem</Badge>
+                    )}
+                    {p.type === "pizza" && (p as { listed_as_flavor?: boolean | null }).listed_as_flavor == null && (
+                      <Badge variant="outline" className="border-destructive/40 text-destructive">Sabor não definido</Badge>
+                    )}
                     {p.featured && <Badge className="bg-primary/15 text-primary border-0"><Star className="mr-1 h-3 w-3" /> Destaque</Badge>}
                     {!p.available && <Badge variant="destructive">Indisponível</Badge>}
                   </div>
