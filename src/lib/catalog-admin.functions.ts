@@ -155,6 +155,7 @@ const ProductInput = z.object({
   type: z.enum(["standard", "pizza"]).default("standard"),
   max_flavors: z.number().int().min(1).max(6).nullable().optional(),
   allow_observations: z.boolean().default(true),
+  listed_as_flavor: z.boolean().nullable().optional(),
   free_gift_kind: z.enum(["crust", "product"]).nullable().optional(),
   free_gift_ref_id: z.string().uuid().nullable().optional(),
   free_crust_mode: z.enum(["none", "fixed", "customer_choice"]).default("none"),
