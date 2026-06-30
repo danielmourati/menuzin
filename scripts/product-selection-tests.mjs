@@ -13,6 +13,8 @@ import {
   pizzaChargeDivisor,
   pizzaFlavorShare,
   computeFractionedPizzaPrice,
+  requiresExplicitFlavorSelection,
+  validatePizzaFlavorCount,
 } from "../src/lib/product-selection.ts";
 
 const baseProduct = {
