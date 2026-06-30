@@ -155,6 +155,9 @@ function ProductsPage() {
   const save = () => {
     if (!editing) return;
     if (!editing.name) return toast.error("Nome é obrigatório");
+    if (isPizzaCategory && editing.listed_as_flavor === null) {
+      return toast.error("Defina se este sabor entra na montagem de pizzas.");
+    }
     saveMut.mutate(editing);
   };
 
