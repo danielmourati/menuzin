@@ -236,6 +236,7 @@ function ProductsPage() {
                       type: (p.type ?? "standard") as "standard" | "pizza",
                       max_flavors: p.max_flavors ?? null,
                       allow_observations: p.allow_observations ?? true,
+                      listed_as_flavor: (p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? null,
                       free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
                       free_gift_ref_id: p.free_gift_ref_id ?? null,
                       free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
