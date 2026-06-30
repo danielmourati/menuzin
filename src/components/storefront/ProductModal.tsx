@@ -369,12 +369,12 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Sabores (pizza-category — siblings) */}
-          {isPizzaCategory && availablePizzaFlavors.length > 0 && (
+          {/* Sabores (pizza-category — siblings). Oculto quando o tamanho aceita só 1 sabor. */}
+          {isPizzaCategory && availablePizzaFlavors.length > 0 && requiresExplicitFlavorSelection(pizzaMaxFlavors) && (
             <Section
               title="Sabores"
               required
-              hint={`Escolha até ${pizzaMaxFlavors} (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
+              hint={`Escolha ${pizzaMaxFlavors} sabores (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
             >
               <div className="mt-2 space-y-2">
                 {availablePizzaFlavors.map((f) => {
