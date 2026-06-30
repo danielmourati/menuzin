@@ -345,40 +345,50 @@ export function ProductModal({
           )}
 
           {/* Sabores (pizza-category — siblings) */}
-          {isPizzaCategory && pizzaFlavors.length > 0 && (
+          {isPizzaCategory && availablePizzaFlavors.length > 0 && (
             <Section
               title="Sabores"
               required
               hint={`Escolha até ${pizzaMaxFlavors} (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
             >
-              {priceLocked && (
-                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                  💡 O valor da pizza não muda ao adicionar mais sabores — prevalece o sabor de maior preço.
-                </p>
-              )}
               <div className="mt-2 space-y-2">
-                {pizzaFlavors.map((f) => {
+                {availablePizzaFlavors.map((f) => {
                   const checked = flavorIds.includes(f.id);
                   const price = priceOfFlavor(f);
-                  const hidePrice = priceLocked && !checked;
+                  const showFraction = checked && n > 1;
                   return (
                     <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
                       <div className="flex items-start gap-3">
                         <Checkbox checked={checked} onCheckedChange={() => togglePizzaFlavor(f.id)} className="mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">{f.name}</p>
+                          <p className="flex items-center gap-2 text-sm font-medium">
+                            {showFraction && (
+                              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                                1/{n}
+                              </span>
+                            )}
+                            {f.name}
+                          </p>
                           {f.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>}
                         </div>
                       </div>
-                      {!hidePrice && (
-                        <span className="shrink-0 text-sm font-semibold text-primary">{brl(price)}</span>
-                      )}
+                      <span className="shrink-0 text-right text-sm font-semibold text-primary">
+                        {showFraction ? (
+                          <>
+                            <span className="block text-[10px] font-normal text-muted-foreground">1/{n} de {brl(price)}</span>
+                            {brl(price / n)}
+                          </>
+                        ) : (
+                          brl(price)
+                        )}
+                      </span>
                     </label>
                   );
                 })}
               </div>
             </Section>
           )}
+
 
           {/* Sabores (pizza) */}
           {!isPizzaCategory && isPizza && product.flavors && product.flavors.length > 0 && (
