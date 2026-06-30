@@ -486,7 +486,7 @@ function PizzaProductForm({
         />
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
-          <Button onClick={onSave} disabled={isSaving}>
+          <Button onClick={onSave} disabled={isSaving || editing.listed_as_flavor === null}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
           </Button>
         </DialogFooter>
