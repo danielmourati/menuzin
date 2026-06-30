@@ -140,7 +140,7 @@ export function ProductModal({
   const pizzaStartingFrom = isPizzaCategory && availablePizzaFlavors.length > 0
     ? Math.min(...availablePizzaFlavors.map(configuredPriceOfFlavor))
     : 0;
-  const priceLocked = false;
+  
 
 
 
