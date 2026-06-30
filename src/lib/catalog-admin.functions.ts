@@ -204,6 +204,7 @@ export const saveProduct = createServerFn({ method: "POST" })
       type: data.type,
       max_flavors: data.type === "pizza" ? (data.max_flavors ?? 1) : null,
       allow_observations: data.allow_observations,
+      listed_as_flavor: categoryKind === "pizza" ? (data.listed_as_flavor ?? null) : null,
       free_gift_kind: data.free_gift_kind ?? null,
       free_gift_ref_id: data.free_gift_ref_id ?? null,
       free_crust_mode: data.free_crust_mode,
