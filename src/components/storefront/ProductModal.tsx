@@ -23,6 +23,8 @@ import {
   pizzaChargeDivisor,
   pizzaFlavorShare,
   computeFractionedPizzaPrice,
+  requiresExplicitFlavorSelection,
+  validatePizzaFlavorCount,
 } from "@/lib/product-selection";
 
 type PizzaExtra = { id: string; name: string; extraPrice: number };
@@ -85,8 +87,15 @@ export function ProductModal({
       setQty(1);
       setLegacyAddons([]);
       if (product.categoryKind === "pizza" && visiblePizzaSizes.length > 0) {
-        setSizeId(visiblePizzaSizes[0].id);
-        setFlavorIds(pizzaFlavors.some((f) => f.id === product.id) ? [product.id] : []);
+        const firstSize = visiblePizzaSizes[0];
+        setSizeId(firstSize.id);
+        const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
+        // Tamanho 1 sabor: sabor é o próprio produto. 2+ sabores: cliente escolhe todos manualmente.
+        if (!requiresExplicitFlavorSelection(firstSize.maxFlavors) && productIsListed) {
+          setFlavorIds([product.id]);
+        } else {
+          setFlavorIds([]);
+        }
       } else {
         setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
         setFlavorIds([]);
@@ -183,8 +192,10 @@ export function ProductModal({
   const pizzaValidations: string[] = [];
   if (isPizzaCategory) {
     if (!selectedPizzaSize) pizzaValidations.push("Escolha um tamanho");
-    else if (selectedPizzaFlavors.length < 1) pizzaValidations.push("Escolha ao menos 1 sabor");
-    else if (selectedPizzaFlavors.length > pizzaMaxFlavors) pizzaValidations.push(`Máximo ${pizzaMaxFlavors} sabor${pizzaMaxFlavors > 1 ? "es" : ""}`);
+    else {
+      const flavorErr = validatePizzaFlavorCount(selectedPizzaFlavors.length, pizzaMaxFlavors);
+      if (flavorErr) pizzaValidations.push(flavorErr);
+    }
   }
   const validations = isPizzaCategory
     ? pizzaValidations
@@ -307,7 +318,16 @@ export function ProductModal({
           {/* Tamanhos (pizza-category) */}
           {isPizzaCategory && visiblePizzaSizes.length > 0 && (
             <Section title="Tamanho" required>
-              <RadioGroup value={sizeId ?? ""} onValueChange={(v) => { setSizeId(v); setFlavorIds([]); }} className="mt-2 space-y-2">
+              <RadioGroup value={sizeId ?? ""} onValueChange={(v) => {
+                setSizeId(v);
+                const nextSize = visiblePizzaSizes.find((s) => s.id === v);
+                const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
+                if (nextSize && !requiresExplicitFlavorSelection(nextSize.maxFlavors) && productIsListed) {
+                  setFlavorIds([product.id]);
+                } else {
+                  setFlavorIds([]);
+                }
+              }} className="mt-2 space-y-2">
                 {visiblePizzaSizes.map((s) => {
                   const prices = pizzaFlavors
                     .map((f) => positivePizzaFlavorPrice(f, s.id))
@@ -349,12 +369,12 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Sabores (pizza-category — siblings) */}
-          {isPizzaCategory && availablePizzaFlavors.length > 0 && (
+          {/* Sabores (pizza-category — siblings). Oculto quando o tamanho aceita só 1 sabor. */}
+          {isPizzaCategory && availablePizzaFlavors.length > 0 && requiresExplicitFlavorSelection(pizzaMaxFlavors) && (
             <Section
               title="Sabores"
               required
-              hint={`Escolha até ${pizzaMaxFlavors} (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
+              hint={`Escolha ${pizzaMaxFlavors} sabores (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
             >
               <div className="mt-2 space-y-2">
                 {availablePizzaFlavors.map((f) => {

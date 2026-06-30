@@ -13,6 +13,8 @@ import {
   pizzaChargeDivisor,
   pizzaFlavorShare,
   computeFractionedPizzaPrice,
+  requiresExplicitFlavorSelection,
+  validatePizzaFlavorCount,
 } from "../src/lib/product-selection.ts";
 
 const baseProduct = {
@@ -134,6 +136,21 @@ const baseProduct = {
   assert.equal(pizzaFlavorShare(62, 2), 31, "R$ 62 split in two is R$ 31");
   assert.equal(computeFractionedPizzaPrice([62, 62], 2), 62, "two half flavors total one full pizza");
   assert.equal(computeFractionedPizzaPrice([90, 90, 90], 3), 90, "three third flavors total one full pizza");
+}
+
+// --- requiresExplicitFlavorSelection / validatePizzaFlavorCount ---
+{
+  assert.equal(requiresExplicitFlavorSelection(1), false, "1-flavor size does not require explicit selection");
+  assert.equal(requiresExplicitFlavorSelection(2), true, "2-flavor size requires explicit selection");
+  assert.equal(requiresExplicitFlavorSelection(4), true, "4-flavor size requires explicit selection");
+
+  assert.equal(validatePizzaFlavorCount(1, 1), null, "1 of 1 is valid");
+  assert.equal(validatePizzaFlavorCount(0, 1), "Escolha 1 sabor", "0 of 1 prompts to choose");
+  assert.equal(validatePizzaFlavorCount(1, 2), "Escolha 2 sabores (1/2)", "1 of 2 is incomplete");
+  assert.equal(validatePizzaFlavorCount(2, 3), "Escolha 3 sabores (2/3)", "2 of 3 is incomplete");
+  assert.equal(validatePizzaFlavorCount(3, 3), null, "3 of 3 is valid");
+  assert.equal(validatePizzaFlavorCount(4, 4), null, "4 of 4 is valid");
+  assert.equal(validatePizzaFlavorCount(3, 2), "Máximo 2 sabores", "exceeding the max is invalid");
 }
 
 // --- parseAddonLabel ---
