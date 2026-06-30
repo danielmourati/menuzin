@@ -176,12 +176,17 @@ export const saveProduct = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
 
+    let categoryKind: string | null = null;
     if (data.category_id) {
       const { data: cat, error: cErr } = await sb
-        .from("categories").select("id").eq("id", data.category_id)
+        .from("categories").select("id, kind").eq("id", data.category_id)
         .eq("tenant_id", tenantId).maybeSingle();
       if (cErr) throw new Error(cErr.message);
       if (!cat) throw new Error("Categoria inválida para este tenant.");
+      categoryKind = (cat as { kind?: string | null }).kind ?? null;
+    }
+    if (categoryKind === "pizza" && (data.listed_as_flavor === null || data.listed_as_flavor === undefined)) {
+      throw new Error("Defina se este sabor entra na montagem de pizzas (listar como sabor).");
     }
 
     const payload = {
