@@ -1,38 +1,40 @@
 ## Objetivo
-No cadastro de produto em categoria pizza (`/admin/produtos`), exigir que o admin defina explicitamente, via toggle obrigatório, se o item será listado como **sabor selecionável** na montagem da pizza no lado do cliente (suportando fracionamento). Sem essa decisão, o produto não pode ser salvo.
-
-## Comportamento
-
-- Todo produto cuja categoria tem `kind = "pizza"` ganha o campo **"Listar como sabor na montagem da pizza"** (Switch + descrição curta).
-- O toggle é **obrigatório**: ao criar um novo sabor, o estado inicial é `null` (indefinido) e o botão Salvar fica desabilitado até o admin escolher Sim/Não. Mensagem inline: "Defina se este item entra na montagem de pizzas".
-- Quando **Sim**: o produto aparece na lista de sabores no `ProductModal` (storefront), respeitando regras de fracionamento já existentes (`fraction_prices`, `max_flavors`, `price_rule`).
-- Quando **Não**: o produto continua existindo na categoria pizza (para venda direta / cardápio), mas **não** é oferecido como opção fracionável na montagem.
-- Produtos fora de categoria pizza ignoram o campo (não aparece no formulário).
+Ajustar a renderização e o cálculo de preços de pizzas no storefront (`src/components/storefront/ProductModal.tsx` e seu wiring em `src/routes/$slug.tsx`) para refletir somente o que foi cadastrado, exibir "A partir de" no header do modal, padronizar a divisão por sabor e marcar 1/N na descrição.
 
 ## Mudanças
 
-### Migration
-- `products`: adicionar coluna `listed_as_flavor BOOLEAN` (nullable; sem default, para distinguir "não definido" em legados).
-- Backfill: para produtos existentes em categorias pizza, setar `listed_as_flavor = true` (mantém comportamento atual). Demais ficam `NULL`.
+### 1. Mostrar tamanhos/sabores apenas se tiverem preço cadastrado
+- `visiblePizzaSizes` já filtra tamanhos sem preço em nenhum sabor — manter.
+- Na lista de **sabores**, calcular `priceOfFlavor` SEM fallback para `fallbackPrice` quando estiver em pizza-category. Se o sabor não tiver preço cadastrado para o tamanho selecionado:
+  - ocultar o sabor da lista (ele não é selecionável para esse tamanho); ou
+  - se ainda assim listado, ocultar o valor e impedir seleção.
+- Decisão: **filtrar** os sabores do tamanho atual, mantendo a lista enxuta e impedindo seleção inválida.
 
-### Backend (`src/lib/catalog-admin.functions.ts`)
-- `saveProduct`: aceitar `listed_as_flavor` (boolean opcional). Validar: se a categoria do produto é `kind = pizza`, o campo é obrigatório (`z.boolean()`); caso contrário, ignora.
+### 2. "A partir de" no header do modal
+Substituir o preço atual do header (que mostra `basePrice = 0` quando nada está selecionado) por:
+- Se `isPizzaCategory`: calcular `minFlavorPrice` = menor `pricesByCategorySizeId[sizeAtual]` entre os sabores disponíveis para o tamanho selecionado e renderizar "A partir de **R$ X**" enquanto `n === 0`; quando há sabor selecionado, exibir o total calculado normalmente.
+- Se não for pizza-category: manter comportamento atual.
 
-### Tipos
-- `DbProduct.listed_as_flavor?: boolean | null` em `src/lib/db-types.ts`.
-- `Product.listedAsFlavor?: boolean | null` em `src/lib/domain-types.ts`.
-- `dbProductToUi` em `src/lib/db-adapters.ts` mapeia o campo.
+### 3. Cálculo da pizza fracionada = média
+- Reescrever `shareOfFlavor` para **sempre** retornar `priceOfFlavor(f) / n`, removendo o uso de `fractionPricesByCategorySizeId` no cálculo do storefront (ele continua persistido no backend, mas o cliente passa a calcular sempre como média). Resultado: 2 sabores → 50%/50%; 3 sabores → 1/3 cada; soma = média dos preços.
+- `pizzaBase` permanece `sum_fractions` por padrão (= média). Mantém `max_value` quando categoria estiver configurada assim.
 
-### Admin UI (`src/routes/admin.produtos.tsx`)
-- Dentro do form do modal de produto, quando `isPizzaCategory` for true: renderizar bloco com Switch tri-estado (`Sim` / `Não` / não definido).
-- Quando estado é `null`, mostrar aviso vermelho e desabilitar Salvar.
-- Badge na listagem: produtos pizza com `listed_as_flavor = false` exibem badge "Não listado" para deixar claro.
+### 4. Indicar 1/N na descrição do sabor escolhido
+- Dentro do modal, quando `n > 1`, prefixar o nome do sabor selecionado com `1/N` em:
+  - lista de sabores (badge ao lado do nome quando o checkbox estiver marcado);
+  - resumo persistido no carrinho (já implementado em `extras.push` — manter, mas garantir formato "1/N • Nome — R$X").
 
-### Storefront (`src/routes/$slug.tsx`)
-- No mapeamento `pizzaFlavors` (linhas 555–567), adicionar filtro `&& p.listedAsFlavor === true`.
+### 5. Garantir desmarcação de sabor
+- `toggleFlavorId` já remove ao reclicar. Adicionar verificação visual: o `<Checkbox>` precisa receber `onCheckedChange` em qualquer estado (já recebe). Validar que o clique no label não está bloqueado e que, em `maxFlavors = 1`, reclicar o mesmo sabor o desmarca em vez de manter selecionado (ajustar `toggleFlavorId` se necessário — hoje já faz isso corretamente).
+- Smoke test rápido após edit: abrir um produto pizza com 2 sabores, clicar/desclicar.
 
-## Resumo técnico
-- 1 migration (coluna + backfill).
-- 4 arquivos de tipos/server: `db-types.ts`, `domain-types.ts`, `db-adapters.ts`, `catalog-admin.functions.ts`.
-- 2 arquivos UI: `admin.produtos.tsx` (form + badge), `$slug.tsx` (filtro de sabores).
-- Nenhuma mudança em pagamentos, checkout ou fluxo de pedidos.
+## Arquivos tocados
+- `src/components/storefront/ProductModal.tsx` — header "A partir de", filtro de sabores por tamanho, `shareOfFlavor` = média, badge 1/N na lista.
+- (Nenhuma mudança em backend, schema ou admin.)
+
+## Validação
+- Abrir produto pizza com 2 e 3 sabores, conferir total = média dos preços do tamanho.
+- Conferir header exibe "A partir de" + menor preço cadastrado do tamanho atual.
+- Tamanhos sem preço cadastrado para nenhum sabor não aparecem; sabores sem preço para o tamanho selecionado não aparecem.
+- Clicar e desclicar sabor funciona com `maxFlavors = 1` e `> 1`.
+- Carrinho recebe rótulo "1/N Nome (R$ x,xx)".

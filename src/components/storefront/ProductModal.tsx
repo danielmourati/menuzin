@@ -116,24 +116,32 @@ export function ProductModal({
   const selectedPizzaSize = isPizzaCategory ? visiblePizzaSizes.find((s) => s.id === sizeId) ?? visiblePizzaSizes[0] : undefined;
   const pizzaMaxFlavors = selectedPizzaSize?.maxFlavors ?? 1;
   const pizzaPriceRule = selectedPizzaSize?.priceRule ?? "sum_fractions";
-  const selectedPizzaFlavors = isPizzaCategory ? pizzaFlavors.filter((f) => flavorIds.includes(f.id)) : [];
-  const priceOfFlavor = (f: PizzaFlavorOption) =>
-    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || f.fallbackPrice;
-  // Share por sabor: usa fraction_prices[N] cadastrado, senão divide igualmente o valor cheio.
-  const shareOfFlavor = (f: PizzaFlavorOption, n: number) => {
-    if (n <= 1) return priceOfFlavor(f);
-    const fracs = selectedPizzaSize ? f.fractionPricesByCategorySizeId?.[selectedPizzaSize.id] : undefined;
-    const fromFrac = fracs?.[String(n)];
-    if (typeof fromFrac === "number" && fromFrac > 0) return fromFrac;
-    return priceOfFlavor(f) / n;
-  };
+  // Preço cadastrado do sabor para o tamanho atual (0 = não cadastrado).
+  const configuredPriceOfFlavor = (f: PizzaFlavorOption) =>
+    (selectedPizzaSize && f.pricesByCategorySizeId[selectedPizzaSize.id]) || 0;
+  // Sabores disponíveis = somente os que têm preço cadastrado para o tamanho atual.
+  const availablePizzaFlavors = isPizzaCategory
+    ? pizzaFlavors.filter((f) => configuredPriceOfFlavor(f) > 0)
+    : [];
+  const selectedPizzaFlavors = isPizzaCategory
+    ? availablePizzaFlavors.filter((f) => flavorIds.includes(f.id))
+    : [];
+  const priceOfFlavor = (f: PizzaFlavorOption) => configuredPriceOfFlavor(f);
+  // Fracionamento: sempre média (price / n), ignorando overrides manuais.
+  const shareOfFlavor = (f: PizzaFlavorOption, n: number) =>
+    n <= 1 ? priceOfFlavor(f) : priceOfFlavor(f) / n;
   const n = selectedPizzaFlavors.length;
   const pizzaBase = isPizzaCategory && n > 0 && selectedPizzaSize
     ? (pizzaPriceRule === "max_value"
         ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
         : selectedPizzaFlavors.reduce((s, f) => s + shareOfFlavor(f, n), 0))
     : 0;
-  const priceLocked = false;
+  // "A partir de" no header: menor preço cadastrado entre sabores disponíveis no tamanho atual.
+  const pizzaStartingFrom = isPizzaCategory && availablePizzaFlavors.length > 0
+    ? Math.min(...availablePizzaFlavors.map(configuredPriceOfFlavor))
+    : 0;
+  
+
 
 
   // --- Standard mode (legacy sizes/flavors on product) ---
@@ -271,12 +279,22 @@ export function ProductModal({
         <div className="flex-1 overflow-y-auto bg-card px-5 pt-5">
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
           <p className="mt-1 text-base">
-            <span className="font-bold">{brl(basePrice)}</span>
-            <span className="text-sm text-muted-foreground">/UN</span>
-            {product.promoPrice && !selectedSize && (
-              <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
+            {isPizzaCategory && n === 0 && pizzaStartingFrom > 0 ? (
+              <>
+                <span className="text-sm text-muted-foreground">A partir de </span>
+                <span className="font-bold">{brl(pizzaStartingFrom)}</span>
+              </>
+            ) : (
+              <>
+                <span className="font-bold">{brl(basePrice)}</span>
+                <span className="text-sm text-muted-foreground">/UN</span>
+                {product.promoPrice && !selectedSize && !isPizzaCategory && (
+                  <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
+                )}
+              </>
             )}
           </p>
+
           {product.description && (
             <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
           )}
@@ -327,40 +345,50 @@ export function ProductModal({
           )}
 
           {/* Sabores (pizza-category — siblings) */}
-          {isPizzaCategory && pizzaFlavors.length > 0 && (
+          {isPizzaCategory && availablePizzaFlavors.length > 0 && (
             <Section
               title="Sabores"
               required
               hint={`Escolha até ${pizzaMaxFlavors} (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
             >
-              {priceLocked && (
-                <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                  💡 O valor da pizza não muda ao adicionar mais sabores — prevalece o sabor de maior preço.
-                </p>
-              )}
               <div className="mt-2 space-y-2">
-                {pizzaFlavors.map((f) => {
+                {availablePizzaFlavors.map((f) => {
                   const checked = flavorIds.includes(f.id);
                   const price = priceOfFlavor(f);
-                  const hidePrice = priceLocked && !checked;
+                  const showFraction = checked && n > 1;
                   return (
                     <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
                       <div className="flex items-start gap-3">
                         <Checkbox checked={checked} onCheckedChange={() => togglePizzaFlavor(f.id)} className="mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium">{f.name}</p>
+                          <p className="flex items-center gap-2 text-sm font-medium">
+                            {showFraction && (
+                              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                                1/{n}
+                              </span>
+                            )}
+                            {f.name}
+                          </p>
                           {f.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>}
                         </div>
                       </div>
-                      {!hidePrice && (
-                        <span className="shrink-0 text-sm font-semibold text-primary">{brl(price)}</span>
-                      )}
+                      <span className="shrink-0 text-right text-sm font-semibold text-primary">
+                        {showFraction ? (
+                          <>
+                            <span className="block text-[10px] font-normal text-muted-foreground">1/{n} de {brl(price)}</span>
+                            {brl(price / n)}
+                          </>
+                        ) : (
+                          brl(price)
+                        )}
+                      </span>
                     </label>
                   );
                 })}
               </div>
             </Section>
           )}
+
 
           {/* Sabores (pizza) */}
           {!isPizzaCategory && isPizza && product.flavors && product.flavors.length > 0 && (
