@@ -1,34 +1,37 @@
-## Plano
+# Extração de CEPs e bairros — Parnaíba/PI
 
-Ajustes no fluxo de montagem de pizza fracionada em `src/components/storefront/ProductModal.tsx` e helpers em `src/lib/product-selection.ts`.
+## Contexto e limitação da ViaCEP
+A ViaCEP **não expõe** um endpoint "listar todos os CEPs da cidade". As duas rotas disponíveis são:
+- `GET /ws/{cep}/json/` — consulta 1 CEP.
+- `GET /ws/{UF}/{cidade}/{logradouro}/json/` — busca por logradouro (mín. 3 letras, retorna no máx. 50 resultados).
 
-### 1. Tornar a escolha de sabores obrigatória até completar o tamanho
-- Para tamanhos de pizza com `maxFlavors >= 2` (2, 3 ou 4 sabores), o cliente passa a ser obrigado a selecionar **exatamente** `maxFlavors` sabores — não basta escolher 1.
-- Atualizar `pizzaValidations` no modal:
-  - Se `selectedPizzaFlavors.length < pizzaMaxFlavors` → erro: `Escolha ${pizzaMaxFlavors} sabores (${n}/${pizzaMaxFlavors})`.
-  - Manter o teto em `pizzaMaxFlavors`.
-- Bloquear o botão "Adicionar" e exibir contador no título da seção `Sabores` no formato `Escolha ${max} sabores (${n}/${max})`.
-- Para tamanhos com `maxFlavors = 1`, manter exigência de exatamente 1 sabor (o próprio produto aberto).
+Não há como enumerar 100% dos CEPs de Parnaíba usando **apenas** ViaCEP. Para chegar perto do "todos", precisamos de uma fonte de sementes (faixas de CEP ou lista de logradouros) e então enriquecer via ViaCEP.
 
-### 2. Ocultar seção de sabores quando o tamanho permite apenas 1 sabor
-- Quando o `selectedPizzaSize.maxFlavors === 1`:
-  - Não renderizar a seção "Sabores" no storefront.
-  - Forçar `flavorIds = [product.id]` automaticamente ao selecionar esse tamanho (o sabor é o próprio produto aberto, sem opção de troca).
-  - Garantir que `pizzaValidations` aceite essa seleção implícita como válida.
-- Ao trocar para um tamanho com `maxFlavors > 1`, voltar a exibir a seção e limpar `flavorIds` para o cliente escolher manualmente todos os sabores requeridos.
+## Estratégia
+Como o projeto já tem a tabela `cep_ranges` (usada em `src/lib/cep-ranges.functions.ts`) com faixas oficiais dos Correios, vou usá-la como fonte de sementes e complementar com ViaCEP:
 
-### 3. Resumo e cálculo
-- Cálculo de preço continua usando `computeFractionedPizzaPrice` (média dos sabores selecionados) — agora sempre com `n === maxFlavors` quando `maxFlavors > 1`, então o `chargeDivisor` reflete corretamente as frações `1/N`.
-- Labels `1/N` no resumo e no item do carrinho permanecem como já implementadas.
+1. Ler todas as faixas de `cep_ranges` onde `uf='PI'` e `city ILIKE 'Parnaíba'` (via `supabase--read_query`).
+2. Para cada faixa:
+   - Se a faixa já traz `neighborhood`, usar direto.
+   - Se `neighborhood` for `NULL` (faixas gerais tipo CEP único de cidade), consultar ViaCEP no `cep_start` para tentar obter bairro/logradouro.
+3. Adicionalmente, varrer ViaCEP por logradouros comuns (a-z + prefixos "rua ", "av ", "travessa ") em `PI/Parnaiba/{termo}` para pegar CEPs de logradouro que possam não constar nas faixas — deduplicando por CEP.
+4. Consolidar, deduplicar por CEP, ordenar por bairro e depois por CEP.
 
-### 4. Teste de regressão
-- Em `scripts/product-selection-tests.mjs`, adicionar casos:
-  - Tamanho `maxFlavors = 1` com 1 sabor selecionado → válido; seção de sabores não deve aparecer (validar via novo helper `requiresExplicitFlavorSelection(size)` em `product-selection.ts`).
-  - Tamanho `maxFlavors = 2` com 1 sabor → inválido (`Escolha 2 sabores`).
-  - Tamanho `maxFlavors = 3` com 2 sabores → inválido; com 3 → válido e preço = média dos 3.
-  - Tamanho `maxFlavors = 4` com 3 sabores → inválido; com 4 → válido.
+## Entregáveis (em `/mnt/documents/`)
+- `parnaiba-pi-ceps.xlsx` — colunas: `CEP`, `Bairro`, `Logradouro`, `Cidade`, `UF`, `Fonte` (cep_ranges | viacep).
+- `parnaiba-pi-ceps.md` — mesma tabela em Markdown, agrupada por bairro, com contagem total no topo.
 
-### Arquivos afetados
-- `src/components/storefront/ProductModal.tsx` — validação, auto-seleção e renderização condicional da seção Sabores.
-- `src/lib/product-selection.ts` — novo helper para indicar se o tamanho exige seleção explícita e validador compartilhado para tamanho/sabores de pizza.
-- `scripts/product-selection-tests.mjs` — novos casos de regressão.
+## Implementação
+Script Python único em `/tmp/parnaiba_ceps.py`:
+- Usa `psql`/consulta ao banco via ferramenta `supabase--read_query` (executada antes do script; JSON salvo em `/tmp/parnaiba_seed.json`).
+- Requests para ViaCEP com throttle (~5 req/s) e retry.
+- Gera `.xlsx` com `openpyxl` seguindo o padrão do skill xlsx (fonte Arial, cabeçalho em negrito, congelar linha 1, filtros).
+- Gera `.md` correspondente.
+- Ao final, imprime totais (nº de CEPs, nº de bairros distintos).
+
+## Aviso de completude
+No topo do `.md` e em uma aba "Leia-me" do `.xlsx`, incluir nota:
+> "Cobertura baseada nas faixas oficiais dos Correios + enriquecimento ViaCEP. A ViaCEP não permite listar 100% dos CEPs de uma cidade; podem existir CEPs de grandes usuários ausentes."
+
+## Fora de escopo
+- Nenhuma alteração no app (front/back). É uma extração pontual de dados.
