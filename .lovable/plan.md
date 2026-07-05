@@ -1,23 +1,35 @@
-## Escopo
+## Imagem default para produtos sem foto
 
-Anexo 1 — Card da loja no storefront (`src/routes/$slug.tsx`, ~L350-390):
-- Hoje a ordem interna do card é: cabeçalho (logo + nome + status) → linha de infos (Bike/Clock/Wallet) → descrição da loja.
-- Inverter para: cabeçalho → **descrição da loja** → **linha de infos** (Bike/Clock/Wallet).
-- Ajustar as bordas `border-t`/paddings entre os dois blocos para manter o mesmo respiro visual do anexo (a linha de infos passa a ficar por baixo da descrição, com divisor sutil no topo).
+Adicionar uma ilustração vetorial cinza (gray food vector) como fallback quando o produto não tiver `image_url` cadastrado, aplicando tanto no storefront quanto no painel admin.
 
-Anexo 2 e 3 — Chevron de voltar em `/mais-vendidos`, `/destaques`, `/promocoes` disparando "Erro ao carregar a loja: Cannot read properties of undefined (reading 'filter')" (`src/routes/$slug.destaques.tsx`, também usado por `$slug.promocoes.tsx`):
-- Causa: `FeaturedList` usa `useQuery` com a **mesma queryKey** `["catalog", slug]` do storefront principal, mas com um `queryFn` que retorna uma forma reduzida (`{tenant, products}` sem `categories`, `pizzaSizes`, `pizzaDoughs`, `pizzaCrusts`). Quando o usuário volta para `/$slug`, o `useSuspenseQuery(catalogQueryOptions(slug))` lê o cache já sobrescrito e o `StorePage` executa `categories.filter(...)` sobre `undefined`, quebrando a página.
-- Correção: reutilizar `catalogQueryOptions` (exportado de `src/routes/$slug.tsx`) dentro do `FeaturedList` em vez de declarar um `queryFn` local. Isso mantém a mesma forma de dados em cache e a navegação de volta funciona sem recarregar.
-- Como `catalogQueryOptions` hoje é privado do módulo, exportá-lo de `$slug.tsx` e importar em `$slug.destaques.tsx`. `FeaturedList` passa a derivar `items` de `(data?.products ?? []).filter(filter)` sem mudar comportamento.
-- O chevron continua com `<Link to="/$slug" params={{ slug }}>` — nenhuma mudança de rota necessária.
+### 1. Gerar o asset
+- Criar `src/assets/default-food.svg` — ícone/ilustração vetorial de comida (prato + talheres) em tom cinza neutro (`#9CA3AF` / muted-foreground), fundo transparente, formato quadrado, estilo minimalista/flat.
+- Fazer upload via `lovable-assets` para CDN e gerar `default-food.svg.asset.json`.
 
-## Fora de escopo
+### 2. Criar helper compartilhado
+Novo arquivo `src/lib/product-image.ts`:
+```ts
+import defaultFood from "@/assets/default-food.svg.asset.json";
+export const DEFAULT_PRODUCT_IMAGE = defaultFood.url;
+export const productImage = (url?: string | null) =>
+  url && url.trim() ? url : DEFAULT_PRODUCT_IMAGE;
+```
 
-- Estilo/tema, textos, cálculo de valores, outros pontos do checkout.
-- Rotas administrativas.
+### 3. Aplicar nos componentes
+Substituir usos diretos de `product.image` / `p.image_url` pelo helper:
 
-## Critério de conclusão
+**Storefront:**
+- `src/components/storefront/ProductCard.tsx` (linhas 57 e 120)
+- `src/components/storefront/ProductModal.tsx` (linha 278)
+- `src/components/storefront/FeaturedScroller.tsx` (linha 50)
+- `src/components/storefront/UpsellSuggestions.tsx` (linha 54)
 
-- Card da loja mostra a descrição imediatamente abaixo do cabeçalho e a linha "Entrega ~ / Tempo / Mín." logo abaixo da descrição.
-- Ao clicar no chevron de voltar em `/mais-vendidos`, `/destaques` e `/promocoes`, o storefront carrega normalmente, sem o erro "reading 'filter'".
-- Build e typecheck passam.
+Adicionar também `object-contain` + `bg-muted` quando for o placeholder (para o vetor não ficar cortado por `object-cover`), via classe condicional.
+
+**Admin:**
+- `src/routes/admin.produtos.tsx` (linha 220) — trocar o `https://placehold.co/...` pelo `productImage(p.image_url)`.
+- `src/components/ui/image-uploader.tsx` (linha 52) — quando `value` for vazio, mostrar o placeholder ao invés de não renderizar preview algum (opcional; melhora UX).
+
+### Comportamento
+- Produtos com imagem: renderizam normalmente com `object-cover`.
+- Produtos sem imagem: renderizam o SVG cinza centralizado com `object-contain` sobre `bg-muted`, mantendo o mesmo aspect ratio do card.
