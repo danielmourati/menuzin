@@ -120,9 +120,11 @@ export function ProductCard({
       )}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <img
-          src={product.image}
+          src={productImage(product.image)}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
+            isDefaultProductImage(product.image) ? "object-contain p-6" : "object-cover"
+          }`}
           loading="lazy"
           decoding="async"
         />
