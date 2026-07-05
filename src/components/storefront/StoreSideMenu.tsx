@@ -1,6 +1,6 @@
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Link } from "@tanstack/react-router";
-import { LogIn, UtensilsCrossed, Percent, Info, X } from "lucide-react";
+import { LogIn, UtensilsCrossed, Percent, Info } from "lucide-react";
 import type { Tenant } from "@/lib/domain-types";
 import menuzinLogo from "@/assets/menuzin-logo.png.asset.json";
 
