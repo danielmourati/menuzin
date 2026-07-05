@@ -55,18 +55,9 @@ export function StoreAboutDrawer({
         side="bottom"
         className="h-[92vh] overflow-y-auto rounded-t-3xl p-0 sm:max-w-lg sm:mx-auto"
       >
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/40 text-white backdrop-blur transition hover:bg-black/60"
-          aria-label="Fechar"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
         {/* Hero */}
         <div
-          className="relative flex flex-col items-center gap-3 px-6 pb-14 pt-8 text-center"
+          className="relative flex flex-col items-center gap-3 px-6 pb-8 pt-10 text-center"
           style={bannerStyle}
         >
           <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md">
@@ -82,7 +73,7 @@ export function StoreAboutDrawer({
         </div>
 
         {/* Chips */}
-        <div className="-mt-6 mx-4 mb-4 flex flex-wrap items-center justify-center gap-2 rounded-2xl border bg-card p-3 shadow-[var(--shadow-soft)]">
+        <div className="mx-4 mt-4 mb-4 flex flex-wrap items-center justify-center gap-2 rounded-2xl border bg-card p-3 shadow-[var(--shadow-soft)]">
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Truck className="h-3.5 w-3.5" /> Entrega {brl(tenant.deliveryFee)}
           </span>
