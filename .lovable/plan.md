@@ -1,37 +1,84 @@
-# Extração de CEPs e bairros — Parnaíba/PI
+# Melhorias mobile no storefront
 
-## Contexto e limitação da ViaCEP
-A ViaCEP **não expõe** um endpoint "listar todos os CEPs da cidade". As duas rotas disponíveis são:
-- `GET /ws/{cep}/json/` — consulta 1 CEP.
-- `GET /ws/{UF}/{cidade}/{logradouro}/json/` — busca por logradouro (mín. 3 letras, retorna no máx. 50 resultados).
+Escopo: mudanças de UI apenas no modo mobile (`md:` mantém o layout atual do desktop). Sem alterações de banco.
 
-Não há como enumerar 100% dos CEPs de Parnaíba usando **apenas** ViaCEP. Para chegar perto do "todos", precisamos de uma fonte de sementes (faixas de CEP ou lista de logradouros) e então enriquecer via ViaCEP.
+## 1. Card compacto do tenant (anexo 1)
 
-## Estratégia
-Como o projeto já tem a tabela `cep_ranges` (usada em `src/lib/cep-ranges.functions.ts`) com faixas oficiais dos Correios, vou usá-la como fonte de sementes e complementar com ViaCEP:
+No mobile, substituir o header atual em `src/routes/$slug.tsx` por um card no estilo do anexo:
 
-1. Ler todas as faixas de `cep_ranges` onde `uf='PI'` e `city ILIKE 'Parnaíba'` (via `supabase--read_query`).
-2. Para cada faixa:
-   - Se a faixa já traz `neighborhood`, usar direto.
-   - Se `neighborhood` for `NULL` (faixas gerais tipo CEP único de cidade), consultar ViaCEP no `cep_start` para tentar obter bairro/logradouro.
-3. Adicionalmente, varrer ViaCEP por logradouros comuns (a-z + prefixos "rua ", "av ", "travessa ") em `PI/Parnaiba/{termo}` para pegar CEPs de logradouro que possam não constar nas faixas — deduplicando por CEP.
-4. Consolidar, deduplicar por CEP, ordenar por bairro e depois por CEP.
+```
+[logo redondo] [Nome + status • aberto/fechado]         [›]
+[🛵 Entrega R$…] [⏱ 20-70min] [💰 Mín R$…]
+```
 
-## Entregáveis (em `/mnt/documents/`)
-- `parnaiba-pi-ceps.xlsx` — colunas: `CEP`, `Bairro`, `Logradouro`, `Cidade`, `UF`, `Fonte` (cep_ranges | viacep).
-- `parnaiba-pi-ceps.md` — mesma tabela em Markdown, agrupada por bairro, com contagem total no topo.
+- Logo circular à esquerda (`h-14 w-14 rounded-full`).
+- Título com nome e, abaixo, linha de status colorida (verde/vermelho + label "Aberta" / "Fechada — Agendar pedido").
+- Chevron `›` à direita indicando que é clicável.
+- Chips com `Entrega`, `Prep time` e `Mín. pedido` numa linha rolável (`overflow-x-auto`).
+- Card inteiro `<button>` que abre o drawer "Sobre a loja" (item 5).
+- No desktop (`md:`) mantém o layout completo atual.
 
-## Implementação
-Script Python único em `/tmp/parnaiba_ceps.py`:
-- Usa `psql`/consulta ao banco via ferramenta `supabase--read_query` (executada antes do script; JSON salvo em `/tmp/parnaiba_seed.json`).
-- Requests para ViaCEP com throttle (~5 req/s) e retry.
-- Gera `.xlsx` com `openpyxl` seguindo o padrão do skill xlsx (fonte Arial, cabeçalho em negrito, congelar linha 1, filtros).
-- Gera `.md` correspondente.
-- Ao final, imprime totais (nº de CEPs, nº de bairros distintos).
+## 2. Lupa de busca (mobile)
 
-## Aviso de completude
-No topo do `.md` e em uma aba "Leia-me" do `.xlsx`, incluir nota:
-> "Cobertura baseada nas faixas oficiais dos Correios + enriquecimento ViaCEP. A ViaCEP não permite listar 100% dos CEPs de uma cidade; podem existir CEPs de grandes usuários ausentes."
+No mobile, o input de busca vira um botão-lupa no canto (top-right, ao lado ou dentro do header). Ao tocar:
 
-## Fora de escopo
-- Nenhuma alteração no app (front/back). É uma extração pontual de dados.
+- Expande um input full-width abaixo do header com autofocus e um `×` para fechar.
+- Estado `searchOpen` local em `StorePage`.
+- Desktop continua com o input visível como hoje.
+
+## 3. Menu lateral (anexo 2)
+
+Novo componente `src/components/storefront/StoreSideMenu.tsx` — `Sheet` shadcn com `side="left"`:
+
+- Cabeçalho: logo da loja + nome do tenant.
+- Itens:
+  - **Entrar** → `/admin/login` (ícone `LogIn`).
+  - **Cardápio** → fecha o menu e volta ao topo.
+  - **Cupons e Promoções** → nova rota (item 3.1).
+  - **Sobre Nós** → abre o drawer "Sobre a loja" (item 5).
+- Rodapé: "Desenvolvido por Menuzin" com o logo.
+- Botão-hambúrguer (`Menu`) no header do storefront (mobile), à esquerda da logo.
+
+### 3.1 Rota `/$slug/cupons`
+
+Página pública que lista cupons ativos do tenant com código, descrição, desconto e validade. Reusa `listCoupons` (server fn nova ou já existente para o público — vou criar `listPublicCoupons` em `src/lib/coupons.functions.ts` filtrando por tenant slug + `active=true` + validade).
+
+## 4. Página "Ver todos" nos destaques (anexo 3)
+
+- `FeaturedScroller` ganha prop opcional `viewAllTo?: string`. Quando presente, renderiza link "Ver todos ›" no cabeçalho.
+- Nova rota `src/routes/$slug.destaques.tsx` renderizando um grid completo dos produtos com `featured=true` (fetch via `catalogQueryOptions` do slug).
+- Nova rota `src/routes/$slug.promocoes.tsx` idem para categoria "Promoções/Ofertas".
+- No storefront, os dois `FeaturedScroller`s recebem `viewAllTo` apontando para essas rotas.
+
+## 5. Drawer "Sobre a loja" (anexo 4)
+
+Novo componente `src/components/storefront/StoreAboutDrawer.tsx` — `Sheet side="bottom"` no mobile / `side="right"` no desktop:
+
+- Hero: banner colorido com logo e nome do tenant.
+- Chips: entrega, prep time, pedido mínimo.
+- **Opções de entrega**: 3 cards (Delivery / Retirada / Consumo Local) marcados conforme `acceptsDelivery`, `acceptsTakeout`, `acceptsDinein`.
+- **Horário de funcionamento**: badge Aberta/Fechada + tabela dos 7 dias a partir de `hoursSchedule`.
+- **Formas de pagamento**: fetch de `getPublicPaymentSettingsBySlug` (já existe) e listagem em pills: Dinheiro, Cartão de Crédito, Cartão de Débito, PIX, Transferência (mostra apenas os habilitados).
+- Aberto pelo card do item 1 e pelo item "Sobre Nós" do menu lateral.
+
+## Arquivos que serão criados/alterados
+
+Novos:
+
+- `src/components/storefront/StoreSideMenu.tsx`
+- `src/components/storefront/StoreAboutDrawer.tsx`
+- `src/routes/$slug.destaques.tsx`
+- `src/routes/$slug.promocoes.tsx`
+- `src/routes/$slug.cupons.tsx`
+
+Alterados:
+
+- `src/routes/$slug.tsx` — novo header mobile, botão-lupa, botão-menu, integração dos drawers e passagem de `viewAllTo` para os scrollers.
+- `src/components/storefront/FeaturedScroller.tsx` — prop `viewAllTo`.
+- `src/lib/coupons.functions.ts` — nova `listPublicCoupons` (público, filtra por slug + ativos + validade).
+
+## Fora do escopo
+
+- CNPJ/Razão social no drawer (não existem no schema `tenants`).
+- Mudanças no layout desktop (só mobile).
+- Aplicar cupom na página de cupons — apenas listagem/cópia do código.
