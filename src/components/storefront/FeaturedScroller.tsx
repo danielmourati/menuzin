@@ -48,9 +48,11 @@ export function FeaturedScroller({
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
                   <img
-                    src={p.image}
+                    src={productImage(p.image)}
                     alt={p.name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
+                      isDefaultProductImage(p.image) ? "object-contain p-5" : "object-cover"
+                    }`}
                     loading="lazy"
                     decoding="async"
                   />
