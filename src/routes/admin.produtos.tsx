@@ -218,7 +218,7 @@ function ProductsPage() {
                   isFirst={idx === 0}
                   isLast={idx === filtered.length - 1}
                 />
-                <img src={p.image_url || "https://placehold.co/120x120?text=Foto"} alt="" className="h-20 w-20 rounded-xl object-cover" loading="lazy" decoding="async" />
+                <img src={productImage(p.image_url)} alt="" className={`h-20 w-20 rounded-xl bg-muted ${isDefaultProductImage(p.image_url) ? "object-contain p-2" : "object-cover"}`} loading="lazy" decoding="async" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{p.name}</p>
