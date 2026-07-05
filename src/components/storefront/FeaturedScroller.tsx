@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
 
@@ -9,12 +10,16 @@ export function FeaturedScroller({
   title = "Destaques",
   badgeLabel = "Destaque",
   badgeClassName = "bg-primary text-primary-foreground",
+  viewAllTo,
+  viewAllParams,
 }: {
   products: Product[];
   onSelect: (p: Product) => void;
   title?: string;
   badgeLabel?: string;
   badgeClassName?: string;
+  viewAllTo?: string;
+  viewAllParams?: Record<string, string>;
 }) {
   if (products.length === 0) return null;
 
@@ -22,7 +27,17 @@ export function FeaturedScroller({
     <section className="mt-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-bold">{title}</h2>
+        {viewAllTo && (
+          <Link
+            to={viewAllTo}
+            params={viewAllParams}
+            className="inline-flex items-center gap-0.5 text-xs font-semibold text-muted-foreground hover:text-primary"
+          >
+            Ver todos <ChevronRight className="h-3.5 w-3.5" />
+          </Link>
+        )}
       </div>
+
       <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
         <div className="flex snap-x snap-mandatory gap-3 pb-2">
           {products.map((p) => {
