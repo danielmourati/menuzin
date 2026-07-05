@@ -965,27 +965,33 @@ export function CartDrawer({
                     const unit = computeUnitPrice(i);
                     return (
                       <div key={i.uid} className="flex justify-between gap-3">
-                        <span><span className="font-semibold">{i.qty}x</span> {i.product.name}</span>
-                        <span className="font-semibold">{brl(unit * i.qty)}</span>
+                        <span className="min-w-0 flex-1 break-words"><span className="font-semibold">{i.qty}x</span> {i.product.name}</span>
+                        <span className="font-semibold tabular-nums whitespace-nowrap">{brl(unit * i.qty)}</span>
                       </div>
                     );
                   })}
-                  <div className="flex justify-between border-t pt-2 text-muted-foreground">
-                    <span>Subtotal</span><span>{brl(subtotal)}</span>
+                </div>
+              </div>
+
+              {/* Resumo de valores */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-2 text-muted-foreground">
+                    <span>Subtotal</span><span className="tabular-nums whitespace-nowrap">{brl(subtotal)}</span>
                   </div>
                   {discount > 0 && appliedCoupon && (
-                    <div className="flex justify-between text-success">
-                      <span>Cupom {appliedCoupon.code}</span><span>− {brl(discount)}</span>
+                    <div className="flex justify-between gap-2 text-success">
+                      <span className="min-w-0 flex-1">Cupom {appliedCoupon.code}</span><span className="tabular-nums whitespace-nowrap">− {brl(discount)}</span>
                     </div>
                   )}
                   {deliveryFee > 0 && (
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}</span><span>{brl(deliveryFee)}</span>
+                    <div className="flex justify-between gap-2 text-muted-foreground">
+                      <span className="min-w-0 flex-1">Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}</span><span className="tabular-nums whitespace-nowrap">{brl(deliveryFee)}</span>
                     </div>
                   )}
-                  <div className="flex items-baseline justify-between border-t pt-2">
+                  <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
                     <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</span>
-                    <span className="text-xl font-extrabold text-primary">{brl(total)}</span>
+                    <span className="text-xl font-extrabold text-primary tabular-nums whitespace-nowrap">{brl(total)}</span>
                   </div>
                 </div>
               </div>
