@@ -371,17 +371,23 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5 text-[11px] font-medium text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
+            <div className="mt-3 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2.5 text-[11px] font-medium text-muted-foreground">
+              <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" /> {tenant.prepTime || "—"}
               </span>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Wallet className="h-3.5 w-3.5" /> Mín. {brl(tenant.minOrder)}
               </span>
             </div>
+
+            {tenant.description && (
+              <p className="mt-2 line-clamp-2 border-t pt-2 text-[11px] text-muted-foreground">
+                {tenant.description}
+              </p>
+            )}
           </button>
 
           {/* Search input (mobile, colapsável) */}
