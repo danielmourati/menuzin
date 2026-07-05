@@ -12,6 +12,7 @@ import { brl } from "@/lib/format";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonGroup, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
 import { toast } from "sonner";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
 import {
   validateSelection,
   computeBasePrice,
