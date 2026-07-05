@@ -1,57 +1,23 @@
-## Objetivo
+## Escopo
 
-Melhorar a legibilidade dos detalhes de valores do checkout no storefront, que atualmente aparecem "colados", comprometendo a visualização em aparelhos menores. O ajuste será aplicado em ambos os locais onde os valores são exibidos: na barra fixa inferior (StickySubtotal) e no resumo detalhado da etapa de revisão do pedido.
+Anexo 1 — Card da loja no storefront (`src/routes/$slug.tsx`, ~L350-390):
+- Hoje a ordem interna do card é: cabeçalho (logo + nome + status) → linha de infos (Bike/Clock/Wallet) → descrição da loja.
+- Inverter para: cabeçalho → **descrição da loja** → **linha de infos** (Bike/Clock/Wallet).
+- Ajustar as bordas `border-t`/paddings entre os dois blocos para manter o mesmo respiro visual do anexo (a linha de infos passa a ficar por baixo da descrição, com divisor sutil no topo).
 
-## Direção visual escolhida
-
-- **Estilo:** Compacto com divisores
-- **Abordagem:** manter a densidade de informação, mas introduzir separadores sutis e alinhamento consistente entre os itens de valor, sem aumentar drasticamente a altura dos blocos.
-
-## Escopo de mudanças
-
-### 1. Barra fixa inferior (`StickySubtotal` em `src/components/storefront/CartDrawer.tsx`)
-
-Atualmente a barra empilha Subtotal, Desconto, Taxa de entrega e Total em uma coluna sem separadores, e o total fica muito próximo do valor do Subtotal.
-
-Mudanças:
-- Inserir um divisor sutil (`border-t border-border/60`) entre o grupo de itens intermediários (Subtotal/Desconto/Taxa) e o Total.
-- Aumentar levemente o espaçamento entre as linhas (`space-y-2` ao invés de `space-y-1`).
-- Garantir alinhamento numérico à direita (`tabular-nums`) para os valores não pularem entre telas.
-- Manter o Total em destaque com a cor primária e tamanho maior.
-- No mobile, quando houver botão de ação, garantir que a coluna de valores tenha `min-w-0` e não comprima o botão; reduzir o gap entre a coluna de valores e o botão de `gap-3` para `gap-2` se necessário.
-
-### 2. Resumo detalhado da revisão (`review` step em `src/components/storefront/CartDrawer.tsx`)
-
-Atualmente o resumo dos itens, Subtotal, Desconto, Taxa e Total são exibidos em uma lista contínua sem separadores.
-
-Mudanças:
-- Agrupar os itens do pedido em um bloco separado do resumo de valores.
-- Adicionar divisor entre a lista de itens e os valores (Subtotal/Desconto/Taxa).
-- Adicionar divisor mais forte entre o grupo intermediário e o Total.
-- Aplicar `tabular-nums` aos valores para alinhamento.
-- Garantir que o nome dos produtos tenha `min-w-0` e `break-words` para não extrapolar a largura em telas pequenas.
-- Manter o destaque do Total com cor primária.
-
-### 3. Responsividade em telas pequenas
-
-- Verificar se a barra fixa inferior não quebra em larguras menores que 360px.
-- Se o botão de ação for muito largo, reduzir o `min-w` ou usar tamanho de fonte menor no CTA apenas em telas muito pequenas (usando breakpoint `sm:`).
-- Garantir que valores como `R$ 1.234,56` não forcem quebra de linha indesejada (valores com `whitespace-nowrap`).
-
-## Arquivos afetados
-
-- `src/components/storefront/CartDrawer.tsx` (ajustes nos componentes `StickySubtotal` e na seção de review)
+Anexo 2 e 3 — Chevron de voltar em `/mais-vendidos`, `/destaques`, `/promocoes` disparando "Erro ao carregar a loja: Cannot read properties of undefined (reading 'filter')" (`src/routes/$slug.destaques.tsx`, também usado por `$slug.promocoes.tsx`):
+- Causa: `FeaturedList` usa `useQuery` com a **mesma queryKey** `["catalog", slug]` do storefront principal, mas com um `queryFn` que retorna uma forma reduzida (`{tenant, products}` sem `categories`, `pizzaSizes`, `pizzaDoughs`, `pizzaCrusts`). Quando o usuário volta para `/$slug`, o `useSuspenseQuery(catalogQueryOptions(slug))` lê o cache já sobrescrito e o `StorePage` executa `categories.filter(...)` sobre `undefined`, quebrando a página.
+- Correção: reutilizar `catalogQueryOptions` (exportado de `src/routes/$slug.tsx`) dentro do `FeaturedList` em vez de declarar um `queryFn` local. Isso mantém a mesma forma de dados em cache e a navegação de volta funciona sem recarregar.
+- Como `catalogQueryOptions` hoje é privado do módulo, exportá-lo de `$slug.tsx` e importar em `$slug.destaques.tsx`. `FeaturedList` passa a derivar `items` de `(data?.products ?? []).filter(filter)` sem mudar comportamento.
+- O chevron continua com `<Link to="/$slug" params={{ slug }}>` — nenhuma mudança de rota necessária.
 
 ## Fora de escopo
 
-- Mudanças de cores do tema (manter paleta atual).
-- Mudanças no cálculo de valores ou regras de negócio.
-- Alterações no fluxo de etapas do checkout.
-- Alterações no desktop (os ajustes são mobile-first e devem manter a aparência no desktop).
+- Estilo/tema, textos, cálculo de valores, outros pontos do checkout.
+- Rotas administrativas.
 
 ## Critério de conclusão
 
-- Visualização dos valores no checkout apresenta separadores claros entre Subtotal/Desconto/Taxa e o Total.
-- Nenhum elemento fica "colado" ou sobreposto em viewports de 320px ou superiores.
-- Total continua destacado com a cor primária e tamanho maior.
-- Build e typecheck passam sem erros.
+- Card da loja mostra a descrição imediatamente abaixo do cabeçalho e a linha "Entrega ~ / Tempo / Mín." logo abaixo da descrição.
+- Ao clicar no chevron de voltar em `/mais-vendidos`, `/destaques` e `/promocoes`, o storefront carrega normalmente, sem o erro "reading 'filter'".
+- Build e typecheck passam.

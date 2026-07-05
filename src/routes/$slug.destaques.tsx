@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { getCatalog } from "@/lib/catalog.functions";
-import { dbProductToUi, dbTenantToUi } from "@/lib/db-adapters";
+import { catalogQueryOptions } from "./$slug";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { ArrowLeft } from "lucide-react";
@@ -37,19 +36,7 @@ export function FeaturedList({
   const [open, setOpen] = useState(false);
 
   const q = useQuery({
-    queryKey: ["catalog", slug],
-    queryFn: async () => {
-      const res = await getCatalog({ data: { slug } });
-      if (!res.tenant) return null;
-      const catNameById = new Map(res.categories.map((c) => [c.id, c.name]));
-      const catKindById = new Map(res.categories.map((c) => [c.id, (c as { kind?: string }).kind === "pizza" ? "pizza" as const : "standard" as const]));
-      return {
-        tenant: dbTenantToUi(res.tenant),
-        products: res.products.map((p) =>
-          dbProductToUi(p, p.category_id ? catNameById.get(p.category_id) ?? "" : "", p.category_id ? catKindById.get(p.category_id) ?? "standard" : "standard"),
-        ),
-      };
-    },
+    ...catalogQueryOptions(slug),
     staleTime: 30_000,
   });
 

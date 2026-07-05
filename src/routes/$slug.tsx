@@ -49,7 +49,7 @@ import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 const STORE_SLUG_PATTERN = /^[a-z0-9-]+$/;
 const isCatalogSlug = (slug: string) => STORE_SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.has(slug);
 
-const catalogQueryOptions = (slug: string) => queryOptions({
+export const catalogQueryOptions = (slug: string) => queryOptions({
   queryKey: ["catalog", slug],
   queryFn: async () => {
     const res = await getCatalog({ data: { slug } });
@@ -371,7 +371,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
 
-            <div className="mt-3 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2.5 text-[11px] font-medium text-muted-foreground">
+            {tenant.description && (
+              <p className="mt-3 line-clamp-2 border-t pt-2.5 text-[11px] text-muted-foreground">
+                {tenant.description}
+              </p>
+            )}
+
+            <div className="mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground">
               <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
               </span>
@@ -382,12 +388,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 <Wallet className="h-3.5 w-3.5" /> Mín. {brl(tenant.minOrder)}
               </span>
             </div>
-
-            {tenant.description && (
-              <p className="mt-2 line-clamp-2 border-t pt-2 text-[11px] text-muted-foreground">
-                {tenant.description}
-              </p>
-            )}
           </button>
 
           {/* Search input (mobile, colapsável) */}
