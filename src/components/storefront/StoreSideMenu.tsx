@@ -34,15 +34,19 @@ export function StoreSideMenu({
 
         {/* Items */}
         <nav className="flex-1 overflow-y-auto py-2">
-          <Link
-            to="/admin/login"
-            onClick={close}
-            className="flex items-center gap-4 px-5 py-4 text-sm font-medium hover:bg-muted/50"
-          >
-            <LogIn className="h-5 w-5" />
-            Entrar
-          </Link>
-          <div className="mx-5 border-b" />
+          {false && (
+            <>
+              <Link
+                to="/admin/login"
+                onClick={close}
+                className="flex items-center gap-4 px-5 py-4 text-sm font-medium hover:bg-muted/50"
+              >
+                <LogIn className="h-5 w-5" />
+                Entrar
+              </Link>
+              <div className="mx-5 border-b" />
+            </>
+          )}
 
           <Link
             to="/$slug"
