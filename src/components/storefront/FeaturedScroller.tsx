@@ -29,12 +29,13 @@ export function FeaturedScroller({
         <h2 className="text-lg font-bold">{title}</h2>
         {viewAllTo && (
           <Link
-            to={viewAllTo}
-            params={viewAllParams}
+            to={viewAllTo as never}
+            params={viewAllParams as never}
             className="inline-flex items-center gap-0.5 text-xs font-semibold text-muted-foreground hover:text-primary"
           >
             Ver todos <ChevronRight className="h-3.5 w-3.5" />
           </Link>
+
         )}
       </div>
 
