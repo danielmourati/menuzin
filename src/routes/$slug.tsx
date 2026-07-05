@@ -450,8 +450,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             <FeaturedScroller
               products={products.filter((p) => p.featured)}
               title="Mais vendidos"
-              viewAllTo="/$slug/destaques"
-              viewAllParams={{ slug: tenant.slug }}
+              viewAllHref={`/${tenant.slug}/destaques`}
               onSelect={(p) => {
                 if (!storeOpen) return;
                 setSelectedProduct(p);
@@ -474,8 +473,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   title="Promoções"
                   badgeLabel="Oferta"
                   badgeClassName="bg-destructive text-destructive-foreground"
-                  viewAllTo="/$slug/promocoes"
-                  viewAllParams={{ slug: tenant.slug }}
+                  viewAllHref={`/${tenant.slug}/promocoes`}
                   onSelect={(p) => {
                     if (!storeOpen) return;
                     setSelectedProduct(p);
