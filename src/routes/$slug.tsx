@@ -679,7 +679,21 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           onClose={closePromo}
         />
       ) : null}
+
+      <StoreSideMenu
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
+        tenant={tenant}
+        onOpenAbout={() => setAboutOpen(true)}
+      />
+      <StoreAboutDrawer
+        open={aboutOpen}
+        onOpenChange={setAboutOpen}
+        tenant={tenant}
+        storeOpen={storeOpen}
+      />
     </div>
+
   );
 }
 
