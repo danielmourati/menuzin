@@ -341,9 +341,9 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               type="button"
               onClick={() => setSearchOpen((v) => !v)}
               aria-label="Buscar produtos"
-              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
+              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
             >
-              {searchOpen ? <XIcon className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              {searchOpen ? <XIcon className="h-4 w-4" /> : <Search className="h-4 w-4" />}
             </button>
           </div>
 
