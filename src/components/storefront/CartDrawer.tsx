@@ -6,9 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Minus, Plus, Trash2, ShoppingBag, ArrowLeft, ChevronRight,
-  Truck, Store as StoreIcon, Utensils, Smartphone, DollarSign,
-  User, Mail, Phone, MapPin, Pencil, Home, Map, Ticket, Loader2, X as XIcon,
+  Minus,
+  Plus,
+  Trash2,
+  ShoppingBag,
+  ArrowLeft,
+  ChevronRight,
+  Truck,
+  Store as StoreIcon,
+  Utensils,
+  Smartphone,
+  DollarSign,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Pencil,
+  Home,
+  Map,
+  Ticket,
+  Loader2,
+  X as XIcon,
   Eraser,
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
@@ -16,22 +34,47 @@ import { brl } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
 import { toast } from "sonner";
-import { getPaymentSettingsBySlug, createPixPayment, createCardPayment } from "@/lib/payment-service";
-import type { StorePaymentSettingsSafe, PaymentMethod, PixPaymentData, CardPaymentData } from "@/lib/payment-types";
+import {
+  getPaymentSettingsBySlug,
+  createPixPayment,
+  createCardPayment,
+} from "@/lib/payment-service";
+import type {
+  StorePaymentSettingsSafe,
+  PaymentMethod,
+  PixPaymentData,
+  CardPaymentData,
+} from "@/lib/payment-types";
 import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelector";
 import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone } from "@/lib/masks";
 import { validateCoupon, type ValidatedCoupon } from "@/lib/coupons.functions";
-import { listPublicDeliveryZones, resolveDeliveryFee, type PublicDeliveryZone, type DeliveryFeeResolution } from "@/lib/delivery-zones.functions";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  listPublicDeliveryZones,
+  resolveDeliveryFee,
+  type PublicDeliveryZone,
+  type DeliveryFeeResolution,
+} from "@/lib/delivery-zones.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { lookupByCep } from "@/lib/viacep";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UpsellSuggestions } from "@/components/storefront/UpsellSuggestions";
-
 
 type Step =
   | "cart"
@@ -49,8 +92,12 @@ type Step =
 type Mode = "entrega" | "retirada" | "consumo_local";
 
 export function CartDrawer({
-  open, onOpenChange,
-}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
   const { items, update, remove, subtotal, clear } = useCart();
@@ -112,7 +159,7 @@ export function CartDrawer({
 
   const { data: tenantData } = useQuery({
     queryKey: ["public-tenant", slug],
-    queryFn: () => slug ? getTenantBySlug({ data: { slug } }) : Promise.resolve({ tenant: null }),
+    queryFn: () => (slug ? getTenantBySlug({ data: { slug } }) : Promise.resolve({ tenant: null })),
     enabled: !!slug,
     staleTime: 60_000,
   });
@@ -123,7 +170,10 @@ export function CartDrawer({
   // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
   const { data: zonesData } = useQuery({
     queryKey: ["public-delivery-zones", slug],
-    queryFn: () => slug ? listPublicDeliveryZones({ data: { tenant_slug: slug } }) : Promise.resolve({ zones: [] as PublicDeliveryZone[] }),
+    queryFn: () =>
+      slug
+        ? listPublicDeliveryZones({ data: { tenant_slug: slug } })
+        : Promise.resolve({ zones: [] as PublicDeliveryZone[] }),
     enabled: !!slug && deliveryMode === "neighborhood",
     staleTime: 60_000,
   });
@@ -133,7 +183,8 @@ export function CartDrawer({
   const cepDigitsOnly = cep.replace(/\D/g, "");
   const { data: feeResolution, isFetching: feeLoading } = useQuery<DeliveryFeeResolution>({
     queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood],
-    queryFn: () => resolveDeliveryFee({ data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood } }),
+    queryFn: () =>
+      resolveDeliveryFee({ data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood } }),
     enabled: !!slug && mode === "entrega",
     staleTime: 30_000,
   });
@@ -148,7 +199,9 @@ export function CartDrawer({
     if (!couponInput || !slug) return;
     setCouponLoading(true);
     try {
-      const res = await validateCoupon({ data: { tenant_slug: slug, code: couponInput.trim(), subtotal } });
+      const res = await validateCoupon({
+        data: { tenant_slug: slug, code: couponInput.trim(), subtotal },
+      });
       setAppliedCoupon(res);
       toast.success(`Cupom ${res.code} aplicado`);
     } catch (e) {
@@ -158,7 +211,10 @@ export function CartDrawer({
       setCouponLoading(false);
     }
   };
-  const removeCoupon = () => { setAppliedCoupon(null); setCouponInput(""); };
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+  };
 
   // Dynamic CEP search (ViaCEP) with debounce + abort.
   useEffect(() => {
@@ -185,25 +241,56 @@ export function CartDrawer({
         setCepError("Falha ao buscar CEP. Preencha manualmente.");
       }
     }, 400);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cep]);
 
   const hasFormData = Boolean(
-    cep || street || number || neighborhood || complement || reference ||
-    table || name || phone || email || doc || generalNote || couponInput || appliedCoupon
+    cep ||
+    street ||
+    number ||
+    neighborhood ||
+    complement ||
+    reference ||
+    table ||
+    name ||
+    phone ||
+    email ||
+    doc ||
+    generalNote ||
+    couponInput ||
+    appliedCoupon,
   );
 
   const clearForm = () => {
-    setCep(""); setStreet(""); setNumber(""); setNeighborhood("");
-    setComplement(""); setReference(""); setTable("");
-    setName(""); setPhone(""); setEmail(""); setDoc(""); setGeneralNote("");
-    setCouponInput(""); setAppliedCoupon(null);
-    setPaymentWhen(null); setPaymentMethod("PIX"); setSelectedMethod(null);
-    setDbOrderId(null); setDbOrderNumber(null);
-    setPixData(null); setCardData(null);
-    setCepError(null); setCepLoading(false);
-    setHistory([]); setStep("mode");
+    setCep("");
+    setStreet("");
+    setNumber("");
+    setNeighborhood("");
+    setComplement("");
+    setReference("");
+    setTable("");
+    setName("");
+    setPhone("");
+    setEmail("");
+    setDoc("");
+    setGeneralNote("");
+    setCouponInput("");
+    setAppliedCoupon(null);
+    setPaymentWhen(null);
+    setPaymentMethod("PIX");
+    setSelectedMethod(null);
+    setDbOrderId(null);
+    setDbOrderNumber(null);
+    setPixData(null);
+    setCardData(null);
+    setCepError(null);
+    setCepLoading(false);
+    setHistory([]);
+    setStep("mode");
     toast.success("Campos limpos");
   };
 
@@ -211,8 +298,6 @@ export function CartDrawer({
     if (hasFormData) setClearOpen(true);
     else clearForm();
   };
-
-
 
   const goTo = (next: Step) => {
     setHistory((h) => [...h, step]);
@@ -227,17 +312,28 @@ export function CartDrawer({
     });
   };
   const resetAll = () => {
-    setStep("cart"); setHistory([]);
-    setDbOrderId(null); setDbOrderNumber(null);
-    setPixData(null); setCardData(null); setSelectedMethod(null);
-    setAppliedCoupon(null); setCouponInput("");
+    setStep("cart");
+    setHistory([]);
+    setDbOrderId(null);
+    setDbOrderNumber(null);
+    setPixData(null);
+    setCardData(null);
+    setSelectedMethod(null);
+    setAppliedCoupon(null);
+    setCouponInput("");
   };
-
 
   const modeLabelMap: Record<Mode, string> = {
-    entrega: "Entrega", retirada: "Retirada no local", consumo_local: "Consumo no local",
+    entrega: "Entrega",
+    retirada: "Retirada no local",
+    consumo_local: "Consumo no local",
   };
-  const paymentWhenLabel = paymentWhen === "agora" ? "Pagar agora" : paymentWhen === "na_retirada" ? "Pagar na retirada" : "";
+  const paymentWhenLabel =
+    paymentWhen === "agora"
+      ? "Pagar agora"
+      : paymentWhen === "na_retirada"
+        ? "Pagar na retirada"
+        : "";
 
   const selectMode = (m: Mode) => {
     setMode(m);
@@ -286,16 +382,24 @@ export function CartDrawer({
         payment_label: `${paymentWhenLabel} · ${methodLabel}`,
         delivery_fee: deliveryFee,
         delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
-        delivery_neighborhood_snapshot: mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
-        address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
+        delivery_neighborhood_snapshot:
+          mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
+        address:
+          mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
         table_label: mode === "consumo_local" ? table : null,
         note: generalNote || null,
         coupon_code: appliedCoupon?.code ?? null,
 
         items: items.map((i) => {
           const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
-          const flavorLabels = (i.flavors ?? []).map((f) => ({ name: `Sabor: ${f.name}`, price: 0 }));
-          const groupLabels = (i.groupOptions ?? []).map((o) => ({ name: `${o.groupName}: ${o.name}`, price: Number(o.price) }));
+          const flavorLabels = (i.flavors ?? []).map((f) => ({
+            name: `Sabor: ${f.name}`,
+            price: 0,
+          }));
+          const groupLabels = (i.groupOptions ?? []).map((o) => ({
+            name: `${o.groupName}: ${o.name}`,
+            price: Number(o.price),
+          }));
           const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
           return {
             product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
@@ -405,7 +509,11 @@ export function CartDrawer({
       } else if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
         finalPaymentStatus = (cardData?.payment_status as typeof finalPaymentStatus) || "approved";
         mpPaymentId = cardData?.payment_id;
-      } else if (selectedMethod === "cash" || selectedMethod === "card_on_delivery" || selectedMethod === "pix_manual") {
+      } else if (
+        selectedMethod === "cash" ||
+        selectedMethod === "card_on_delivery" ||
+        selectedMethod === "pix_manual"
+      ) {
         finalPaymentStatus = "manual";
       }
 
@@ -442,21 +550,33 @@ export function CartDrawer({
           unitPrice: computeUnitPrice(i),
           addons: [
             ...(i.size ? [{ id: i.size.id, name: `Tamanho: ${i.size.name}`, price: 0 }] : []),
-            ...((i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 }))),
-            ...((i.groupOptions ?? []).map((o) => ({ id: o.id, name: `${o.groupName}: ${o.name}`, price: Number(o.price) }))),
+            ...(i.flavors ?? []).map((f) => ({ id: f.id, name: `Sabor: ${f.name}`, price: 0 })),
+            ...(i.groupOptions ?? []).map((o) => ({
+              id: o.id,
+              name: `${o.groupName}: ${o.name}`,
+              price: Number(o.price),
+            })),
             ...i.addons,
           ],
           note: i.note,
         })),
-        subtotal, deliveryFee, total,
-        address: mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : undefined,
+        subtotal,
+        deliveryFee,
+        total,
+        address:
+          mode === "entrega"
+            ? { cep, street, number, neighborhood, complement, reference }
+            : undefined,
         table: mode === "consumo_local" ? table : undefined,
         note: generalNote,
       };
-      try { sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order)); } catch {}
+      try {
+        sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order));
+      } catch {}
       try {
         const { saveLastOrderForSlug } = await import("@/components/storefront/MobileBottomNav");
-        if (slug || tenant?.slug) saveLastOrderForSlug((slug || tenant?.slug)!, orderId, order.number);
+        if (slug || tenant?.slug)
+          saveLastOrderForSlug((slug || tenant?.slug)!, orderId, order.number);
       } catch {}
       toast.success(`Pedido #${order.number} criado`);
       clear();
@@ -472,12 +592,16 @@ export function CartDrawer({
     }
   };
 
-
   // ----- UI building blocks -----
   const Header = ({ title, right }: { title: string; right?: ReactNode }) => (
     <div className="flex items-center justify-between gap-2 border-b bg-card px-4 py-3.5 pr-12">
       <div className="flex min-w-0 items-center gap-2">
-        <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => (history.length ? goBack() : onOpenChange(false))}>
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-9 w-9 shrink-0"
+          onClick={() => (history.length ? goBack() : onOpenChange(false))}
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h2 className="truncate text-lg font-semibold tracking-tight">{title}</h2>
@@ -486,30 +610,51 @@ export function CartDrawer({
     </div>
   );
 
-  const StickySubtotal = ({ cta, onCta, disabled, loading }: { cta?: string; onCta?: () => void; disabled?: boolean; loading?: boolean }) => (
+  const StickySubtotal = ({
+    cta,
+    onCta,
+    disabled,
+    loading,
+  }: {
+    cta?: string;
+    onCta?: () => void;
+    disabled?: boolean;
+    loading?: boolean;
+  }) => (
     <div className="border-t bg-card px-4 py-3">
       <div className="flex items-end justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
-            <span>Subtotal</span><span className="font-medium tabular-nums">{brl(subtotal)}</span>
+            <span>Subtotal</span>
+            <span className="font-medium tabular-nums">{brl(subtotal)}</span>
           </div>
           {discount > 0 && (
             <div className="flex items-center justify-between gap-2 text-sm font-medium text-success">
-              <span>Desconto</span><span className="tabular-nums">− {brl(discount)}</span>
+              <span>Desconto</span>
+              <span className="tabular-nums">− {brl(discount)}</span>
             </div>
           )}
           {deliveryFee > 0 && (
             <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
-              <span>Taxa de entrega</span><span className="font-medium tabular-nums">{brl(deliveryFee)}</span>
+              <span>Taxa de entrega</span>
+              <span className="font-medium tabular-nums">{brl(deliveryFee)}</span>
             </div>
           )}
           <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
-            <p className="text-2xl font-extrabold leading-none text-primary tabular-nums">{brl(total)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Total
+            </p>
+            <p className="text-2xl font-extrabold leading-none text-primary tabular-nums">
+              {brl(total)}
+            </p>
           </div>
         </div>
         {cta && (
-          <Button onClick={onCta} disabled={disabled || loading} className="h-12 shrink-0 min-w-[120px] sm:min-w-[140px] rounded-xl text-sm sm:text-base font-semibold">
+          <Button
+            onClick={onCta}
+            disabled={disabled || loading}
+            className="h-12 shrink-0 min-w-[120px] sm:min-w-[140px] rounded-xl text-sm sm:text-base font-semibold"
+          >
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
           </Button>
         )}
@@ -518,17 +663,37 @@ export function CartDrawer({
   );
 
   const OptionRow = ({
-    icon, title, subtitle, onClick, active, muted,
-  }: { icon: ReactNode; title: string; subtitle?: string; onClick: () => void; active?: boolean; muted?: boolean }) => (
+    icon,
+    title,
+    subtitle,
+    onClick,
+    active,
+    muted,
+  }: {
+    icon: ReactNode;
+    title: string;
+    subtitle?: string;
+    onClick: () => void;
+    active?: boolean;
+    muted?: boolean;
+  }) => (
     <button
       onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/40 ${
         active ? "border-primary/60" : ""
       }`}
     >
-      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
-        active ? "bg-primary/15 text-primary" : muted ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-      }`}>{icon}</span>
+      <span
+        className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
+          active
+            ? "bg-primary/15 text-primary"
+            : muted
+              ? "bg-muted text-muted-foreground"
+              : "bg-primary/10 text-primary"
+        }`}
+      >
+        {icon}
+      </span>
       <div className="flex-1">
         <p className={`font-semibold ${muted ? "text-muted-foreground" : ""}`}>{title}</p>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
@@ -548,16 +713,32 @@ export function CartDrawer({
   );
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetAll(); }}>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        onOpenChange(v);
+        if (!v) resetAll();
+      }}
+    >
       <SheetContent side="right" className="flex w-full flex-col gap-0 bg-card p-0 sm:max-w-md">
         {/* CART */}
         {step === "cart" && (
           <>
             <Header
               title="Carrinho"
-              right={items.length > 0 && (
-                <button onClick={() => { clear(); toast.success("Carrinho esvaziado"); }} className="text-sm font-semibold text-primary">Limpar</button>
-              )}
+              right={
+                items.length > 0 && (
+                  <button
+                    onClick={() => {
+                      clear();
+                      toast.success("Carrinho esvaziado");
+                    }}
+                    className="text-sm font-semibold text-primary"
+                  >
+                    Limpar
+                  </button>
+                )
+              }
             />
             <div className="flex-1 overflow-y-auto">
               {items.length === 0 ? (
@@ -573,8 +754,10 @@ export function CartDrawer({
                       const unit = computeUnitPrice(i);
                       const detailParts: string[] = [];
                       if (i.size) detailParts.push(i.size.name);
-                      if (i.flavors && i.flavors.length) detailParts.push(i.flavors.map((f) => f.name).join(" + "));
-                      if (i.groupOptions && i.groupOptions.length) detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
+                      if (i.flavors && i.flavors.length)
+                        detailParts.push(i.flavors.map((f) => f.name).join(" + "));
+                      if (i.groupOptions && i.groupOptions.length)
+                        detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
                       if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
                       const isFreeGift = i.note === "🎁 Brinde";
                       return (
@@ -583,25 +766,56 @@ export function CartDrawer({
                             <div className="min-w-0 flex-1">
                               <p className="font-semibold leading-tight">
                                 {i.product.name}
-                                {isFreeGift && <span className="ml-2 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase text-success">Brinde</span>}
+                                {isFreeGift && (
+                                  <span className="ml-2 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold uppercase text-success">
+                                    Brinde
+                                  </span>
+                                )}
                               </p>
                               {detailParts.length > 0 && (
-                                <p className="mt-0.5 text-xs text-muted-foreground">{detailParts.join(" · ")}</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">
+                                  {detailParts.join(" · ")}
+                                </p>
                               )}
-                              <p className="mt-2 font-bold">{isFreeGift ? "Grátis" : brl(unit * i.qty)}</p>
+                              <p className="mt-2 font-bold">
+                                {isFreeGift ? "Grátis" : brl(unit * i.qty)}
+                              </p>
                             </div>
                             {!isFreeGift && (
-                              <button className="text-sm font-semibold text-primary" onClick={() => onOpenChange(false)}>Alterar</button>
+                              <button
+                                className="text-sm font-semibold text-primary"
+                                onClick={() => onOpenChange(false)}
+                              >
+                                Alterar
+                              </button>
                             )}
                           </div>
                           {!isFreeGift && (
                             <div className="mt-3 flex justify-end">
                               <div className="flex items-center gap-2 rounded-lg bg-muted px-2 py-1">
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => i.qty === 1 ? remove(i.uid) : update(i.uid, i.qty - 1)}>
-                                  {i.qty === 1 ? <Trash2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-primary"
+                                  onClick={() =>
+                                    i.qty === 1 ? remove(i.uid) : update(i.uid, i.qty - 1)
+                                  }
+                                >
+                                  {i.qty === 1 ? (
+                                    <Trash2 className="h-4 w-4" />
+                                  ) : (
+                                    <Minus className="h-4 w-4" />
+                                  )}
                                 </Button>
-                                <span className="w-6 text-center text-sm font-semibold">{i.qty}</span>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" onClick={() => update(i.uid, i.qty + 1)}>
+                                <span className="w-6 text-center text-sm font-semibold">
+                                  {i.qty}
+                                </span>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-primary"
+                                  onClick={() => update(i.uid, i.qty + 1)}
+                                >
                                   <Plus className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -611,7 +825,10 @@ export function CartDrawer({
                       );
                     })}
                     <div className="px-4 py-6 text-center">
-                      <button onClick={() => onOpenChange(false)} className="text-sm font-bold text-primary">
+                      <button
+                        onClick={() => onOpenChange(false)}
+                        className="text-sm font-bold text-primary"
+                      >
                         Adicionar mais itens
                       </button>
                     </div>
@@ -625,9 +842,16 @@ export function CartDrawer({
                         <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/10 px-3 py-2">
                           <div className="text-sm">
                             <p className="font-mono font-bold">{appliedCoupon.code}</p>
-                            <p className="text-xs text-success">Desconto de {brl(discount)} aplicado</p>
+                            <p className="text-xs text-success">
+                              Desconto de {brl(discount)} aplicado
+                            </p>
                           </div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={removeCoupon}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={removeCoupon}
+                          >
                             <XIcon className="h-4 w-4" />
                           </Button>
                         </div>
@@ -640,8 +864,16 @@ export function CartDrawer({
                             className="h-10 uppercase font-mono"
                             maxLength={40}
                           />
-                          <Button onClick={applyCoupon} disabled={couponLoading || !couponInput} className="h-10">
-                            {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                          <Button
+                            onClick={applyCoupon}
+                            disabled={couponLoading || !couponInput}
+                            className="h-10"
+                          >
+                            {couponLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Aplicar"
+                            )}
                           </Button>
                         </div>
                       )}
@@ -660,13 +892,31 @@ export function CartDrawer({
             <Header title="Opções de entrega" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
               {(tenant?.accepts_delivery ?? true) && (
-                <OptionRow icon={<Truck className="h-5 w-5" />} title="Entrega" subtitle="Receba em seu endereço" onClick={() => selectMode("entrega")} active={mode === "entrega"} />
+                <OptionRow
+                  icon={<Truck className="h-5 w-5" />}
+                  title="Entrega"
+                  subtitle="Receba em seu endereço"
+                  onClick={() => selectMode("entrega")}
+                  active={mode === "entrega"}
+                />
               )}
               {(tenant?.accepts_takeout ?? true) && (
-                <OptionRow icon={<StoreIcon className="h-5 w-5" />} title="Retirada" subtitle="Retire no estabelecimento" onClick={() => selectMode("retirada")} active={mode === "retirada"} />
+                <OptionRow
+                  icon={<StoreIcon className="h-5 w-5" />}
+                  title="Retirada"
+                  subtitle="Retire no estabelecimento"
+                  onClick={() => selectMode("retirada")}
+                  active={mode === "retirada"}
+                />
               )}
               {(tenant?.accepts_dinein ?? true) && (
-                <OptionRow icon={<Utensils className="h-5 w-5" />} title="Consumo no local" subtitle="Consuma no estabelecimento" onClick={() => selectMode("consumo_local")} active={mode === "consumo_local"} />
+                <OptionRow
+                  icon={<Utensils className="h-5 w-5" />}
+                  title="Consumo no local"
+                  subtitle="Consuma no estabelecimento"
+                  onClick={() => selectMode("consumo_local")}
+                  active={mode === "consumo_local"}
+                />
               )}
             </div>
             <StickySubtotal />
@@ -701,13 +951,29 @@ export function CartDrawer({
                     <p className="mt-1 text-xs text-destructive">{cepError}</p>
                   )}
                 </div>
-                <div className="col-span-2"><Label>Rua *</Label><Input value={street} onChange={(e) => setStreet(e.target.value)} className="mt-1.5 h-11" /></div>
-                <div><Label>Número *</Label><Input value={number} onChange={(e) => setNumber(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div className="col-span-2">
+                  <Label>Rua *</Label>
+                  <Input
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    className="mt-1.5 h-11"
+                  />
+                </div>
+                <div>
+                  <Label>Número *</Label>
+                  <Input
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value)}
+                    className="mt-1.5 h-11"
+                  />
+                </div>
                 <div>
                   <Label>Bairro *</Label>
                   {deliveryMode === "neighborhood" && zones.length > 0 ? (
                     <Select value={neighborhood} onValueChange={setNeighborhood}>
-                      <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="Selecione o bairro" /></SelectTrigger>
+                      <SelectTrigger className="mt-1.5 h-11">
+                        <SelectValue placeholder="Selecione o bairro" />
+                      </SelectTrigger>
                       <SelectContent>
                         {zones.map((z) => (
                           <SelectItem key={z.id} value={z.neighborhood}>
@@ -717,11 +983,29 @@ export function CartDrawer({
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className="mt-1.5 h-11" />
+                    <Input
+                      value={neighborhood}
+                      onChange={(e) => setNeighborhood(e.target.value)}
+                      className="mt-1.5 h-11"
+                    />
                   )}
                 </div>
-                <div className="col-span-2"><Label>Complemento</Label><Input value={complement} onChange={(e) => setComplement(e.target.value)} className="mt-1.5 h-11" /></div>
-                <div className="col-span-2"><Label>Ponto de referência</Label><Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1.5 h-11" /></div>
+                <div className="col-span-2">
+                  <Label>Complemento</Label>
+                  <Input
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    className="mt-1.5 h-11"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label>Ponto de referência</Label>
+                  <Input
+                    value={reference}
+                    onChange={(e) => setReference(e.target.value)}
+                    className="mt-1.5 h-11"
+                  />
+                </div>
               </div>
 
               {/* Delivery fee feedback */}
@@ -738,24 +1022,33 @@ export function CartDrawer({
                 ) : feeResolution?.available ? (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span>Taxa de entrega{feeResolution.neighborhood ? ` (${feeResolution.neighborhood})` : ""}</span>
+                      <span>
+                        Taxa de entrega
+                        {feeResolution.neighborhood ? ` (${feeResolution.neighborhood})` : ""}
+                      </span>
                       <span className="font-semibold">{brl(feeResolution.fee)}</span>
                     </div>
                     {deliveryMinOrder > 0 && (
-                      <p className="text-[11px] text-muted-foreground">Pedido mínimo: {brl(deliveryMinOrder)}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Pedido mínimo: {brl(deliveryMinOrder)}
+                      </p>
                     )}
                   </div>
                 ) : (
                   <p className="text-destructive text-xs">
-                    {feeResolution?.message || "Informe o CEP ou bairro para calcular a taxa de entrega."}
+                    {feeResolution?.message ||
+                      "Informe o CEP ou bairro para calcular a taxa de entrega."}
                   </p>
                 )}
               </div>
             </div>
-            <StickySubtotal cta="Confirmar endereço" onCta={confirmAddress} disabled={!deliveryAvailable} />
+            <StickySubtotal
+              cta="Confirmar endereço"
+              onCta={confirmAddress}
+              disabled={!deliveryAvailable}
+            />
           </>
         )}
-
 
         {/* MODE - TABLE */}
         {step === "mode-table" && (
@@ -763,7 +1056,12 @@ export function CartDrawer({
             <Header title="Mesa / Comanda" right={<ClearBtn />} />
             <div className="flex-1 overflow-y-auto p-4">
               <Label>Mesa ou número da comanda *</Label>
-              <Input value={table} onChange={(e) => setTable(e.target.value)} placeholder="Ex: Mesa 7" className="mt-1.5 h-11" />
+              <Input
+                value={table}
+                onChange={(e) => setTable(e.target.value)}
+                placeholder="Ex: Mesa 7"
+                className="mt-1.5 h-11"
+              />
             </div>
             <StickySubtotal cta="Confirmar" onCta={confirmTable} />
           </>
@@ -774,8 +1072,22 @@ export function CartDrawer({
           <>
             <Header title="Opções de pagamento" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              <OptionRow icon={<Smartphone className="h-5 w-5" />} title="Pagar agora" subtitle="Pague agora pelo aplicativo" onClick={() => selectPaymentWhen("agora")} />
-              <OptionRow icon={<DollarSign className="h-5 w-5" />} title={mode === "entrega" ? "Pagar na entrega" : "Pagar na retirada"} subtitle={mode === "entrega" ? "Pague no momento da entrega" : "Pague no momento da retirada"} onClick={() => selectPaymentWhen("na_retirada")} />
+              <OptionRow
+                icon={<Smartphone className="h-5 w-5" />}
+                title="Pagar agora"
+                subtitle="Pague agora pelo aplicativo"
+                onClick={() => selectPaymentWhen("agora")}
+              />
+              <OptionRow
+                icon={<DollarSign className="h-5 w-5" />}
+                title={mode === "entrega" ? "Pagar na entrega" : "Pagar na retirada"}
+                subtitle={
+                  mode === "entrega"
+                    ? "Pague no momento da entrega"
+                    : "Pague no momento da retirada"
+                }
+                onClick={() => selectPaymentWhen("na_retirada")}
+              />
             </div>
             <StickySubtotal />
           </>
@@ -848,7 +1160,9 @@ export function CartDrawer({
                 <p className="text-sm text-muted-foreground">Chave PIX</p>
                 <p className="mt-1 font-mono text-primary">pix@burgerprime.com.br</p>
                 <p className="mt-3 text-xs text-muted-foreground">Recebedor: Burger Prime LTDA</p>
-                <p className="mt-3 text-xs">Envie o comprovante pelo WhatsApp após finalizar o pedido.</p>
+                <p className="mt-3 text-xs">
+                  Envie o comprovante pelo WhatsApp após finalizar o pedido.
+                </p>
               </div>
             </div>
             <StickySubtotal cta="Continuar" onCta={() => goTo("customer")} />
@@ -861,21 +1175,46 @@ export function CartDrawer({
             <Header title="Insira seus dados" right={<ClearBtn />} />
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
               <div>
-                <Label>Nome <span className="text-primary">*</span></Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Insira seu nome" className="mt-1.5 h-11" />
+                <Label>
+                  Nome <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Insira seu nome"
+                  className="mt-1.5 h-11"
+                />
               </div>
               <div>
-                <Label>Telefone <span className="text-primary">*</span></Label>
+                <Label>
+                  Telefone <span className="text-primary">*</span>
+                </Label>
                 <div className="mt-1.5 flex gap-2">
-                  <div className="flex h-11 items-center gap-1 rounded-md border bg-card px-3 text-sm">🇧🇷 +55</div>
-                  <Input value={phone} onChange={(e) => setPhone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" inputMode="tel" maxLength={15} className="h-11 flex-1" />
+                  <div className="flex h-11 items-center gap-1 rounded-md border bg-card px-3 text-sm">
+                    🇧🇷 +55
+                  </div>
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(maskPhone(e.target.value))}
+                    placeholder="(00) 00000-0000"
+                    inputMode="tel"
+                    maxLength={15}
+                    className="h-11 flex-1"
+                  />
                 </div>
               </div>
               <div>
                 <Label>Observação geral</Label>
-                <Textarea value={generalNote} onChange={(e) => setGeneralNote(e.target.value)} placeholder="Alguma observação para o pedido?" className="mt-1.5" />
+                <Textarea
+                  value={generalNote}
+                  onChange={(e) => setGeneralNote(e.target.value)}
+                  placeholder="Alguma observação para o pedido?"
+                  className="mt-1.5"
+                />
               </div>
-              <Button className="h-12 w-full text-base font-semibold" onClick={confirmCustomer}>Confirmar</Button>
+              <Button className="h-12 w-full text-base font-semibold" onClick={confirmCustomer}>
+                Confirmar
+              </Button>
             </div>
           </>
         )}
@@ -888,7 +1227,15 @@ export function CartDrawer({
               right={
                 <div className="flex items-center gap-2">
                   <ClearBtn />
-                  <Button size="icon" variant="ghost" className="h-9 w-9 text-primary" onClick={() => { onOpenChange(false); resetAll(); }}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 text-primary"
+                    onClick={() => {
+                      onOpenChange(false);
+                      resetAll();
+                    }}
+                  >
                     <Home className="h-5 w-5" />
                   </Button>
                 </div>
@@ -898,75 +1245,139 @@ export function CartDrawer({
               <UpsellSuggestions />
               {/* Customer */}
               <div className="rounded-2xl bg-card p-4">
-                <div className="flex items-center gap-2 font-semibold"><User className="h-4 w-4" /> {name}</div>
-                {email && <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Mail className="h-4 w-4" /> {email}</div>}
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" /> +55 {phone}</div>
+                <div className="flex items-center gap-2 font-semibold">
+                  <User className="h-4 w-4" /> {name}
+                </div>
+                {email && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4" /> {email}
+                  </div>
+                )}
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="h-4 w-4" /> +55 {phone}
+                </div>
               </div>
 
               {/* Mode */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2 font-semibold">
-                    {mode === "entrega" ? <Truck className="h-5 w-5" /> : mode === "retirada" ? <StoreIcon className="h-5 w-5" /> : <Utensils className="h-5 w-5" />}
+                    {mode === "entrega" ? (
+                      <Truck className="h-5 w-5" />
+                    ) : mode === "retirada" ? (
+                      <StoreIcon className="h-5 w-5" />
+                    ) : (
+                      <Utensils className="h-5 w-5" />
+                    )}
                     {mode && modeLabelMap[mode]}
                   </div>
-                  <button onClick={() => setStep("mode")} className="text-sm font-semibold text-primary">Alterar</button>
+                  <button
+                    onClick={() => setStep("mode")}
+                    className="text-sm font-semibold text-primary"
+                  >
+                    Alterar
+                  </button>
                 </div>
                 {mode === "entrega" && (
                   <div className="mt-3 space-y-1 text-sm">
-                    <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
-                    <p>{street}, {number}{complement ? ` — ${complement}` : ""}</p>
+                    <p className="flex items-center gap-1 font-medium text-muted-foreground">
+                      <MapPin className="h-4 w-4" /> Endereço:
+                    </p>
+                    <p>
+                      {street}, {number}
+                      {complement ? ` — ${complement}` : ""}
+                    </p>
                     {neighborhood && (
-                      <p><span className="text-muted-foreground">Bairro:</span> <span className="font-semibold">{neighborhood}</span></p>
+                      <p>
+                        <span className="text-muted-foreground">Bairro:</span>{" "}
+                        <span className="font-semibold">{neighborhood}</span>
+                      </p>
                     )}
                     {deliveryFee > 0 && (
-                      <p><span className="text-muted-foreground">Taxa de entrega:</span> <span className="font-semibold">{brl(deliveryFee)}</span></p>
+                      <p>
+                        <span className="text-muted-foreground">Taxa de entrega:</span>{" "}
+                        <span className="font-semibold">{brl(deliveryFee)}</span>
+                      </p>
                     )}
                     {deliveryMinOrder > 0 && (
-                      <p className="text-xs text-muted-foreground">Pedido mínimo nesta área: {brl(deliveryMinOrder)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Pedido mínimo nesta área: {brl(deliveryMinOrder)}
+                      </p>
                     )}
                   </div>
                 )}
                 {mode === "retirada" && (
                   <div className="mt-3 text-sm">
-                    <p className="flex items-center gap-1 font-medium text-muted-foreground"><MapPin className="h-4 w-4" /> Endereço:</p>
+                    <p className="flex items-center gap-1 font-medium text-muted-foreground">
+                      <MapPin className="h-4 w-4" /> Endereço:
+                    </p>
                     <p className="mt-1">{tenantAddress}</p>
-                    <button className="mt-2 flex items-center gap-1 text-sm font-semibold text-primary"><Map className="h-4 w-4" /> Ver no mapa</button>
+                    <button className="mt-2 flex items-center gap-1 text-sm font-semibold text-primary">
+                      <Map className="h-4 w-4" /> Ver no mapa
+                    </button>
                   </div>
                 )}
                 {mode === "consumo_local" && (
-                  <p className="mt-2 text-sm">Mesa: <span className="font-semibold">{table}</span></p>
+                  <p className="mt-2 text-sm">
+                    Mesa: <span className="font-semibold">{table}</span>
+                  </p>
                 )}
               </div>
 
               {/* Payment */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 font-semibold"><Smartphone className="h-5 w-5" /> {paymentWhenLabel}</div>
-                  <button onClick={() => setStep("payment-when")} className="text-sm font-semibold text-primary">Alterar</button>
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Smartphone className="h-5 w-5" /> {paymentWhenLabel}
+                  </div>
+                  <button
+                    onClick={() => setStep("payment-when")}
+                    className="text-sm font-semibold text-primary"
+                  >
+                    Alterar
+                  </button>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <div className="text-sm">
                     <p className="font-medium">Pagamento com {paymentMethod}</p>
-                    <p className="text-xs text-muted-foreground">{paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com {paymentMethod}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com{" "}
+                      {paymentMethod}
+                    </p>
                   </div>
-                  <button onClick={() => setStep("payment-method")} className="text-primary"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => setStep("payment-method")} className="text-primary">
+                    <Pencil className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
               {/* Items */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-center justify-between">
-                  <p className="font-semibold">Itens do pedido <span className="text-muted-foreground">| {items.reduce((s, i) => s + i.qty, 0)} Itens</span></p>
-                  <button onClick={() => setStep("cart")} className="text-sm font-semibold text-primary">Alterar itens</button>
+                  <p className="font-semibold">
+                    Itens do pedido{" "}
+                    <span className="text-muted-foreground">
+                      | {items.reduce((s, i) => s + i.qty, 0)} Itens
+                    </span>
+                  </p>
+                  <button
+                    onClick={() => setStep("cart")}
+                    className="text-sm font-semibold text-primary"
+                  >
+                    Alterar itens
+                  </button>
                 </div>
                 <div className="mt-3 space-y-2 text-sm">
                   {items.map((i) => {
                     const unit = computeUnitPrice(i);
                     return (
                       <div key={i.uid} className="flex justify-between gap-3">
-                        <span className="min-w-0 flex-1 break-words"><span className="font-semibold">{i.qty}x</span> {i.product.name}</span>
-                        <span className="font-semibold tabular-nums whitespace-nowrap">{brl(unit * i.qty)}</span>
+                        <span className="min-w-0 flex-1 break-words">
+                          <span className="font-semibold">{i.qty}x</span> {i.product.name}
+                        </span>
+                        <span className="font-semibold tabular-nums whitespace-nowrap">
+                          {brl(unit * i.qty)}
+                        </span>
                       </div>
                     );
                   })}
@@ -977,21 +1388,30 @@ export function CartDrawer({
               <div className="rounded-2xl bg-card p-4">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between gap-2 text-muted-foreground">
-                    <span>Subtotal</span><span className="tabular-nums whitespace-nowrap">{brl(subtotal)}</span>
+                    <span>Subtotal</span>
+                    <span className="tabular-nums whitespace-nowrap">{brl(subtotal)}</span>
                   </div>
                   {discount > 0 && appliedCoupon && (
                     <div className="flex justify-between gap-2 text-success">
-                      <span className="min-w-0 flex-1">Cupom {appliedCoupon.code}</span><span className="tabular-nums whitespace-nowrap">− {brl(discount)}</span>
+                      <span className="min-w-0 flex-1">Cupom {appliedCoupon.code}</span>
+                      <span className="tabular-nums whitespace-nowrap">− {brl(discount)}</span>
                     </div>
                   )}
                   {deliveryFee > 0 && (
                     <div className="flex justify-between gap-2 text-muted-foreground">
-                      <span className="min-w-0 flex-1">Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}</span><span className="tabular-nums whitespace-nowrap">{brl(deliveryFee)}</span>
+                      <span className="min-w-0 flex-1">
+                        Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}
+                      </span>
+                      <span className="tabular-nums whitespace-nowrap">{brl(deliveryFee)}</span>
                     </div>
                   )}
                   <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</span>
-                    <span className="text-xl font-extrabold text-primary tabular-nums whitespace-nowrap">{brl(total)}</span>
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Total
+                    </span>
+                    <span className="text-xl font-extrabold text-primary tabular-nums whitespace-nowrap">
+                      {brl(total)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1020,15 +1440,23 @@ export function CartDrawer({
                       className="h-10 uppercase font-mono"
                       maxLength={40}
                     />
-                    <Button onClick={applyCoupon} disabled={couponLoading || !couponInput} className="h-10">
+                    <Button
+                      onClick={applyCoupon}
+                      disabled={couponLoading || !couponInput}
+                      className="h-10"
+                    >
                       {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
                     </Button>
                   </div>
                 )}
               </div>
-
             </div>
-            <StickySubtotal cta="Fazer pedido" onCta={finalize} loading={submitting} disabled={submitting} />
+            <StickySubtotal
+              cta="Fazer pedido"
+              onCta={finalize}
+              loading={submitting}
+              disabled={submitting}
+            />
           </>
         )}
       </SheetContent>
@@ -1037,7 +1465,8 @@ export function CartDrawer({
           <AlertDialogHeader>
             <AlertDialogTitle>Limpar formulário?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso vai apagar endereço, dados do cliente, cupom e observações. Os itens do carrinho serão mantidos.
+              Isso vai apagar endereço, dados do cliente, cupom e observações. Os itens do carrinho
+              serão mantidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
