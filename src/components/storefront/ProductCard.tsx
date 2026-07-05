@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
 
 export function ProductCard({
   product,
