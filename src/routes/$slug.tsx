@@ -200,12 +200,16 @@ type PizzaSizeRow = { id: string; category_id: string; name: string; pieces: num
 
 function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaSizes: PizzaSizeRow[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const { count, subtotal } = useCart();
+
 
   // Modal promocional — carrega na abertura da loja, 1x por sessão
   const promoQ = useQuery({
