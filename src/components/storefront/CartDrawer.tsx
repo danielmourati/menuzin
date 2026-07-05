@@ -488,28 +488,28 @@ export function CartDrawer({
 
   const StickySubtotal = ({ cta, onCta, disabled, loading }: { cta?: string; onCta?: () => void; disabled?: boolean; loading?: boolean }) => (
     <div className="border-t bg-card px-4 py-3">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
+      <div className="flex items-end justify-between gap-2">
+        <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
-            <span>Subtotal</span><span className="font-medium">{brl(subtotal)}</span>
+            <span>Subtotal</span><span className="font-medium tabular-nums">{brl(subtotal)}</span>
           </div>
           {discount > 0 && (
             <div className="flex items-center justify-between gap-2 text-sm font-medium text-success">
-              <span>Desconto</span><span>− {brl(discount)}</span>
+              <span>Desconto</span><span className="tabular-nums">− {brl(discount)}</span>
             </div>
           )}
           {deliveryFee > 0 && (
             <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
-              <span>Taxa de entrega</span><span className="font-medium">{brl(deliveryFee)}</span>
+              <span>Taxa de entrega</span><span className="font-medium tabular-nums">{brl(deliveryFee)}</span>
             </div>
           )}
-          <div className="flex items-baseline justify-between gap-2 pt-1">
+          <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total</p>
-            <p className="text-2xl font-extrabold leading-none text-primary">{brl(total)}</p>
+            <p className="text-2xl font-extrabold leading-none text-primary tabular-nums">{brl(total)}</p>
           </div>
         </div>
         {cta && (
-          <Button onClick={onCta} disabled={disabled || loading} className="h-12 min-w-[140px] rounded-xl text-base font-semibold">
+          <Button onClick={onCta} disabled={disabled || loading} className="h-12 shrink-0 min-w-[120px] sm:min-w-[140px] rounded-xl text-sm sm:text-base font-semibold">
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
           </Button>
         )}
