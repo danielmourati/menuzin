@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getPublicPaymentSettingsBySlug } from "@/lib/payments.functions";
 import type { Tenant } from "@/lib/domain-types";
 import { brl } from "@/lib/format";
-import { Clock, MapPin, Truck, ShoppingBag, UtensilsCrossed, X } from "lucide-react";
+import { Clock, MapPin, Truck, ShoppingBag, UtensilsCrossed } from "lucide-react";
 
 const WEEKDAY_LABELS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
