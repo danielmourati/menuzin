@@ -325,9 +325,10 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   return (
     <div className="min-h-screen bg-background pb-32">
       <div className="container mx-auto px-4 pt-4">
-        {/* Mobile compact header (anexo 1) */}
+        {/* Mobile compact header (anexo 1 + anexo 2) */}
         <div className="md:hidden">
-          <div className="flex items-center gap-2">
+          {/* Linha 1: menu + lupa */}
+          <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -336,13 +337,24 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             >
               <Menu className="h-5 w-5" />
             </button>
-
             <button
               type="button"
-              onClick={() => setAboutOpen(true)}
-              className="group flex flex-1 items-center gap-3 rounded-2xl border bg-card p-2.5 pr-2 text-left shadow-[var(--shadow-soft)] active:bg-muted/40"
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-label="Buscar produtos"
+              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
             >
-              <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
+              {searchOpen ? <XIcon className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+            </button>
+          </div>
+
+          {/* Card da loja com informações internas */}
+          <button
+            type="button"
+            onClick={() => setAboutOpen(true)}
+            className="group flex w-full flex-col rounded-2xl border bg-card p-3 text-left shadow-[var(--shadow-soft)] active:bg-muted/40"
+          >
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
                 {tenant.logoUrl ? (
                   <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
                 ) : (
@@ -357,32 +369,20 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-            </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setSearchOpen((v) => !v)}
-              aria-label="Buscar produtos"
-              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
-            >
-              {searchOpen ? <XIcon className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-            </button>
-          </div>
-
-          {/* Chips: entrega / prep time / mínimo */}
-          <div className="mt-2 -mx-4 overflow-x-auto px-4 scrollbar-hide">
-            <div className="flex gap-2">
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm">
-                <MapPin className="h-3 w-3" /> Entrega {brl(tenant.deliveryFee)}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5 text-[11px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm">
-                <Clock className="h-3 w-3" /> {tenant.prepTime || "—"}
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> {tenant.prepTime || "—"}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm">
-                Mín. {brl(tenant.minOrder)}
+              <span className="inline-flex items-center gap-1.5">
+                <Wallet className="h-3.5 w-3.5" /> Mín. {brl(tenant.minOrder)}
               </span>
             </div>
-          </div>
+          </button>
 
           {/* Search input (mobile, colapsável) */}
           {searchOpen && (
