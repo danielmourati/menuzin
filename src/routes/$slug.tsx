@@ -218,6 +218,18 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     queryFn: () => getActivePromoModal({ data: { tenantId: tenant.id } }),
     staleTime: 60_000,
   });
+  const deliveryRangeQ = useQuery({
+    queryKey: ["delivery-fee-range", tenant.slug],
+    queryFn: () => getDeliveryFeeRange({ data: { slug: tenant.slug } }),
+    staleTime: 60_000,
+  });
+  const deliveryLabel = (() => {
+    const r = deliveryRangeQ.data;
+    if (!r) return `Entrega ${brl(tenant.deliveryFee)}`;
+    if (r.mode === "none") return "Retirada apenas";
+    if (r.min === r.max) return `Entrega ${brl(r.min)}`;
+    return `Entrega ${brl(r.min)} ~ ${brl(r.max)}`;
+  })();
   const [promoOpen, setPromoOpen] = useState(false);
   useEffect(() => {
     const promo = promoQ.data;
