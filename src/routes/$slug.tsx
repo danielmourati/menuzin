@@ -227,8 +227,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     const r = deliveryRangeQ.data;
     if (!r) return brl(tenant.deliveryFee);
     if (r.mode === "none") return "Retirada apenas";
-    if (r.min === r.max) return `Entrega ${brl(r.min)}`;
-    return `Entrega ${brl(r.min)} ~ ${brl(r.max)}`;
+    if (r.min === r.max) return brl(r.min);
+    return `${brl(r.min)} ~ ${brl(r.max)}`;
   })();
   const [promoOpen, setPromoOpen] = useState(false);
   useEffect(() => {
