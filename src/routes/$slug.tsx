@@ -225,7 +225,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   });
   const deliveryLabel = (() => {
     const r = deliveryRangeQ.data;
-    if (!r) return `Entrega ${brl(tenant.deliveryFee)}`;
+    if (!r) return brl(tenant.deliveryFee);
     if (r.mode === "none") return "Retirada apenas";
     if (r.min === r.max) return `Entrega ${brl(r.min)}`;
     return `Entrega ${brl(r.min)} ~ ${brl(r.max)}`;
