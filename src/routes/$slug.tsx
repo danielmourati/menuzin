@@ -333,9 +333,9 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="Abrir menu"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border bg-card text-foreground shadow-sm active:bg-muted"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border bg-card text-foreground shadow-sm active:bg-muted"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-4 w-4" />
             </button>
             <button
               type="button"
