@@ -18,6 +18,7 @@ import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza } from "lucide-react"
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
 import { toast } from "sonner";
 import {
   listMyCategories, listMyProducts, saveProduct, deleteProduct, toggleProductAvailable,
