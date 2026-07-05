@@ -6,6 +6,7 @@ import { brl } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import type { Product, Category } from "@/lib/domain-types";
 import { dbProductToUi, dbCategoriesToUi } from "@/lib/db-adapters";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
 
 const DRINK_REGEX = /(bebida|refri|refrigerante|suco|cerveja|drink|água|agua)/i;
 
