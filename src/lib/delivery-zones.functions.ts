@@ -243,3 +243,37 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
       message: "Ainda não entregamos neste bairro. Verifique o endereço ou entre em contato com a loja.",
     };
   });
+
+// ---- Public delivery-fee range (min/max) ----
+
+export type DeliveryFeeRange = {
+  mode: "none" | "single" | "neighborhood";
+  min: number;
+  max: number;
+};
+
+export const getDeliveryFeeRange = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) =>
+    z.object({ slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/) }).parse(d),
+  )
+  .handler(async ({ data }): Promise<DeliveryFeeRange> => {
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants")
+      .select("id, delivery_mode, delivery_fee")
+      .eq("slug", data.slug)
+      .eq("active", true)
+      .maybeSingle();
+    if (!tenant) return { mode: "single", min: 0, max: 0 };
+    const mode = (tenant.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
+    const baseFee = Number(tenant.delivery_fee ?? 0);
+    if (mode === "none") return { mode, min: 0, max: 0 };
+    if (mode === "single") return { mode, min: baseFee, max: baseFee };
+    const { data: zones } = await supabaseAdmin
+      .from("delivery_zones")
+      .select("fee")
+      .eq("tenant_id", tenant.id)
+      .eq("active", true);
+    const fees = (zones ?? []).map((z) => Number(z.fee)).filter((n) => Number.isFinite(n));
+    if (fees.length === 0) return { mode, min: baseFee, max: baseFee };
+    return { mode, min: Math.min(...fees), max: Math.max(...fees) };
+  });
