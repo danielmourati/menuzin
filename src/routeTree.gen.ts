@@ -35,7 +35,10 @@ import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
 import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
+import { Route as SlugPromocoesRouteImport } from './routes/$slug.promocoes'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
+import { Route as SlugDestaquesRouteImport } from './routes/$slug.destaques'
+import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
@@ -179,9 +182,24 @@ const AdminAdicionaisRoute = AdminAdicionaisRouteImport.update({
   path: '/admin/adicionais',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SlugPromocoesRoute = SlugPromocoesRouteImport.update({
+  id: '/promocoes',
+  path: '/promocoes',
+  getParentRoute: () => SlugRoute,
+} as any)
 const SlugPedidoConfirmadoRoute = SlugPedidoConfirmadoRouteImport.update({
   id: '/pedido-confirmado',
   path: '/pedido-confirmado',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugDestaquesRoute = SlugDestaquesRouteImport.update({
+  id: '/destaques',
+  path: '/destaques',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugCuponsRoute = SlugCuponsRouteImport.update({
+  id: '/cupons',
+  path: '/cupons',
   getParentRoute: () => SlugRoute,
 } as any)
 const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
@@ -256,7 +274,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$slug/cupons': typeof SlugCuponsRoute
+  '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
+  '/$slug/promocoes': typeof SlugPromocoesRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
@@ -297,7 +318,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$slug/cupons': typeof SlugCuponsRoute
+  '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
+  '/$slug/promocoes': typeof SlugPromocoesRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
@@ -338,7 +362,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/$slug/cupons': typeof SlugCuponsRoute
+  '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
+  '/$slug/promocoes': typeof SlugPromocoesRoute
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
@@ -381,7 +408,10 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/sitemap.xml'
+    | '/$slug/cupons'
+    | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
+    | '/$slug/promocoes'
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/assinatura'
@@ -422,7 +452,10 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/sitemap.xml'
+    | '/$slug/cupons'
+    | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
+    | '/$slug/promocoes'
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/assinatura'
@@ -462,7 +495,10 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/sitemap.xml'
+    | '/$slug/cupons'
+    | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
+    | '/$slug/promocoes'
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/assinatura'
@@ -717,11 +753,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdicionaisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$slug/promocoes': {
+      id: '/$slug/promocoes'
+      path: '/promocoes'
+      fullPath: '/$slug/promocoes'
+      preLoaderRoute: typeof SlugPromocoesRouteImport
+      parentRoute: typeof SlugRoute
+    }
     '/$slug/pedido-confirmado': {
       id: '/$slug/pedido-confirmado'
       path: '/pedido-confirmado'
       fullPath: '/$slug/pedido-confirmado'
       preLoaderRoute: typeof SlugPedidoConfirmadoRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/destaques': {
+      id: '/$slug/destaques'
+      path: '/destaques'
+      fullPath: '/$slug/destaques'
+      preLoaderRoute: typeof SlugDestaquesRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/cupons': {
+      id: '/$slug/cupons'
+      path: '/cupons'
+      fullPath: '/$slug/cupons'
+      preLoaderRoute: typeof SlugCuponsRouteImport
       parentRoute: typeof SlugRoute
     }
     '/admin/configuracoes/': {
@@ -812,12 +869,18 @@ declare module '@tanstack/react-router' {
 }
 
 interface SlugRouteChildren {
+  SlugCuponsRoute: typeof SlugCuponsRoute
+  SlugDestaquesRoute: typeof SlugDestaquesRoute
   SlugPedidoConfirmadoRoute: typeof SlugPedidoConfirmadoRoute
+  SlugPromocoesRoute: typeof SlugPromocoesRoute
   SlugAcompanharOrderIdRoute: typeof SlugAcompanharOrderIdRoute
 }
 
 const SlugRouteChildren: SlugRouteChildren = {
+  SlugCuponsRoute: SlugCuponsRoute,
+  SlugDestaquesRoute: SlugDestaquesRoute,
   SlugPedidoConfirmadoRoute: SlugPedidoConfirmadoRoute,
+  SlugPromocoesRoute: SlugPromocoesRoute,
   SlugAcompanharOrderIdRoute: SlugAcompanharOrderIdRoute,
 }
 
