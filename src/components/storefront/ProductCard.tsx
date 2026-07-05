@@ -74,7 +74,7 @@ export function ProductCard({
           {externalBadges && hasAnyBadge && (
             <div className="absolute right-12 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
           )}
-          <h3 className="line-clamp-1 text-sm font-semibold sm:text-base">{product.name}</h3>
+          <h3 className="line-clamp-2 text-sm font-semibold sm:text-base">{product.name}</h3>
           {product.description && (
             <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
           )}
@@ -134,7 +134,7 @@ export function ProductCard({
       </div>
 
       <div className="relative flex flex-1 flex-col gap-0.5 p-2.5 pr-10">
-        <h3 className="line-clamp-1 text-sm font-semibold">{product.name}</h3>
+        <h3 className="line-clamp-2 text-sm font-semibold">{product.name}</h3>
         {product.description && (
           <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
         )}
