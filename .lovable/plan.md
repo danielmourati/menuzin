@@ -1,22 +1,57 @@
-## 1. Anexo 1 — card mobile do tenant (`src/routes/$slug.tsx`)
+## Objetivo
 
-- Na linha de informações internas, remover a palavra "Entrega" — mostrar só o valor (`R$ 8,00` ou `R$ 8,00 ~ R$ 15,00`) precedido do ícone de moto. Isso encurta o texto e cabe tudo em uma única linha ao lado de `⏱ prep time` e `💰 Mín. R$ …`.
-- Trocar `flex flex-wrap` por `flex flex-nowrap` na linha de infos para forçar linha única (e reduzir gaps se necessário: `gap-x-3`).
-- Se o tenant tiver `description`, adicioná-la dentro do card, abaixo do bloco de informações, com `line-clamp-2 text-[11px] text-muted-foreground mt-2 border-t pt-2` — mantendo o card clicável (abre o drawer).
+Melhorar a legibilidade dos detalhes de valores do checkout no storefront, que atualmente aparecem "colados", comprometendo a visualização em aparelhos menores. O ajuste será aplicado em ambos os locais onde os valores são exibidos: na barra fixa inferior (StickySubtotal) e no resumo detalhado da etapa de revisão do pedido.
 
-## 2. Anexo 2 — nome do produto na visualização em lista (`src/components/storefront/ProductCard.tsx`)
+## Direção visual escolhida
 
-- Trocar o `h3` do modo lista (`line-clamp-1`) por `line-clamp-2` para permitir quebra em até 2 linhas quando o nome for longo, sem virar `...` na primeira palavra.
-- Mesmo ajuste no grid view (`line-clamp-1` → `line-clamp-2`) para consistência.
+- **Estilo:** Compacto com divisores
+- **Abordagem:** manter a densidade de informação, mas introduzir separadores sutis e alinhamento consistente entre os itens de valor, sem aumentar drasticamente a altura dos blocos.
 
-## 3. Anexo 3 — botões menu e lupa no header mobile (`src/routes/$slug.tsx`)
+## Escopo de mudanças
 
-- Reduzir os dois botões de `h-11 w-11` para `h-9 w-9`.
-- Ajustar tamanho dos ícones internos (`Menu`, `Search`, `XIcon`) de `h-5 w-5` para `h-4 w-4`.
-- Manter o mesmo estilo (menu com borda/card, lupa com fundo primário/redondo).
+### 1. Barra fixa inferior (`StickySubtotal` em `src/components/storefront/CartDrawer.tsx`)
 
-## Fora do escopo
+Atualmente a barra empilha Subtotal, Desconto, Taxa de entrega e Total em uma coluna sem separadores, e o total fica muito próximo do valor do Subtotal.
 
-- Layout desktop.
-- Estrutura do drawer "Sobre a loja".
-- Mudanças de dados/backend.
+Mudanças:
+- Inserir um divisor sutil (`border-t border-border/60`) entre o grupo de itens intermediários (Subtotal/Desconto/Taxa) e o Total.
+- Aumentar levemente o espaçamento entre as linhas (`space-y-2` ao invés de `space-y-1`).
+- Garantir alinhamento numérico à direita (`tabular-nums`) para os valores não pularem entre telas.
+- Manter o Total em destaque com a cor primária e tamanho maior.
+- No mobile, quando houver botão de ação, garantir que a coluna de valores tenha `min-w-0` e não comprima o botão; reduzir o gap entre a coluna de valores e o botão de `gap-3` para `gap-2` se necessário.
+
+### 2. Resumo detalhado da revisão (`review` step em `src/components/storefront/CartDrawer.tsx`)
+
+Atualmente o resumo dos itens, Subtotal, Desconto, Taxa e Total são exibidos em uma lista contínua sem separadores.
+
+Mudanças:
+- Agrupar os itens do pedido em um bloco separado do resumo de valores.
+- Adicionar divisor entre a lista de itens e os valores (Subtotal/Desconto/Taxa).
+- Adicionar divisor mais forte entre o grupo intermediário e o Total.
+- Aplicar `tabular-nums` aos valores para alinhamento.
+- Garantir que o nome dos produtos tenha `min-w-0` e `break-words` para não extrapolar a largura em telas pequenas.
+- Manter o destaque do Total com cor primária.
+
+### 3. Responsividade em telas pequenas
+
+- Verificar se a barra fixa inferior não quebra em larguras menores que 360px.
+- Se o botão de ação for muito largo, reduzir o `min-w` ou usar tamanho de fonte menor no CTA apenas em telas muito pequenas (usando breakpoint `sm:`).
+- Garantir que valores como `R$ 1.234,56` não forcem quebra de linha indesejada (valores com `whitespace-nowrap`).
+
+## Arquivos afetados
+
+- `src/components/storefront/CartDrawer.tsx` (ajustes nos componentes `StickySubtotal` e na seção de review)
+
+## Fora de escopo
+
+- Mudanças de cores do tema (manter paleta atual).
+- Mudanças no cálculo de valores ou regras de negócio.
+- Alterações no fluxo de etapas do checkout.
+- Alterações no desktop (os ajustes são mobile-first e devem manter a aparência no desktop).
+
+## Critério de conclusão
+
+- Visualização dos valores no checkout apresenta separadores claros entre Subtotal/Desconto/Taxa e o Total.
+- Nenhum elemento fica "colado" ou sobreposto em viewports de 320px ou superiores.
+- Total continua destacado com a cor primária e tamanho maior.
+- Build e typecheck passam sem erros.
