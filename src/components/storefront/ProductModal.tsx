@@ -12,6 +12,7 @@ import { brl } from "@/lib/format";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonGroup, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
 import { toast } from "sonner";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
 import {
   validateSelection,
   computeBasePrice,
@@ -275,7 +276,7 @@ export function ProductModal({
 
         <div className="relative shrink-0">
           <div className="relative h-48 w-full overflow-hidden bg-muted sm:h-56">
-            <img src={product.image} alt={product.name} className="h-full w-full object-cover" loading="eager" fetchPriority="high" decoding="async" />
+            <img src={productImage(product.image)} alt={product.name} className={`h-full w-full ${isDefaultProductImage(product.image) ? "object-contain p-8" : "object-cover"}`} loading="eager" fetchPriority="high" decoding="async" />
           </div>
           <Button
             size="icon" variant="default"

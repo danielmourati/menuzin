@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
 
 export function ProductCard({
   product,
@@ -54,9 +55,11 @@ export function ProductCard({
       >
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-28 sm:w-28">
           <img
-            src={product.image}
+            src={productImage(product.image)}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
+              isDefaultProductImage(product.image) ? "object-contain p-3" : "object-cover"
+            }`}
             loading="lazy"
             decoding="async"
           />
@@ -117,9 +120,11 @@ export function ProductCard({
       )}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <img
-          src={product.image}
+          src={productImage(product.image)}
           alt={product.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
+            isDefaultProductImage(product.image) ? "object-contain p-6" : "object-cover"
+          }`}
           loading="lazy"
           decoding="async"
         />
