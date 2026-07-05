@@ -312,57 +312,138 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   return (
     <div className="min-h-screen bg-background pb-32">
       <div className="container mx-auto px-4 pt-4">
-        <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
-          <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
-            <div className="relative">
-              {tenant.logoUrl ? (
-                <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-20 w-auto object-contain sm:h-24" loading="eager" fetchPriority="high" decoding="async" />
-              ) : (
-                <div
-                  className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-card text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl"
-                  style={bannerStyle}
-                  aria-label={`Logo ${tenant.name}`}
-                >
-                  {tenant.logoLetter}
+        {/* Mobile compact header (anexo 1) */}
+        <div className="md:hidden">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Abrir menu"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border bg-card text-foreground shadow-sm active:bg-muted"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAboutOpen(true)}
+              className="group flex flex-1 items-center gap-3 rounded-2xl border bg-card p-2.5 pr-2 text-left shadow-[var(--shadow-soft)] active:bg-muted/40"
+            >
+              <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
+                {tenant.logoUrl ? (
+                  <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-sm font-bold">{tenant.logoLetter}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold leading-tight">{tenant.name}</p>
+                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold ${storeOpen ? "text-success" : "text-destructive"}`}>
+                  <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
+                  {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-label="Buscar produtos"
+              className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
+            >
+              {searchOpen ? <XIcon className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+            </button>
+          </div>
+
+          {/* Chips: entrega / prep time / mínimo */}
+          <div className="mt-2 -mx-4 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-2">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm">
+                <MapPin className="h-3 w-3" /> Entrega {brl(tenant.deliveryFee)}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm">
+                <Clock className="h-3 w-3" /> {tenant.prepTime || "—"}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm">
+                Mín. {brl(tenant.minOrder)}
+              </span>
+            </div>
+          </div>
+
+          {/* Search input (mobile, colapsável) */}
+          {searchOpen && (
+            <div className="relative mt-3">
+              <label htmlFor="storefront-search-mobile" className="sr-only">Buscar produtos no cardápio</label>
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="storefront-search-mobile"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar produtos..."
+                aria-label="Buscar produtos no cardápio"
+                autoFocus
+                className="h-11 rounded-2xl border-input bg-white pl-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Desktop header + search (unchanged) */}
+        <div className="hidden md:block">
+          <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
+            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
+              <div className="relative">
+                {tenant.logoUrl ? (
+                  <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-20 w-auto object-contain sm:h-24" loading="eager" fetchPriority="high" decoding="async" />
+                ) : (
+                  <div
+                    className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-card text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl"
+                    style={bannerStyle}
+                    aria-label={`Logo ${tenant.name}`}
+                  >
+                    {tenant.logoLetter}
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                  <h1 className="text-lg font-bold sm:text-xl">{tenant.name}</h1>
+                  <Badge className={storeOpen ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
+                    {storeOpen ? "Aberta" : "Fechada"}
+                  </Badge>
                 </div>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h1 className="text-lg font-bold sm:text-xl">{tenant.name}</h1>
-                <Badge className={storeOpen ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
-                  {storeOpen ? "Aberta" : "Fechada"}
-                </Badge>
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{tenant.description}</p>
+                <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:justify-start">
+                  <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {tenant.prepTime}</span>
+                  <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {tenant.address}</span>
+                  <span>Pedido mín. {brl(tenant.minOrder)}</span>
+                </div>
               </div>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{tenant.description}</p>
-              <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:justify-start">
-                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {tenant.prepTime}</span>
-                <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {tenant.address}</span>
-                <span>Pedido mín. {brl(tenant.minOrder)}</span>
-              </div>
-            </div>
 
-            <Button asChild size="icon" variant="outline" className="h-10 w-10 shrink-0">
-              <a href={whatsappLink(tenant.whatsapp, "Olá! Tenho uma dúvida sobre o cardápio.")} target="_blank" rel="noreferrer">
-                <MessageCircle className="h-4 w-4 text-success" />
-              </a>
-            </Button>
+              <Button asChild size="icon" variant="outline" className="h-10 w-10 shrink-0">
+                <a href={whatsappLink(tenant.whatsapp, "Olá! Tenho uma dúvida sobre o cardápio.")} target="_blank" rel="noreferrer">
+                  <MessageCircle className="h-4 w-4 text-success" />
+                </a>
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative mt-4">
+            <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="storefront-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar produtos..."
+              aria-label="Buscar produtos no cardápio"
+              className="h-12 rounded-2xl border-input bg-white pl-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
+            />
           </div>
         </div>
 
-        <div className="relative mt-4">
-          <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            id="storefront-search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar produtos..."
-            aria-label="Buscar produtos no cardápio"
-            className="h-12 rounded-2xl border-input bg-white pl-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
-          />
-        </div>
 
         {activeCat === "Todos" && !search && (
           <>
