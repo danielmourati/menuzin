@@ -145,3 +145,48 @@ export const validateCoupon = createServerFn({ method: "POST" })
       discount_value: value,
     };
   });
+
+// ============================================================
+// Public listing — cupons ativos visíveis no storefront
+// ============================================================
+
+export type PublicCoupon = {
+  code: string;
+  discount_type: "fixed" | "percent";
+  discount_value: number;
+  min_order_total: number;
+  valid_until: string | null;
+};
+
+export const listPublicCoupons = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) =>
+    z.object({ slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/) }).parse(d),
+  )
+  .handler(async ({ data }): Promise<{ coupons: PublicCoupon[] }> => {
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants").select("id").eq("slug", data.slug).eq("active", true).maybeSingle();
+    if (!tenant) return { coupons: [] };
+    const nowIso = new Date().toISOString();
+    const { data: rows, error } = await supabaseAdmin
+      .from("coupons")
+      .select("code, discount_type, discount_value, min_order_total, valid_from, valid_until, max_uses, used_count, active")
+      .eq("tenant_id", tenant.id)
+      .eq("active", true);
+    if (error) return { coupons: [] };
+    const coupons = (rows ?? [])
+      .filter((c) => {
+        if (c.valid_from && String(c.valid_from) > nowIso) return false;
+        if (c.valid_until && String(c.valid_until) < nowIso) return false;
+        if (c.max_uses != null && Number(c.used_count) >= Number(c.max_uses)) return false;
+        return true;
+      })
+      .map((c) => ({
+        code: c.code as string,
+        discount_type: c.discount_type as "fixed" | "percent",
+        discount_value: Number(c.discount_value),
+        min_order_total: Number(c.min_order_total ?? 0),
+        valid_until: (c.valid_until as string | null) ?? null,
+      }));
+    return { coupons };
+  });
+
