@@ -74,7 +74,7 @@ export function ProductCard({
           {externalBadges && hasAnyBadge && (
             <div className="absolute right-12 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
           )}
-          <h3 className="line-clamp-1 text-sm font-semibold sm:text-base">{product.name}</h3>
+          <h3 className="line-clamp-2 text-sm font-semibold sm:text-base">{product.name}</h3>
           {product.description && (
             <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
           )}
