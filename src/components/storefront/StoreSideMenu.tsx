@@ -30,14 +30,6 @@ export function StoreSideMenu({
             )}
           </div>
           <h2 className="min-w-0 flex-1 truncate text-base font-bold">{tenant.name}</h2>
-          <button
-            type="button"
-            onClick={close}
-            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted"
-            aria-label="Fechar menu"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         {/* Items */}
