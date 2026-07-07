@@ -956,7 +956,8 @@ export function CartDrawer({
                   <Input
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
-                    className="mt-1.5 h-11"
+                    readOnly
+                    className="mt-1.5 h-11 cursor-not-allowed bg-muted/40"
                   />
                 </div>
                 <div>
@@ -986,10 +987,14 @@ export function CartDrawer({
                     <Input
                       value={neighborhood}
                       onChange={(e) => setNeighborhood(e.target.value)}
-                      className="mt-1.5 h-11"
+                      readOnly
+                      className="mt-1.5 h-11 cursor-not-allowed bg-muted/40"
                     />
                   )}
                 </div>
+                <p className="col-span-2 -mt-1 text-[11px] text-muted-foreground">
+                  Rua e bairro são preenchidos automaticamente pelo CEP para garantir o cálculo correto da taxa de entrega.
+                </p>
                 <div className="col-span-2">
                   <Label>Complemento</Label>
                   <Input

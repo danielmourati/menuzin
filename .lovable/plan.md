@@ -1,35 +1,40 @@
-## Imagem default para produtos sem foto
+## Escopo
 
-Adicionar uma ilustração vetorial cinza (gray food vector) como fallback quando o produto não tiver `image_url` cadastrado, aplicando tanto no storefront quanto no painel admin.
+Duas alterações de UI no storefront, sem mexer em regras de negócio.
 
-### 1. Gerar o asset
-- Criar `src/assets/default-food.svg` — ícone/ilustração vetorial de comida (prato + talheres) em tom cinza neutro (`#9CA3AF` / muted-foreground), fundo transparente, formato quadrado, estilo minimalista/flat.
-- Fazer upload via `lovable-assets` para CDN e gerar `default-food.svg.asset.json`.
+### 1. Ícone "Cupons" na navbar do rodapé (mobile)
 
-### 2. Criar helper compartilhado
-Novo arquivo `src/lib/product-image.ts`:
-```ts
-import defaultFood from "@/assets/default-food.svg.asset.json";
-export const DEFAULT_PRODUCT_IMAGE = defaultFood.url;
-export const productImage = (url?: string | null) =>
-  url && url.trim() ? url : DEFAULT_PRODUCT_IMAGE;
-```
+Arquivo: `src/components/storefront/MobileBottomNav.tsx`
 
-### 3. Aplicar nos componentes
-Substituir usos diretos de `product.image` / `p.image_url` pelo helper:
+- Passar de `grid-cols-3` para `grid-cols-4`.
+- Inserir um novo item entre "Cardápio" e "Carrinho" (ou como último — ver observação abaixo):
+  - Ícone `Ticket` (lucide, já usado em outras telas).
+  - Label: **Cupons**.
+  - `<Link to="/$slug/cupons" params={{ slug }}>` com `activeProps` marcando `text-primary`.
+- A rota `/$slug/cupons` já existe (`src/routes/$slug.cupons.tsx`) e lista cupons ativos + link para promoções. Não é preciso criar rota nova.
 
-**Storefront:**
-- `src/components/storefront/ProductCard.tsx` (linhas 57 e 120)
-- `src/components/storefront/ProductModal.tsx` (linha 278)
-- `src/components/storefront/FeaturedScroller.tsx` (linha 50)
-- `src/components/storefront/UpsellSuggestions.tsx` (linha 54)
+Observação de ordem sugerida: **Cardápio · Cupons · Carrinho · Pedido/Pedidos** — mantém o carrinho no centro-direita, próximo do polegar, e o novo item ao lado do Cardápio (navegação passiva junto de navegação passiva).
 
-Adicionar também `object-contain` + `bg-muted` quando for o placeholder (para o vetor não ficar cortado por `object-cover`), via classe condicional.
+### 2. Bloquear edição de Rua e Bairro no checkout
 
-**Admin:**
-- `src/routes/admin.produtos.tsx` (linha 220) — trocar o `https://placehold.co/...` pelo `productImage(p.image_url)`.
-- `src/components/ui/image-uploader.tsx` (linha 52) — quando `value` for vazio, mostrar o placeholder ao invés de não renderizar preview algum (opcional; melhora UX).
+Arquivo: `src/components/storefront/CartDrawer.tsx` (linhas ~955–991)
 
-### Comportamento
-- Produtos com imagem: renderizam normalmente com `object-cover`.
-- Produtos sem imagem: renderizam o SVG cinza centralizado com `object-contain` sobre `bg-muted`, mantendo o mesmo aspect ratio do card.
+- Input **Rua**: adicionar `readOnly`, remover foco de edição visual (`cursor-not-allowed bg-muted/40`), manter `value={street}`. O preenchimento continua vindo automaticamente do lookup do CEP (`lookupByCep` → `setStreet(r.logradouro)`).
+- Input **Bairro** (apenas no modo `deliveryMode !== "neighborhood"`, onde hoje é um `<Input>` livre): mesmas props (`readOnly`, estilo desabilitado). No modo `neighborhood` já é um `<Select>` controlado pelas zonas cadastradas — nada muda ali.
+- Manter os `onChange` existentes (React exige quando o campo é controlado), mas o `readOnly` impede digitação.
+- Adicionar um hint discreto abaixo do bloco CEP: *"Rua e bairro são preenchidos automaticamente pelo CEP para garantir o cálculo correto da taxa de entrega."*
+
+### Fora de escopo
+
+- Backend, schema, cupons, cálculo de taxa, ViaCEP, zonas de entrega.
+- Navbar desktop (a `MobileBottomNav` só aparece em `md:hidden`; o menu lateral da loja já tem acesso a cupons/promoções).
+- Nenhuma alteração no admin.
+
+### Ponto em aberto
+
+Se o CEP consultado pelo ViaCEP não retornar logradouro (acontece em cidades pequenas onde o CEP é único para toda a cidade), Rua ficará vazia e o cliente não poderá digitar. Duas opções:
+
+- **A (recomendado)**: manter `readOnly` sempre — mais seguro contra inconsistências, como você pediu. Se ViaCEP não trouxer rua, o cliente precisa corrigir o CEP.
+- **B**: liberar edição apenas quando o retorno do ViaCEP vier vazio (`readOnly={Boolean(streetFromCep)}`).
+
+Vou seguir com a opção **A** salvo indicação contrária.

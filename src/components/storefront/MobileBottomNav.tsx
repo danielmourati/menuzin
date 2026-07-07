@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, ShoppingBag, ClipboardList } from "lucide-react";
+import { Home, ShoppingBag, ClipboardList, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-context";
 
@@ -57,7 +57,7 @@ export function MobileBottomNav({ slug, onOpenCart, hidden = false }: Props) {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Navegação principal"
     >
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-4">
         <Link
           to="/$slug"
           params={{ slug }}
@@ -67,6 +67,16 @@ export function MobileBottomNav({ slug, onOpenCart, hidden = false }: Props) {
         >
           <Home className="h-5 w-5" />
           Cardápio
+        </Link>
+
+        <Link
+          to="/$slug/cupons"
+          params={{ slug }}
+          className="flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium text-muted-foreground active:bg-muted/40"
+          activeProps={{ className: "text-primary" }}
+        >
+          <Ticket className="h-5 w-5" />
+          Cupons
         </Link>
 
         <button
