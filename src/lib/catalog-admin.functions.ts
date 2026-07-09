@@ -647,9 +647,8 @@ async function assertCategoryOwnership(sb: SB, tenantId: string, categoryId: str
   return data as { id: string; kind: string };
 }
 
-const sbAny = (sb: SB) => sb as unknown as {
-  from: (t: string) => ReturnType<SB["from"]>;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sbAny = (sb: SB) => sb as unknown as { from: (t: string) => any };
 
 export const listCategoryPizzaConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
