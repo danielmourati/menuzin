@@ -33,7 +33,7 @@ export const setDirectoryOptIn = createServerFn({ method: "POST" })
     }
 
     const { error } = await supabaseAdmin
-      .from("tenants").update(payload).eq("id", tenantId);
+      .from("tenants").update(payload as never).eq("id", tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -93,7 +93,7 @@ export const updateDirectoryProduct = createServerFn({ method: "POST" })
     if (data.directory_category !== undefined) payload.directory_category = data.directory_category;
 
     const { error } = await supabaseAdmin
-      .from("products").update(payload).eq("id", data.product_id).eq("tenant_id", tenantId);
+      .from("products").update(payload as never).eq("id", data.product_id).eq("tenant_id", tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

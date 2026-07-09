@@ -45,6 +45,7 @@ import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slu
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
+import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
 import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
@@ -234,6 +235,11 @@ const ApiPublicMenuzinMpWebhookRoute =
     path: '/api/public/menuzin-mp-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicGuiaClickRoute = ApiPublicGuiaClickRouteImport.update({
+  id: '/api/public/guia-click',
+  path: '/api/public/guia-click',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminConfiguracoesPromocaoRoute =
   AdminConfiguracoesPromocaoRouteImport.update({
     id: '/promocao',
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
@@ -349,6 +356,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
@@ -394,6 +402,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
@@ -440,6 +449,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
@@ -527,6 +538,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
@@ -563,6 +575,7 @@ export interface RootRouteChildren {
   PlatformLojasRoute: typeof PlatformLojasRoute
   PlatformPlanosRoute: typeof PlatformPlanosRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
@@ -823,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMenuzinMpWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/guia-click': {
+      id: '/api/public/guia-click'
+      path: '/api/public/guia-click'
+      fullPath: '/api/public/guia-click'
+      preLoaderRoute: typeof ApiPublicGuiaClickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/configuracoes/promocao': {
       id: '/admin/configuracoes/promocao'
       path: '/promocao'
@@ -946,6 +966,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformLojasRoute: PlatformLojasRoute,
   PlatformPlanosRoute: PlatformPlanosRoute,
   AdminIndexRoute: AdminIndexRoute,
+  ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
