@@ -371,6 +371,7 @@ export function LandingFooter() {
           title="Empresa"
           links={[
             { label: "Sobre o Menuzin", href: "#features" },
+            { label: "Guia Menuzin", href: "/guia" },
             { label: "Fale com um especialista", href: "#contato" },
           ]}
         />
