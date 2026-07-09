@@ -12,12 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GuiaIndexRouteImport } from './routes/guia.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
 import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
 import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
 import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
+import { Route as GuiaCategoriaRouteImport } from './routes/guia.$categoria'
 import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
 import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
 import { Route as AdminRelatoriosRouteImport } from './routes/admin.relatorios'
@@ -42,6 +44,7 @@ import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
+import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
@@ -66,6 +69,11 @@ const SlugRoute = SlugRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuiaIndexRoute = GuiaIndexRouteImport.update({
+  id: '/guia/',
+  path: '/guia/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -96,6 +104,11 @@ const PlatformAssinaturasRoute = PlatformAssinaturasRouteImport.update({
 const LojaSlugRoute = LojaSlugRouteImport.update({
   id: '/loja/$slug',
   path: '/loja/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuiaCategoriaRoute = GuiaCategoriaRouteImport.update({
+  id: '/guia/$categoria',
+  path: '/guia/$categoria',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTrocarSenhaRoute = AdminTrocarSenhaRouteImport.update({
@@ -219,6 +232,11 @@ const LojaSlugPedidoConfirmadoRoute =
     path: '/pedido-confirmado',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const GuiaProdutoIdRoute = GuiaProdutoIdRouteImport.update({
+  id: '/guia/produto/$id',
+  path: '/guia/produto/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicQzCertDotcrtRoute = ApiPublicQzCertDotcrtRouteImport.update({
   id: '/api/public/qz-cert.crt',
   path: '/api/public/qz-cert.crt',
@@ -301,12 +319,14 @@ export interface FileRoutesByFullPath {
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
+  '/guia/$categoria': typeof GuiaCategoriaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
+  '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
@@ -316,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
+  '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
@@ -345,12 +366,14 @@ export interface FileRoutesByTo {
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
+  '/guia/$categoria': typeof GuiaCategoriaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
   '/admin': typeof AdminIndexRoute
+  '/guia': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
@@ -360,6 +383,7 @@ export interface FileRoutesByTo {
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
+  '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
@@ -391,12 +415,14 @@ export interface FileRoutesById {
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
+  '/guia/$categoria': typeof GuiaCategoriaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
+  '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
@@ -406,6 +432,7 @@ export interface FileRoutesById {
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
+  '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
@@ -438,12 +465,14 @@ export interface FileRouteTypes {
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
+    | '/guia/$categoria'
     | '/loja/$slug'
     | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
     | '/platform/planos'
     | '/admin/'
+    | '/guia/'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
@@ -453,6 +482,7 @@ export interface FileRouteTypes {
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
+    | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
@@ -482,12 +512,14 @@ export interface FileRouteTypes {
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
+    | '/guia/$categoria'
     | '/loja/$slug'
     | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
     | '/platform/planos'
     | '/admin'
+    | '/guia'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
@@ -497,6 +529,7 @@ export interface FileRouteTypes {
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
+    | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
     | '/admin/configuracoes'
@@ -527,12 +560,14 @@ export interface FileRouteTypes {
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
+    | '/guia/$categoria'
     | '/loja/$slug'
     | '/platform/assinaturas'
     | '/platform/dashboard'
     | '/platform/lojas'
     | '/platform/planos'
     | '/admin/'
+    | '/guia/'
     | '/$slug/acompanhar/$orderId'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
@@ -542,6 +577,7 @@ export interface FileRouteTypes {
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
+    | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
@@ -569,16 +605,19 @@ export interface RootRouteChildren {
   AdminRelatoriosRoute: typeof AdminRelatoriosRoute
   AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
   AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
+  GuiaCategoriaRoute: typeof GuiaCategoriaRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
   PlatformAssinaturasRoute: typeof PlatformAssinaturasRoute
   PlatformDashboardRoute: typeof PlatformDashboardRoute
   PlatformLojasRoute: typeof PlatformLojasRoute
   PlatformPlanosRoute: typeof PlatformPlanosRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  GuiaIndexRoute: typeof GuiaIndexRoute
   ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
+  GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
 }
 
@@ -603,6 +642,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/': {
+      id: '/guia/'
+      path: '/guia'
+      fullPath: '/guia/'
+      preLoaderRoute: typeof GuiaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -645,6 +691,13 @@ declare module '@tanstack/react-router' {
       path: '/loja/$slug'
       fullPath: '/loja/$slug'
       preLoaderRoute: typeof LojaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/$categoria': {
+      id: '/guia/$categoria'
+      path: '/guia/$categoria'
+      fullPath: '/guia/$categoria'
+      preLoaderRoute: typeof GuiaCategoriaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/trocar-senha': {
@@ -815,6 +868,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugPedidoConfirmadoRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/guia/produto/$id': {
+      id: '/guia/produto/$id'
+      path: '/guia/produto/$id'
+      fullPath: '/guia/produto/$id'
+      preLoaderRoute: typeof GuiaProdutoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/qz-cert.crt': {
       id: '/api/public/qz-cert.crt'
       path: '/api/public/qz-cert.crt'
@@ -960,16 +1020,19 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRelatoriosRoute: AdminRelatoriosRoute,
   AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
   AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
+  GuiaCategoriaRoute: GuiaCategoriaRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
   PlatformAssinaturasRoute: PlatformAssinaturasRoute,
   PlatformDashboardRoute: PlatformDashboardRoute,
   PlatformLojasRoute: PlatformLojasRoute,
   PlatformPlanosRoute: PlatformPlanosRoute,
   AdminIndexRoute: AdminIndexRoute,
+  GuiaIndexRoute: GuiaIndexRoute,
   ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
+  GuiaProdutoIdRoute: GuiaProdutoIdRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
 }
 export const routeTree = rootRouteImport
