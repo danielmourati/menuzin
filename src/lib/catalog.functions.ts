@@ -137,7 +137,8 @@ export const getCatalog = createServerFn({ method: "POST" })
 
     // Pizza config por categoria (somente categorias kind='pizza')
     const pizzaCats = cats.filter((c) => (c as DbCategory).kind === "pizza").map((c) => c.id);
-    const sbAny = supabaseAdmin as unknown as { from: (t: string) => ReturnType<typeof supabaseAdmin.from> };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sbAny = supabaseAdmin as unknown as { from: (t: string) => any };
     const [{ data: pSizes }, { data: pDoughs }, { data: pCrusts }] = pizzaCats.length
       ? await Promise.all([
           sbAny.from("category_pizza_sizes").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
