@@ -29,6 +29,7 @@ import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminDiretorioRouteImport } from './routes/admin.diretorio'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
@@ -154,6 +155,11 @@ const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDiretorioRoute = AdminDiretorioRouteImport.update({
+  id: '/admin/diretorio',
+  path: '/admin/diretorio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/diretorio': typeof AdminDiretorioRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/diretorio': typeof AdminDiretorioRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/admin/diretorio': typeof AdminDiretorioRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -456,6 +465,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/cupons'
     | '/admin/dashboard'
+    | '/admin/diretorio'
     | '/admin/login'
     | '/admin/observacoes'
     | '/admin/pedidos'
@@ -503,6 +513,7 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/cupons'
     | '/admin/dashboard'
+    | '/admin/diretorio'
     | '/admin/login'
     | '/admin/observacoes'
     | '/admin/pedidos'
@@ -551,6 +562,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/cupons'
     | '/admin/dashboard'
+    | '/admin/diretorio'
     | '/admin/login'
     | '/admin/observacoes'
     | '/admin/pedidos'
@@ -596,6 +608,7 @@ export interface RootRouteChildren {
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminCuponsRoute: typeof AdminCuponsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminDiretorioRoute: typeof AdminDiretorioRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminObservacoesRoute: typeof AdminObservacoesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -761,6 +774,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diretorio': {
+      id: '/admin/diretorio'
+      path: '/admin/diretorio'
+      fullPath: '/admin/diretorio'
+      preLoaderRoute: typeof AdminDiretorioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/dashboard': {
@@ -1011,6 +1031,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminCuponsRoute: AdminCuponsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminDiretorioRoute: AdminDiretorioRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminObservacoesRoute: AdminObservacoesRoute,
   AdminPedidosRoute: AdminPedidosRoute,
