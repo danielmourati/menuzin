@@ -3,7 +3,7 @@ import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState } from "react";
 import { listByCategory, listNeighborhoods, DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
-import { formatPrice } from "@/lib/format";
+import { brl } from "@/lib/format";
 import { ChevronLeft, MapPin, Star } from "lucide-react";
 
 const listQO = (categoria: string, neighborhood?: string) => queryOptions({
@@ -137,7 +137,7 @@ function CategoryPage() {
                     <p className="text-xs text-muted-foreground">
                       {it.tenant_name}{it.neighborhood ? ` · ${it.neighborhood}` : ""}
                     </p>
-                    <p className="mt-1 text-sm font-bold text-primary">{formatPrice(it.promo_price ?? it.price)}</p>
+                    <p className="mt-1 text-sm font-bold text-primary">{brl(it.promo_price ?? it.price)}</p>
                   </div>
                 </Link>
               );

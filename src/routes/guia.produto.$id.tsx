@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { getDirectoryProduct } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
-import { formatPrice } from "@/lib/format";
+import { brl } from "@/lib/format";
 import { ChevronLeft, MapPin, MessageCircle, ExternalLink } from "lucide-react";
 
 const productQO = (id: string) => queryOptions({
@@ -112,11 +112,11 @@ function ProductPage() {
             <div className="mt-2 flex items-baseline gap-2">
               {it.promo_price != null ? (
                 <>
-                  <span className="text-2xl font-bold text-primary">{formatPrice(it.promo_price)}</span>
-                  <span className="text-sm text-muted-foreground line-through">{formatPrice(it.price)}</span>
+                  <span className="text-2xl font-bold text-primary">{brl(it.promo_price)}</span>
+                  <span className="text-sm text-muted-foreground line-through">{brl(it.price)}</span>
                 </>
               ) : (
-                <span className="text-2xl font-bold text-primary">{formatPrice(it.price)}</span>
+                <span className="text-2xl font-bold text-primary">{brl(it.price)}</span>
               )}
             </div>
             {it.description && (
