@@ -44,6 +44,8 @@ type Form = {
   subtitle: string;
   emoji: string;
   gradient: string;
+  imageUrl: string | undefined;
+  imageFit: "cover" | "contain";
   storeName: string;
   price: string;
   promoPrice: string;
@@ -53,6 +55,7 @@ type Form = {
   endsAt: string;
   active: boolean;
 };
+
 
 const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   kind: defaultKind,
