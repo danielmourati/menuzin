@@ -182,7 +182,15 @@ function CategoryDialog({
           <div>
             <Label>Emoji</Label>
             <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Usado como fallback quando não há imagem.</p>
           </div>
+          <ImagePickerField
+            specKey="category"
+            value={imageUrl}
+            fit={imageFit}
+            onChange={(u, fit) => { setImageUrl(u); setImageFit(fit); }}
+          />
+
           <div className="flex items-center justify-between rounded-lg border p-3">
             <span className="text-sm font-medium">Ativa no Guia</span>
             <Switch checked={active} onCheckedChange={setActive} />
