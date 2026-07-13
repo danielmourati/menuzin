@@ -129,7 +129,7 @@ function CategoryDialog({
 }) {
   const [label, setLabel] = useState(editing?.label ?? "");
   const [slug, setSlug] = useState(editing?.slug ?? "");
-  const [emoji, setEmoji] = useState(editing?.emoji ?? "🍽️");
+  const [emoji, setEmoji] = useState(editing?.emoji ?? "");
   const [imageUrl, setImageUrl] = useState<string | undefined>(editing?.imageUrl);
   const [imageFit, setImageFit] = useState<"cover" | "contain">(editing?.imageFit ?? "cover");
   const [active, setActive] = useState(editing?.active ?? true);
