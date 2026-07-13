@@ -184,11 +184,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             <p className="mt-1 text-xs font-medium opacity-95">{slot.storeName}</p>
           )}
         </div>
-        {!img && (
+        {!img && emoji && (
           <div className="pointer-events-none absolute -right-3 -bottom-3 select-none text-6xl leading-none opacity-30">
             {emoji}
           </div>
         )}
+
       </div>
     </div>
   );
