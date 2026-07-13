@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SlotCard } from "./SlotCard";
+import { ImagePickerField } from "./ImagePickerField";
 import {
   guiaActions,
   DEFAULT_GRADIENTS,
@@ -28,6 +29,7 @@ import {
   type GuiaSlotKind,
 } from "@/lib/guia-mock";
 import { toast } from "sonner";
+
 
 type Props = {
   open: boolean;
