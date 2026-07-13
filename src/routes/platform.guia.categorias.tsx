@@ -127,6 +127,8 @@ function CategoryDialog({
   const [label, setLabel] = useState(editing?.label ?? "");
   const [slug, setSlug] = useState(editing?.slug ?? "");
   const [emoji, setEmoji] = useState(editing?.emoji ?? "🍽️");
+  const [imageUrl, setImageUrl] = useState<string | undefined>(editing?.imageUrl);
+  const [imageFit, setImageFit] = useState<"cover" | "contain">(editing?.imageFit ?? "cover");
   const [active, setActive] = useState(editing?.active ?? true);
 
   // reset when opening for a different item
@@ -134,6 +136,8 @@ function CategoryDialog({
     setLabel(editing?.label ?? "");
     setSlug(editing?.slug ?? "");
     setEmoji(editing?.emoji ?? "🍽️");
+    setImageUrl(editing?.imageUrl);
+    setImageFit(editing?.imageFit ?? "cover");
     setActive(editing?.active ?? true);
   }, [editing, open]);
 
@@ -148,15 +152,17 @@ function CategoryDialog({
       toast.error("Já existe uma categoria com esse slug.");
       return;
     }
+    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", imageUrl, imageFit, active };
     if (editing) {
-      guiaActions.updateCategory(editing.id, { label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", active });
+      guiaActions.updateCategory(editing.id, base);
       toast.success("Categoria atualizada.");
     } else {
-      guiaActions.createCategory({ label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", active });
+      guiaActions.createCategory(base);
       toast.success("Categoria criada.");
     }
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
