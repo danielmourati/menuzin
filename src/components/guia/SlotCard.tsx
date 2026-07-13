@@ -13,7 +13,7 @@ function formatCountdown(endsAt?: string): string {
 
 export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | "md" | "lg" }) {
   const grad = slot.gradient ?? "from-primary via-primary to-primary/70";
-  const emoji = slot.emoji ?? "✨";
+  const emoji = slot.emoji?.trim() || "";
   const img = slot.imageUrl;
   const fitCls = slot.imageFit === "contain" ? "object-contain" : "object-cover";
 
