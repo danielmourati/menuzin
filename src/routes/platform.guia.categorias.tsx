@@ -183,9 +183,10 @@ function CategoryDialog({
             <Input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="pizza" />
           </div>
           <div>
-            <Label>Emoji</Label>
-            <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} />
-            <p className="mt-1 text-[11px] text-muted-foreground">Usado como fallback quando não há imagem.</p>
+            <Label>Emoji <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+            <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} placeholder="deixe em branco pra ocultar" />
+            <p className="mt-1 text-[11px] text-muted-foreground">Fallback quando não há imagem. Deixe em branco pra mostrar apenas o texto.</p>
+
           </div>
           <ImagePickerField
             specKey="category"
