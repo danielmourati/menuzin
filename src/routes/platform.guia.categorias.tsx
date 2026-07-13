@@ -138,7 +138,7 @@ function CategoryDialog({
   useEffect(() => {
     setLabel(editing?.label ?? "");
     setSlug(editing?.slug ?? "");
-    setEmoji(editing?.emoji ?? "🍽️");
+    setEmoji(editing?.emoji ?? "");
     setImageUrl(editing?.imageUrl);
     setImageFit(editing?.imageFit ?? "cover");
     setActive(editing?.active ?? true);
