@@ -27,10 +27,139 @@ function DiretorioPage() {
     <AdminLayout title="Guia Menuzin">
       <div className="mx-auto max-w-5xl space-y-6">
         <OptInBlock />
+        <RequestFeatureBlock />
         <ProductsBlock />
         <MetricsBlock />
       </div>
     </AdminLayout>
+  );
+}
+
+function RequestFeatureBlock() {
+  const { data } = useQuery({
+    queryKey: ["diretorio", "my-products"],
+    queryFn: () => listMyDirectoryProducts(),
+  });
+  const tenantName = data?.tenant?.name ?? "Sua loja";
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<GuiaSlotKind>("featured");
+  const [days, setDays] = useState<7 | 14 | 30>(7);
+  const [note, setNote] = useState("");
+  const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
+  const price = SLOT_KIND_PRICES[kind][days];
+
+  const submit = () => {
+    const req = guiaActions.createRequest({
+      tenantName,
+      slotKind: kind,
+      durationDays: days,
+      amount: price,
+      note: note.trim() || undefined,
+    });
+    setPending({ pixCode: req.pixCode, amount: req.amount });
+    toast.success("Solicitação enviada. Confirme o pagamento por PIX.");
+  };
+
+  const close = () => {
+    setPending(null);
+    setNote("");
+    setOpen(false);
+  };
+
+  return (
+    <section className="rounded-2xl border bg-gradient-to-br from-primary/5 to-fuchsia-500/5 p-5 shadow-sm">
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="rounded-xl bg-primary/10 p-3">
+          <Sparkles className="h-6 w-6 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-bold">Turbinar sua loja no Guia</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Listagem no Guia é sempre <strong>grátis</strong>. Este destaque é opcional e cobrado via PIX — aparece em posições privilegiadas (hero, banner, carrossel).
+          </p>
+        </div>
+        <Button onClick={() => setOpen(true)}>
+          <Sparkles className="mr-1 h-4 w-4" /> Solicitar destaque
+        </Button>
+      </div>
+
+      <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{pending ? "Pagamento via PIX" : "Solicitar destaque no Guia"}</DialogTitle>
+          </DialogHeader>
+          {pending ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Copie o código PIX abaixo e pague no seu banco. Assim que confirmarmos o pagamento, seu destaque entra no ar automaticamente.
+              </p>
+              <div className="rounded-xl border bg-muted p-3">
+                <p className="text-xs text-muted-foreground">Valor</p>
+                <p className="text-2xl font-black text-primary">{brl(pending.amount)}</p>
+              </div>
+              <div>
+                <Label>Código PIX (copia e cola)</Label>
+                <div className="mt-1 flex gap-2">
+                  <Input readOnly value={pending.pixCode ?? ""} />
+                  <Button variant="outline" onClick={() => {
+                    if (pending.pixCode) {
+                      navigator.clipboard.writeText(pending.pixCode);
+                      toast.success("Copiado.");
+                    }
+                  }}>Copiar</Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Modo demonstração: o Menuzin ainda não processa PIX real. A confirmação será feita manualmente pelo time até a integração ficar pronta.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <Label>Tipo de destaque</Label>
+                <Select value={kind} onValueChange={(v) => setKind(v as GuiaSlotKind)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(SLOT_KIND_LABELS) as GuiaSlotKind[]).map((k) => (
+                      <SelectItem key={k} value={k}>{SLOT_KIND_LABELS[k]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Duração</Label>
+                <Select value={String(days)} onValueChange={(v) => setDays(Number(v) as 7 | 14 | 30)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 dias — {brl(SLOT_KIND_PRICES[kind][7])}</SelectItem>
+                    <SelectItem value="14">14 dias — {brl(SLOT_KIND_PRICES[kind][14])}</SelectItem>
+                    <SelectItem value="30">30 dias — {brl(SLOT_KIND_PRICES[kind][30])}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Observação (opcional)</Label>
+                <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: destacar a pizza calabresa" />
+              </div>
+              <div className="rounded-xl border bg-primary/5 p-3">
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xl font-black text-primary">{brl(price)}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            {pending ? (
+              <Button onClick={close}>Fechar</Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={close}>Cancelar</Button>
+                <Button onClick={submit}>Gerar PIX</Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }
 
