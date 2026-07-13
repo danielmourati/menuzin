@@ -100,11 +100,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
           )}
           {img ? (
             <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
-          ) : (
+          ) : emoji ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl opacity-90 drop-shadow-lg">
               {emoji}
             </div>
-          )}
+          ) : null}
+
 
           {typeof slot.discountPct === "number" && (
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-center">
