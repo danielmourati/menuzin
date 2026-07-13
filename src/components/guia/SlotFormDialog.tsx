@@ -85,7 +85,7 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
         kind: slot.kind,
         title: slot.title,
         subtitle: slot.subtitle ?? "",
-        emoji: slot.emoji ?? "✨",
+        emoji: slot.emoji ?? "",
         gradient: slot.gradient ?? DEFAULT_GRADIENTS[0],
         imageUrl: slot.imageUrl,
         imageFit: slot.imageFit ?? "cover",
