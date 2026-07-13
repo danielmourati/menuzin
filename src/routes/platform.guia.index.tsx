@@ -23,6 +23,9 @@ export const Route = createFileRoute("/platform/guia/")({
 });
 
 function PlatformGuiaOverview() {
+  const [device, setDevice] = useState<PreviewDevice>("mobile");
+  const [reloadKey, setReloadKey] = useState(0);
+  const spec = DEVICE_SPECS[device];
   const state = useGuiaState();
   const requests = useGuiaRequests();
 
