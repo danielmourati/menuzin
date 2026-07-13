@@ -61,7 +61,7 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   kind: defaultKind,
   title: "",
   subtitle: "",
-  emoji: "✨",
+  emoji: "",
   gradient: DEFAULT_GRADIENTS[0],
   imageUrl: undefined,
   imageFit: "cover",
