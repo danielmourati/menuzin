@@ -46,6 +46,7 @@ import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
 import { Route as PlatformGuiaIndexRouteImport } from './routes/platform.guia.index'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
+import { Route as PlatformGuiaSolicitacoesRouteImport } from './routes/platform.guia.solicitacoes'
 import { Route as PlatformGuiaSlotsRouteImport } from './routes/platform.guia.slots'
 import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
@@ -246,6 +247,12 @@ const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
   path: '/platform/tenants/novo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformGuiaSolicitacoesRoute =
+  PlatformGuiaSolicitacoesRouteImport.update({
+    id: '/solicitacoes',
+    path: '/solicitacoes',
+    getParentRoute: () => PlatformGuiaRoute,
+  } as any)
 const PlatformGuiaSlotsRoute = PlatformGuiaSlotsRouteImport.update({
   id: '/slots',
   path: '/slots',
@@ -372,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
+  '/platform/guia/solicitacoes': typeof PlatformGuiaSolicitacoesRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
@@ -423,6 +431,7 @@ export interface FileRoutesByTo {
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
+  '/platform/guia/solicitacoes': typeof PlatformGuiaSolicitacoesRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/platform/guia': typeof PlatformGuiaIndexRoute
@@ -477,6 +486,7 @@ export interface FileRoutesById {
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
+  '/platform/guia/solicitacoes': typeof PlatformGuiaSolicitacoesRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
@@ -532,6 +542,7 @@ export interface FileRouteTypes {
     | '/loja/$slug/pedido-confirmado'
     | '/platform/guia/categorias'
     | '/platform/guia/slots'
+    | '/platform/guia/solicitacoes'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
     | '/platform/guia/'
@@ -583,6 +594,7 @@ export interface FileRouteTypes {
     | '/loja/$slug/pedido-confirmado'
     | '/platform/guia/categorias'
     | '/platform/guia/slots'
+    | '/platform/guia/solicitacoes'
     | '/platform/tenants/novo'
     | '/admin/configuracoes'
     | '/platform/guia'
@@ -636,6 +648,7 @@ export interface FileRouteTypes {
     | '/loja/$slug/pedido-confirmado'
     | '/platform/guia/categorias'
     | '/platform/guia/slots'
+    | '/platform/guia/solicitacoes'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
     | '/platform/guia/'
@@ -942,6 +955,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformTenantsNovoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform/guia/solicitacoes': {
+      id: '/platform/guia/solicitacoes'
+      path: '/solicitacoes'
+      fullPath: '/platform/guia/solicitacoes'
+      preLoaderRoute: typeof PlatformGuiaSolicitacoesRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
     '/platform/guia/slots': {
       id: '/platform/guia/slots'
       path: '/slots'
@@ -1097,12 +1117,14 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 interface PlatformGuiaRouteChildren {
   PlatformGuiaCategoriasRoute: typeof PlatformGuiaCategoriasRoute
   PlatformGuiaSlotsRoute: typeof PlatformGuiaSlotsRoute
+  PlatformGuiaSolicitacoesRoute: typeof PlatformGuiaSolicitacoesRoute
   PlatformGuiaIndexRoute: typeof PlatformGuiaIndexRoute
 }
 
 const PlatformGuiaRouteChildren: PlatformGuiaRouteChildren = {
   PlatformGuiaCategoriasRoute: PlatformGuiaCategoriasRoute,
   PlatformGuiaSlotsRoute: PlatformGuiaSlotsRoute,
+  PlatformGuiaSolicitacoesRoute: PlatformGuiaSolicitacoesRoute,
   PlatformGuiaIndexRoute: PlatformGuiaIndexRoute,
 }
 
