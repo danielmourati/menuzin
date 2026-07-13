@@ -17,6 +17,8 @@ export type GuiaSlot = {
   subtitle?: string;
   emoji?: string;
   gradient?: string;
+  imageUrl?: string;
+  imageFit?: "cover" | "contain";
   href?: string;
   price?: number;
   promoPrice?: number;
@@ -24,6 +26,12 @@ export type GuiaSlot = {
   rating?: number;
   deliveryFee?: number;
   storeName?: string;
+  endsAt?: string;
+  tenantId?: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+
   endsAt?: string;
   tenantId?: string;
   active: boolean;
