@@ -63,6 +63,8 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   subtitle: "",
   emoji: "✨",
   gradient: DEFAULT_GRADIENTS[0],
+  imageUrl: undefined,
+  imageFit: "cover",
   storeName: "",
   price: "",
   promoPrice: "",
@@ -72,6 +74,7 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   endsAt: "",
   active: true,
 });
+
 
 export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props) {
   const [f, setF] = useState<Form>(empty(defaultKind));
