@@ -226,6 +226,14 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
               </div>
             </div>
 
+            <ImagePickerField
+              specKey={f.kind}
+              value={f.imageUrl}
+              fit={f.imageFit}
+              onChange={(imageUrl, imageFit) => setF({ ...f, imageUrl, imageFit })}
+            />
+
+
             {showStore && (
               <div>
                 <Label>Nome da loja</Label>
