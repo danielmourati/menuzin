@@ -137,9 +137,10 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
         <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
           {img ? (
             <img src={img} alt="" className={`h-full w-full ${fitCls}`} />
-          ) : (
+          ) : emoji ? (
             <span aria-hidden>{emoji}</span>
-          )}
+          ) : null}
+
         </div>
 
         <div className="min-w-0 flex-1">
