@@ -137,7 +137,7 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
       kind: f.kind,
       title: f.title.trim(),
       subtitle: f.subtitle.trim() || undefined,
-      emoji: f.emoji.trim() || "✨",
+      emoji: f.emoji.trim() || undefined,
       gradient: f.gradient,
       imageUrl: f.imageUrl,
       imageFit: f.imageFit,
