@@ -45,7 +45,14 @@ function PlatformGuiaCategorias() {
         <div className="divide-y rounded-xl border">
           {cats.map((c, i) => (
             <div key={c.id} className="flex items-center gap-3 p-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-xl">{c.emoji}</span>
+              <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-muted text-xl">
+                {c.imageUrl ? (
+                  <img src={c.imageUrl} alt="" className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"}`} />
+                ) : (
+                  c.emoji
+                )}
+              </span>
+
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.label}</p>
                 <p className="text-xs text-muted-foreground">/{c.slug}</p>
