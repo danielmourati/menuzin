@@ -155,7 +155,7 @@ function CategoryDialog({
       toast.error("Já existe uma categoria com esse slug.");
       return;
     }
-    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", imageUrl, imageFit, active };
+    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim(), imageUrl, imageFit, active };
     if (editing) {
       guiaActions.updateCategory(editing.id, base);
       toast.success("Categoria atualizada.");
