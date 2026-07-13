@@ -31,12 +31,6 @@ export type GuiaSlot = {
   active: boolean;
   sortOrder: number;
   createdAt: string;
-
-  endsAt?: string;
-  tenantId?: string;
-  active: boolean;
-  sortOrder: number;
-  createdAt: string;
 };
 
 export type GuiaCategory = {
@@ -44,9 +38,12 @@ export type GuiaCategory = {
   slug: string;
   label: string;
   emoji: string;
+  imageUrl?: string;
+  imageFit?: "cover" | "contain";
   active: boolean;
   sortOrder: number;
 };
+
 
 export type GuiaPromoRequest = {
   id: string;
