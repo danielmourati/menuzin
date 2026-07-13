@@ -95,9 +95,14 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
               <Star className="h-3 w-3 fill-current" /> {slot.rating.toFixed(1)}
             </div>
           )}
-          <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl opacity-90 drop-shadow-lg">
-            {emoji}
-          </div>
+          {img ? (
+            <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
+          ) : (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl opacity-90 drop-shadow-lg">
+              {emoji}
+            </div>
+          )}
+
           {typeof slot.discountPct === "number" && (
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-center">
               <span className="rounded-md bg-white/95 px-2 py-0.5 text-xs font-black text-red-600">
