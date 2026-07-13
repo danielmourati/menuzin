@@ -1,94 +1,166 @@
 ## Objetivo
 
-Redesenhar **`/guia`** (home do Guia Menuzin) inspirado no aiqfome (anexos 1 e 2), com **dados mockados** e visual denso, colorido e "faminto". Mantemos rotas filhas (`/guia/$categoria`, `/guia/produto/$id`) inalteradas nesta iteração — só a home muda.
+Refatorar a home do **Guia Menuzin** (`/guia`) adaptando o layout do menudino.com/delivery/parnaiba-pi ao design system atual do MenuZin, e criar uma **área exclusiva de superadmin** (`/platform/guia/*`) para gerir tudo que aparece no guia (categorias, destaques, banners, coleções, promoções em cards e carrosséis). Nesta iteração seguimos com **dados mockados** — a área do superadmin já existe funcionalmente (CRUDs em memória/localStorage), pronta para trocarmos por persistência real depois. Fecha a home com um card CTA **"Publique seu cardápio grátis no MenuZin"**.
 
-## Escopo
+Fora do escopo agora: pagamento PIX real dos destaques, persistência em banco, mudanças em `/guia/$categoria` e `/guia/produto/$id`.
 
-**Somente frontend** em `src/routes/guia.index.tsx`. Sem migração, sem alteração de server functions, sem novas dependências. As queries reais (`listCategories`, `listFeatured`) continuam sendo carregadas no loader, mas a UI usa **mock local** para preencher todas as seções novas (lojas em alta, coleções, banner promo, produtos em destaque com % OFF, etc.). Quando houver dados reais, ficam intercalados; quando não houver, o mock aparece com aviso sutil "conteúdo demonstrativo".
+## Referência de layout (Menudino)
 
-## Referências visuais (aiqfome)
-
-- Header colado no topo com **endereço/bairro** + sino de notificações (fake) + ícone de mensagens.
-- **Chips de vertical** ("restaurantes", "mercados", "conveniências") com pill colorido no ativo.
-- Blocos com **título grande + subtítulo com emoji** ("lojas em alta por aqui ✨", "pra driblar a fome ⚽").
-- **Cards de loja compactos**: logo redonda/quadrada, nome, taxa entrega (moto), nota (estrela), tag "%" verde.
-- **Coleções**: cards retangulares altos (aspect-[3/4]) com arte cheia (gradiente + texto grande).
-- **Banner horizontal** promocional cheio de cor.
-- **Grid de categorias com emoji** grande e label minúsculo.
-- **Cards de produto/loja em destaque** com selo de nota no canto e badge "40% OFF".
-- **Bottom nav mobile** fake (início / busca / logo central / pedidos / conta) — apenas visual.
-
-## Estrutura da nova home
+Adaptado ao nosso design system (tokens semânticos, `rounded-2xl`, fontes atuais):
 
 ```text
-[Header sticky]
-  📍 Rua/Bairro (mock) — Parnaíba-PI    [msg] [🔔6]
-  [restaurantes*] [mercados] [conveniências]   ← chips (só restaurantes ativo)
-
-[Seção: lojas em alta por aqui ✨]         "ver tudo →"
-  grid 2 col mobile / 4 col desktop, cards horizontais compactos
-  (mock: 6 lojas com logo, nome, entrega, nota)
-
-[Seção: pra driblar a fome ⚽🍕]           "ver tudo →"
-  Banner horizontal grande (uploaded image? não — usar gradiente + emoji)
-  Scroll horizontal de cards de produto com badge "40% OFF"
-  (mock: 6 produtos, preços riscados + preço promo)
-
-[Seção: coleções de lojas e promos]        "ver tudo →"
-  Scroll horizontal de cards aspect-[3/4] (3–4 coleções)
-
-[Seção: banner cheio (cervejas zero, etc.)]
-  1 banner full-width com gradiente e frase
-
-[Seção: categorias]
-  grid 6 col com emoji grande + label
-  (usa DIRECTORY_CATEGORIES real)
-
-[Seção: destaques reais]
-  Se `listFeatured` retornar itens, renderiza como grid de cards.
-  Senão, mostra 6 cards mockados marcados como "demo".
-
-[Bottom nav mobile fake] (só md:hidden)
+[Header sticky] logo Menuzin • cidade/bairro (mock) • busca • sino
+[Hero banner rotativo] carrossel full-width com 3 slides (mock)
+[Chips de cidade/bairro] pills horizontais (Parnaíba-PI ativo)
+[Categorias em grid] 4 col mobile / 8 col desktop, emoji + label
+[Destaques da semana] carrossel horizontal de cards de PRODUTO com % OFF
+[Lojas em alta] grid 2/4 col — logo, nome, nota, taxa entrega
+[Banner full promocional] 1 faixa full-width com gradiente
+[Coleções] carrossel de cards altos aspect-[3/4]
+[Ofertas relâmpago] carrossel de cards com contagem regressiva (mock)
+[Card CTA final] "Publique seu cardápio grátis no MenuZin" → /admin/login ou landing
+[Bottom nav mobile fake]
 ```
 
-## Mock data (dentro do arquivo)
+Cada bloco (exceto categorias) é alimentado por **slots gerenciáveis** pelo superadmin.
 
-Criar constantes no topo de `guia.index.tsx`:
+## Modelo de dados mock (frontend-only)
 
-- `MOCK_STORES` — 6 lojas: `{ id, name, logo (emoji ou gradiente), deliveryFee, rating, tag }`.
-- `MOCK_PROMOS` — 6 produtos promo: `{ id, name, store, image, price, promoPrice, discount, rating }` usando imagens `productImage(null)` (fallback svg) ou emojis grandes sobre gradientes tematizados por categoria.
-- `MOCK_COLLECTIONS` — 4 coleções: `{ title, subtitle, gradient, emoji }`.
-- `MOCK_BANNER` — 1 banner: `{ title, subtitle, gradient, emoji }`.
+Criar `src/lib/guia-mock.ts` com tipos + store em memória (com `localStorage` para persistir entre reloads do superadmin):
 
-Sem imagens externas: usar **gradientes CSS + emojis grandes** (padrão do resto do projeto) para não introduzir binários. Onde já houver produto real, `productImage()` cobre o fallback.
+```ts
+type GuiaSlotKind =
+  | "hero"           // carrossel topo
+  | "featured"       // destaques da semana (produtos)
+  | "top_stores"     // lojas em alta
+  | "banner"         // banner full-width
+  | "collection"     // card de coleção
+  | "flash_offer";   // oferta relâmpago
 
-## Design tokens
+type GuiaSlot = {
+  id: string;
+  kind: GuiaSlotKind;
+  title: string;
+  subtitle?: string;
+  image?: string;       // URL/emoji/gradiente
+  gradient?: string;    // tailwind gradient class
+  href?: string;
+  price?: number;
+  promoPrice?: number;
+  discountPct?: number;
+  rating?: number;
+  deliveryFee?: number;
+  storeName?: string;
+  endsAt?: string;      // ISO — para flash_offer
+  tenantId?: string;    // referência ao anunciante (mock)
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+};
 
-- Reaproveitar `bg-primary`, `bg-card`, `bg-muted` do design system (não hardcodar cores).
-- Introduzir 4 acentos via classes utilitárias inline (`from-orange-500 to-pink-500`, `from-purple-600 to-fuchsia-500`, etc.) apenas dentro dos banners/coleções — permitido por serem gradientes decorativos, não tokens de brand.
-- Tipografia: manter fontes do projeto; títulos de seção `text-xl font-black tracking-tight` com emoji inline (estilo aiqfome).
-- Radius consistente: `rounded-2xl` em cards, `rounded-full` em chips.
-- Mobile-first: layout otimizado para 375–414 px (referências são iPhone).
+type GuiaCategory = {
+  id: string;
+  slug: string;
+  label: string;
+  emoji: string;
+  active: boolean;
+  sortOrder: number;
+};
 
-## Detalhes técnicos
+type GuiaPromoRequest = {
+  id: string;
+  tenantName: string;
+  slotKind: GuiaSlotKind;
+  amount: number;
+  status: "pending_payment" | "paid" | "rejected";
+  pixCode?: string;   // mock
+  createdAt: string;
+};
+```
 
-- Arquivo tocado: **só `src/routes/guia.index.tsx`**.
-- `loader`, `head`, `Route.options` permanecem; apenas `GuiaHome()` é reescrita.
-- `useSuspenseQuery(featuredQO)` continua; usamos os dados quando existirem, mock caso `items.length === 0`.
-- Todos os cards mock que "linkariam" apontam para `#` com `onClick={(e)=>e.preventDefault()}` e um toast opcional "Demo" — mais simples: apenas `<button>` sem navegação, para não quebrar rotas.
-- Categorias reais continuam navegando para `/guia/$categoria`.
-- Bottom nav é apenas decorativo (`<div>` com ícones lucide + labels), oculto em `md:`.
-- Adicionar `role="navigation"` e `aria-label` nos blocos principais.
+- CRUD 100% cliente (in-memory + localStorage `menuzin.guia.mock.v1`).
+- Seeds pré-populados iguais aos mocks atuais da home, para a UI já abrir cheia.
+- Exportar hooks: `useGuiaSlots(kind?)`, `useGuiaCategories()`, `useGuiaPromoRequests()` com `subscribe` simples (event emitter).
 
-## Fora do escopo
+## Área do superadmin — `/platform/guia/*`
 
-- Alterar `/guia/$categoria` e `/guia/produto/$id`.
-- Persistir seleção de vertical (mercados/conveniências) — puramente visual.
-- Trocar dados reais por mock em outras rotas.
-- Criar componente de bottom nav global — fica local ao arquivo desta home.
-- Adicionar bibliotecas de carrossel; scroll horizontal nativo (`overflow-x-auto snap-x`).
+Já existe layout `platform.*` para `platform_admin`. Aproveitar `beforeLoad` existente e adicionar item "Guia Menuzin" no menu platform.
 
-## Riscos
+Rotas novas (todas gate `platform_admin`):
 
-- Excesso de gradientes fortes destoando da landing atual → contido em banners/coleções; cards de loja/produto seguem `bg-card` neutro.
-- Confusão entre demo e real → seção de destaques reais só ativa quando `featured.length > 0`; mocks têm badge sutil "demo" quando aplicável.
+- `src/routes/platform.guia.tsx` — layout com sub-nav (Visão geral / Categorias / Slots / Solicitações de destaque).
+- `src/routes/platform.guia.index.tsx` — visão geral: contadores por tipo de slot, últimos pedidos de destaque, preview da home em iframe (`/guia`).
+- `src/routes/platform.guia.categorias.tsx` — CRUD de categorias (label, emoji, slug, ativo, ordem via drag/arrow buttons).
+- `src/routes/platform.guia.slots.tsx` — CRUD unificado com filtro por `kind` (hero, featured, banner, coleção, top_stores, flash_offer). Form com campos condicionais por tipo, preview do card, toggle ativo, reordenar, duplicar.
+- `src/routes/platform.guia.solicitacoes.tsx` — lista de solicitações de destaque vindas dos tenants (mock). Ações: gerar código PIX fake, marcar como pago, rejeitar. Quando marcado como pago, cria automaticamente um slot correspondente.
+
+Componentes:
+- `PlatformGuiaLayout` com tabs `@tanstack/react-router` `Link`.
+- `SlotFormDialog` (shadcn Dialog) reaproveitado nas telas.
+- `SlotPreviewCard` que renderiza cada `kind` no mesmo estilo da home — assim o admin vê o mesmo card que o usuário verá.
+
+Tudo escrito com componentes shadcn já existentes (`Dialog`, `Input`, `Select`, `Switch`, `Card`, `Button`, `Badge`).
+
+## Refactor da home `/guia`
+
+Reescrever `src/routes/guia.index.tsx`:
+
+- Ler slots via `useGuiaSlots(kind)` em vez de constantes hardcoded.
+- Ler categorias via `useGuiaCategories()` (substitui `DIRECTORY_CATEGORIES` na home; rotas filhas continuam usando o array atual).
+- Manter fallback quando lista vazia → mensagem "em breve".
+- Novos blocos: Hero carousel (usar `embla-carousel-react` já presente ou implementar com `overflow-x-auto snap-x` simples — preferir snap nativo para evitar dependência nova).
+- **Card CTA final** full-width, gradiente do brand, texto grande "Publique seu cardápio grátis no MenuZin" + subtítulo "Crie sua loja em 2 minutos, receba pedidos pelo WhatsApp" + botão `Link to="/admin/login"` "Começar grátis".
+- Bottom nav decorativo mantido.
+
+## Fluxo de "solicitação de destaque" pelo tenant (stub, mock)
+
+Adicionar na tela existente `/admin/diretorio` um botão **"Solicitar destaque no Guia"** que abre modal:
+- Escolher tipo de slot (Hero / Banner / Coleção / Destaque).
+- Escolher duração (7 / 14 / 30 dias) com preços mockados.
+- Ao confirmar → cria `GuiaPromoRequest` em `pending_payment`, mostra QR/código PIX fake e instruções.
+- Copy explícito: "Listagem no Guia é sempre grátis. Este destaque é opcional."
+
+Sem chamadas de servidor; apenas gera item que aparece em `/platform/guia/solicitacoes` para o superadmin resolver.
+
+## Design system
+
+- Nada de cores hardcoded fora de gradientes decorativos em banners/coleções.
+- Tipografia: manter fontes atuais; títulos de seção `text-xl font-black`.
+- Cards: `rounded-2xl`, `bg-card`, `border`, `shadow-sm`.
+- Chips: `rounded-full` com estado ativo `bg-primary text-primary-foreground`.
+- Skeletons em cada bloco enquanto o `useSyncExternalStore` da store mock inicializa.
+
+## Arquivos tocados
+
+Criados:
+- `src/lib/guia-mock.ts` (store + tipos + seeds + hooks)
+- `src/components/guia/SlotCard.tsx` (renderiza cada `kind`)
+- `src/components/guia/SlotFormDialog.tsx`
+- `src/components/platform/PlatformGuiaLayout.tsx`
+- `src/routes/platform.guia.tsx`
+- `src/routes/platform.guia.index.tsx`
+- `src/routes/platform.guia.categorias.tsx`
+- `src/routes/platform.guia.slots.tsx`
+- `src/routes/platform.guia.solicitacoes.tsx`
+
+Editados:
+- `src/routes/guia.index.tsx` (consome mock store, novo layout, CTA final)
+- `src/routes/admin.diretorio.tsx` (botão "Solicitar destaque" + modal PIX mock)
+- `src/components/admin/AdminLayout.tsx` (nada — o item de menu do platform admin fica na navegação platform, não no admin do tenant)
+- Adicionar link "Guia Menuzin" na navegação de `/platform/*` (procurar layout platform ou header e inserir)
+
+Sem alterações: server functions, migrações, `directory.functions.ts`, `directory-admin.functions.ts`, rotas `/guia/$categoria` e `/guia/produto/$id`, `/admin/*` fora de `admin.diretorio.tsx`.
+
+## Riscos e mitigação
+
+- **localStorage inconsistente em SSR** → toda leitura da store via `useSyncExternalStore` com `getServerSnapshot` retornando seeds; hidratação segura.
+- **Confusão entre mock e real** → banner discreto no `/platform/guia` "Modo demonstração — dados não persistem no servidor".
+- **Reordenação** → botões ↑/↓ simples em vez de dnd-kit para não adicionar dependência.
+- **Rota `platform.guia.*` sem gate** → seguir o mesmo padrão usado em `platform.dashboard.tsx` (ler contexto e redirect se não `platform_admin`).
+
+## Fora do escopo desta iteração
+
+- Persistência real em banco / migrations.
+- Integração real de PIX (Mercado Pago) — apenas UI stub.
+- Repaginação de `/guia/$categoria` e `/guia/produto/$id`.
+- Analytics/relatórios de performance de slots.

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Menu, Loader2, LogOut, CreditCard, Package } from "lucide-react";
+import { LayoutDashboard, Store, Menu, Loader2, LogOut, CreditCard, Package, Compass } from "lucide-react";
 import { toast } from "sonner";
 import { clearActiveTenant } from "@/lib/active-tenant";
 import { useEffect, useState, type ReactNode } from "react";
@@ -20,6 +20,7 @@ const navItems = [
   { to: "/platform/lojas", label: "Lojas", icon: Store },
   { to: "/platform/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/platform/planos", label: "Planos", icon: Package },
+  { to: "/platform/guia", label: "Guia Menuzin", icon: Compass },
 ] as const;
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {
@@ -62,7 +63,7 @@ export function PlatformLayout({ children, title }: { children: ReactNode; title
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map((i) => {
           const Icon = i.icon;
-          const active = pathname === i.to;
+          const active = pathname === i.to || pathname.startsWith(i.to + "/");
           return (
             <Link key={i.to} to={i.to} onClick={onNav}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${active ? "bg-primary text-primary-foreground" : "hover:bg-sidebar-accent"}`}>
