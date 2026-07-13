@@ -139,6 +139,9 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
       subtitle: f.subtitle.trim() || undefined,
       emoji: f.emoji.trim() || "✨",
       gradient: f.gradient,
+      imageUrl: f.imageUrl,
+      imageFit: f.imageFit,
+
       storeName: f.storeName.trim() || undefined,
       price: num(f.price),
       promoPrice: num(f.promoPrice),
