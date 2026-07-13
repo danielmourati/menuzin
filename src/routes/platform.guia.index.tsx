@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Smartphone, Tablet, Monitor, RefreshCw } from "lucide-react";
 import {
   useGuiaState,
   useGuiaRequests,
@@ -9,6 +10,13 @@ import {
   type GuiaSlotKind,
 } from "@/lib/guia-mock";
 import { brl } from "@/lib/format";
+
+type PreviewDevice = "mobile" | "tablet" | "desktop";
+const DEVICE_SPECS: Record<PreviewDevice, { label: string; width: number; height: number; icon: typeof Smartphone }> = {
+  mobile: { label: "Mobile", width: 390, height: 780, icon: Smartphone },
+  tablet: { label: "Tablet", width: 768, height: 900, icon: Tablet },
+  desktop: { label: "Desktop", width: 1280, height: 800, icon: Monitor },
+};
 
 export const Route = createFileRoute("/platform/guia/")({
   component: PlatformGuiaOverview,
