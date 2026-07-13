@@ -401,6 +401,25 @@ export const SLOT_KIND_PRICES: Record<GuiaSlotKind, Record<7 | 14 | 30, number>>
   flash_offer: { 7: 29.9, 14: 49.9, 30: 79.9 },
 };
 
+export type ImageSpec = {
+  width: number;
+  height: number;
+  ratio: string;
+  maxKB: number;
+  hint: string;
+};
+
+export const SLOT_IMAGE_SPECS: Record<GuiaSlotKind | "category", ImageSpec> = {
+  hero:        { width: 1600, height: 900, ratio: "16:9", maxKB: 400, hint: "Banner do topo. Deixe o texto principal em pouca área da imagem — o título é sobreposto." },
+  featured:    { width: 800,  height: 800, ratio: "1:1",  maxKB: 250, hint: "Foto quadrada do produto. Fundo neutro funciona melhor." },
+  top_stores:  { width: 400,  height: 400, ratio: "1:1",  maxKB: 150, hint: "Logo ou ícone da loja. Preferencialmente PNG com fundo transparente." },
+  banner:      { width: 1920, height: 640, ratio: "3:1",  maxKB: 500, hint: "Banner full-width. Foco visual à direita; texto vai à esquerda." },
+  collection:  { width: 1200, height: 800, ratio: "3:2",  maxKB: 350, hint: "Capa da coleção. Composição em landscape." },
+  flash_offer: { width: 800,  height: 600, ratio: "4:3",  maxKB: 250, hint: "Card de oferta relâmpago. Destaque o produto." },
+  category:    { width: 200,  height: 200, ratio: "1:1",  maxKB: 80,  hint: "Ícone da categoria. PNG com fundo transparente é ideal." },
+};
+
+
 export const DEFAULT_GRADIENTS = [
   "from-orange-500 via-red-500 to-rose-600",
   "from-purple-600 via-fuchsia-500 to-pink-500",
