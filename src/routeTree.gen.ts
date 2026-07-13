@@ -16,6 +16,7 @@ import { Route as GuiaIndexRouteImport } from './routes/guia.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
 import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
+import { Route as PlatformGuiaRouteImport } from './routes/platform.guia'
 import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
 import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
@@ -42,8 +43,12 @@ import { Route as SlugPromocoesRouteImport } from './routes/$slug.promocoes'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
 import { Route as SlugDestaquesRouteImport } from './routes/$slug.destaques'
 import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
+import { Route as PlatformGuiaIndexRouteImport } from './routes/platform.guia.index'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
+import { Route as PlatformGuiaSolicitacoesRouteImport } from './routes/platform.guia.solicitacoes'
+import { Route as PlatformGuiaSlotsRouteImport } from './routes/platform.guia.slots'
+import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
@@ -90,6 +95,11 @@ const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
 const PlatformLojasRoute = PlatformLojasRouteImport.update({
   id: '/platform/lojas',
   path: '/platform/lojas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformGuiaRoute = PlatformGuiaRouteImport.update({
+  id: '/platform/guia',
+  path: '/platform/guia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
@@ -222,6 +232,11 @@ const SlugCuponsRoute = SlugCuponsRouteImport.update({
   path: '/cupons',
   getParentRoute: () => SlugRoute,
 } as any)
+const PlatformGuiaIndexRoute = PlatformGuiaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlatformGuiaRoute,
+} as any)
 const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -231,6 +246,22 @@ const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
   id: '/platform/tenants/novo',
   path: '/platform/tenants/novo',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformGuiaSolicitacoesRoute =
+  PlatformGuiaSolicitacoesRouteImport.update({
+    id: '/solicitacoes',
+    path: '/solicitacoes',
+    getParentRoute: () => PlatformGuiaRoute,
+  } as any)
+const PlatformGuiaSlotsRoute = PlatformGuiaSlotsRouteImport.update({
+  id: '/slots',
+  path: '/slots',
+  getParentRoute: () => PlatformGuiaRoute,
+} as any)
+const PlatformGuiaCategoriasRoute = PlatformGuiaCategoriasRouteImport.update({
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => PlatformGuiaRoute,
 } as any)
 const LojaSlugPedidoConfirmadoRoute =
   LojaSlugPedidoConfirmadoRouteImport.update({
@@ -330,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/guia': typeof PlatformGuiaRouteWithChildren
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
@@ -345,8 +377,12 @@ export interface FileRoutesByFullPath {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
+  '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
+  '/platform/guia/solicitacoes': typeof PlatformGuiaSolicitacoesRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
+  '/platform/guia/': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -393,8 +429,12 @@ export interface FileRoutesByTo {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
+  '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
+  '/platform/guia/solicitacoes': typeof PlatformGuiaSolicitacoesRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
+  '/platform/guia': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRoutesById {
@@ -428,6 +468,7 @@ export interface FileRoutesById {
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
   '/platform/dashboard': typeof PlatformDashboardRoute
+  '/platform/guia': typeof PlatformGuiaRouteWithChildren
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
   '/admin/': typeof AdminIndexRoute
@@ -443,8 +484,12 @@ export interface FileRoutesById {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
+  '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
+  '/platform/guia/solicitacoes': typeof PlatformGuiaSolicitacoesRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
+  '/platform/guia/': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -479,6 +524,7 @@ export interface FileRouteTypes {
     | '/loja/$slug'
     | '/platform/assinaturas'
     | '/platform/dashboard'
+    | '/platform/guia'
     | '/platform/lojas'
     | '/platform/planos'
     | '/admin/'
@@ -494,8 +540,12 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/platform/guia/categorias'
+    | '/platform/guia/slots'
+    | '/platform/guia/solicitacoes'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
+    | '/platform/guia/'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -542,8 +592,12 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/platform/guia/categorias'
+    | '/platform/guia/slots'
+    | '/platform/guia/solicitacoes'
     | '/platform/tenants/novo'
     | '/admin/configuracoes'
+    | '/platform/guia'
     | '/loja/$slug/acompanhar/$orderId'
   id:
     | '__root__'
@@ -576,6 +630,7 @@ export interface FileRouteTypes {
     | '/loja/$slug'
     | '/platform/assinaturas'
     | '/platform/dashboard'
+    | '/platform/guia'
     | '/platform/lojas'
     | '/platform/planos'
     | '/admin/'
@@ -591,8 +646,12 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/platform/guia/categorias'
+    | '/platform/guia/slots'
+    | '/platform/guia/solicitacoes'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
+    | '/platform/guia/'
     | '/loja/$slug/acompanhar/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -622,6 +681,7 @@ export interface RootRouteChildren {
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
   PlatformAssinaturasRoute: typeof PlatformAssinaturasRoute
   PlatformDashboardRoute: typeof PlatformDashboardRoute
+  PlatformGuiaRoute: typeof PlatformGuiaRouteWithChildren
   PlatformLojasRoute: typeof PlatformLojasRoute
   PlatformPlanosRoute: typeof PlatformPlanosRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -683,6 +743,13 @@ declare module '@tanstack/react-router' {
       path: '/platform/lojas'
       fullPath: '/platform/lojas'
       preLoaderRoute: typeof PlatformLojasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/guia': {
+      id: '/platform/guia'
+      path: '/platform/guia'
+      fullPath: '/platform/guia'
+      preLoaderRoute: typeof PlatformGuiaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/platform/dashboard': {
@@ -867,6 +934,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugCuponsRouteImport
       parentRoute: typeof SlugRoute
     }
+    '/platform/guia/': {
+      id: '/platform/guia/'
+      path: '/'
+      fullPath: '/platform/guia/'
+      preLoaderRoute: typeof PlatformGuiaIndexRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
     '/admin/configuracoes/': {
       id: '/admin/configuracoes/'
       path: '/'
@@ -880,6 +954,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/platform/tenants/novo'
       preLoaderRoute: typeof PlatformTenantsNovoRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/platform/guia/solicitacoes': {
+      id: '/platform/guia/solicitacoes'
+      path: '/solicitacoes'
+      fullPath: '/platform/guia/solicitacoes'
+      preLoaderRoute: typeof PlatformGuiaSolicitacoesRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
+    '/platform/guia/slots': {
+      id: '/platform/guia/slots'
+      path: '/slots'
+      fullPath: '/platform/guia/slots'
+      preLoaderRoute: typeof PlatformGuiaSlotsRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
+    '/platform/guia/categorias': {
+      id: '/platform/guia/categorias'
+      path: '/categorias'
+      fullPath: '/platform/guia/categorias'
+      preLoaderRoute: typeof PlatformGuiaCategoriasRouteImport
+      parentRoute: typeof PlatformGuiaRoute
     }
     '/loja/$slug/pedido-confirmado': {
       id: '/loja/$slug/pedido-confirmado'
@@ -1019,6 +1114,24 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
   LojaSlugRouteChildren,
 )
 
+interface PlatformGuiaRouteChildren {
+  PlatformGuiaCategoriasRoute: typeof PlatformGuiaCategoriasRoute
+  PlatformGuiaSlotsRoute: typeof PlatformGuiaSlotsRoute
+  PlatformGuiaSolicitacoesRoute: typeof PlatformGuiaSolicitacoesRoute
+  PlatformGuiaIndexRoute: typeof PlatformGuiaIndexRoute
+}
+
+const PlatformGuiaRouteChildren: PlatformGuiaRouteChildren = {
+  PlatformGuiaCategoriasRoute: PlatformGuiaCategoriasRoute,
+  PlatformGuiaSlotsRoute: PlatformGuiaSlotsRoute,
+  PlatformGuiaSolicitacoesRoute: PlatformGuiaSolicitacoesRoute,
+  PlatformGuiaIndexRoute: PlatformGuiaIndexRoute,
+}
+
+const PlatformGuiaRouteWithChildren = PlatformGuiaRoute._addFileChildren(
+  PlatformGuiaRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
@@ -1045,6 +1158,7 @@ const rootRouteChildren: RootRouteChildren = {
   LojaSlugRoute: LojaSlugRouteWithChildren,
   PlatformAssinaturasRoute: PlatformAssinaturasRoute,
   PlatformDashboardRoute: PlatformDashboardRoute,
+  PlatformGuiaRoute: PlatformGuiaRouteWithChildren,
   PlatformLojasRoute: PlatformLojasRoute,
   PlatformPlanosRoute: PlatformPlanosRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -1059,13 +1173,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
