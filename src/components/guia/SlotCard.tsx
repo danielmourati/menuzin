@@ -21,6 +21,10 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "hero") {
     return (
       <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-5 text-white shadow-md ${size === "sm" ? "h-32" : "h-40"}`}>
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
+        )}
+        {img && <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />}
         <div className="relative z-10 max-w-[70%]">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-90">destaque</p>
           <p className="mt-1 text-2xl font-black leading-tight">{slot.title}</p>
@@ -28,12 +32,15 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
           )}
         </div>
-        <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[9rem] leading-none opacity-30">
-          {emoji}
-        </div>
+        {!img && (
+          <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[9rem] leading-none opacity-30">
+            {emoji}
+          </div>
+        )}
       </div>
     );
   }
+
 
   if (slot.kind === "banner") {
     return (
