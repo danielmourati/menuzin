@@ -45,13 +45,16 @@ function PlatformGuiaCategorias() {
         <div className="divide-y rounded-xl border">
           {cats.map((c, i) => (
             <div key={c.id} className="flex items-center gap-3 p-3">
-              <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-muted text-xl">
+              <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-muted text-xl text-muted-foreground">
                 {c.imageUrl ? (
                   <img src={c.imageUrl} alt="" className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"}`} />
-                ) : (
+                ) : c.emoji?.trim() ? (
                   c.emoji
+                ) : (
+                  <span className="text-xs">—</span>
                 )}
               </span>
+
 
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.label}</p>
@@ -126,7 +129,7 @@ function CategoryDialog({
 }) {
   const [label, setLabel] = useState(editing?.label ?? "");
   const [slug, setSlug] = useState(editing?.slug ?? "");
-  const [emoji, setEmoji] = useState(editing?.emoji ?? "🍽️");
+  const [emoji, setEmoji] = useState(editing?.emoji ?? "");
   const [imageUrl, setImageUrl] = useState<string | undefined>(editing?.imageUrl);
   const [imageFit, setImageFit] = useState<"cover" | "contain">(editing?.imageFit ?? "cover");
   const [active, setActive] = useState(editing?.active ?? true);
@@ -135,7 +138,7 @@ function CategoryDialog({
   useEffect(() => {
     setLabel(editing?.label ?? "");
     setSlug(editing?.slug ?? "");
-    setEmoji(editing?.emoji ?? "🍽️");
+    setEmoji(editing?.emoji ?? "");
     setImageUrl(editing?.imageUrl);
     setImageFit(editing?.imageFit ?? "cover");
     setActive(editing?.active ?? true);
@@ -152,7 +155,7 @@ function CategoryDialog({
       toast.error("Já existe uma categoria com esse slug.");
       return;
     }
-    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", imageUrl, imageFit, active };
+    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim(), imageUrl, imageFit, active };
     if (editing) {
       guiaActions.updateCategory(editing.id, base);
       toast.success("Categoria atualizada.");
@@ -180,9 +183,10 @@ function CategoryDialog({
             <Input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} placeholder="pizza" />
           </div>
           <div>
-            <Label>Emoji</Label>
-            <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} />
-            <p className="mt-1 text-[11px] text-muted-foreground">Usado como fallback quando não há imagem.</p>
+            <Label>Emoji <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+            <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} placeholder="deixe em branco pra ocultar" />
+            <p className="mt-1 text-[11px] text-muted-foreground">Fallback quando não há imagem. Deixe em branco pra mostrar apenas o texto.</p>
+
           </div>
           <ImagePickerField
             specKey="category"

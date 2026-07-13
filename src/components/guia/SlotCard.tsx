@@ -13,7 +13,7 @@ function formatCountdown(endsAt?: string): string {
 
 export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | "md" | "lg" }) {
   const grad = slot.gradient ?? "from-primary via-primary to-primary/70";
-  const emoji = slot.emoji ?? "✨";
+  const emoji = slot.emoji?.trim() || "";
   const img = slot.imageUrl;
   const fitCls = slot.imageFit === "contain" ? "object-contain" : "object-cover";
 
@@ -32,11 +32,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
           )}
         </div>
-        {!img && (
+        {!img && emoji && (
           <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[9rem] leading-none opacity-30">
             {emoji}
           </div>
         )}
+
       </div>
     );
   }
@@ -55,11 +56,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
           )}
         </div>
-        {!img && (
+        {!img && emoji && (
           <div className="pointer-events-none absolute -right-2 top-2 select-none text-[7rem] leading-none opacity-30">
             {emoji}
           </div>
         )}
+
       </div>
     );
   }
@@ -76,11 +78,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
           <p className="mt-1 text-lg font-black leading-tight drop-shadow">{slot.title}</p>
           {slot.subtitle && <p className="mt-1 text-xs font-medium opacity-95">{slot.subtitle}</p>}
         </div>
-        {!img && (
+        {!img && emoji && (
           <div className="pointer-events-none absolute -bottom-4 -right-2 select-none text-[7rem] leading-none opacity-40">
             {emoji}
           </div>
         )}
+
       </div>
     );
   }
@@ -97,11 +100,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
           )}
           {img ? (
             <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
-          ) : (
+          ) : emoji ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl opacity-90 drop-shadow-lg">
               {emoji}
             </div>
-          )}
+          ) : null}
+
 
           {typeof slot.discountPct === "number" && (
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-center">
@@ -133,9 +137,10 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
         <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
           {img ? (
             <img src={img} alt="" className={`h-full w-full ${fitCls}`} />
-          ) : (
+          ) : emoji ? (
             <span aria-hidden>{emoji}</span>
-          )}
+          ) : null}
+
         </div>
 
         <div className="min-w-0 flex-1">
@@ -179,11 +184,12 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             <p className="mt-1 text-xs font-medium opacity-95">{slot.storeName}</p>
           )}
         </div>
-        {!img && (
+        {!img && emoji && (
           <div className="pointer-events-none absolute -right-3 -bottom-3 select-none text-6xl leading-none opacity-30">
             {emoji}
           </div>
         )}
+
       </div>
     </div>
   );

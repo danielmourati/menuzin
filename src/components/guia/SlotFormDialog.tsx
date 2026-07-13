@@ -61,7 +61,7 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   kind: defaultKind,
   title: "",
   subtitle: "",
-  emoji: "✨",
+  emoji: "",
   gradient: DEFAULT_GRADIENTS[0],
   imageUrl: undefined,
   imageFit: "cover",
@@ -85,7 +85,7 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
         kind: slot.kind,
         title: slot.title,
         subtitle: slot.subtitle ?? "",
-        emoji: slot.emoji ?? "✨",
+        emoji: slot.emoji ?? "",
         gradient: slot.gradient ?? DEFAULT_GRADIENTS[0],
         imageUrl: slot.imageUrl,
         imageFit: slot.imageFit ?? "cover",
@@ -111,7 +111,7 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
     kind: f.kind,
     title: f.title || "Título do destaque",
     subtitle: f.subtitle || undefined,
-    emoji: f.emoji || "✨",
+    emoji: f.emoji.trim() || undefined,
     gradient: f.gradient,
     imageUrl: f.imageUrl,
     imageFit: f.imageFit,
@@ -137,7 +137,7 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
       kind: f.kind,
       title: f.title.trim(),
       subtitle: f.subtitle.trim() || undefined,
-      emoji: f.emoji.trim() || "✨",
+      emoji: f.emoji.trim() || undefined,
       gradient: f.gradient,
       imageUrl: f.imageUrl,
       imageFit: f.imageFit,
@@ -207,8 +207,9 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Emoji</Label>
-                <Input value={f.emoji} onChange={(e) => setF({ ...f, emoji: e.target.value })} maxLength={4} />
+                <Label>Emoji <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Input value={f.emoji} onChange={(e) => setF({ ...f, emoji: e.target.value })} maxLength={4} placeholder="deixe em branco pra ocultar" />
+
               </div>
               <div>
                 <Label>Gradiente</Label>
