@@ -164,13 +164,23 @@ function GuiaHome() {
         >
           <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
             {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
-              id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, active: true, sortOrder: i,
+              id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
             }))).map((c) => {
               const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
               const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
               const inner = (
                 <>
-                  <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
+                  {c.imageUrl ? (
+                    <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-muted">
+                      <img
+                        src={c.imageUrl}
+                        alt=""
+                        className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                      />
+                    </span>
+                  ) : (
+                    <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
+                  )}
                   <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
                   {count > 0 && (
                     <span className="text-[10px] text-muted-foreground">
@@ -188,6 +198,7 @@ function GuiaHome() {
                 <div key={c.slug} className={cls}>{inner}</div>
               );
             })}
+
           </div>
         </Section>
 
