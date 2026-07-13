@@ -90,24 +90,78 @@ function PlatformGuiaOverview() {
 
       <Card>
         <CardContent className="p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <div>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
               <h2 className="text-lg font-bold">Preview do Guia público</h2>
-              <p className="text-sm text-muted-foreground">Assim os clientes enxergam a home do /guia.</p>
+              <p className="text-sm text-muted-foreground">
+                Veja em {spec.label.toLowerCase()} ({spec.width}×{spec.height}) como os clientes enxergam a home do /guia.
+              </p>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/guia" target="_blank">
-                Abrir em nova aba <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-lg border bg-card p-0.5">
+                {(Object.keys(DEVICE_SPECS) as PreviewDevice[]).map((d) => {
+                  const Icon = DEVICE_SPECS[d].icon;
+                  const active = device === d;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDevice(d)}
+                      title={DEVICE_SPECS[d].label}
+                      aria-label={DEVICE_SPECS[d].label}
+                      aria-pressed={active}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">{DEVICE_SPECS[d].label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setReloadKey((k) => k + 1)} title="Recarregar preview">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/guia" target="_blank">
+                  Abrir <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
           </div>
-          <div className="overflow-hidden rounded-2xl border">
-            <iframe
-              title="Guia Menuzin preview"
-              src="/guia"
-              className="h-[600px] w-full"
-              loading="lazy"
-            />
+
+          <div className="flex justify-center rounded-2xl border bg-gradient-to-b from-muted/40 to-muted/10 p-4 sm:p-6">
+            <div
+              className={
+                device === "mobile"
+                  ? "relative rounded-[2.5rem] border-[10px] border-stone-900 bg-stone-900 shadow-2xl"
+                  : device === "tablet"
+                    ? "relative rounded-[1.75rem] border-[12px] border-stone-900 bg-stone-900 shadow-2xl"
+                    : "relative overflow-hidden rounded-xl border bg-card shadow-lg"
+              }
+              style={{ width: spec.width + (device === "desktop" ? 0 : 0) }}
+            >
+              {device === "mobile" && (
+                <div className="pointer-events-none absolute left-1/2 top-1 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-stone-900" />
+              )}
+              <iframe
+                key={reloadKey}
+                title="Guia Menuzin preview"
+                src="/guia"
+                width={spec.width}
+                height={spec.height}
+                className={
+                  device === "desktop"
+                    ? "block w-full bg-background"
+                    : "block bg-background rounded-[1.5rem]"
+                }
+                style={{ width: spec.width, height: spec.height }}
+                loading="lazy"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
