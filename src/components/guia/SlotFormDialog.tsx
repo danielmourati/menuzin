@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SlotCard } from "./SlotCard";
+import { ImagePickerField } from "./ImagePickerField";
 import {
   guiaActions,
   DEFAULT_GRADIENTS,
@@ -28,6 +29,7 @@ import {
   type GuiaSlotKind,
 } from "@/lib/guia-mock";
 import { toast } from "sonner";
+
 
 type Props = {
   open: boolean;
@@ -42,6 +44,8 @@ type Form = {
   subtitle: string;
   emoji: string;
   gradient: string;
+  imageUrl: string | undefined;
+  imageFit: "cover" | "contain";
   storeName: string;
   price: string;
   promoPrice: string;
@@ -52,12 +56,15 @@ type Form = {
   active: boolean;
 };
 
+
 const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   kind: defaultKind,
   title: "",
   subtitle: "",
   emoji: "✨",
   gradient: DEFAULT_GRADIENTS[0],
+  imageUrl: undefined,
+  imageFit: "cover",
   storeName: "",
   price: "",
   promoPrice: "",
@@ -67,6 +74,7 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   endsAt: "",
   active: true,
 });
+
 
 export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props) {
   const [f, setF] = useState<Form>(empty(defaultKind));
@@ -79,6 +87,9 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
         subtitle: slot.subtitle ?? "",
         emoji: slot.emoji ?? "✨",
         gradient: slot.gradient ?? DEFAULT_GRADIENTS[0],
+        imageUrl: slot.imageUrl,
+        imageFit: slot.imageFit ?? "cover",
+
         storeName: slot.storeName ?? "",
         price: slot.price?.toString() ?? "",
         promoPrice: slot.promoPrice?.toString() ?? "",
@@ -102,6 +113,9 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
     subtitle: f.subtitle || undefined,
     emoji: f.emoji || "✨",
     gradient: f.gradient,
+    imageUrl: f.imageUrl,
+    imageFit: f.imageFit,
+
     storeName: f.storeName || undefined,
     price: num(f.price),
     promoPrice: num(f.promoPrice),
@@ -125,6 +139,9 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
       subtitle: f.subtitle.trim() || undefined,
       emoji: f.emoji.trim() || "✨",
       gradient: f.gradient,
+      imageUrl: f.imageUrl,
+      imageFit: f.imageFit,
+
       storeName: f.storeName.trim() || undefined,
       price: num(f.price),
       promoPrice: num(f.promoPrice),
@@ -208,6 +225,14 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
                 </Select>
               </div>
             </div>
+
+            <ImagePickerField
+              specKey={f.kind}
+              value={f.imageUrl}
+              fit={f.imageFit}
+              onChange={(imageUrl, imageFit) => setF({ ...f, imageUrl, imageFit })}
+            />
+
 
             {showStore && (
               <div>

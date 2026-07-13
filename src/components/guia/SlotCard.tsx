@@ -14,10 +14,17 @@ function formatCountdown(endsAt?: string): string {
 export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | "md" | "lg" }) {
   const grad = slot.gradient ?? "from-primary via-primary to-primary/70";
   const emoji = slot.emoji ?? "✨";
+  const img = slot.imageUrl;
+  const fitCls = slot.imageFit === "contain" ? "object-contain" : "object-cover";
+
 
   if (slot.kind === "hero") {
     return (
       <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-5 text-white shadow-md ${size === "sm" ? "h-32" : "h-40"}`}>
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
+        )}
+        {img && <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />}
         <div className="relative z-10 max-w-[70%]">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-90">destaque</p>
           <p className="mt-1 text-2xl font-black leading-tight">{slot.title}</p>
@@ -25,25 +32,34 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
           )}
         </div>
-        <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[9rem] leading-none opacity-30">
-          {emoji}
-        </div>
+        {!img && (
+          <div className="pointer-events-none absolute -right-4 -top-4 select-none text-[9rem] leading-none opacity-30">
+            {emoji}
+          </div>
+        )}
       </div>
     );
   }
 
+
   if (slot.kind === "banner") {
     return (
       <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${grad} p-6 text-white shadow-md`}>
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
+        )}
+        {img && <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />}
         <div className="relative z-10">
           <p className="text-2xl font-black leading-tight">{slot.title}</p>
           {slot.subtitle && (
             <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
           )}
         </div>
-        <div className="pointer-events-none absolute -right-2 top-2 select-none text-[7rem] leading-none opacity-30">
-          {emoji}
-        </div>
+        {!img && (
+          <div className="pointer-events-none absolute -right-2 top-2 select-none text-[7rem] leading-none opacity-30">
+            {emoji}
+          </div>
+        )}
       </div>
     );
   }
@@ -51,15 +67,24 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "collection") {
     return (
       <div className={`relative aspect-[3/4] overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-4 text-white shadow-md ${size === "sm" ? "w-40" : "w-44"}`}>
-        <p className="text-[10px] font-black uppercase tracking-widest opacity-90">coleção</p>
-        <p className="mt-1 text-lg font-black leading-tight drop-shadow">{slot.title}</p>
-        {slot.subtitle && <p className="mt-1 text-xs font-medium opacity-95">{slot.subtitle}</p>}
-        <div className="pointer-events-none absolute -bottom-4 -right-2 select-none text-[7rem] leading-none opacity-40">
-          {emoji}
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
+        )}
+        {img && <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />}
+        <div className="relative z-10">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-90">coleção</p>
+          <p className="mt-1 text-lg font-black leading-tight drop-shadow">{slot.title}</p>
+          {slot.subtitle && <p className="mt-1 text-xs font-medium opacity-95">{slot.subtitle}</p>}
         </div>
+        {!img && (
+          <div className="pointer-events-none absolute -bottom-4 -right-2 select-none text-[7rem] leading-none opacity-40">
+            {emoji}
+          </div>
+        )}
       </div>
     );
   }
+
 
   if (slot.kind === "featured") {
     return (
@@ -70,9 +95,14 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
               <Star className="h-3 w-3 fill-current" /> {slot.rating.toFixed(1)}
             </div>
           )}
-          <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl opacity-90 drop-shadow-lg">
-            {emoji}
-          </div>
+          {img ? (
+            <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
+          ) : (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center text-6xl opacity-90 drop-shadow-lg">
+              {emoji}
+            </div>
+          )}
+
           {typeof slot.discountPct === "number" && (
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 text-center">
               <span className="rounded-md bg-white/95 px-2 py-0.5 text-xs font-black text-red-600">
@@ -100,9 +130,14 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "top_stores") {
     return (
       <div className="flex items-center gap-3 rounded-2xl p-2">
-        <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
-          <span aria-hidden>{emoji}</span>
+        <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
+          {img ? (
+            <img src={img} alt="" className={`h-full w-full ${fitCls}`} />
+          ) : (
+            <span aria-hidden>{emoji}</span>
+          )}
         </div>
+
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold">{slot.title}</p>
           <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -131,17 +166,26 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   return (
     <div className="w-56 shrink-0">
       <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-4 text-white shadow-md`}>
-        <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest opacity-90">
-          <Timer className="h-3 w-3" /> {countdown || "oferta relâmpago"}
-        </div>
-        <p className="mt-1 line-clamp-2 text-base font-black leading-tight">{slot.title}</p>
-        {slot.storeName && (
-          <p className="mt-1 text-xs font-medium opacity-95">{slot.storeName}</p>
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-80`} />
         )}
-        <div className="pointer-events-none absolute -right-3 -bottom-3 select-none text-6xl leading-none opacity-30">
-          {emoji}
+        {img && <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />}
+        <div className="relative z-10">
+          <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest opacity-90">
+            <Timer className="h-3 w-3" /> {countdown || "oferta relâmpago"}
+          </div>
+          <p className="mt-1 line-clamp-2 text-base font-black leading-tight">{slot.title}</p>
+          {slot.storeName && (
+            <p className="mt-1 text-xs font-medium opacity-95">{slot.storeName}</p>
+          )}
         </div>
+        {!img && (
+          <div className="pointer-events-none absolute -right-3 -bottom-3 select-none text-6xl leading-none opacity-30">
+            {emoji}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

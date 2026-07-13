@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useGuiaCategories, guiaActions, type GuiaCategory } from "@/lib/guia-mock";
+import { ImagePickerField } from "@/components/guia/ImagePickerField";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/platform/guia/categorias")({
   component: PlatformGuiaCategorias,
@@ -43,7 +45,14 @@ function PlatformGuiaCategorias() {
         <div className="divide-y rounded-xl border">
           {cats.map((c, i) => (
             <div key={c.id} className="flex items-center gap-3 p-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-xl">{c.emoji}</span>
+              <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-muted text-xl">
+                {c.imageUrl ? (
+                  <img src={c.imageUrl} alt="" className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"}`} />
+                ) : (
+                  c.emoji
+                )}
+              </span>
+
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.label}</p>
                 <p className="text-xs text-muted-foreground">/{c.slug}</p>
@@ -118,6 +127,8 @@ function CategoryDialog({
   const [label, setLabel] = useState(editing?.label ?? "");
   const [slug, setSlug] = useState(editing?.slug ?? "");
   const [emoji, setEmoji] = useState(editing?.emoji ?? "🍽️");
+  const [imageUrl, setImageUrl] = useState<string | undefined>(editing?.imageUrl);
+  const [imageFit, setImageFit] = useState<"cover" | "contain">(editing?.imageFit ?? "cover");
   const [active, setActive] = useState(editing?.active ?? true);
 
   // reset when opening for a different item
@@ -125,6 +136,8 @@ function CategoryDialog({
     setLabel(editing?.label ?? "");
     setSlug(editing?.slug ?? "");
     setEmoji(editing?.emoji ?? "🍽️");
+    setImageUrl(editing?.imageUrl);
+    setImageFit(editing?.imageFit ?? "cover");
     setActive(editing?.active ?? true);
   }, [editing, open]);
 
@@ -139,15 +152,17 @@ function CategoryDialog({
       toast.error("Já existe uma categoria com esse slug.");
       return;
     }
+    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", imageUrl, imageFit, active };
     if (editing) {
-      guiaActions.updateCategory(editing.id, { label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", active });
+      guiaActions.updateCategory(editing.id, base);
       toast.success("Categoria atualizada.");
     } else {
-      guiaActions.createCategory({ label: label.trim(), slug: finalSlug, emoji: emoji.trim() || "🍽️", active });
+      guiaActions.createCategory(base);
       toast.success("Categoria criada.");
     }
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -167,7 +182,15 @@ function CategoryDialog({
           <div>
             <Label>Emoji</Label>
             <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} />
+            <p className="mt-1 text-[11px] text-muted-foreground">Usado como fallback quando não há imagem.</p>
           </div>
+          <ImagePickerField
+            specKey="category"
+            value={imageUrl}
+            fit={imageFit}
+            onChange={(u, fit) => { setImageUrl(u); setImageFit(fit); }}
+          />
+
           <div className="flex items-center justify-between rounded-lg border p-3">
             <span className="text-sm font-medium">Ativa no Guia</span>
             <Switch checked={active} onCheckedChange={setActive} />
