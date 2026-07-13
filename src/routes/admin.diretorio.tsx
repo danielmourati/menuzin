@@ -17,6 +17,7 @@ import {
 import { getTenantMetrics, DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
+import { guiaActions, SLOT_KIND_LABELS, SLOT_KIND_PRICES, type GuiaSlotKind } from "@/lib/guia-mock";
 
 export const Route = createFileRoute("/admin/diretorio")({
   component: DiretorioPage,
