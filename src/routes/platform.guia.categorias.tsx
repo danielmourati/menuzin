@@ -14,7 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { useGuiaCategories, guiaActions, type GuiaCategory } from "@/lib/guia-mock";
+import { ImagePickerField } from "@/components/guia/ImagePickerField";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/platform/guia/categorias")({
   component: PlatformGuiaCategorias,
