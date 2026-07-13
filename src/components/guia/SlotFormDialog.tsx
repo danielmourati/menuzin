@@ -207,8 +207,9 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Emoji</Label>
-                <Input value={f.emoji} onChange={(e) => setF({ ...f, emoji: e.target.value })} maxLength={4} />
+                <Label>Emoji <span className="text-muted-foreground font-normal">(opcional)</span></Label>
+                <Input value={f.emoji} onChange={(e) => setF({ ...f, emoji: e.target.value })} maxLength={4} placeholder="deixe em branco pra ocultar" />
+
               </div>
               <div>
                 <Label>Gradiente</Label>
