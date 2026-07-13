@@ -178,9 +178,10 @@ function GuiaHome() {
                         className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
                       />
                     </span>
-                  ) : (
+                  ) : c.emoji?.trim() ? (
                     <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
-                  )}
+                  ) : null}
+
                   <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
                   {count > 0 && (
                     <span className="text-[10px] text-muted-foreground">
