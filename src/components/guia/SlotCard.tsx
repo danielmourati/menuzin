@@ -45,15 +45,21 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "banner") {
     return (
       <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${grad} p-6 text-white shadow-md`}>
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
+        )}
+        {img && <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />}
         <div className="relative z-10">
           <p className="text-2xl font-black leading-tight">{slot.title}</p>
           {slot.subtitle && (
             <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
           )}
         </div>
-        <div className="pointer-events-none absolute -right-2 top-2 select-none text-[7rem] leading-none opacity-30">
-          {emoji}
-        </div>
+        {!img && (
+          <div className="pointer-events-none absolute -right-2 top-2 select-none text-[7rem] leading-none opacity-30">
+            {emoji}
+          </div>
+        )}
       </div>
     );
   }
@@ -61,15 +67,24 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "collection") {
     return (
       <div className={`relative aspect-[3/4] overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-4 text-white shadow-md ${size === "sm" ? "w-40" : "w-44"}`}>
-        <p className="text-[10px] font-black uppercase tracking-widest opacity-90">coleção</p>
-        <p className="mt-1 text-lg font-black leading-tight drop-shadow">{slot.title}</p>
-        {slot.subtitle && <p className="mt-1 text-xs font-medium opacity-95">{slot.subtitle}</p>}
-        <div className="pointer-events-none absolute -bottom-4 -right-2 select-none text-[7rem] leading-none opacity-40">
-          {emoji}
+        {img && (
+          <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
+        )}
+        {img && <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />}
+        <div className="relative z-10">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-90">coleção</p>
+          <p className="mt-1 text-lg font-black leading-tight drop-shadow">{slot.title}</p>
+          {slot.subtitle && <p className="mt-1 text-xs font-medium opacity-95">{slot.subtitle}</p>}
         </div>
+        {!img && (
+          <div className="pointer-events-none absolute -bottom-4 -right-2 select-none text-[7rem] leading-none opacity-40">
+            {emoji}
+          </div>
+        )}
       </div>
     );
   }
+
 
   if (slot.kind === "featured") {
     return (
