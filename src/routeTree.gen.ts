@@ -46,6 +46,7 @@ import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
 import { Route as PlatformGuiaIndexRouteImport } from './routes/platform.guia.index'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
+import { Route as PlatformGuiaSlotsRouteImport } from './routes/platform.guia.slots'
 import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
@@ -245,6 +246,11 @@ const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
   path: '/platform/tenants/novo',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformGuiaSlotsRoute = PlatformGuiaSlotsRouteImport.update({
+  id: '/slots',
+  path: '/slots',
+  getParentRoute: () => PlatformGuiaRoute,
+} as any)
 const PlatformGuiaCategoriasRoute = PlatformGuiaCategoriasRouteImport.update({
   id: '/categorias',
   path: '/categorias',
@@ -365,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
+  '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
@@ -415,6 +422,7 @@ export interface FileRoutesByTo {
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
+  '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/platform/guia': typeof PlatformGuiaIndexRoute
@@ -468,6 +476,7 @@ export interface FileRoutesById {
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
+  '/platform/guia/slots': typeof PlatformGuiaSlotsRoute
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
@@ -522,6 +531,7 @@ export interface FileRouteTypes {
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/guia/categorias'
+    | '/platform/guia/slots'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
     | '/platform/guia/'
@@ -572,6 +582,7 @@ export interface FileRouteTypes {
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/guia/categorias'
+    | '/platform/guia/slots'
     | '/platform/tenants/novo'
     | '/admin/configuracoes'
     | '/platform/guia'
@@ -624,6 +635,7 @@ export interface FileRouteTypes {
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
     | '/platform/guia/categorias'
+    | '/platform/guia/slots'
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
     | '/platform/guia/'
@@ -930,6 +942,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformTenantsNovoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform/guia/slots': {
+      id: '/platform/guia/slots'
+      path: '/slots'
+      fullPath: '/platform/guia/slots'
+      preLoaderRoute: typeof PlatformGuiaSlotsRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
     '/platform/guia/categorias': {
       id: '/platform/guia/categorias'
       path: '/categorias'
@@ -1077,11 +1096,13 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 
 interface PlatformGuiaRouteChildren {
   PlatformGuiaCategoriasRoute: typeof PlatformGuiaCategoriasRoute
+  PlatformGuiaSlotsRoute: typeof PlatformGuiaSlotsRoute
   PlatformGuiaIndexRoute: typeof PlatformGuiaIndexRoute
 }
 
 const PlatformGuiaRouteChildren: PlatformGuiaRouteChildren = {
   PlatformGuiaCategoriasRoute: PlatformGuiaCategoriasRoute,
+  PlatformGuiaSlotsRoute: PlatformGuiaSlotsRoute,
   PlatformGuiaIndexRoute: PlatformGuiaIndexRoute,
 }
 
