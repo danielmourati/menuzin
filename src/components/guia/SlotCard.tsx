@@ -68,7 +68,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "collection") {
     return (
-      <div className={`relative aspect-[3/4] overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-4 text-white shadow-md ${size === "sm" ? "w-40" : "w-44"}`}>
+      <div className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br ${grad} p-4 text-white shadow-md ${size === "sm" ? "w-40" : "w-44"}`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
         )}
