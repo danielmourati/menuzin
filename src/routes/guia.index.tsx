@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   listCategories,
   listFeatured,
+  listAllStores,
   DIRECTORY_CATEGORIES,
 } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
