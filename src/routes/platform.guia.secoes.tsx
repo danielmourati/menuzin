@@ -111,6 +111,8 @@ function PlatformGuiaSecoes() {
 
 function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; total: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const active = useGuiaSectionActive();
+  const isActive = active[id] !== false;
   const meta = SECTION_LABELS[id];
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -120,7 +122,7 @@ function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; 
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className={isDragging ? "ring-2 ring-primary" : ""}>
+      <Card className={`${isDragging ? "ring-2 ring-primary" : ""} ${!isActive ? "opacity-60" : ""}`}>
         <CardContent className="flex items-center gap-3 p-3">
           <button
             type="button"
