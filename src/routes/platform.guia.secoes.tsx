@@ -96,6 +96,15 @@ function PlatformGuiaSecoes() {
           </div>
         </SortableContext>
       </DndContext>
+
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">
+            Dica: use o interruptor à direita de cada seção para ativar ou desativar sua exibição na home
+            pública do Guia. Seções desativadas não aparecem para os visitantes.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
