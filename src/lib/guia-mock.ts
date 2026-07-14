@@ -431,6 +431,28 @@ export const guiaActions = {
   deleteRequest(id: string) {
     setState((s) => ({ ...s, requests: s.requests.filter((r) => r.id !== id) }));
   },
+
+  // Section ordering
+  setSectionOrder(order: GuiaSectionId[]) {
+    setState((s) => {
+      const filtered = order.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
+      const merged = [...filtered, ...DEFAULT_SECTION_ORDER.filter((id) => !filtered.includes(id))];
+      return { ...s, sectionOrder: merged };
+    });
+  },
+  moveSection(id: GuiaSectionId, dir: -1 | 1) {
+    setState((s) => {
+      const order = [...s.sectionOrder];
+      const idx = order.indexOf(id);
+      const swap = idx + dir;
+      if (idx < 0 || swap < 0 || swap >= order.length) return s;
+      [order[idx], order[swap]] = [order[swap], order[idx]];
+      return { ...s, sectionOrder: order };
+    });
+  },
+  resetSectionOrder() {
+    setState((s) => ({ ...s, sectionOrder: [...DEFAULT_SECTION_ORDER] }));
+  },
 };
 
 export const SLOT_KIND_LABELS: Record<GuiaSlotKind, string> = {
