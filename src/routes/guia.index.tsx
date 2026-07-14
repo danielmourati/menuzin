@@ -87,6 +87,7 @@ function GuiaHome() {
   const flashSlots = useGuiaSlots("flash_offer").filter((s) => s.active);
   const managedCategories = useGuiaCategories(true);
   const sectionOrder = useGuiaSectionOrder();
+  const sectionActive = useGuiaSectionActive();
 
   const [vertical, setVertical] = useState("restaurantes");
 
