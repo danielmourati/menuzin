@@ -419,7 +419,7 @@ function PublishCta() {
   return (
     <section
       aria-label="Publique seu cardápio"
-      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-fuchsia-600 to-purple-700 p-6 text-white shadow-lg sm:p-8"
+      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-fuchsia-600 to-purple-700 p-6 text-white shadow-lg sm:p-8"
     >
       <div className="pointer-events-none absolute -right-6 -top-6 select-none text-[8rem] leading-none opacity-25">
         🍽️
