@@ -289,6 +289,11 @@ export function useGuiaSectionOrder(): GuiaSectionId[] {
   return s.sectionOrder;
 }
 
+export function useGuiaSectionActive(): Record<GuiaSectionId, boolean> {
+  const s = useGuiaState();
+  return s.sectionActive;
+}
+
 // -------- mutations --------
 
 export const guiaActions = {
