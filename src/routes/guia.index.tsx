@@ -502,3 +502,160 @@ function BottomTab({
     </button>
   );
 }
+
+function AllStoresSection({
+  stores,
+  view,
+  onViewChange,
+}: {
+  stores: {
+    tenant_id: string;
+    tenant_slug: string;
+    tenant_name: string;
+    tenant_logo: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    categories: string[];
+    product_count: number;
+    has_featured: boolean;
+  }[];
+  view: "grid" | "list";
+  onViewChange: (v: "grid" | "list") => void;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-black leading-tight tracking-tight lowercase">
+            todas as lojas
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {stores.length} {stores.length === 1 ? "loja" : "lojas"} no bairro
+          </p>
+        </div>
+        <div className="inline-flex shrink-0 items-center rounded-lg border bg-background p-0.5">
+          <button
+            type="button"
+            aria-label="Ver em grade"
+            aria-pressed={view === "grid"}
+            onClick={() => onViewChange("grid")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              view === "grid"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            grade
+          </button>
+          <button
+            type="button"
+            aria-label="Ver em lista"
+            aria-pressed={view === "list"}
+            onClick={() => onViewChange("list")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              view === "list"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />
+            lista
+          </button>
+        </div>
+      </div>
+
+      {stores.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Nenhuma loja cadastrada ainda.
+        </p>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {stores.map((s) => (
+            <Link
+              key={s.tenant_id}
+              to="/$slug"
+              params={{ slug: s.tenant_slug }}
+              className="group flex flex-col overflow-hidden rounded-lg bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="relative aspect-square overflow-hidden bg-muted">
+                {s.tenant_logo ? (
+                  <img
+                    src={s.tenant_logo}
+                    alt={s.tenant_name}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-4xl">
+                    🍽️
+                  </div>
+                )}
+                {s.has_featured && (
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-amber-950 shadow">
+                    <Star className="h-3 w-3 fill-current" /> destaque
+                  </span>
+                )}
+              </div>
+              <div className="p-2.5">
+                <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
+                <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                  {s.neighborhood ?? s.city ?? "no bairro"}
+                </p>
+                <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                  <Bike className="h-3 w-3" />
+                  {s.product_count} {s.product_count === 1 ? "item" : "itens"}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="divide-y overflow-hidden rounded-lg bg-card shadow-sm">
+          {stores.map((s) => (
+            <Link
+              key={s.tenant_id}
+              to="/$slug"
+              params={{ slug: s.tenant_slug }}
+              className="flex items-center gap-3 p-3 transition hover:bg-muted/60"
+            >
+              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">
+                {s.tenant_logo ? (
+                  <img
+                    src={s.tenant_logo}
+                    alt={s.tenant_name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="text-2xl">🍽️</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
+                  {s.has_featured && (
+                    <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-amber-950">
+                      <Star className="h-2.5 w-2.5 fill-current" /> destaque
+                    </span>
+                  )}
+                </div>
+                <p className="line-clamp-1 text-xs text-muted-foreground">
+                  {s.neighborhood ?? s.city ?? "no bairro"}
+                  {s.categories.length > 0 ? ` · ${s.categories.slice(0, 3).join(", ")}` : ""}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                  <Bike className="h-3 w-3" />
+                  {s.product_count}
+                </p>
+                <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-muted-foreground" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
