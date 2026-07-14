@@ -62,6 +62,7 @@ type State = {
   categories: GuiaCategory[];
   requests: GuiaPromoRequest[];
   sectionOrder: GuiaSectionId[];
+  sectionActive: Record<GuiaSectionId, boolean>;
 };
 
 export type GuiaSectionId =
