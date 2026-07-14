@@ -174,6 +174,7 @@ const SEED: State = {
   slots: SEED_SLOTS,
   categories: SEED_CATEGORIES,
   requests: SEED_REQUESTS,
+  sectionOrder: DEFAULT_SECTION_ORDER,
 };
 
 let state: State = SEED;
@@ -186,10 +187,18 @@ function loadFromStorage(): State {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return SEED;
     const parsed = JSON.parse(raw) as Partial<State>;
+    const storedOrder = parsed.sectionOrder;
+    const validOrder = Array.isArray(storedOrder)
+      ? [
+          ...storedOrder.filter((id): id is GuiaSectionId => DEFAULT_SECTION_ORDER.includes(id as GuiaSectionId)),
+          ...DEFAULT_SECTION_ORDER.filter((id) => !storedOrder.includes(id)),
+        ]
+      : DEFAULT_SECTION_ORDER;
     return {
       slots: parsed.slots ?? SEED.slots,
       categories: parsed.categories ?? SEED.categories,
       requests: parsed.requests ?? SEED.requests,
+      sectionOrder: validOrder,
     };
   } catch {
     return SEED;
