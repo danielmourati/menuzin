@@ -170,7 +170,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   const countdown = formatCountdown(slot.endsAt);
   return (
     <div className="w-56 shrink-0">
-      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-4 text-white shadow-md`}>
+      <div className={`relative overflow-hidden rounded-lg bg-gradient-to-br ${grad} p-4 text-white shadow-md`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-80`} />
         )}
