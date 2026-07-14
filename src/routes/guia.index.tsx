@@ -87,7 +87,9 @@ const VERTICALS = [
 function GuiaHome() {
   const { data: catsData } = useSuspenseQuery(categoriesQO);
   const { data: featData } = useSuspenseQuery(featuredQO);
+  const { data: storesData } = useSuspenseQuery(storesQO);
   const featured = featData.items;
+  const allStores = storesData.stores;
 
   const heroSlots = useGuiaSlots("hero").filter((s) => s.active);
   const featuredSlots = useGuiaSlots("featured").filter((s) => s.active);
@@ -100,6 +102,7 @@ function GuiaHome() {
   const sectionActive = useGuiaSectionActive();
 
   const [vertical, setVertical] = useState("restaurantes");
+  const [storesView, setStoresView] = useState<"grid" | "list">("grid");
 
   return (
     <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
