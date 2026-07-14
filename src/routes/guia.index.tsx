@@ -19,8 +19,11 @@ import {
 import { SlotCard } from "@/components/guia/SlotCard";
 import {
   Bell,
+  Bike,
   ChevronRight,
   Home,
+  LayoutGrid,
+  List,
   MapPin,
   MessageSquare,
   Receipt,
