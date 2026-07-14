@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { ArrowUp, ArrowDown, GripVertical, RotateCcw } from "lucide-react";
 import {
   useGuiaSectionOrder,
+  useGuiaSectionActive,
   guiaActions,
   SECTION_LABELS,
   type GuiaSectionId,
