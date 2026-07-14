@@ -171,11 +171,17 @@ const SEED_REQUESTS: GuiaPromoRequest[] = [
   },
 ];
 
+const DEFAULT_SECTION_ACTIVE: Record<GuiaSectionId, boolean> = DEFAULT_SECTION_ORDER.reduce(
+  (acc, id) => ({ ...acc, [id]: true }),
+  {} as Record<GuiaSectionId, boolean>,
+);
+
 const SEED: State = {
   slots: SEED_SLOTS,
   categories: SEED_CATEGORIES,
   requests: SEED_REQUESTS,
   sectionOrder: DEFAULT_SECTION_ORDER,
+  sectionActive: DEFAULT_SECTION_ACTIVE,
 };
 
 let state: State = SEED;
@@ -195,11 +201,17 @@ function loadFromStorage(): State {
           ...DEFAULT_SECTION_ORDER.filter((id) => !storedOrder.includes(id)),
         ]
       : DEFAULT_SECTION_ORDER;
+    const storedActive = (parsed.sectionActive ?? {}) as Partial<Record<GuiaSectionId, boolean>>;
+    const validActive = DEFAULT_SECTION_ORDER.reduce((acc, id) => {
+      acc[id] = typeof storedActive[id] === "boolean" ? (storedActive[id] as boolean) : true;
+      return acc;
+    }, {} as Record<GuiaSectionId, boolean>);
     return {
       slots: parsed.slots ?? SEED.slots,
       categories: parsed.categories ?? SEED.categories,
       requests: parsed.requests ?? SEED.requests,
       sectionOrder: validOrder,
+      sectionActive: validActive,
     };
   } catch {
     return SEED;
