@@ -92,7 +92,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "featured") {
     return (
       <div className="w-40 shrink-0 text-left">
-        <div className={`relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br ${grad} shadow-md`}>
+        <div className={`relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br ${grad} shadow-md`}>
           {typeof slot.rating === "number" && (
             <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-yellow-400 px-1.5 py-0.5 text-[10px] font-black text-stone-900 shadow">
               <Star className="h-3 w-3 fill-current" /> {slot.rating.toFixed(1)}
