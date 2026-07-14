@@ -271,6 +271,11 @@ export function useGuiaRequests(): GuiaPromoRequest[] {
   return [...s.requests].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 }
 
+export function useGuiaSectionOrder(): GuiaSectionId[] {
+  const s = useGuiaState();
+  return s.sectionOrder;
+}
+
 // -------- mutations --------
 
 export const guiaActions = {
