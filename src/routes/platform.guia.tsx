@@ -8,6 +8,7 @@ export const Route = createFileRoute("/platform/guia")({
 
 const tabs: { to: string; label: string; exact?: boolean }[] = [
   { to: "/platform/guia", label: "Visão geral", exact: true },
+  { to: "/platform/guia/secoes", label: "Seções" },
   { to: "/platform/guia/slots", label: "Destaques & Banners" },
   { to: "/platform/guia/categorias", label: "Categorias" },
   { to: "/platform/guia/solicitacoes", label: "Solicitações" },
