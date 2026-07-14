@@ -12,6 +12,7 @@ import {
   useGuiaSlots,
   useGuiaCategories,
   useGuiaSectionOrder,
+  useGuiaSectionActive,
   type GuiaSectionId,
 } from "@/lib/guia-mock";
 import { SlotCard } from "@/components/guia/SlotCard";
