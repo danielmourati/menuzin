@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   listCategories,
   listFeatured,
+  listAllStores,
   DIRECTORY_CATEGORIES,
 } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
@@ -18,8 +19,11 @@ import {
 import { SlotCard } from "@/components/guia/SlotCard";
 import {
   Bell,
+  Bike,
   ChevronRight,
   Home,
+  LayoutGrid,
+  List,
   MapPin,
   MessageSquare,
   Receipt,
@@ -38,11 +42,17 @@ const featuredQO = queryOptions({
   queryFn: () => listFeatured(),
 });
 
+const storesQO = queryOptions({
+  queryKey: ["guia", "stores"],
+  queryFn: () => listAllStores(),
+});
+
 export const Route = createFileRoute("/guia/")({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(categoriesQO),
       context.queryClient.ensureQueryData(featuredQO),
+      context.queryClient.ensureQueryData(storesQO),
     ]);
     return { origin: "https://menuzin.app" };
   },
@@ -77,7 +87,9 @@ const VERTICALS = [
 function GuiaHome() {
   const { data: catsData } = useSuspenseQuery(categoriesQO);
   const { data: featData } = useSuspenseQuery(featuredQO);
+  const { data: storesData } = useSuspenseQuery(storesQO);
   const featured = featData.items;
+  const allStores = storesData.stores;
 
   const heroSlots = useGuiaSlots("hero").filter((s) => s.active);
   const featuredSlots = useGuiaSlots("featured").filter((s) => s.active);
@@ -90,6 +102,7 @@ function GuiaHome() {
   const sectionActive = useGuiaSectionActive();
 
   const [vertical, setVertical] = useState("restaurantes");
+  const [storesView, setStoresView] = useState<"grid" | "list">("grid");
 
   return (
     <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
@@ -163,49 +176,57 @@ function GuiaHome() {
         {(() => {
           const sectionNodes: Record<GuiaSectionId, React.ReactNode> = {
             categories: (
-              <Section
-                title="categorias"
-                subtitle="explora o que rola no seu bairro"
-              >
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
-                  {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
-                    id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
-                  }))).map((c) => {
-                    const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
-                    const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
-                    const inner = (
-                      <>
-                        {c.imageUrl ? (
-                          <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg bg-muted">
+              <div className="space-y-8">
+                <Section
+                  title="categorias"
+                  subtitle="explora o que rola no seu bairro"
+                >
+                  <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
+                      id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
+                    }))).map((c) => {
+                      const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
+                      const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
+                      const inner = (
+                        <>
+                          {c.imageUrl ? (
                             <img
                               src={c.imageUrl}
                               alt=""
-                              className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
                             />
-                          </span>
-                        ) : c.emoji?.trim() ? (
-                          <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
-                        ) : null}
+                          ) : c.emoji?.trim() ? (
+                            <span className="text-4xl leading-none transition group-hover:scale-110">{c.emoji}</span>
+                          ) : (
+                            <span className="h-14 w-14" />
+                          )}
 
-                        <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
-                        {count > 0 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {count} {count === 1 ? "opção" : "opções"}
-                          </span>
-                        )}
-                      </>
-                    );
-                    const cls = "group flex flex-col items-center gap-1.5 rounded-lg bg-card p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
-                    return isReal ? (
-                      <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
-                        {inner}
-                      </Link>
-                    ) : (
-                      <div key={c.slug} className={cls}>{inner}</div>
-                    );
-                  })}
-                </div>
-              </Section>
+                          <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
+                          {count > 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {count} {count === 1 ? "opção" : "opções"}
+                            </span>
+                          )}
+                        </>
+                      );
+                      const cls = "group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center";
+                      return isReal ? (
+                        <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
+                          {inner}
+                        </Link>
+                      ) : (
+                        <div key={c.slug} className={cls}>{inner}</div>
+                      );
+                    })}
+                  </div>
+                </Section>
+
+                <AllStoresSection
+                  stores={allStores}
+                  view={storesView}
+                  onViewChange={setStoresView}
+                />
+              </div>
             ),
 
             featured: featuredSlots.length > 0 ? (
@@ -479,5 +500,162 @@ function BottomTab({
       {icon}
       <span className="lowercase">{label}</span>
     </button>
+  );
+}
+
+function AllStoresSection({
+  stores,
+  view,
+  onViewChange,
+}: {
+  stores: {
+    tenant_id: string;
+    tenant_slug: string;
+    tenant_name: string;
+    tenant_logo: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    categories: string[];
+    product_count: number;
+    has_featured: boolean;
+  }[];
+  view: "grid" | "list";
+  onViewChange: (v: "grid" | "list") => void;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-black leading-tight tracking-tight lowercase">
+            todas as lojas
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {stores.length} {stores.length === 1 ? "loja" : "lojas"} no bairro
+          </p>
+        </div>
+        <div className="inline-flex shrink-0 items-center rounded-lg border bg-background p-0.5">
+          <button
+            type="button"
+            aria-label="Ver em grade"
+            aria-pressed={view === "grid"}
+            onClick={() => onViewChange("grid")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              view === "grid"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            grade
+          </button>
+          <button
+            type="button"
+            aria-label="Ver em lista"
+            aria-pressed={view === "list"}
+            onClick={() => onViewChange("list")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              view === "list"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />
+            lista
+          </button>
+        </div>
+      </div>
+
+      {stores.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Nenhuma loja cadastrada ainda.
+        </p>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {stores.map((s) => (
+            <Link
+              key={s.tenant_id}
+              to="/$slug"
+              params={{ slug: s.tenant_slug }}
+              className="group flex flex-col overflow-hidden rounded-lg bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="relative aspect-square overflow-hidden bg-muted">
+                {s.tenant_logo ? (
+                  <img
+                    src={s.tenant_logo}
+                    alt={s.tenant_name}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-4xl">
+                    🍽️
+                  </div>
+                )}
+                {s.has_featured && (
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-amber-950 shadow">
+                    <Star className="h-3 w-3 fill-current" /> destaque
+                  </span>
+                )}
+              </div>
+              <div className="p-2.5">
+                <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
+                <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                  {s.neighborhood ?? s.city ?? "no bairro"}
+                </p>
+                <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                  <Bike className="h-3 w-3" />
+                  {s.product_count} {s.product_count === 1 ? "item" : "itens"}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="divide-y overflow-hidden rounded-lg bg-card shadow-sm">
+          {stores.map((s) => (
+            <Link
+              key={s.tenant_id}
+              to="/$slug"
+              params={{ slug: s.tenant_slug }}
+              className="flex items-center gap-3 p-3 transition hover:bg-muted/60"
+            >
+              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">
+                {s.tenant_logo ? (
+                  <img
+                    src={s.tenant_logo}
+                    alt={s.tenant_name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="text-2xl">🍽️</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
+                  {s.has_featured && (
+                    <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-amber-950">
+                      <Star className="h-2.5 w-2.5 fill-current" /> destaque
+                    </span>
+                  )}
+                </div>
+                <p className="line-clamp-1 text-xs text-muted-foreground">
+                  {s.neighborhood ?? s.city ?? "no bairro"}
+                  {s.categories.length > 0 ? ` · ${s.categories.slice(0, 3).join(", ")}` : ""}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                  <Bike className="h-3 w-3" />
+                  {s.product_count}
+                </p>
+                <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-muted-foreground" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
