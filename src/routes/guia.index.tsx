@@ -176,49 +176,57 @@ function GuiaHome() {
         {(() => {
           const sectionNodes: Record<GuiaSectionId, React.ReactNode> = {
             categories: (
-              <Section
-                title="categorias"
-                subtitle="explora o que rola no seu bairro"
-              >
-                <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
-                    id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
-                  }))).map((c) => {
-                    const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
-                    const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
-                    const inner = (
-                      <>
-                        {c.imageUrl ? (
-                          <img
-                            src={c.imageUrl}
-                            alt=""
-                            className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
-                          />
-                        ) : c.emoji?.trim() ? (
-                          <span className="text-4xl leading-none transition group-hover:scale-110">{c.emoji}</span>
-                        ) : (
-                          <span className="h-14 w-14" />
-                        )}
+              <div className="space-y-8">
+                <Section
+                  title="categorias"
+                  subtitle="explora o que rola no seu bairro"
+                >
+                  <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
+                      id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
+                    }))).map((c) => {
+                      const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
+                      const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
+                      const inner = (
+                        <>
+                          {c.imageUrl ? (
+                            <img
+                              src={c.imageUrl}
+                              alt=""
+                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                            />
+                          ) : c.emoji?.trim() ? (
+                            <span className="text-4xl leading-none transition group-hover:scale-110">{c.emoji}</span>
+                          ) : (
+                            <span className="h-14 w-14" />
+                          )}
 
-                        <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
-                        {count > 0 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {count} {count === 1 ? "opção" : "opções"}
-                          </span>
-                        )}
-                      </>
-                    );
-                    const cls = "group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center";
-                    return isReal ? (
-                      <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
-                        {inner}
-                      </Link>
-                    ) : (
-                      <div key={c.slug} className={cls}>{inner}</div>
-                    );
-                  })}
-                </div>
-              </Section>
+                          <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
+                          {count > 0 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {count} {count === 1 ? "opção" : "opções"}
+                            </span>
+                          )}
+                        </>
+                      );
+                      const cls = "group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center";
+                      return isReal ? (
+                        <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
+                          {inner}
+                        </Link>
+                      ) : (
+                        <div key={c.slug} className={cls}>{inner}</div>
+                      );
+                    })}
+                  </div>
+                </Section>
+
+                <AllStoresSection
+                  stores={allStores}
+                  view={storesView}
+                  onViewChange={setStoresView}
+                />
+              </div>
             ),
 
             featured: featuredSlots.length > 0 ? (
