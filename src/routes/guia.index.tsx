@@ -348,7 +348,7 @@ function HeroCarousel({ slots }: { slots: ReturnType<typeof useGuiaSlots> }) {
 
   return (
     <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-3xl">
+      <div className="relative overflow-hidden rounded-xl">
         <div
           className="flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${idx * 100}%)` }}
