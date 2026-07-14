@@ -45,7 +45,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "banner") {
     return (
-      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${grad} p-6 text-white shadow-md`}>
+      <div className={`relative overflow-hidden rounded-xl bg-gradient-to-r ${grad} p-6 text-white shadow-md`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
         )}
