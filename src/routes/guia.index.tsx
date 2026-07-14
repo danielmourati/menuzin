@@ -312,9 +312,9 @@ function GuiaHome() {
             publish_cta: <PublishCta />,
           };
 
-          return sectionOrder.map((id) => (
-            <div key={id}>{sectionNodes[id]}</div>
-          ));
+          return sectionOrder
+            .filter((id) => sectionActive[id] !== false)
+            .map((id) => <div key={id}>{sectionNodes[id]}</div>);
         })()}
       </main>
 
