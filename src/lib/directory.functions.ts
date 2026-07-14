@@ -62,6 +62,67 @@ export const listFeatured = createServerFn({ method: "GET" }).handler(async () =
   return { items: (data ?? []) as unknown as DirectoryItem[] };
 });
 
+export type DirectoryStore = {
+  tenant_id: string;
+  tenant_slug: string;
+  tenant_name: string;
+  tenant_logo: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  whatsapp: string | null;
+  categories: string[];
+  product_count: number;
+  has_featured: boolean;
+};
+
+export const listAllStores = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await supabaseAdmin
+    .from("directory_public")
+    .select("tenant_id, tenant_slug, tenant_name, tenant_logo, neighborhood, city, whatsapp, category, featured_until")
+    .limit(2000);
+  if (error) throw new Error(error.message);
+  const now = Date.now();
+  const map = new Map<string, DirectoryStore>();
+  for (const raw of (data ?? []) as Array<{
+    tenant_id: string;
+    tenant_slug: string;
+    tenant_name: string;
+    tenant_logo: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    whatsapp: string | null;
+    category: string | null;
+    featured_until: string | null;
+  }>) {
+    const existing = map.get(raw.tenant_id);
+    const isFeat = !!raw.featured_until && new Date(raw.featured_until).getTime() > now;
+    if (existing) {
+      if (raw.category && !existing.categories.includes(raw.category)) existing.categories.push(raw.category);
+      existing.product_count += 1;
+      if (isFeat) existing.has_featured = true;
+    } else {
+      map.set(raw.tenant_id, {
+        tenant_id: raw.tenant_id,
+        tenant_slug: raw.tenant_slug,
+        tenant_name: raw.tenant_name,
+        tenant_logo: raw.tenant_logo,
+        neighborhood: raw.neighborhood,
+        city: raw.city,
+        whatsapp: raw.whatsapp,
+        categories: raw.category ? [raw.category] : [],
+        product_count: 1,
+        has_featured: isFeat,
+      });
+    }
+  }
+  const stores = Array.from(map.values()).sort((a, b) => {
+    if (a.has_featured !== b.has_featured) return a.has_featured ? -1 : 1;
+    if (a.product_count !== b.product_count) return b.product_count - a.product_count;
+    return a.tenant_name.localeCompare(b.tenant_name);
+  });
+  return { stores };
+});
+
 export const listNeighborhoods = createServerFn({ method: "GET" }).handler(async () => {
   const { data, error } = await supabaseAdmin
     .from("directory_public")
