@@ -61,6 +61,42 @@ type State = {
   slots: GuiaSlot[];
   categories: GuiaCategory[];
   requests: GuiaPromoRequest[];
+  sectionOrder: GuiaSectionId[];
+};
+
+export type GuiaSectionId =
+  | "categories"
+  | "featured"
+  | "top_stores"
+  | "flash_offer"
+  | "banner_1"
+  | "collection"
+  | "banner_2"
+  | "featured_real"
+  | "publish_cta";
+
+export const DEFAULT_SECTION_ORDER: GuiaSectionId[] = [
+  "categories",
+  "featured",
+  "top_stores",
+  "flash_offer",
+  "banner_1",
+  "collection",
+  "banner_2",
+  "featured_real",
+  "publish_cta",
+];
+
+export const SECTION_LABELS: Record<GuiaSectionId, { title: string; desc: string }> = {
+  categories: { title: "Categorias", desc: "grade de categorias do bairro" },
+  featured: { title: "Destaques da semana", desc: "carrossel de produtos em destaque" },
+  top_stores: { title: "Lojas em alta", desc: "cards de lojas em destaque" },
+  flash_offer: { title: "Ofertas relâmpago", desc: "carrossel de ofertas com contagem regressiva" },
+  banner_1: { title: "Banner full-width (1)", desc: "primeiro banner grande" },
+  collection: { title: "Coleções", desc: "carrossel de coleções de lojas/promos" },
+  banner_2: { title: "Banner full-width (2)", desc: "segundo banner grande" },
+  featured_real: { title: "Em destaque agora", desc: "produtos reais do banco em destaque" },
+  publish_cta: { title: "CTA publique seu cardápio", desc: "chamada para lojistas" },
 };
 
 const STORAGE_KEY = "menuzin.guia.mock.v1";
