@@ -180,7 +180,7 @@ function GuiaHome() {
                 title="categorias"
                 subtitle="explora o que rola no seu bairro"
               >
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
+                <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
                     id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
                   }))).map((c) => {
@@ -189,16 +189,16 @@ function GuiaHome() {
                     const inner = (
                       <>
                         {c.imageUrl ? (
-                          <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg bg-muted">
-                            <img
-                              src={c.imageUrl}
-                              alt=""
-                              className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
-                            />
-                          </span>
+                          <img
+                            src={c.imageUrl}
+                            alt=""
+                            className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                          />
                         ) : c.emoji?.trim() ? (
-                          <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
-                        ) : null}
+                          <span className="text-4xl leading-none transition group-hover:scale-110">{c.emoji}</span>
+                        ) : (
+                          <span className="h-14 w-14" />
+                        )}
 
                         <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
                         {count > 0 && (
@@ -208,7 +208,7 @@ function GuiaHome() {
                         )}
                       </>
                     );
-                    const cls = "group flex flex-col items-center gap-1.5 rounded-lg bg-card p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
+                    const cls = "group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center";
                     return isReal ? (
                       <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
                         {inner}
