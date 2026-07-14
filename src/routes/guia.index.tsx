@@ -12,6 +12,7 @@ import {
   useGuiaSlots,
   useGuiaCategories,
   useGuiaSectionOrder,
+  useGuiaSectionActive,
   type GuiaSectionId,
 } from "@/lib/guia-mock";
 import { SlotCard } from "@/components/guia/SlotCard";
@@ -86,6 +87,7 @@ function GuiaHome() {
   const flashSlots = useGuiaSlots("flash_offer").filter((s) => s.active);
   const managedCategories = useGuiaCategories(true);
   const sectionOrder = useGuiaSectionOrder();
+  const sectionActive = useGuiaSectionActive();
 
   const [vertical, setVertical] = useState("restaurantes");
 
@@ -310,9 +312,9 @@ function GuiaHome() {
             publish_cta: <PublishCta />,
           };
 
-          return sectionOrder.map((id) => (
-            <div key={id}>{sectionNodes[id]}</div>
-          ));
+          return sectionOrder
+            .filter((id) => sectionActive[id] !== false)
+            .map((id) => <div key={id}>{sectionNodes[id]}</div>);
         })()}
       </main>
 

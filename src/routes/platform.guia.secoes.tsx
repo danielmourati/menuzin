@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { ArrowUp, ArrowDown, GripVertical, RotateCcw } from "lucide-react";
 import {
   useGuiaSectionOrder,
+  useGuiaSectionActive,
   guiaActions,
   SECTION_LABELS,
   type GuiaSectionId,
@@ -94,12 +96,23 @@ function PlatformGuiaSecoes() {
           </div>
         </SortableContext>
       </DndContext>
+
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground">
+            Dica: use o interruptor à direita de cada seção para ativar ou desativar sua exibição na home
+            pública do Guia. Seções desativadas não aparecem para os visitantes.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; total: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const active = useGuiaSectionActive();
+  const isActive = active[id] !== false;
   const meta = SECTION_LABELS[id];
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -109,7 +122,7 @@ function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; 
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className={isDragging ? "ring-2 ring-primary" : ""}>
+      <Card className={`${isDragging ? "ring-2 ring-primary" : ""} ${!isActive ? "opacity-60" : ""}`}>
         <CardContent className="flex items-center gap-3 p-3">
           <button
             type="button"
@@ -146,6 +159,12 @@ function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; 
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
+            <Switch
+              checked={isActive}
+              onCheckedChange={(v) => guiaActions.setSectionActive(id, v)}
+              aria-label={isActive ? "Desativar seção" : "Ativar seção"}
+              className="ml-2"
+            />
           </div>
         </CardContent>
       </Card>
