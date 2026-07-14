@@ -11,6 +11,8 @@ import { brl } from "@/lib/format";
 import {
   useGuiaSlots,
   useGuiaCategories,
+  useGuiaSectionOrder,
+  type GuiaSectionId,
 } from "@/lib/guia-mock";
 import { SlotCard } from "@/components/guia/SlotCard";
 import {
