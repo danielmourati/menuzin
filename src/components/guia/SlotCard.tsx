@@ -133,8 +133,8 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "top_stores") {
     return (
-      <div className="flex items-center gap-3 rounded-2xl p-2">
-        <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
+      <div className="flex items-center gap-3 rounded-lg p-2">
+        <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
           {img ? (
             <img src={img} alt="" className={`h-full w-full ${fitCls}`} />
           ) : emoji ? (
