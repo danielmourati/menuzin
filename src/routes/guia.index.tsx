@@ -42,11 +42,17 @@ const featuredQO = queryOptions({
   queryFn: () => listFeatured(),
 });
 
+const storesQO = queryOptions({
+  queryKey: ["guia", "stores"],
+  queryFn: () => listAllStores(),
+});
+
 export const Route = createFileRoute("/guia/")({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(categoriesQO),
       context.queryClient.ensureQueryData(featuredQO),
+      context.queryClient.ensureQueryData(storesQO),
     ]);
     return { origin: "https://menuzin.app" };
   },
