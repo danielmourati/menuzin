@@ -471,6 +471,12 @@ export const guiaActions = {
   resetSectionOrder() {
     setState((s) => ({ ...s, sectionOrder: [...DEFAULT_SECTION_ORDER] }));
   },
+  setSectionActive(id: GuiaSectionId, active: boolean) {
+    setState((s) => ({ ...s, sectionActive: { ...s.sectionActive, [id]: active } }));
+  },
+  toggleSection(id: GuiaSectionId) {
+    setState((s) => ({ ...s, sectionActive: { ...s.sectionActive, [id]: !s.sectionActive[id] } }));
+  },
 };
 
 export const SLOT_KIND_LABELS: Record<GuiaSlotKind, string> = {
