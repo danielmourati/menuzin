@@ -159,6 +159,12 @@ function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; 
             >
               <ArrowDown className="h-4 w-4" />
             </Button>
+            <Switch
+              checked={isActive}
+              onCheckedChange={(v) => guiaActions.setSectionActive(id, v)}
+              aria-label={isActive ? "Desativar seção" : "Ativar seção"}
+              className="ml-2"
+            />
           </div>
         </CardContent>
       </Card>
