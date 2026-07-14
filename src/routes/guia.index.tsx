@@ -11,6 +11,8 @@ import { brl } from "@/lib/format";
 import {
   useGuiaSlots,
   useGuiaCategories,
+  useGuiaSectionOrder,
+  type GuiaSectionId,
 } from "@/lib/guia-mock";
 import { SlotCard } from "@/components/guia/SlotCard";
 import {
@@ -83,6 +85,7 @@ function GuiaHome() {
   const collectionSlots = useGuiaSlots("collection").filter((s) => s.active);
   const flashSlots = useGuiaSlots("flash_offer").filter((s) => s.active);
   const managedCategories = useGuiaCategories(true);
+  const sectionOrder = useGuiaSectionOrder();
 
   const [vertical, setVertical] = useState("restaurantes");
 
@@ -152,167 +155,165 @@ function GuiaHome() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-8 px-4 py-5">
-        {/* Hero carousel */}
-        {heroSlots.length > 0 && (
-          <HeroCarousel slots={heroSlots} />
-        )}
+        {/* Hero carousel (fixo, sempre no topo) */}
+        {heroSlots.length > 0 && <HeroCarousel slots={heroSlots} />}
 
-        {/* Categorias (gerenciáveis) */}
-        <Section
-          title="categorias"
-          subtitle="explora o que rola no seu bairro"
-        >
-          <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
-            {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
-              id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
-            }))).map((c) => {
-              const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
-              const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
-              const inner = (
-                <>
-                  {c.imageUrl ? (
-                    <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-xl bg-muted">
-                      <img
-                        src={c.imageUrl}
-                        alt=""
-                        className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
-                      />
-                    </span>
-                  ) : c.emoji?.trim() ? (
-                    <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
-                  ) : null}
+        {(() => {
+          const sectionNodes: Record<GuiaSectionId, React.ReactNode> = {
+            categories: (
+              <Section
+                title="categorias"
+                subtitle="explora o que rola no seu bairro"
+              >
+                <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
+                  {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
+                    id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
+                  }))).map((c) => {
+                    const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
+                    const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
+                    const inner = (
+                      <>
+                        {c.imageUrl ? (
+                          <span className="grid h-12 w-12 place-items-center overflow-hidden rounded-lg bg-muted">
+                            <img
+                              src={c.imageUrl}
+                              alt=""
+                              className={`h-full w-full ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                            />
+                          </span>
+                        ) : c.emoji?.trim() ? (
+                          <span className="text-3xl transition group-hover:scale-110">{c.emoji}</span>
+                        ) : null}
 
-                  <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
-                  {count > 0 && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {count} {count === 1 ? "opção" : "opções"}
-                    </span>
-                  )}
-                </>
-              );
-              const cls = "group flex flex-col items-center gap-1.5 rounded-2xl bg-card p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
-              return isReal ? (
-                <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
-                  {inner}
-                </Link>
-              ) : (
-                <div key={c.slug} className={cls}>{inner}</div>
-              );
-            })}
+                        <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
+                        {count > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {count} {count === 1 ? "opção" : "opções"}
+                          </span>
+                        )}
+                      </>
+                    );
+                    const cls = "group flex flex-col items-center gap-1.5 rounded-lg bg-card p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
+                    return isReal ? (
+                      <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={c.slug} className={cls}>{inner}</div>
+                    );
+                  })}
+                </div>
+              </Section>
+            ),
 
-          </div>
-        </Section>
+            featured: featuredSlots.length > 0 ? (
+              <Section
+                title={<>destaques da semana <span>🔥</span></>}
+                subtitle="pra driblar a fome com até 40% OFF"
+                action="ver tudo"
+              >
+                <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {featuredSlots.map((s) => (
+                    <button key={s.id} type="button" className="shrink-0 snap-start text-left">
+                      <SlotCard slot={s} />
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            ) : null,
 
-        {/* Destaques da semana */}
-        {featuredSlots.length > 0 && (
-          <Section
-            title={<>destaques da semana <span>🔥</span></>}
-            subtitle="pra driblar a fome com até 40% OFF"
-            action="ver tudo"
-          >
-            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {featuredSlots.map((s) => (
-                <button key={s.id} type="button" className="shrink-0 snap-start text-left">
-                  <SlotCard slot={s} />
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+            top_stores: topStoresSlots.length > 0 ? (
+              <Section
+                title={<>lojas em alta por aqui <span>✨</span></>}
+                subtitle="só rango top pro seu jantar 🍔🍕🥩"
+              >
+                <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-3 shadow-sm sm:grid-cols-2">
+                  {topStoresSlots.slice(0, 6).map((s) => (
+                    <button key={s.id} type="button" className="rounded-lg text-left transition hover:bg-muted/60">
+                      <SlotCard slot={s} />
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            ) : null,
 
-        {/* Lojas em alta */}
-        {topStoresSlots.length > 0 && (
-          <Section
-            title={<>lojas em alta por aqui <span>✨</span></>}
-            subtitle="só rango top pro seu jantar 🍔🍕🥩"
-          >
-            <div className="grid grid-cols-1 gap-3 rounded-3xl bg-card p-3 shadow-sm sm:grid-cols-2">
-              {topStoresSlots.slice(0, 6).map((s) => (
-                <button key={s.id} type="button" className="rounded-2xl text-left transition hover:bg-muted/60">
-                  <SlotCard slot={s} />
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+            flash_offer: flashSlots.length > 0 ? (
+              <Section
+                title={<>ofertas relâmpago <span>⚡</span></>}
+                subtitle="rápido antes que acabe"
+              >
+                <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {flashSlots.map((s) => (
+                    <button key={s.id} type="button" className="shrink-0 snap-start text-left">
+                      <SlotCard slot={s} />
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            ) : null,
 
-        {/* Ofertas relâmpago */}
-        {flashSlots.length > 0 && (
-          <Section
-            title={<>ofertas relâmpago <span>⚡</span></>}
-            subtitle="rápido antes que acabe"
-          >
-            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {flashSlots.map((s) => (
-                <button key={s.id} type="button" className="shrink-0 snap-start text-left">
-                  <SlotCard slot={s} />
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+            banner_1: bannerSlots[0] ? <SlotCard slot={bannerSlots[0]} /> : null,
 
-        {/* Banner full-width */}
-        {bannerSlots[0] && <SlotCard slot={bannerSlots[0]} />}
+            collection: collectionSlots.length > 0 ? (
+              <Section title="coleções de lojas e promos" action="ver tudo">
+                <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {collectionSlots.map((s) => (
+                    <button key={s.id} type="button" className="shrink-0 snap-start text-left">
+                      <SlotCard slot={s} />
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            ) : null,
 
-        {/* Coleções */}
-        {collectionSlots.length > 0 && (
-          <Section title="coleções de lojas e promos" action="ver tudo">
-            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {collectionSlots.map((s) => (
-                <button key={s.id} type="button" className="shrink-0 snap-start text-left">
-                  <SlotCard slot={s} />
-                </button>
-              ))}
-            </div>
-          </Section>
-        )}
+            banner_2: bannerSlots[1] ? <SlotCard slot={bannerSlots[1]} /> : null,
 
-        {/* Segundo banner opcional */}
-        {bannerSlots[1] && <SlotCard slot={bannerSlots[1]} />}
+            featured_real: featured.length > 0 ? (
+              <Section
+                title={<>em destaque agora <span>🌟</span></>}
+                subtitle="lançamentos do bairro, direto do WhatsApp da loja"
+              >
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {featured.map((it) => (
+                    <Link
+                      key={it.product_id}
+                      to="/guia/produto/$id"
+                      params={{ id: it.product_id }}
+                      className="group overflow-hidden rounded-lg bg-card shadow-sm transition hover:shadow-md"
+                    >
+                      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                        <img
+                          src={productImage(it.image_url)}
+                          alt={it.name}
+                          className="h-full w-full object-cover transition group-hover:scale-105"
+                        />
+                        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary-foreground shadow">
+                          <Star className="h-3 w-3 fill-current" /> destaque
+                        </span>
+                      </div>
+                      <div className="p-3">
+                        <p className="line-clamp-1 text-sm font-bold">{it.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {it.tenant_name}
+                          {it.neighborhood ? ` · ${it.neighborhood}` : ""}
+                        </p>
+                        <p className="mt-1 text-sm font-black text-primary">
+                          {brl(it.promo_price ?? it.price)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Section>
+            ) : null,
 
-        {/* Destaques reais (do banco, se houver) */}
-        {featured.length > 0 && (
-          <Section
-            title={<>em destaque agora <span>🌟</span></>}
-            subtitle="lançamentos do bairro, direto do WhatsApp da loja"
-          >
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((it) => (
-                <Link
-                  key={it.product_id}
-                  to="/guia/produto/$id"
-                  params={{ id: it.product_id }}
-                  className="group overflow-hidden rounded-2xl bg-card shadow-sm transition hover:shadow-md"
-                >
-                  <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-                    <img
-                      src={productImage(it.image_url)}
-                      alt={it.name}
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
-                    <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary-foreground shadow">
-                      <Star className="h-3 w-3 fill-current" /> destaque
-                    </span>
-                  </div>
-                  <div className="p-3">
-                    <p className="line-clamp-1 text-sm font-bold">{it.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {it.tenant_name}
-                      {it.neighborhood ? ` · ${it.neighborhood}` : ""}
-                    </p>
-                    <p className="mt-1 text-sm font-black text-primary">
-                      {brl(it.promo_price ?? it.price)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </Section>
-        )}
+            publish_cta: <PublishCta />,
+          };
 
-        {/* CTA: publique seu cardápio */}
-        <PublishCta />
+          return sectionOrder.map((id) => (
+            <div key={id}>{sectionNodes[id]}</div>
+          ));
+        })()}
       </main>
 
       {/* Bottom nav mobile */}
@@ -320,12 +321,9 @@ function GuiaHome() {
         aria-label="Navegação"
         className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur md:hidden"
       >
-        <div className="mx-auto flex max-w-5xl items-end justify-between px-4 py-2">
+        <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />
           <BottomTab icon={<Search className="h-5 w-5" />} label="busca" />
-          <div className="-mt-6 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-primary to-fuchsia-500 text-2xl text-primary-foreground shadow-lg">
-            🍔
-          </div>
           <BottomTab icon={<Receipt className="h-5 w-5" />} label="pedidos" />
           <BottomTab icon={<User className="h-5 w-5" />} label="conta" />
         </div>
@@ -350,7 +348,7 @@ function HeroCarousel({ slots }: { slots: ReturnType<typeof useGuiaSlots> }) {
 
   return (
     <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-3xl">
+      <div className="relative overflow-hidden rounded-xl">
         <div
           className="flex transition-transform duration-500 ease-out"
           style={{ transform: `translateX(-${idx * 100}%)` }}
@@ -421,7 +419,7 @@ function PublishCta() {
   return (
     <section
       aria-label="Publique seu cardápio"
-      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-fuchsia-600 to-purple-700 p-6 text-white shadow-lg sm:p-8"
+      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-fuchsia-600 to-purple-700 p-6 text-white shadow-lg sm:p-8"
     >
       <div className="pointer-events-none absolute -right-6 -top-6 select-none text-[8rem] leading-none opacity-25">
         🍽️

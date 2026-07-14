@@ -61,6 +61,42 @@ type State = {
   slots: GuiaSlot[];
   categories: GuiaCategory[];
   requests: GuiaPromoRequest[];
+  sectionOrder: GuiaSectionId[];
+};
+
+export type GuiaSectionId =
+  | "categories"
+  | "featured"
+  | "top_stores"
+  | "flash_offer"
+  | "banner_1"
+  | "collection"
+  | "banner_2"
+  | "featured_real"
+  | "publish_cta";
+
+export const DEFAULT_SECTION_ORDER: GuiaSectionId[] = [
+  "categories",
+  "featured",
+  "top_stores",
+  "flash_offer",
+  "banner_1",
+  "collection",
+  "banner_2",
+  "featured_real",
+  "publish_cta",
+];
+
+export const SECTION_LABELS: Record<GuiaSectionId, { title: string; desc: string }> = {
+  categories: { title: "Categorias", desc: "grade de categorias do bairro" },
+  featured: { title: "Destaques da semana", desc: "carrossel de produtos em destaque" },
+  top_stores: { title: "Lojas em alta", desc: "cards de lojas em destaque" },
+  flash_offer: { title: "Ofertas relâmpago", desc: "carrossel de ofertas com contagem regressiva" },
+  banner_1: { title: "Banner full-width (1)", desc: "primeiro banner grande" },
+  collection: { title: "Coleções", desc: "carrossel de coleções de lojas/promos" },
+  banner_2: { title: "Banner full-width (2)", desc: "segundo banner grande" },
+  featured_real: { title: "Em destaque agora", desc: "produtos reais do banco em destaque" },
+  publish_cta: { title: "CTA publique seu cardápio", desc: "chamada para lojistas" },
 };
 
 const STORAGE_KEY = "menuzin.guia.mock.v1";
@@ -138,6 +174,7 @@ const SEED: State = {
   slots: SEED_SLOTS,
   categories: SEED_CATEGORIES,
   requests: SEED_REQUESTS,
+  sectionOrder: DEFAULT_SECTION_ORDER,
 };
 
 let state: State = SEED;
@@ -150,10 +187,18 @@ function loadFromStorage(): State {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return SEED;
     const parsed = JSON.parse(raw) as Partial<State>;
+    const storedOrder = parsed.sectionOrder;
+    const validOrder = Array.isArray(storedOrder)
+      ? [
+          ...storedOrder.filter((id): id is GuiaSectionId => DEFAULT_SECTION_ORDER.includes(id as GuiaSectionId)),
+          ...DEFAULT_SECTION_ORDER.filter((id) => !storedOrder.includes(id)),
+        ]
+      : DEFAULT_SECTION_ORDER;
     return {
       slots: parsed.slots ?? SEED.slots,
       categories: parsed.categories ?? SEED.categories,
       requests: parsed.requests ?? SEED.requests,
+      sectionOrder: validOrder,
     };
   } catch {
     return SEED;
@@ -224,6 +269,11 @@ export function useGuiaCategories(activeOnly = false): GuiaCategory[] {
 export function useGuiaRequests(): GuiaPromoRequest[] {
   const s = useGuiaState();
   return [...s.requests].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export function useGuiaSectionOrder(): GuiaSectionId[] {
+  const s = useGuiaState();
+  return s.sectionOrder;
 }
 
 // -------- mutations --------
@@ -380,6 +430,28 @@ export const guiaActions = {
   },
   deleteRequest(id: string) {
     setState((s) => ({ ...s, requests: s.requests.filter((r) => r.id !== id) }));
+  },
+
+  // Section ordering
+  setSectionOrder(order: GuiaSectionId[]) {
+    setState((s) => {
+      const filtered = order.filter((id) => DEFAULT_SECTION_ORDER.includes(id));
+      const merged = [...filtered, ...DEFAULT_SECTION_ORDER.filter((id) => !filtered.includes(id))];
+      return { ...s, sectionOrder: merged };
+    });
+  },
+  moveSection(id: GuiaSectionId, dir: -1 | 1) {
+    setState((s) => {
+      const order = [...s.sectionOrder];
+      const idx = order.indexOf(id);
+      const swap = idx + dir;
+      if (idx < 0 || swap < 0 || swap >= order.length) return s;
+      [order[idx], order[swap]] = [order[swap], order[idx]];
+      return { ...s, sectionOrder: order };
+    });
+  },
+  resetSectionOrder() {
+    setState((s) => ({ ...s, sectionOrder: [...DEFAULT_SECTION_ORDER] }));
   },
 };
 

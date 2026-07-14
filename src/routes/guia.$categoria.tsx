@@ -122,7 +122,7 @@ function CategoryPage() {
                   key={it.product_id}
                   to="/guia/produto/$id"
                   params={{ id: it.product_id }}
-                  className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:shadow-md"
+                  className="group overflow-hidden rounded-lg border bg-card shadow-sm transition hover:shadow-md"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                     <img src={productImage(it.image_url)} alt={it.name} className="h-full w-full object-cover transition group-hover:scale-105" />

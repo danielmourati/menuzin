@@ -103,7 +103,7 @@ function ProductPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-6">
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div className="aspect-[4/3] w-full overflow-hidden bg-muted sm:aspect-[16/9]">
             <img src={productImage(it.image_url)} alt={it.name} className="h-full w-full object-cover" />
           </div>

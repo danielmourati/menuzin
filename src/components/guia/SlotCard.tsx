@@ -20,7 +20,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "hero") {
     return (
-      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-5 text-white shadow-md ${size === "sm" ? "h-32" : "h-40"}`}>
+      <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${grad} p-5 text-white shadow-md ${size === "sm" ? "h-32" : "h-40"}`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
         )}
@@ -45,7 +45,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "banner") {
     return (
-      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-r ${grad} p-6 text-white shadow-md`}>
+      <div className={`relative overflow-hidden rounded-xl bg-gradient-to-r ${grad} p-6 text-white shadow-md`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-90`} />
         )}
@@ -68,7 +68,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "collection") {
     return (
-      <div className={`relative aspect-[3/4] overflow-hidden rounded-3xl bg-gradient-to-br ${grad} p-4 text-white shadow-md ${size === "sm" ? "w-40" : "w-44"}`}>
+      <div className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br ${grad} p-4 text-white shadow-md ${size === "sm" ? "w-40" : "w-44"}`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
         )}
@@ -92,7 +92,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   if (slot.kind === "featured") {
     return (
       <div className="w-40 shrink-0 text-left">
-        <div className={`relative aspect-square overflow-hidden rounded-2xl bg-gradient-to-br ${grad} shadow-md`}>
+        <div className={`relative aspect-square overflow-hidden rounded-lg bg-gradient-to-br ${grad} shadow-md`}>
           {typeof slot.rating === "number" && (
             <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-lg bg-yellow-400 px-1.5 py-0.5 text-[10px] font-black text-stone-900 shadow">
               <Star className="h-3 w-3 fill-current" /> {slot.rating.toFixed(1)}
@@ -133,8 +133,8 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
   if (slot.kind === "top_stores") {
     return (
-      <div className="flex items-center gap-3 rounded-2xl p-2">
-        <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
+      <div className="flex items-center gap-3 rounded-lg p-2">
+        <div className={`grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br ${grad} text-2xl shadow-inner`}>
           {img ? (
             <img src={img} alt="" className={`h-full w-full ${fitCls}`} />
           ) : emoji ? (
@@ -170,7 +170,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   const countdown = formatCountdown(slot.endsAt);
   return (
     <div className="w-56 shrink-0">
-      <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${grad} p-4 text-white shadow-md`}>
+      <div className={`relative overflow-hidden rounded-lg bg-gradient-to-br ${grad} p-4 text-white shadow-md`}>
         {img && (
           <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls} opacity-80`} />
         )}
