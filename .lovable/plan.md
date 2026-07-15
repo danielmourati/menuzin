@@ -1,69 +1,26 @@
-# Plano
+## Objetivo
+Deixar a home do `/guia` mais viva mesmo sem lojas reais cadastradas: exibir lojas mockadas ligadas às categorias, remover o título "todas as lojas", manter o toggle grade/lista e transformar o clique nas categorias em filtro do bloco de lojas (em vez de navegar para `/guia/$categoria`).
 
-## 1. Remover botão central (hambúrguer) da bottom nav mobile
+## Mudanças
 
-Arquivo: `src/routes/guia.index.tsx` (linhas 322–331)
+### 1. `src/lib/guia-mock.ts`
+- Adicionar um array `MOCK_STORES` (~8–12 itens) tipado como o objeto consumido por `AllStoresSection` (`tenant_id`, `tenant_slug`, `tenant_name`, `tenant_logo`, `neighborhood`, `city`, `categories: string[]`, `product_count`, `has_featured`).
+- Usar `tenant_slug` fictícios (ex.: `#` como link ou slug mock) e `categories` com os slugs de `DIRECTORY_CATEGORIES` (`quentinha`, `pizza`, `churrasco`, `hamburguer`, `lanches`, `marmitex`, `acai`, `doces`).
+- Distribuir bairros ("Centro", "Pindorama", "São Vicente" etc.) e marcar 2–3 como `has_featured: true`.
+- Exportar via um hook simples `useGuiaMockStores()` ou apenas `export const MOCK_STORES`.
 
-- Remover o `<div>` do círculo central com o emoji 🍔.
-- Ajustar o container para distribuir os 4 tabs restantes uniformemente (`justify-around` no lugar de `justify-between`).
-- Resultado: navbar mobile com 4 ícones (início, busca, pedidos, conta).
+### 2. `src/routes/guia.index.tsx`
+- Importar `MOCK_STORES` e combinar com `storesData.stores` (`const allStores = [...storesData.stores, ...MOCK_STORES]`), sem duplicar por `tenant_id`.
+- Adicionar estado `const [categoryFilter, setCategoryFilter] = useState<string | null>(null)`.
+- Categorias: trocar o `<Link to="/guia/$categoria">` por um `<button>` que faz `setCategoryFilter(prev => prev === c.slug ? null : c.slug)`, com estado visual ativo (ring/texto primary) quando selecionado. As categorias mockadas (não presentes em `DIRECTORY_CATEGORIES`) continuam sem clique.
+- Passar `categoryFilter` e `onClearFilter` para `AllStoresSection`; filtrar `stores` por `s.categories.includes(categoryFilter)` quando houver filtro.
+- Bloco `AllStoresSection`:
+  - Remover o `<h2>todas as lojas</h2>` e o subtítulo de contagem.
+  - Manter o toggle grade/lista alinhado à direita; quando houver filtro ativo, mostrar um chip compacto do lado esquerdo do toggle: "categoria: <label> ✕" (clicando limpa o filtro). Sem filtro: apenas o toggle.
+  - Manter os dois modos de renderização (grid/list) exatamente como estão.
+  - Ajustar o empty state para: "nenhuma loja nessa categoria" quando `categoryFilter` estiver ativo.
 
-## 2. Drag and drop das seções do Guia (exceto Hero)
-
-Seções ordenáveis na home `/guia`:
-1. Categorias
-2. Destaques da semana (featured)
-3. Lojas em alta (top_stores)
-4. Ofertas relâmpago (flash_offer)
-5. Banner 1
-6. Coleções
-7. Banner 2
-8. Em destaque agora (featured reais do banco)
-9. CTA publique seu cardápio
-
-Hero fica **fixo no topo**, fora da lista ordenável.
-
-### Estado da ordem (mock, superadmin)
-Adicionar em `src/lib/guia-mock.ts`:
-- Tipo `GuiaSectionId` com os ids acima.
-- Campo `sectionOrder: GuiaSectionId[]` no `State` (persistido no localStorage junto com o resto).
-- Seed com a ordem atual.
-- Hook `useGuiaSectionOrder()` e ações `guiaActions.moveSection(id, dir)` e `guiaActions.setSectionOrder(list)`.
-
-### Configuração no painel superadmin
-Nova aba/página `src/routes/platform.guia.secoes.tsx`:
-- Lista as seções na ordem atual, cada uma com nome/descrição e handle de arrastar.
-- Drag and drop com `@dnd-kit/core` + `@dnd-kit/sortable` (instalar).
-- Também botões ↑/↓ como fallback acessível.
-- Botão "restaurar ordem padrão".
-- Adicionar link "Seções" no `platform.guia.tsx` (layout com abas).
-
-### Home pública `/guia`
-- Refatorar `GuiaHome` para montar um map `sectionId -> ReactNode` com o conteúdo atual de cada seção.
-- Renderizar `sectionOrder.map(id => map[id])` abaixo do Hero.
-- Se uma seção não tiver conteúdo (array vazio), continua sendo omitida como hoje.
-
-## 3. Reduzir arredondamento dos cards
-
-Padrão atual: `rounded-3xl` (24px) em muitos cards, `rounded-2xl` (16px) em outros.
-Novo padrão: **`rounded-xl` (12px)** para cards grandes e **`rounded-lg` (8px)** para elementos pequenos/badges internos.
-
-Arquivos e substituições:
-- `src/components/guia/SlotCard.tsx` — trocar todos `rounded-3xl` → `rounded-xl`; `rounded-2xl` internos → `rounded-lg`.
-- `src/routes/guia.index.tsx`:
-  - Hero wrapper `rounded-3xl` → `rounded-xl`.
-  - Card de categoria `rounded-2xl` → `rounded-lg`.
-  - Container "lojas em alta" `rounded-3xl` → `rounded-xl`; item interno `rounded-2xl` → `rounded-lg`.
-  - Cards "em destaque agora" `rounded-2xl` → `rounded-lg`.
-  - CTA final `rounded-3xl` → `rounded-xl`.
-  - Search bar e chips de verticals mantêm `rounded-2xl` (são controles, não cards) — **não alterar**.
-- `src/routes/guia.$categoria.tsx` e `src/routes/guia.produto.$id.tsx`: aplicar o mesmo downgrade nos cards principais para manter consistência.
-
-Sem mudanças em botões, inputs, drawers ou modais — apenas cards/banners/destaques do guia público e seus equivalentes no preview.
-
-## Detalhes técnicos
-
-- Nova dependência: `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (via `bun add`).
-- `sectionOrder` versionado no `STORAGE_KEY` existente; fallback seguro quando localStorage não tem o campo (usa seed).
-- Sem mudanças em backend, RLS ou server functions — tudo continua no mock client-side.
-- Typecheck após as mudanças.
+### Notas técnicas
+- Nada muda em `directory.functions.ts` nem em `guia.$categoria.tsx` (rota permanece funcional se acessada por URL).
+- Como os mocks não têm rota de loja real, os cards mock apontam para `to="/$slug"` com `params={{ slug: s.tenant_slug }}` normalmente; se o slug não existir, cai no 404 padrão (aceitável para dado mock — não é objetivo aqui criar loja falsa navegável).
+- Nenhuma alteração de RLS, backend, ou tokens de design fora da tela em questão.

@@ -14,6 +14,7 @@ import {
   useGuiaCategories,
   useGuiaSectionOrder,
   useGuiaSectionActive,
+  MOCK_STORES,
   type GuiaSectionId,
 } from "@/lib/guia-mock";
 import { SlotCard } from "@/components/guia/SlotCard";
@@ -31,6 +32,7 @@ import {
   Search,
   Star,
   User,
+  X,
 } from "lucide-react";
 
 const categoriesQO = queryOptions({
@@ -89,7 +91,11 @@ function GuiaHome() {
   const { data: featData } = useSuspenseQuery(featuredQO);
   const { data: storesData } = useSuspenseQuery(storesQO);
   const featured = featData.items;
-  const allStores = storesData.stores;
+  const realStores = storesData.stores;
+  const allStores = (() => {
+    const seen = new Set(realStores.map((s) => s.tenant_id));
+    return [...realStores, ...MOCK_STORES.filter((s) => !seen.has(s.tenant_id))];
+  })();
 
   const heroSlots = useGuiaSlots("hero").filter((s) => s.active);
   const featuredSlots = useGuiaSlots("featured").filter((s) => s.active);
@@ -103,6 +109,16 @@ function GuiaHome() {
 
   const [vertical, setVertical] = useState("restaurantes");
   const [storesView, setStoresView] = useState<"grid" | "list">("grid");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const filteredStores = categoryFilter
+    ? allStores.filter((s) => s.categories.includes(categoryFilter))
+    : allStores;
+  const activeCategoryLabel = categoryFilter
+    ? (managedCategories.find((c) => c.slug === categoryFilter)?.label
+        ?? DIRECTORY_CATEGORIES.find((c) => c.slug === categoryFilter)?.label
+        ?? categoryFilter)
+    : null;
 
   return (
     <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
@@ -187,21 +203,22 @@ function GuiaHome() {
                     }))).map((c) => {
                       const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
                       const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
+                      const isSelected = categoryFilter === c.slug;
                       const inner = (
                         <>
                           {c.imageUrl ? (
                             <img
                               src={c.imageUrl}
                               alt=""
-                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}
                             />
                           ) : c.emoji?.trim() ? (
-                            <span className="text-4xl leading-none transition group-hover:scale-110">{c.emoji}</span>
+                            <span className={`text-4xl leading-none transition group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}>{c.emoji}</span>
                           ) : (
                             <span className="h-14 w-14" />
                           )}
 
-                          <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
+                          <span className={`text-xs font-semibold leading-tight lowercase ${isSelected ? "text-primary" : ""}`}>{c.label}</span>
                           {count > 0 && (
                             <span className="text-[10px] text-muted-foreground">
                               {count} {count === 1 ? "opção" : "opções"}
@@ -209,11 +226,17 @@ function GuiaHome() {
                           )}
                         </>
                       );
-                      const cls = "group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center";
+                      const cls = `group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center ${isSelected ? "" : ""}`;
                       return isReal ? (
-                        <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
+                        <button
+                          key={c.slug}
+                          type="button"
+                          onClick={() => setCategoryFilter((prev) => (prev === c.slug ? null : c.slug))}
+                          aria-pressed={isSelected}
+                          className={cls}
+                        >
                           {inner}
-                        </Link>
+                        </button>
                       ) : (
                         <div key={c.slug} className={cls}>{inner}</div>
                       );
@@ -222,9 +245,11 @@ function GuiaHome() {
                 </Section>
 
                 <AllStoresSection
-                  stores={allStores}
+                  stores={filteredStores}
                   view={storesView}
                   onViewChange={setStoresView}
+                  activeCategoryLabel={activeCategoryLabel}
+                  onClearFilter={() => setCategoryFilter(null)}
                 />
               </div>
             ),
@@ -507,6 +532,8 @@ function AllStoresSection({
   stores,
   view,
   onViewChange,
+  activeCategoryLabel,
+  onClearFilter,
 }: {
   stores: {
     tenant_id: string;
@@ -521,18 +548,22 @@ function AllStoresSection({
   }[];
   view: "grid" | "list";
   onViewChange: (v: "grid" | "list") => void;
+  activeCategoryLabel?: string | null;
+  onClearFilter?: () => void;
 }) {
   return (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl font-black leading-tight tracking-tight lowercase">
-            todas as lojas
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {stores.length} {stores.length === 1 ? "loja" : "lojas"} no bairro
-          </p>
-        </div>
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {activeCategoryLabel && (
+          <button
+            type="button"
+            onClick={onClearFilter}
+            className="mr-auto inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+          >
+            categoria: {activeCategoryLabel}
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="inline-flex shrink-0 items-center rounded-lg border bg-background p-0.5">
           <button
             type="button"
@@ -567,7 +598,7 @@ function AllStoresSection({
 
       {stores.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Nenhuma loja cadastrada ainda.
+          {activeCategoryLabel ? "Nenhuma loja nessa categoria." : "Nenhuma loja cadastrada ainda."}
         </p>
       ) : view === "grid" ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

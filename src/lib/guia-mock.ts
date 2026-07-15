@@ -526,3 +526,28 @@ export const DEFAULT_GRADIENTS = [
   "from-pink-500 via-rose-500 to-red-500",
   "from-sky-500 via-blue-600 to-indigo-700",
 ];
+
+export type GuiaMockStore = {
+  tenant_id: string;
+  tenant_slug: string;
+  tenant_name: string;
+  tenant_logo: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  categories: string[];
+  product_count: number;
+  has_featured: boolean;
+};
+
+export const MOCK_STORES: GuiaMockStore[] = [
+  { tenant_id: "mock-1", tenant_slug: "sabor-da-casa", tenant_name: "Sabor da Casa", tenant_logo: null, neighborhood: "Centro", city: "Parnaíba", categories: ["quentinha", "marmitex"], product_count: 24, has_featured: true },
+  { tenant_id: "mock-2", tenant_slug: "pizzaria-bella", tenant_name: "Pizzaria Bella", tenant_logo: null, neighborhood: "Pindorama", city: "Parnaíba", categories: ["pizza", "lanches"], product_count: 18, has_featured: true },
+  { tenant_id: "mock-3", tenant_slug: "brasa-viva", tenant_name: "Brasa Viva Churrascaria", tenant_logo: null, neighborhood: "São Vicente", city: "Parnaíba", categories: ["churrasco"], product_count: 12, has_featured: false },
+  { tenant_id: "mock-4", tenant_slug: "burger-king-do-bairro", tenant_name: "Burger do Bairro", tenant_logo: null, neighborhood: "Centro", city: "Parnaíba", categories: ["hamburguer", "lanches"], product_count: 15, has_featured: false },
+  { tenant_id: "mock-5", tenant_slug: "lanchonete-do-ze", tenant_name: "Lanchonete do Zé", tenant_logo: null, neighborhood: "Piauí", city: "Parnaíba", categories: ["lanches", "hamburguer"], product_count: 22, has_featured: false },
+  { tenant_id: "mock-6", tenant_slug: "marmitex-express", tenant_name: "Marmitex Express", tenant_logo: null, neighborhood: "Frei Higino", city: "Parnaíba", categories: ["marmitex", "quentinha"], product_count: 9, has_featured: true },
+  { tenant_id: "mock-7", tenant_slug: "acai-tropical", tenant_name: "Açaí Tropical", tenant_logo: null, neighborhood: "Centro", city: "Parnaíba", categories: ["acai", "doces"], product_count: 14, has_featured: false },
+  { tenant_id: "mock-8", tenant_slug: "doceria-encanto", tenant_name: "Doceria Encanto", tenant_logo: null, neighborhood: "Pindorama", city: "Parnaíba", categories: ["doces"], product_count: 20, has_featured: false },
+  { tenant_id: "mock-9", tenant_slug: "quentinha-da-vovo", tenant_name: "Quentinha da Vovó", tenant_logo: null, neighborhood: "São Vicente", city: "Parnaíba", categories: ["quentinha", "marmitex"], product_count: 11, has_featured: false },
+  { tenant_id: "mock-10", tenant_slug: "pizzaria-forno-quente", tenant_name: "Pizzaria Forno Quente", tenant_logo: null, neighborhood: "Centro", city: "Parnaíba", categories: ["pizza"], product_count: 16, has_featured: false },
+];
