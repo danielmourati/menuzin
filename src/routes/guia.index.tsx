@@ -108,7 +108,7 @@ function GuiaHome() {
   const sectionActive = useGuiaSectionActive();
 
   const [vertical, setVertical] = useState("restaurantes");
-  const [storesView, setStoresView] = useState<"grid" | "list">("grid");
+  const [storesView, setStoresView] = useState<"grid" | "list">("list");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   const filteredStores = categoryFilter
@@ -601,7 +601,7 @@ function AllStoresSection({
           {activeCategoryLabel ? "Nenhuma loja nessa categoria." : "Nenhuma loja cadastrada ainda."}
         </p>
       ) : view === "grid" ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3">
           {stores.map((s) => (
             <Link
               key={s.tenant_id}
