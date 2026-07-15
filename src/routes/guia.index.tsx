@@ -32,6 +32,7 @@ import {
   Search,
   Star,
   User,
+  X,
 } from "lucide-react";
 
 const categoriesQO = queryOptions({
