@@ -203,21 +203,22 @@ function GuiaHome() {
                     }))).map((c) => {
                       const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
                       const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
+                      const isSelected = categoryFilter === c.slug;
                       const inner = (
                         <>
                           {c.imageUrl ? (
                             <img
                               src={c.imageUrl}
                               alt=""
-                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110`}
+                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}
                             />
                           ) : c.emoji?.trim() ? (
-                            <span className="text-4xl leading-none transition group-hover:scale-110">{c.emoji}</span>
+                            <span className={`text-4xl leading-none transition group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}>{c.emoji}</span>
                           ) : (
                             <span className="h-14 w-14" />
                           )}
 
-                          <span className="text-xs font-semibold leading-tight lowercase">{c.label}</span>
+                          <span className={`text-xs font-semibold leading-tight lowercase ${isSelected ? "text-primary" : ""}`}>{c.label}</span>
                           {count > 0 && (
                             <span className="text-[10px] text-muted-foreground">
                               {count} {count === 1 ? "opção" : "opções"}
@@ -225,11 +226,17 @@ function GuiaHome() {
                           )}
                         </>
                       );
-                      const cls = "group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center";
+                      const cls = `group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center ${isSelected ? "" : ""}`;
                       return isReal ? (
-                        <Link key={c.slug} to="/guia/$categoria" params={{ categoria: c.slug }} className={cls}>
+                        <button
+                          key={c.slug}
+                          type="button"
+                          onClick={() => setCategoryFilter((prev) => (prev === c.slug ? null : c.slug))}
+                          aria-pressed={isSelected}
+                          className={cls}
+                        >
                           {inner}
-                        </Link>
+                        </button>
                       ) : (
                         <div key={c.slug} className={cls}>{inner}</div>
                       );
@@ -238,9 +245,11 @@ function GuiaHome() {
                 </Section>
 
                 <AllStoresSection
-                  stores={allStores}
+                  stores={filteredStores}
                   view={storesView}
                   onViewChange={setStoresView}
+                  activeCategoryLabel={activeCategoryLabel}
+                  onClearFilter={() => setCategoryFilter(null)}
                 />
               </div>
             ),
