@@ -532,6 +532,8 @@ function AllStoresSection({
   stores,
   view,
   onViewChange,
+  activeCategoryLabel,
+  onClearFilter,
 }: {
   stores: {
     tenant_id: string;
@@ -546,18 +548,22 @@ function AllStoresSection({
   }[];
   view: "grid" | "list";
   onViewChange: (v: "grid" | "list") => void;
+  activeCategoryLabel?: string | null;
+  onClearFilter?: () => void;
 }) {
   return (
     <section>
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl font-black leading-tight tracking-tight lowercase">
-            todas as lojas
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            {stores.length} {stores.length === 1 ? "loja" : "lojas"} no bairro
-          </p>
-        </div>
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {activeCategoryLabel && (
+          <button
+            type="button"
+            onClick={onClearFilter}
+            className="mr-auto inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+          >
+            categoria: {activeCategoryLabel}
+            <X className="h-3 w-3" />
+          </button>
+        )}
         <div className="inline-flex shrink-0 items-center rounded-lg border bg-background p-0.5">
           <button
             type="button"
@@ -592,7 +598,7 @@ function AllStoresSection({
 
       {stores.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Nenhuma loja cadastrada ainda.
+          {activeCategoryLabel ? "Nenhuma loja nessa categoria." : "Nenhuma loja cadastrada ainda."}
         </p>
       ) : view === "grid" ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
