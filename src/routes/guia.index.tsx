@@ -91,7 +91,11 @@ function GuiaHome() {
   const { data: featData } = useSuspenseQuery(featuredQO);
   const { data: storesData } = useSuspenseQuery(storesQO);
   const featured = featData.items;
-  const allStores = storesData.stores;
+  const realStores = storesData.stores;
+  const allStores = (() => {
+    const seen = new Set(realStores.map((s) => s.tenant_id));
+    return [...realStores, ...MOCK_STORES.filter((s) => !seen.has(s.tenant_id))];
+  })();
 
   const heroSlots = useGuiaSlots("hero").filter((s) => s.active);
   const featuredSlots = useGuiaSlots("featured").filter((s) => s.active);
@@ -105,6 +109,16 @@ function GuiaHome() {
 
   const [vertical, setVertical] = useState("restaurantes");
   const [storesView, setStoresView] = useState<"grid" | "list">("grid");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const filteredStores = categoryFilter
+    ? allStores.filter((s) => s.categories.includes(categoryFilter))
+    : allStores;
+  const activeCategoryLabel = categoryFilter
+    ? (managedCategories.find((c) => c.slug === categoryFilter)?.label
+        ?? DIRECTORY_CATEGORIES.find((c) => c.slug === categoryFilter)?.label
+        ?? categoryFilter)
+    : null;
 
   return (
     <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
