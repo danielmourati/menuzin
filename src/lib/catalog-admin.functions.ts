@@ -3,12 +3,14 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { getTenantPlanLimits } from "@/lib/plan-server";
 import type { Database } from "@/integrations/supabase/types";
 import type {
   DbCategory, DbProduct, DbAddon,
   DbProductSize, DbProductFlavor, DbAddonGroup, DbAddonOption, DbAddonGroupTarget,
   DbCategoryPizzaSize, DbCategoryPizzaDough, DbCategoryPizzaCrust,
 } from "@/lib/db-types";
+
 
 type SB = SupabaseClient<Database>;
 
@@ -63,6 +65,21 @@ export const saveCategory = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Enforce plan limits on creation.
+
+    const limits = await getTenantPlanLimits(tenantId);
+    if (limits.max_categories !== null) {
+      const { count } = await sb
+        .from("categories")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+      if ((count ?? 0) >= limits.max_categories) {
+        throw new Error(
+          `Seu plano permite no máximo ${limits.max_categories} categorias. Faça upgrade para adicionar mais.`,
+        );
+      }
+    }
+
     const { data: row, error } = await sb.from("categories").insert({
       tenant_id: tenantId, name: data.name, description: data.description ?? "",
       sort_order: data.sort_order, active: data.active,
@@ -222,8 +239,22 @@ export const saveProduct = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Enforce plan limits on creation.
+    const limits = await getTenantPlanLimits(tenantId);
+    if (limits.max_products !== null) {
+      const { count } = await sb
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+      if ((count ?? 0) >= limits.max_products) {
+        throw new Error(
+          `Seu plano permite no máximo ${limits.max_products} produtos. Faça upgrade para adicionar mais.`,
+        );
+      }
+    }
     const { data: row, error } = await sb.from("products")
       .insert({ ...payload, tenant_id: tenantId } as never).select("id").single();
+
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });

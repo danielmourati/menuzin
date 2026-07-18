@@ -29,38 +29,59 @@ const demoProducts = [
 
 const pricingPlans = [
   {
-    id: "start",
-    name: "Essencial",
-    price: 87,
-    priceLabel: "R$ 87",
-    tagline: "Para vendedores autônomos (MEI) que vendem pelo WhatsApp e Instagram.",
+    id: "presenca",
+    name: "Presença",
+    price: 0,
+    priceLabel: "Grátis",
+    tagline: "Sua vitrine no Guia Menuzin, sem pagar nada.",
     features: [
-      "1 usuário com acesso",
-      "Produtos ilimitados",
-      "Dashboard completo",
-      "Gestão de status de pedidos",
-      "Pedidos direto no WhatsApp",
-      "Relatórios básicos de gestão",
+      "Página no Guia Menuzin",
+      "Até 20 produtos e 4 categorias",
+      "QR Code e link público",
+      "Botão de WhatsApp",
+      "Estatísticas básicas",
+      "Marca Menuzin visível",
     ],
-    cta: "Começar agora",
+    cta: "Cadastrar grátis",
+  },
+  {
+    id: "start",
+    name: "Start",
+    price: 57.9,
+    priceLabel: "R$ 57,90",
+    tagline: "Pedidos organizados no painel, prontos para vender.",
+    features: [
+      "Tudo do Presença",
+      "Produtos e categorias ilimitados",
+      "Painel de pedidos (entrega e retirada)",
+      "Status do pedido em tempo real",
+      "Cadastro de clientes e cupons básicos",
+      "Impressão manual e relatórios básicos",
+      "Até 2 usuários",
+    ],
+    cta: "Começar a vender",
+    highlighted: true,
   },
   {
     id: "pro",
-    name: "Controle",
-    price: 157,
-    priceLabel: "R$ 157",
-    tagline: "Para quem tem loja física e quer controle total da operação.",
+    name: "Pro",
+    price: 127.9,
+    priceLabel: "R$ 127,90",
+    tagline: "Automação completa e pagamento online.",
     features: [
-      "Até 3 usuários ou vendedores",
-      "Tudo do Plano Essencial",
-      "Pagamento online com Mercado Pago",
-      "Múltiplas impressoras (cozinha, bar, balcão)",
-      "Suporte individualizado e humano via WhatsApp",
+      "Tudo do Start",
+      "Pagamento online (Mercado Pago)",
+      "Impressão automática (cozinha + entrega)",
+      "Adicionais avançados, combos e pizza multi-sabor",
+      "Cupons avançados, upsell e recuperação",
+      "Taxa de entrega por distância",
+      "Relatórios completos e múltiplos usuários",
+      "Destaque no Guia • suporte prioritário",
     ],
-    cta: "Assinar Controle",
-    highlighted: true,
+    cta: "Profissionalizar meu delivery",
   },
 ] as const;
+
 
 const HOME_TITLE = "Menuzin — Cardápio digital e pedidos por WhatsApp";
 const HOME_DESC =
@@ -277,8 +298,9 @@ function Landing() {
             </span>
             <h2 className="mt-4 text-3xl font-bold md:text-4xl">Escolha o plano ideal para o seu negócio</h2>
             <p className="mt-3 text-muted-foreground">
-              Comece pelo Essencial e evolua para o Controle quando precisar de pagamento online e múltiplas impressoras. Sem fidelidade.
+              Comece grátis no Presença, evolua para o Start quando quiser gerenciar pedidos e vá para o Pro quando precisar de pagamento online e automação. Sem fidelidade.
             </p>
+
 
             {/* Toggle mensal / anual */}
             <div className="mt-8 flex flex-col items-center gap-2">
@@ -310,7 +332,7 @@ function Landing() {
               </p>
             </div>
           </div>
-          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+          <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
             {pricingPlans.map((p) => {
               const highlighted = "highlighted" in p && p.highlighted;
               const monthly = p.price;
