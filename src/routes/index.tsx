@@ -298,8 +298,9 @@ function Landing() {
             </span>
             <h2 className="mt-4 text-3xl font-bold md:text-4xl">Escolha o plano ideal para o seu negócio</h2>
             <p className="mt-3 text-muted-foreground">
-              Comece pelo Essencial e evolua para o Controle quando precisar de pagamento online e múltiplas impressoras. Sem fidelidade.
+              Comece grátis no Presença, evolua para o Start quando quiser gerenciar pedidos e vá para o Pro quando precisar de pagamento online e automação. Sem fidelidade.
             </p>
+
 
             {/* Toggle mensal / anual */}
             <div className="mt-8 flex flex-col items-center gap-2">
