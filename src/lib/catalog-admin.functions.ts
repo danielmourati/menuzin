@@ -64,7 +64,9 @@ export const saveCategory = createServerFn({ method: "POST" })
       } as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
+    }
     // Enforce plan limits on creation.
+
     const limits = await getTenantPlanLimits(tenantId);
     if (limits.max_categories !== null) {
       const { count } = await sb
