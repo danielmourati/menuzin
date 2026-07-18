@@ -239,8 +239,22 @@ export const saveProduct = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
+    // Enforce plan limits on creation.
+    const limits = await getTenantPlanLimits(tenantId);
+    if (limits.max_products !== null) {
+      const { count } = await sb
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+      if ((count ?? 0) >= limits.max_products) {
+        throw new Error(
+          `Seu plano permite no máximo ${limits.max_products} produtos. Faça upgrade para adicionar mais.`,
+        );
+      }
+    }
     const { data: row, error } = await sb.from("products")
       .insert({ ...payload, tenant_id: tenantId } as never).select("id").single();
+
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
