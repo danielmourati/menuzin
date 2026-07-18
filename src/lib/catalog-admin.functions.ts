@@ -3,12 +3,14 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { getTenantPlanLimits } from "@/lib/plan-server";
 import type { Database } from "@/integrations/supabase/types";
 import type {
   DbCategory, DbProduct, DbAddon,
   DbProductSize, DbProductFlavor, DbAddonGroup, DbAddonOption, DbAddonGroupTarget,
   DbCategoryPizzaSize, DbCategoryPizzaDough, DbCategoryPizzaCrust,
 } from "@/lib/db-types";
+
 
 type SB = SupabaseClient<Database>;
 
