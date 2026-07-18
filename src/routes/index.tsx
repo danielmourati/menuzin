@@ -332,7 +332,7 @@ function Landing() {
               </p>
             </div>
           </div>
-          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+          <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
             {pricingPlans.map((p) => {
               const highlighted = "highlighted" in p && p.highlighted;
               const monthly = p.price;
