@@ -867,6 +867,7 @@ export type Database = {
           description: string | null
           features: Json
           id: string
+          limits: Json
           monthly_price: number
           name: string
           slug: string
@@ -881,6 +882,7 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
+          limits?: Json
           monthly_price?: number
           name: string
           slug: string
@@ -895,6 +897,7 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
+          limits?: Json
           monthly_price?: number
           name?: string
           slug?: string
