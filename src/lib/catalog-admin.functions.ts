@@ -64,7 +64,20 @@ export const saveCategory = createServerFn({ method: "POST" })
       } as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
+    // Enforce plan limits on creation.
+    const limits = await getTenantPlanLimits(tenantId);
+    if (limits.max_categories !== null) {
+      const { count } = await sb
+        .from("categories")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenantId);
+      if ((count ?? 0) >= limits.max_categories) {
+        throw new Error(
+          `Seu plano permite no máximo ${limits.max_categories} categorias. Faça upgrade para adicionar mais.`,
+        );
+      }
     }
+
     const { data: row, error } = await sb.from("categories").insert({
       tenant_id: tenantId, name: data.name, description: data.description ?? "",
       sort_order: data.sort_order, active: data.active,
