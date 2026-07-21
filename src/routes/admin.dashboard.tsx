@@ -103,6 +103,9 @@ function DashboardPage() {
           <StatCard icon={DollarSign} label="Receita finalizada (30d)" value={brl(analytics.monthRevenue)} accent="bg-chart-4/15 text-chart-4" />
         </div>
 
+        <PlanUsageCard variant="compact" />
+
+
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader><CardTitle>Vendas dos últimos 7 dias</CardTitle></CardHeader>
