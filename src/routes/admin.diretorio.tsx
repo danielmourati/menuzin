@@ -215,7 +215,7 @@ function OptInBlock() {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold">Aparecer no Guia Menuzin</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Apareça de graça para clientes buscando comida no seu bairro. A listagem é sempre gratuita — só o destaque exige plano Pro.
+            Sua loja aparece no Guia por padrão — sem custo. Desative se preferir ocultar. O destaque em banners/carrossel exige plano Pro.
           </p>
           {tenant?.neighborhood && (
             <p className="mt-2 text-xs text-muted-foreground">
