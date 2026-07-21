@@ -12,6 +12,7 @@ import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
+import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
 
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
