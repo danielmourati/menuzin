@@ -17,6 +17,8 @@ import {
 import { computeSubscriptionStatus, STATUS_LABEL } from "@/lib/subscription-status";
 import { SubscriptionStatusBadge } from "@/components/subscription/SubscriptionStatusBadge";
 import { brl } from "@/lib/format";
+import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
+import { normalizePlan, PLAN_LABEL, type TenantPlan } from "@/lib/plan-features";
 
 export const Route = createFileRoute("/admin/assinatura")({ component: PageWrap });
 
@@ -79,8 +81,11 @@ function SubscriptionPage() {
   const computed = computeSubscriptionStatus(sub as never);
   const plan = (sub as { plan?: { name: string; slug: string; features: string[] } } | null)?.plan;
   const features = plan?.features ?? [];
-  const isStart = plan?.slug === "start";
-  const proPlan = plansData?.plans.find((p) => p.slug === "pro");
+  const currentPlan: TenantPlan = normalizePlan(plan?.slug);
+  const orderedSlugs: TenantPlan[] = ["presenca", "start", "pro"];
+  const allPlans = (plansData?.plans ?? [])
+    .filter((p) => orderedSlugs.includes(p.slug as TenantPlan))
+    .sort((a, b) => orderedSlugs.indexOf(a.slug as TenantPlan) - orderedSlugs.indexOf(b.slug as TenantPlan));
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -139,27 +144,97 @@ function SubscriptionPage() {
         </CardContent>
       </Card>
 
-      {isStart && proPlan && (
-        <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/20 text-primary">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold">Faça upgrade para o Plano Pro</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Desbloqueie pagamento online, múltiplas impressoras, cupom de cozinha e suporte humano.
-                </p>
-                <p className="mt-2 text-sm font-semibold">{brl(Number(proPlan.monthly_price))}/mês</p>
-                <Button className="mt-4" asChild>
-                  <Link to="/admin/assinatura" hash="contato">Solicitar upgrade</Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <PlanUsageCard />
+
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+          Compare os planos
+        </h3>
+        <div className="grid gap-4 md:grid-cols-3">
+          {allPlans.map((p) => {
+            const slug = p.slug as TenantPlan;
+            const isCurrent = slug === currentPlan;
+            const isPro = slug === "pro";
+            const rank = { presenca: 0, start: 1, pro: 2 } as const;
+            const isUpgrade = rank[slug] > rank[currentPlan];
+            return (
+              <Card
+                key={p.id}
+                className={
+                  isCurrent
+                    ? "border-primary ring-2 ring-primary/30"
+                    : isPro
+                      ? "border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10"
+                      : ""
+                }
+              >
+                <CardContent className="flex h-full flex-col p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-lg font-bold">{p.name}</p>
+                    {isCurrent && <Badge>Atual</Badge>}
+                    {!isCurrent && isPro && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Sparkles className="h-3 w-3" /> Recomendado
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-3">
+                    <span className="text-2xl font-bold">
+                      {Number(p.monthly_price) === 0
+                        ? "Grátis"
+                        : brl(Number(p.monthly_price))}
+                    </span>
+                    {Number(p.monthly_price) > 0 && (
+                      <span className="text-xs text-muted-foreground">/mês</span>
+                    )}
+                  </div>
+                  {p.description && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {p.description}
+                    </p>
+                  )}
+                  <ul className="mt-4 flex-1 space-y-1.5">
+                    {(p.features ?? []).slice(0, 6).map((f) => (
+                      <li key={f} className="flex items-start gap-2 text-xs">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-4">
+                    {isCurrent ? (
+                      <Button className="w-full" variant="outline" disabled>
+                        Plano atual
+                      </Button>
+                    ) : isUpgrade ? (
+                      <Button
+                        className="w-full"
+                        onClick={() => chargeMut.mutate()}
+                        disabled={chargeMut.isPending}
+                      >
+                        {chargeMut.isPending ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Fazer upgrade
+                      </Button>
+                    ) : (
+                      <Button className="w-full" variant="ghost" disabled>
+                        Downgrade indisponível
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Precisa de ajuda com upgrade/downgrade? Fale com o suporte pelo WhatsApp.
+        </p>
+      </div>
+
 
       <Card>
         <CardHeader>

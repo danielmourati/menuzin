@@ -12,6 +12,7 @@ import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
+import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
 
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
@@ -101,6 +102,9 @@ function DashboardPage() {
           <StatCard icon={ShoppingBag} label="Pedidos no mês" value={String(analytics.monthOrdersCount)} />
           <StatCard icon={DollarSign} label="Receita finalizada (30d)" value={brl(analytics.monthRevenue)} accent="bg-chart-4/15 text-chart-4" />
         </div>
+
+        <PlanUsageCard variant="compact" />
+
 
         <div className="grid gap-4 lg:grid-cols-3">
           <Card className="lg:col-span-2">
