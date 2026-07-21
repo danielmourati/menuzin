@@ -81,8 +81,11 @@ function SubscriptionPage() {
   const computed = computeSubscriptionStatus(sub as never);
   const plan = (sub as { plan?: { name: string; slug: string; features: string[] } } | null)?.plan;
   const features = plan?.features ?? [];
-  const isStart = plan?.slug === "start";
-  const proPlan = plansData?.plans.find((p) => p.slug === "pro");
+  const currentPlan: TenantPlan = normalizePlan(plan?.slug);
+  const orderedSlugs: TenantPlan[] = ["presenca", "start", "pro"];
+  const allPlans = (plansData?.plans ?? [])
+    .filter((p) => orderedSlugs.includes(p.slug as TenantPlan))
+    .sort((a, b) => orderedSlugs.indexOf(a.slug as TenantPlan) - orderedSlugs.indexOf(b.slug as TenantPlan));
 
   return (
     <div className="space-y-6 max-w-5xl">
