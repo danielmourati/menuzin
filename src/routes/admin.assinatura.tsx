@@ -17,6 +17,8 @@ import {
 import { computeSubscriptionStatus, STATUS_LABEL } from "@/lib/subscription-status";
 import { SubscriptionStatusBadge } from "@/components/subscription/SubscriptionStatusBadge";
 import { brl } from "@/lib/format";
+import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
+import { normalizePlan, PLAN_LABEL, type TenantPlan } from "@/lib/plan-features";
 
 export const Route = createFileRoute("/admin/assinatura")({ component: PageWrap });
 
