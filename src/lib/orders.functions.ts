@@ -38,7 +38,7 @@ export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((d) => CreateOrderInput.parse(d))
   .handler(async ({ data }) => {
     const { data: tenant, error: tErr } = await supabaseAdmin
-      .from("tenants").select("id").eq("slug", data.tenant_slug).eq("active", true).maybeSingle();
+      .from("tenants").select("id, plan").eq("slug", data.tenant_slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
     if (!tenant) throw new Error("Loja não encontrada");
 
@@ -46,6 +46,29 @@ export const createOrder = createServerFn({ method: "POST" })
     if (await isTenantBlocked(tenant.id as string)) {
       throw new Error("Esta loja está temporariamente indisponível.");
     }
+
+    // Plan gating: Presença não aceita pedidos pelo painel; Start tem teto mensal.
+    const { getTenantPlanLimits } = await import("@/lib/plan-server");
+    const limits = await getTenantPlanLimits(tenant.id as string);
+    if (limits.max_orders_per_month === 0) {
+      throw new Error("Esta loja recebe pedidos apenas pelo WhatsApp. Finalize por lá.");
+    }
+    if (limits.max_orders_per_month != null) {
+      const startOfMonth = new Date();
+      startOfMonth.setUTCDate(1);
+      startOfMonth.setUTCHours(0, 0, 0, 0);
+      const { count } = await supabaseAdmin
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .gte("created_at", startOfMonth.toISOString());
+      if ((count ?? 0) >= limits.max_orders_per_month) {
+        throw new Error(
+          `Limite mensal de ${limits.max_orders_per_month} pedidos atingido para o plano atual. Faça upgrade para continuar.`,
+        );
+      }
+    }
+
 
     const subtotal = data.items.reduce((s, it) => {
       const addonsSum = it.addons.reduce((a, x) => a + x.price, 0);
