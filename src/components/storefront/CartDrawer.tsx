@@ -918,7 +918,18 @@ export function CartDrawer({
                 </div>
               )}
             </div>
-            {items.length > 0 && <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />}
+            {items.length > 0 && (
+              isPresencaOnly ? (
+                <>
+                  <div className="border-t bg-amber-50 px-4 py-2 text-xs text-amber-900">
+                    Esta loja recebe pedidos diretamente pelo WhatsApp.
+                  </div>
+                  <StickySubtotal cta="Pedir pelo WhatsApp" onCta={openWhatsappPresenca} />
+                </>
+              ) : (
+                <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />
+              )
+            )}
           </>
         )}
 
