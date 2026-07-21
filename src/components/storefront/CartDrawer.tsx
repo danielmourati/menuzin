@@ -166,6 +166,42 @@ export function CartDrawer({
   const tenant = tenantData?.tenant;
   const tenantAddress = tenant?.address ?? "";
   const deliveryMode = (tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
+  const tenantPlan = ((tenant as { plan?: string } | null | undefined)?.plan ?? "start") as
+    | "presenca"
+    | "start"
+    | "pro";
+  const isPresencaOnly = tenantPlan === "presenca";
+
+  const buildWhatsappOrderMessage = () => {
+    const lines: string[] = [];
+    lines.push(`Olá! Gostaria de fazer um pedido em *${tenant?.name ?? ""}*:`);
+    lines.push("");
+    for (const i of items) {
+      const unit = computeUnitPrice(i);
+      const parts: string[] = [];
+      if (i.size) parts.push(i.size.name);
+      if (i.flavors?.length) parts.push(i.flavors.map((f) => f.name).join(" + "));
+      if (i.groupOptions?.length) parts.push(i.groupOptions.map((o) => o.name).join(", "));
+      if (i.addons?.length) parts.push(i.addons.map((a) => a.name).join(", "));
+      const detail = parts.length ? ` (${parts.join(" · ")})` : "";
+      lines.push(`• ${i.qty}x ${i.product.name}${detail} — ${brl(unit * i.qty)}`);
+      if (i.note) lines.push(`  obs: ${i.note}`);
+    }
+    lines.push("");
+    lines.push(`*Subtotal:* ${brl(subtotal)}`);
+    return lines.join("\n");
+  };
+
+  const openWhatsappPresenca = () => {
+    const phone = (tenant?.whatsapp ?? "").replace(/\D/g, "");
+    if (!phone) {
+      toast.error("Loja sem WhatsApp cadastrado.");
+      return;
+    }
+    const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(buildWhatsappOrderMessage())}`;
+    window.open(url, "_blank", "noopener");
+  };
+
 
   // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
   const { data: zonesData } = useQuery({
