@@ -329,7 +329,7 @@ function OnboardingClaim() {
 
 export function AdminLayout({ children, title, action }: { children?: ReactNode; title?: string; action?: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(true); // always start collapsed
+  const [collapsed, setCollapsed] = useState(false); // sidebar expanded por padrão
   return (
     <AuthGate>
       <div className="flex min-h-screen bg-muted/30">
