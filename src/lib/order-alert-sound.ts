@@ -1,7 +1,7 @@
 // Som de alerta de novo pedido no painel.
 // Extraído para um módulo dedicado para permitir testes isolados.
 
-export const ALERT_SOUND_URL = "/sounds/alert.mp3";
+export const ALERT_SOUND_URL = "https://fetiqngwjgxajtqjaolb.supabase.co/storage/v1/object/public/tenant-assets/c20339c0-de58-4988-a028-cce26b10b7f0/notifications/56f5cbca-1235-4f74-b0d8-75b4cadb3a61.mp3";
 
 let _alertAudio: HTMLAudioElement | null = null;
 let _audioUnlocked = false;

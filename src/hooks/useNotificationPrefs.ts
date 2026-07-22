@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { setAlertSoundOverride } from "@/lib/order-alert-sound";
-import { getMyTenant } from "@/lib/tenants.functions";
+import { setAlertSoundOverride, ALERT_SOUND_URL } from "@/lib/order-alert-sound";
 
 export interface NotificationPrefs {
   soundEnabled: boolean;
@@ -10,23 +9,27 @@ export interface NotificationPrefs {
   customAlertName?: string | null;
 }
 
+// Som padrão global (fixo para todos os tenants).
+const GLOBAL_ALERT_URL = ALERT_SOUND_URL;
+const GLOBAL_ALERT_NAME = "Som padrão Menuzin";
+
 const DEFAULT_PREFS: NotificationPrefs = {
   soundEnabled: true,
   toastEnabled: true,
   highlightNew: true,
-  customAlertDataUrl: null,
-  customAlertName: null,
+  customAlertDataUrl: GLOBAL_ALERT_URL,
+  customAlertName: GLOBAL_ALERT_NAME,
 };
 
 const STORAGE_KEY = "menuzin_notification_prefs";
-let tenantSoundSynced = false;
 
 function readPrefs(): NotificationPrefs {
   if (typeof window === "undefined") return DEFAULT_PREFS;
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...JSON.parse(stored) };
+    const base = stored ? { ...DEFAULT_PREFS, ...JSON.parse(stored) } : DEFAULT_PREFS;
+    // Força o som global, ignorando qualquer override salvo por tenant/usuário.
+    return { ...base, customAlertDataUrl: GLOBAL_ALERT_URL, customAlertName: GLOBAL_ALERT_NAME };
   } catch {
     return DEFAULT_PREFS;
   }
@@ -43,42 +46,20 @@ function writePrefs(prefs: NotificationPrefs) {
 export function useNotificationPrefs() {
   const [prefs, setPrefs] = useState<NotificationPrefs>(readPrefs);
 
-  // Sincroniza som customizado com o módulo de áudio
+  // Trava o som global no player.
   useEffect(() => {
-    setAlertSoundOverride(prefs.customAlertDataUrl ?? null);
-  }, [prefs.customAlertDataUrl]);
-
-  // Carrega o som personalizado salvo no banco (persistência cross-browser)
-  useEffect(() => {
-    if (tenantSoundSynced) return;
-    tenantSoundSynced = true;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { tenant } = await getMyTenant();
-        if (cancelled || !tenant) return;
-        const url = (tenant as { notification_sound_url?: string | null }).notification_sound_url ?? null;
-        const name = (tenant as { notification_sound_name?: string | null }).notification_sound_name ?? null;
-        setPrefs((current) => {
-          if (current.customAlertDataUrl === url && current.customAlertName === name) {
-            return current;
-          }
-          const updated = { ...current, customAlertDataUrl: url, customAlertName: name };
-          writePrefs(updated);
-          return updated;
-        });
-      } catch {
-        // silencioso: usuário pode não estar logado em rota pública
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setAlertSoundOverride(GLOBAL_ALERT_URL);
   }, []);
 
   const updatePrefs = (newPrefs: Partial<NotificationPrefs>) => {
     setPrefs((current) => {
-      const updated = { ...current, ...newPrefs };
+      const updated = {
+        ...current,
+        ...newPrefs,
+        // som é fixo: ignora tentativas de sobrescrever
+        customAlertDataUrl: GLOBAL_ALERT_URL,
+        customAlertName: GLOBAL_ALERT_NAME,
+      };
       writePrefs(updated);
       return updated;
     });
