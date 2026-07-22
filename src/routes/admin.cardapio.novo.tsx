@@ -274,7 +274,7 @@ function WizardPage() {
                     <Label>Preço</Label>
                     <CurrencyInput
                       value={prodPrice}
-                      onValueChange={setProdPrice}
+                      onChange={setProdPrice}
                     />
                   </div>
                 </div>
