@@ -1,84 +1,34 @@
-## Escopo desta rodada
+## 1. Sidebar admin fixa com scroll só no conteúdo
+Em `src/components/admin/AdminLayout.tsx`:
+- Wrapper externo: trocar `flex min-h-screen` por `flex h-screen overflow-hidden`.
+- `<aside>` desktop: adicionar `h-screen sticky top-0` (fica fixa; botões "Ver loja pública" e "Sair" sempre visíveis no rodapé do sidebar).
+- Container direito (`<div className="flex flex-1 flex-col min-w-0">`): adicionar `h-screen overflow-y-auto` para rolar apenas o lado direito. Header continua `sticky top-0` dentro dessa coluna.
+- `SidebarInner` já é `flex h-full flex-col`; o bloco de conteúdo (`Nav`) mantém `flex-1 overflow-y-auto` para caso o menu cresça, sem empurrar o rodapé.
 
-Seis frentes independentes, todas frontend/admin + reforço de gating server-side já existente. Sem novas migrações estruturais além de um pequeno backfill de assinaturas.
+## 2. Ícone do item "Novo (assistente)"
+Em `AdminLayout.tsx`:
+- Trocar import `Sparkles` por `ListChecks` (lista com checks — remete a passo-a-passo guiado).
+- Atualizar a entrada da seção Cardápio para usar `icon: ListChecks`.
 
----
+## 3. Som de notificação fixo para todos os tenants
+URL alvo: `https://fetiqngwjgxajtqjaolb.supabase.co/storage/v1/object/public/tenant-assets/c20339c0-de58-4988-a028-cce26b10b7f0/notifications/56f5cbca-1235-4f74-b0d8-75b4cadb3a61.mp3`.
 
-### 1. Reforçar degradação Presença + rota WhatsApp
+Abordagem 100% frontend (sem migração/servidor):
+- Em `src/lib/order-alert-sound.ts`: definir constante `DEFAULT_ALERT_URL` com esse link e usá-la como fallback padrão do player (quando nenhum override estiver setado).
+- Em `src/hooks/useNotificationPrefs.ts`: sempre forçar `customAlertDataUrl = DEFAULT_ALERT_URL` (ignorar valor por tenant vindo de `getMyTenant`) e travar o override via `setAlertSoundOverride(DEFAULT_ALERT_URL)`. Isso garante que todos os tenants — inclusive os que já salvaram som personalizado — passem a tocar o mesmo áudio, sem precisar mexer no banco.
+- Efeito colateral esperado na UI de preferências de notificação: o campo de som personalizado deixa de ter efeito. Não vou remover o componente agora (fora do escopo) — só neutralizo o efeito. Se quiser esconder o card, digo depois.
 
-Auditar todos os pontos que oferecem gateway/checkout online e garantir bloqueio quando `plan === 'presenca'`:
+## 4. Toggle único de visualização no storefront
+Em `src/routes/$slug.tsx` (linhas ~554–575):
+- Substituir o par de botões grid/list por **um único botão** que alterna o modo (ícone muda conforme o estado atual: se está em `list` mostra `LayoutGrid` — "ver em grade"; se está em `grid` mostra `List` — "ver em lista").
+- Manter default `list`, manter `aria-label` dinâmico e o estilo de pill/primary já usado.
+- Nenhum outro toggle duplicado foi encontrado; a rota `loja.$slug.tsx` não tem esse controle.
 
-- `admin.configuracoes.pagamentos.tsx` → renderizar `UpgradeNotice` (Pro) no topo e desabilitar formulários de MP/PIX/cartão para Presença.
-- `admin.pedidos.tsx` → bloquear com `UpgradeNotice` (Start+) e explicar que Presença opera 100% via WhatsApp.
-- `admin.cupons.tsx`, `admin.taxas-entrega.tsx`, `admin.avaliacoes.tsx`, `admin.relatorios.tsx` → conferir gates existentes; adicionar onde faltar.
-- `CartDrawer` (storefront) → já redireciona para WhatsApp em Presença; adicionar mesmo tratamento em `ProductModal` (botão "Adicionar" → em Presença mostra tooltip "Peça direto pelo WhatsApp" e faz `wa.me` com o item único) para lojas sem cardápio estruturado.
-- Confirmar que `createOrder`, `createPayment` e `createTransparentPayment` rejeitam Presença no servidor (`orders.functions.ts` já faz; validar `payments.functions.ts`).
+## Técnico
+Arquivos editados:
+- `src/components/admin/AdminLayout.tsx`
+- `src/lib/order-alert-sound.ts`
+- `src/hooks/useNotificationPrefs.ts`
+- `src/routes/$slug.tsx`
 
-### 2. Dropdown de usuários no login do tenant
-
-Substituir o input de e-mail em `admin.login.tsx` por um `<Select>` listando **usuários vinculados àquele tenant** (admin + atendentes).
-
-- Nova server fn pública `listTenantLoginUsers({ slug })` em `src/lib/account.functions.ts`:
-  - Resolve `tenant_id` pelo slug (via `supabaseAdmin`, sem exigir sessão).
-  - Retorna `[{ email, full_name, role }]` de `profiles JOIN user_roles` filtrado por `tenant_id`.
-  - **Sensibilidade**: expõe e-mails de funcionários; mitigar exigindo que o slug exista e limitando a 20 resultados. Documentar como aceitável (é intra-loja).
-- UI: dropdown com nome + papel (ex.: "Daniel — Admin"); campo senha vazio; `autocomplete="new-password"` + `readOnly` inicial removido no primeiro focus para impedir preenchimento automático do navegador.
-- Fallback: link "usar outro e-mail" que retorna ao input livre.
-- Aplica-se apenas a `/admin/login` (subdomínio/rota do tenant). `/platform` continua com input.
-
-### 3. E-mail de recuperação de senha com identidade Menuzin
-
-Fluxo padrão de auth-emails:
-
-1. `email_domain--check_email_domain_status`.
-2. Se não houver domínio → mostrar diálogo `<presentation-open-email-setup>` e parar até o usuário concluir.
-3. Se houver → `email_domain--scaffold_auth_email_templates`.
-4. Aplicar identidade Menuzin (cores de `src/styles.css`, logo `menuzin-logo.png` via asset URL, tipografia) aos 6 templates gerados, com foco em `recovery.tsx`. Body branco preservado.
-5. Copy PT-BR com tom da marca.
-
-### 4. Todas as lojas em `/platform/assinaturas`
-
-Ajustar `adminListSubscriptions` (em `subscriptions.functions.ts`) para retornar `LEFT JOIN` de `tenants` com `tenant_subscriptions`:
-
-- Tenants sem assinatura aparecem com `status = 'sem_assinatura'`, `plan = tenants.plan` (geralmente "presenca").
-- UI de `platform.assinaturas.tsx`: nova coluna/badge "Sem assinatura registrada" e ação "Criar assinatura" que abre o dialog já existente pré-preenchido.
-- Sem backfill automático — mantém honesto o estado atual e evita mascarar Presenças reais.
-
-### 5. Sidebar admin expandido por padrão
-
-Em `AdminLayout.tsx`, alterar o estado inicial do collapse para `false` (expandido) em desktop. Se houver persistência em `localStorage`, ajustar chave default. Mobile continua com drawer.
-
-### 6. Wizard de cadastro de cardápio (fluxo guiado)
-
-Nova rota `admin.cardapio.novo.tsx` com stepper linear:
-
-```text
-Passo 1 — Categoria     (obrigatória; cria 1+ antes de avançar)
-Passo 2 — Produto        (form simplificado; lista categorias criadas)
-Passo 3 — Adicional (opcional; pode pular)
-Passo 4 — Concluído      (CTAs: ver cardápio, adicionar outro produto, ir ao painel)
-```
-
-- Usa `saveCategory`, `saveProduct`, `saveAddonGroup` já existentes (respeitam limites do plano).
-- Componentes reduzidos (nome, preço, imagem, descrição) — configurações avançadas ficam em `/admin/produtos`.
-- Bloqueio contextual permanente em `/admin/produtos`: se `categories.length === 0`, mostra empty-state "Crie uma categoria primeiro" com botão que abre o passo 1 do wizard inline (modal) — impede o form de produto de renderizar.
-- Card no dashboard "Cadastro rápido do cardápio" com link para o wizard enquanto `products.count === 0`.
-
-### 7. Ordem de execução sugerida
-
-1. Sidebar expandido (trivial, sem risco).
-2. LEFT JOIN em `/platform/assinaturas`.
-3. Reforço de gates Presença nas rotas admin + `ProductModal`.
-4. Dropdown de usuários no `/admin/login` (nova server fn pública).
-5. Wizard de cardápio + bloqueio contextual em `/admin/produtos`.
-6. Auth emails Menuzin (depende de domínio configurado — pode gerar diálogo de setup).
-
----
-
-### Detalhes técnicos
-
-- **Server fn pública `listTenantLoginUsers`**: usa `supabaseAdmin` dentro do handler (via `await import`), sem `requireSupabaseAuth`. Valida `slug` com zod, aplica `LIMIT 20`.
-- **Assinaturas LEFT JOIN**: implementar em `subscriptions.functions.ts` com `supabaseAdmin` (tela é `platform_admin`), retornando união `tenants` ↔ `tenant_subscriptions`.
-- **Wizard**: `useState` local + `useMutation` por passo; não persiste rascunho em DB (progressivo, cada save é definitivo).
-- **Templates de auth**: seguir `authentication-emails-guide` — sem `SEND_EMAIL_HOOK_SECRET`, sem provider externo.
-- **Sem alterações de esquema** — apenas ajustes de UI, gates, uma server fn nova e templates.
+Sem migração de banco, sem novas dependências.
