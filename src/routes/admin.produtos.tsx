@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -137,9 +137,11 @@ function ProductsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const navigate = useNavigate();
   const openNew = () => {
     if (categories.length === 0) {
-      toast.error("Cadastre uma categoria primeiro.");
+      // Sem categorias → assistente guiado (cria categoria e produto no fluxo).
+      navigate({ to: "/admin/cardapio/novo" });
       return;
     }
     setEditing({
