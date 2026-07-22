@@ -173,16 +173,21 @@ function ProductsPage() {
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
                 <Plus className="h-7 w-7" />
               </div>
-              <h2 className="mt-4 text-lg font-semibold">Cadastre uma categoria primeiro</h2>
+              <h2 className="mt-4 text-lg font-semibold">Vamos montar seu cardápio</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Todo produto precisa pertencer a uma categoria (ex.: Lanches, Bebidas, Pizzas).
-                Crie ao menos uma para começar a montar seu cardápio.
+                Todo produto precisa pertencer a uma categoria. Use o assistente guiado —
+                ele cria a categoria e o primeiro produto em 2 minutos.
               </p>
-              <Button asChild className="mt-5 h-11">
-                <Link to="/admin/categorias">
-                  <Plus className="mr-1.5 h-4 w-4" /> Criar minha primeira categoria
-                </Link>
-              </Button>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <Button asChild className="h-11">
+                  <Link to="/admin/cardapio/novo">
+                    <Plus className="mr-1.5 h-4 w-4" /> Usar assistente guiado
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-11">
+                  <Link to="/admin/categorias">Criar categoria avulsa</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
