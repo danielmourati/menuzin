@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
-import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2 } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, PieChart, Legend, Line, LineChart, CartesianGrid } from "recharts";
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
+import { listMyCategories } from "@/lib/catalog-admin.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
@@ -70,6 +71,18 @@ function DashboardPage() {
   });
   const recentOrders = (ordersData?.orders ?? []).slice(0, 5);
 
+  // Detecta cardápio vazio (0 categorias) para exibir CTA do assistente.
+  const { data: categoriesData } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => (await listMyCategories()).categories,
+    enabled,
+    retry: false,
+  });
+  const catalogEmpty =
+    !!categoriesData &&
+    categoriesData.length === 0 &&
+    (analytics?.productsActive ?? 0) === 0;
+
   const greet = greetingFor(new Date());
   // Usa nome completo (até 60 chars) em vez de só o primeiro nome, e trunca apenas se ultrapassar.
   const fullName = profile?.full_name?.trim() ?? "";
@@ -91,6 +104,29 @@ function DashboardPage() {
           <p className="text-sm text-muted-foreground">Bem-vindo de volta</p>
           <h2 className="mt-0.5 text-xl sm:text-2xl font-bold tracking-tight break-words">{greetingText}</h2>
         </div>
+
+        {catalogEmpty && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-[var(--shadow-soft)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold">Monte seu cardápio em 2 minutos</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Você ainda não tem categorias nem produtos. Use o assistente guiado.
+                  </p>
+                </div>
+              </div>
+              <Button asChild>
+                <Link to="/admin/cardapio/novo">
+                  <Sparkles className="mr-1.5 h-4 w-4" /> Começar assistente
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={ShoppingBag} label="Pedidos hoje" value={String(analytics.todayOrdersCount)} />
           <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(analytics.todayRevenue)} accent="bg-success/15 text-success" />
