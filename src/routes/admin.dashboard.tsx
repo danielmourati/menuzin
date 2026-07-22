@@ -104,6 +104,29 @@ function DashboardPage() {
           <p className="text-sm text-muted-foreground">Bem-vindo de volta</p>
           <h2 className="mt-0.5 text-xl sm:text-2xl font-bold tracking-tight break-words">{greetingText}</h2>
         </div>
+
+        {catalogEmpty && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-[var(--shadow-soft)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-base font-semibold">Monte seu cardápio em 2 minutos</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Você ainda não tem categorias nem produtos. Use o assistente guiado.
+                  </p>
+                </div>
+              </div>
+              <Button asChild>
+                <Link to="/admin/cardapio/novo">
+                  <Sparkles className="mr-1.5 h-4 w-4" /> Começar assistente
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard icon={ShoppingBag} label="Pedidos hoje" value={String(analytics.todayOrdersCount)} />
           <StatCard icon={DollarSign} label="Faturamento hoje" value={brl(analytics.todayRevenue)} accent="bg-success/15 text-success" />
