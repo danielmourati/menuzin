@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, Sparkles } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks } from "lucide-react";
 import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
@@ -30,7 +30,7 @@ const sections = [
   {
     label: "Cardápio",
     items: [
-      { to: "/admin/cardapio/novo", label: "Novo (assistente)", icon: Sparkles },
+      { to: "/admin/cardapio/novo", label: "Novo (assistente)", icon: ListChecks },
       { to: "/admin/produtos", label: "Produtos", icon: Package },
       { to: "/admin/categorias", label: "Categorias", icon: FolderTree },
       { to: "/admin/adicionais", label: "Adicionais", icon: Layers },
@@ -333,16 +333,16 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
   const [collapsed, setCollapsed] = useState(false); // sidebar expanded por padrão
   return (
     <AuthGate>
-      <div className="flex min-h-screen bg-muted/30">
+      <div className="flex h-screen overflow-hidden bg-muted/30">
         <OrdersRealtimeListener />
         <aside
-          className={`hidden shrink-0 border-r border-sidebar-border lg:block transition-[width] duration-200 ${
+          className={`hidden shrink-0 border-r border-sidebar-border lg:block h-screen sticky top-0 transition-[width] duration-200 ${
             collapsed ? "w-16" : "w-64"
           }`}
         >
           <SidebarInner collapsed={collapsed} />
         </aside>
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex flex-1 flex-col min-w-0 h-screen overflow-y-auto">
           <ImpersonationBanner />
           <SubscriptionAlertBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">

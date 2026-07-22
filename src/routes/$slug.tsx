@@ -541,6 +541,18 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         </div>
 
         <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
+          {grouped.length > 0 && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+                aria-label={viewMode === "grid" ? "Visualizar em lista" : "Visualizar em grade"}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
+              >
+                {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+              </button>
+            </div>
+          )}
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
               Nenhum produto encontrado.
@@ -550,30 +562,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               <section key={g.name}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">{g.name}</h2>
-                  <div className="inline-flex items-center rounded-full border bg-card p-0.5 shadow-sm">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("grid")}
-                      aria-label="Visualizar em grade"
-                      aria-pressed={viewMode === "grid"}
-                      className={`grid h-8 w-8 place-items-center rounded-full transition ${
-                        viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("list")}
-                      aria-label="Visualizar em lista"
-                      aria-pressed={viewMode === "list"}
-                      className={`grid h-8 w-8 place-items-center rounded-full transition ${
-                        viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <List className="h-4 w-4" />
-                    </button>
-                  </div>
                 </div>
 
                 {g.isPizzaParent && g.children ? (
