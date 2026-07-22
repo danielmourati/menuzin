@@ -164,6 +164,32 @@ function ProductsPage() {
 
   const catNameById = new Map(categories.map((c) => [c.id, c.name]));
 
+  if (hasTenant && !categoriesQ.isLoading && categories.length === 0) {
+    return (
+      <AdminLayout title="Produtos">
+        <div className="mx-auto max-w-xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <Plus className="h-7 w-7" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold">Cadastre uma categoria primeiro</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Todo produto precisa pertencer a uma categoria (ex.: Lanches, Bebidas, Pizzas).
+                Crie ao menos uma para começar a montar seu cardápio.
+              </p>
+              <Button asChild className="mt-5 h-11">
+                <Link to="/admin/categorias">
+                  <Plus className="mr-1.5 h-4 w-4" /> Criar minha primeira categoria
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
       <div className="space-y-4">
