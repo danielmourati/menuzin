@@ -60,6 +60,7 @@ import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.c
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
 import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
+import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
@@ -325,6 +326,11 @@ const AdminConfiguracoesImpressoraRoute =
     path: '/impressora',
     getParentRoute: () => AdminConfiguracoesRoute,
   } as any)
+const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
+  id: '/admin/cardapio/novo',
+  path: '/admin/cardapio/novo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
   id: '/acompanhar/$orderId',
   path: '/acompanhar/$orderId',
@@ -373,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
+  '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
@@ -426,6 +433,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/guia': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
+  '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
+  '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/guia/'
     | '/$slug/acompanhar/$orderId'
+    | '/admin/cardapio/novo'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
@@ -592,6 +602,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/guia'
     | '/$slug/acompanhar/$orderId'
+    | '/admin/cardapio/novo'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
@@ -647,6 +658,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/guia/'
     | '/$slug/acompanhar/$orderId'
+    | '/admin/cardapio/novo'
     | '/admin/configuracoes/impressora'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
@@ -698,6 +710,7 @@ export interface RootRouteChildren {
   PlatformPlanosRoute: typeof PlatformPlanosRoute
   AdminIndexRoute: typeof AdminIndexRoute
   GuiaIndexRoute: typeof GuiaIndexRoute
+  AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
@@ -1065,6 +1078,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesImpressoraRouteImport
       parentRoute: typeof AdminConfiguracoesRoute
     }
+    '/admin/cardapio/novo': {
+      id: '/admin/cardapio/novo'
+      path: '/admin/cardapio/novo'
+      fullPath: '/admin/cardapio/novo'
+      preLoaderRoute: typeof AdminCardapioNovoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$slug/acompanhar/$orderId': {
       id: '/$slug/acompanhar/$orderId'
       path: '/acompanhar/$orderId'
@@ -1184,6 +1204,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformPlanosRoute: PlatformPlanosRoute,
   AdminIndexRoute: AdminIndexRoute,
   GuiaIndexRoute: GuiaIndexRoute,
+  AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
