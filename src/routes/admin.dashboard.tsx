@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
-import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2 } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, PieChart, Legend, Line, LineChart, CartesianGrid } from "recharts";
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
+import { listMyCategories } from "@/lib/catalog-admin.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
@@ -69,6 +70,18 @@ function DashboardPage() {
     enabled,
   });
   const recentOrders = (ordersData?.orders ?? []).slice(0, 5);
+
+  // Detecta cardápio vazio (0 categorias) para exibir CTA do assistente.
+  const { data: categoriesData } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => (await listMyCategories()).categories,
+    enabled,
+    retry: false,
+  });
+  const catalogEmpty =
+    !!categoriesData &&
+    categoriesData.length === 0 &&
+    (analytics?.productsActive ?? 0) === 0;
 
   const greet = greetingFor(new Date());
   // Usa nome completo (até 60 chars) em vez de só o primeiro nome, e trunca apenas se ultrapassar.
