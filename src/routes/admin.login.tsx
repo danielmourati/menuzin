@@ -3,12 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { listTenantLoginUsers } from "@/lib/account.functions";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -19,12 +16,9 @@ export const Route = createFileRoute("/admin/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { isAuthenticated, loading, isPlatformAdmin } = useAuth();
-  const [slug, setSlug] = useState("");
-  const [debouncedSlug, setDebouncedSlug] = useState("");
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [mode, setMode] = useState<"loja" | "admin">("loja");
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -32,24 +26,9 @@ function LoginPage() {
     }
   }, [loading, isAuthenticated, isPlatformAdmin, navigate]);
 
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSlug(slug.trim().toLowerCase()), 350);
-    return () => clearTimeout(t);
-  }, [slug]);
-
-  const usersQ = useQuery({
-    queryKey: ["login-users", debouncedSlug],
-    queryFn: () => listTenantLoginUsers({ data: { slug: debouncedSlug } }),
-    enabled: mode === "loja" && debouncedSlug.length >= 2,
-    staleTime: 30_000,
-  });
-
-  const users = usersQ.data?.users ?? [];
-  const tenantName = usersQ.data?.tenant?.name;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return toast.error("Selecione um usuário.");
+    if (!email) return toast.error("Informe o e-mail.");
     setSubmitting(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
@@ -85,67 +64,18 @@ function LoginPage() {
           <h1 className="text-2xl font-bold">Entrar no painel</h1>
           <p className="mt-1 text-sm text-muted-foreground">Acesse sua loja Menuzin</p>
 
-          <div className="mt-5 flex rounded-lg border p-1 text-sm">
-            <button
-              type="button"
-              onClick={() => { setMode("loja"); setEmail(""); }}
-              className={`flex-1 rounded-md py-1.5 font-medium transition ${mode === "loja" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Por loja
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode("admin"); setEmail(""); }}
-              className={`flex-1 rounded-md py-1.5 font-medium transition ${mode === "admin" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Admin Menuzin
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="mt-5 space-y-4" autoComplete="off">
-            {mode === "loja" ? (
-              <>
-                <div>
-                  <Label>Loja (endereço público)</Label>
-                  <div className="mt-1.5 flex items-center rounded-md border bg-background">
-                    <span className="px-3 text-sm text-muted-foreground">menuzin.app/</span>
-                    <input
-                      value={slug}
-                      onChange={(e) => { setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); setEmail(""); }}
-                      placeholder="minhaloja"
-                      autoComplete="off"
-                      className="h-10 flex-1 bg-transparent text-sm outline-none"
-                    />
-                  </div>
-                  {tenantName && <p className="mt-1 text-xs text-muted-foreground">{tenantName}</p>}
-                </div>
-                <div>
-                  <Label>Usuário</Label>
-                  <Select value={email} onValueChange={setEmail} disabled={!users.length}>
-                    <SelectTrigger className="mt-1.5">
-                      <SelectValue placeholder={
-                        usersQ.isFetching ? "Carregando..." :
-                        debouncedSlug.length < 2 ? "Informe a loja" :
-                        users.length ? "Selecione um usuário" : "Nenhum usuário encontrado"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((u) => (
-                        <SelectItem key={u.email} value={u.email}>
-                          <span className="font-medium">{u.full_name}</span>
-                          {u.role && <span className="ml-1 text-xs text-muted-foreground">• {u.role}</span>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            ) : (
-              <div>
-                <Label>E-mail</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5" required autoComplete="off" />
-              </div>
-            )}
+            <div>
+              <Label>E-mail</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1.5"
+                required
+                autoComplete="email"
+              />
+            </div>
             <div>
               <Label>Senha</Label>
               <PasswordInput
@@ -154,7 +84,7 @@ function LoginPage() {
                 className="mt-1.5"
                 required
                 minLength={6}
-                autoComplete="new-password"
+                autoComplete="current-password"
               />
             </div>
             <Button type="submit" className="h-11 w-full" disabled={submitting || !email}>
