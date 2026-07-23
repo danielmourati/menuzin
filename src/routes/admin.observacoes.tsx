@@ -22,9 +22,16 @@ import {
   listMyCategories, listMyProducts,
 } from "@/lib/catalog-admin.functions";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/observacoes")({
-  component: ObservacoesPage,
+  component: () => (
+    <PlanGate min="pro" title="Grupos de observação" featureLabel="Grupos de observação">
+      <ObservacoesPage />
+    </PlanGate>
+  ),
 });
+
 
 type GroupDraft = {
   id?: string;

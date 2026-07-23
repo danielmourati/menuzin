@@ -1,3 +1,4 @@
+import { PlanGate } from "@/components/subscription/PlanGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,8 +15,13 @@ import { useAuth } from "@/lib/auth-context";
 import { exportReportToPdf, exportReportToExcel } from "@/lib/reports-export";
 
 export const Route = createFileRoute("/admin/relatorios")({
-  component: ReportsPage,
+  component: () => (
+    <PlanGate min="start" title="Relatórios" featureLabel="Relatórios">
+      <ReportsPage />
+    </PlanGate>
+  ),
 });
+
 
 type Preset = "today" | "7d" | "month" | "custom";
 

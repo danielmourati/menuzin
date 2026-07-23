@@ -25,9 +25,16 @@ import { useAuth } from "@/lib/auth-context";
 import { useActiveTenantId } from "@/lib/active-tenant";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
-  component: AdminPaymentSettingsPage,
+  component: () => (
+    <PlanGate min="start" title="Pagamentos" featureLabel="Configurações de pagamento">
+      <AdminPaymentSettingsPage />
+    </PlanGate>
+  ),
 });
+
 
 function AdminPaymentSettingsPage() {
   const { profile } = useAuth();

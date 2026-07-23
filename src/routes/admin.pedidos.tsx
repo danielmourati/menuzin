@@ -1,3 +1,4 @@
+import { PlanGate } from "@/components/subscription/PlanGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -20,8 +21,13 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
 
 export const Route = createFileRoute("/admin/pedidos")({
-  component: OrdersPage,
+  component: () => (
+    <PlanGate min="start" title="Pedidos" featureLabel="Painel de pedidos">
+      <OrdersPage />
+    </PlanGate>
+  ),
 });
+
 
 function OrdersPage() {
   const { isAuthenticated, loading: authLoading, profile } = useAuth();

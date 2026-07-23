@@ -6,9 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { listMyTenantRatings } from "@/lib/ratings.functions";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/avaliacoes")({
-  component: RatingsPage,
+  component: () => (
+    <PlanGate min="start" title="Avaliações" featureLabel="Avaliações de clientes">
+      <RatingsPage />
+    </PlanGate>
+  ),
 });
+
 
 function RatingsPage() {
   const { data, isLoading, error } = useQuery({
