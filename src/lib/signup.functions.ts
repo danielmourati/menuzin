@@ -80,6 +80,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         active: true,
         theme_from: "#FF6A1F",
         theme_to: "#FF9A3C",
+        business_types: [data.business_type],
       } as never)
       .select("id, slug")
       .single();
