@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, PartyPopper, ArrowRight, Rocket } from "lucide-react";
+import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
