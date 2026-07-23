@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import { LandingFooter } from "@/components/landing/LandingSections";
-import menuzinLogo from "@/assets/menuzin-logo.png";
+import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
+
+const menuzinLogo = menuzinLogoAsset.url;
 
 const TITLE = "Crie seu cardápio digital grátis — Menuzin";
 const DESC = "Monte seu cardápio online em minutos, receba pedidos direto no WhatsApp. Sem taxas, sem comissão sobre as vendas.";
