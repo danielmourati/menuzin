@@ -267,30 +267,10 @@ export function ProductModal({
     onOpenChange(false);
   };
 
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  const handleScroll = () => {
-    if (rafRef.current != null) return;
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null;
-      const y = scrollRef.current?.scrollTop ?? 0;
-      if (imgRef.current) {
-        const translate = Math.min(y * 0.35, 120);
-        const scale = 1 + Math.min(y, 200) * 0.0006;
-        imgRef.current.style.transform = `translate3d(0, ${translate}px, 0) scale(${scale})`;
-      }
-      if (overlayRef.current) {
-        overlayRef.current.style.opacity = String(Math.min(y / 220, 0.45));
-      }
-    });
-  };
-
   const isDefaultImg = isDefaultProductImage(product.image);
 
   return (
+
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="relative flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
