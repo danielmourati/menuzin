@@ -21,8 +21,14 @@ import { toast } from "sonner";
 import { listMyCoupons, upsertCoupon, deleteCoupon, type CouponRow } from "@/lib/coupons.functions";
 import { brl } from "@/lib/format";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/cupons")({
-  component: CouponsPage,
+  component: () => (
+    <PlanGate min="start" title="Cupons" featureLabel="Cupons de desconto">
+      <CouponsPage />
+    </PlanGate>
+  ),
 });
 
 type Editing = {
