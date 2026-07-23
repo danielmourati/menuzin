@@ -5,6 +5,7 @@ import { Loader2, Upload, Trash2, ArrowLeft } from "lucide-react";
 
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/promocao")({
   component: () => (
-    <PlanGate min="pro" title="Pop-up promocional" featureLabel="Pop-up promocional na loja">
+    <PlanGate min="pro" title="Pop-up promocional" featureLabel="Pop-up promocional na loja" backTo="/admin/configuracoes">
       <PromoModalSettingsPage />
     </PlanGate>
   ),
@@ -166,7 +167,7 @@ function PromoModalSettingsPage() {
 
   return (
     <AdminLayout title="Modal promocional" action={backAction}>
-
+      <SettingsBreadcrumb current="Pop-up promocional" />
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card>
           <CardContent className="space-y-6 p-6">

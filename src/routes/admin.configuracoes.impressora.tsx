@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +36,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: () => (
-    <PlanGate min="pro" title="Impressora" featureLabel="Configuração de impressora">
+    <PlanGate min="pro" title="Impressora" featureLabel="Configuração de impressora" backTo="/admin/configuracoes">
       <PrinterSettingsPage />
     </PlanGate>
   ),
@@ -547,6 +548,7 @@ function PrinterSettingsPage() {
         </div>
       }
     >
+      <SettingsBreadcrumb current="Impressora" />
       {isLoading ? (
         <div className="grid place-items-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

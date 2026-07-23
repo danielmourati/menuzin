@@ -10,13 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MercadoPagoStatus } from "@/components/payment/MercadoPagoStatus";
 import {
   getStorePaymentSettings,
-  connectMercadoPago,
   disconnectMercadoPago,
-  simulateMpConnectSuccess,
   updatePaymentSettings,
   testPayment,
   saveMpCredentials,
 } from "@/lib/payment-service";
+import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment-types";
 import { toast } from "sonner";
 import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft, RefreshCw } from "lucide-react";
@@ -29,7 +28,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
   component: () => (
-    <PlanGate min="start" title="Pagamentos" featureLabel="Configurações de pagamento">
+    <PlanGate min="start" title="Pagamentos" featureLabel="Configurações de pagamento" backTo="/admin/configuracoes">
       <AdminPaymentSettingsPage />
     </PlanGate>
   ),
@@ -122,26 +121,10 @@ function AdminPaymentSettingsPage() {
   };
 
   const handleConnectMP = async () => {
-    setMpStatus("connecting");
-    try {
-      const { authorization_url } = await connectMercadoPago(storeId);
-      toast.info("Iniciando conexão segura com Mercado Pago...");
-
-      // Simular redirecionamento de sucesso do OAuth após 2 segundos
-      setTimeout(async () => {
-        await simulateMpConnectSuccess(storeId);
-        const data = await getStorePaymentSettings(storeId);
-        if (data) {
-          setSettings(data);
-          setMpStatus("connected");
-          setConnectedVia("oauth");
-          toast.success("Conta Mercado Pago conectada com sucesso!");
-        }
-      }, 2000);
-    } catch (err) {
-      setMpStatus("error");
-      toast.error("Falha ao iniciar conexão OAuth.");
-    }
+    // Conexão OAuth automática ainda não disponível — instrui o lojista a usar credenciais manuais.
+    toast.info(
+      "Conexão automática (OAuth) em breve. Use a aba 'Credenciais Manuais' para conectar sua conta agora."
+    );
   };
 
   const handleConnectMPManual = async (
@@ -224,6 +207,7 @@ function AdminPaymentSettingsPage() {
         </Button>
       }
     >
+      <SettingsBreadcrumb current="Pagamento" />
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Header descritivo */}
         <div className="space-y-1">
