@@ -1,20 +1,32 @@
 ## Objetivo
-Garantir que o modal "Nova categoria" com as opções Pizza / Oferta do Dia (anexo 1) apareça apenas para tenants cujo `business_types` inclui `pizzaria`. Para os demais, o fluxo cria diretamente uma categoria padrão, sem etapa extra.
+Tornar o **tipo de negócio (business_types)** visível e editável em toda a plataforma, agrupar as lojas por esse tipo na lista do superadmin e garantir que, ao trocar o tipo para/de `pizzaria`, os fluxos de criação de categoria já reagem corretamente (o guard `isPizzaria` que decide o picker Pizza/Oferta do Dia já está pronto — só precisa consumir o campo atualizado).
 
 ## Escopo
 
-### 1. `src/routes/admin.categorias.tsx`
-- No clique de "Nova categoria":
-  - Se `isPizzaria` → abre o picker atual (Itens principais / Pizza / Oferta do Dia).
-  - Se não for pizzaria → pula o picker e abre direto o formulário de edição em modo `kind: "standard"` (equivalente ao `openNew("standard")`).
-- O `Dialog` do picker continua existindo, mas nunca abre para não-pizzaria.
+### 1. `platform.functions.ts`
+- `PlatformStoreRow` passa a expor `business_types: string[]`.
+- `listPlatformStores`: adicionar `business_types` no `select` do tenants e propagar no map.
+- `UpdateTenantInput` (admin): aceitar `business_types: z.array(z.enum(BUSINESS_TYPES)).optional()` e persistir junto do `patch`.
 
-### 2. `src/routes/admin.cardapio.novo.tsx` (wizard "Novo cardápio")
-- Etapa 1 (anexo 2) hoje sempre cria categoria `standard`. Para manter consistência com /categorias:
-  - Se `isPizzaria`, ao clicar em "Criar nova" mostrar um seletor compacto de tipo (Itens principais / Pizza / Oferta do Dia) antes do input de nome, e passar o `kind` escolhido para `saveCategory`.
-  - Se não for pizzaria, comportamento atual permanece (input direto, `kind: "standard"`).
-- Consulta `getMyTenant` já disponível via `tenants.functions` (mesmo padrão de /categorias) para derivar `isPizzaria`.
+### 2. `src/lib/tenants.functions.ts`
+- `UpdateTenantInput`: aceitar `business_types: z.array(z.enum(BUSINESS_TYPES)).max(5).optional()` para permitir que o admin da loja edite o próprio tipo.
+
+### 3. Superadmin — `src/routes/platform.lojas.tsx`
+- **Agrupar por category-kind (business_types)**:
+  - Derivar grupos a partir de `stores`: para cada tipo em `business_types` classificar a loja; tenants sem tipo caem em "Sem categoria".
+  - Renderizar cada grupo com header (`BUSINESS_TYPE_LABELS[type]` + contagem) e as cards atuais dentro. Manter contador total no topo.
+  - Cards ganham `Badge` com o(s) tipo(s) ao lado de plano/status.
+- **`EditTenantDialog`**: adicionar campo "Tipo de negócio" (multi-select simples via checkboxes ou combobox reaproveitando `BUSINESS_TYPES`/`BUSINESS_TYPE_LABELS`) entre o bloco cidade/UF e plano/status. Estado inicial vindo de `store.business_types`; enviar no `adminUpdateTenant`.
+
+### 4. Admin — `src/routes/admin.configuracoes.index.tsx`
+- Aba **Dados**: novo bloco "Tipo de negócio" (mesmo componente de multi-select da tela do superadmin) alimentado por `tenant.business_types`.
+- Ampliar `FormState` com `business_types: BusinessType[]`, inicializar no `useEffect` e enviar em `updateMyTenant`.
+- Após salvar, a `queryKey ["my-tenant"]` já é invalidada — `admin.categorias.tsx` e `admin.cardapio.novo.tsx` recomputam `isPizzaria` automaticamente e o picker Pizza/Oferta passa a aparecer/desaparecer sem código extra.
+
+### 5. Componente compartilhado
+- Criar `src/components/admin/BusinessTypesField.tsx` (grid de chips selecionáveis usando `BUSINESS_TYPES` / `BUSINESS_TYPE_LABELS`) para reuso em `platform.lojas` e `admin.configuracoes`. Props: `value`, `onChange`, `max?`.
 
 ## Fora de escopo
-- Nenhuma mudança em regras de plano, RLS ou schema.
-- Layout do picker permanece igual ao anexo 1.
+- Não mexer no wizard `/comece-agora` (já coleta o tipo).
+- Sem mudanças em schema/RLS (colunas `business_types` já existem).
+- Sem novo seeding automático de categorias ao editar o tipo depois da criação (só cria-se no cadastro inicial, comportamento atual).
