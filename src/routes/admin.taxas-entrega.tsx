@@ -62,6 +62,14 @@ const maskCep = (v: string) => {
 };
 const cepDigits = (v: string) => v.replace(/\D/g, "");
 
+const stripAcc = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const neighborhoodKey = (name: string, city: string, uf: string) => {
+  const base = stripAcc(name.trim()).toLowerCase().replace(/\s+\d+$/, "").trim();
+  return `${base}|${stripAcc(city.trim()).toLowerCase()}|${uf.trim().toLowerCase()}`;
+};
+const neighborhoodBaseName = (name: string) =>
+  name.trim().replace(/\s+\d+$/, "").trim() || name;
+
 function DeliveryZonesPage() {
   const qc = useQueryClient();
 
