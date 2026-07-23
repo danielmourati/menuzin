@@ -151,7 +151,7 @@ function CategoriesPage() {
                   setOpen(true);
                 }}><Edit2 className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" className="text-destructive"
-                  onClick={async () => { if (await confirm({ title: `Excluir "${c.name}"?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(c.id); }}>
+                  onClick={async () => { if (await confirmDialog({ title: `Excluir "${c.name}"?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(c.id); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </li>
