@@ -359,6 +359,11 @@ function EditTenantDialog({
               />
             </div>
           </div>
+          <div>
+            <Label>Tipo de negócio</Label>
+            <p className="mb-2 mt-0.5 text-xs text-muted-foreground">Define o agrupamento no guia e habilita opções como Pizza/Oferta do Dia.</p>
+            <BusinessTypesField value={businessTypes} onChange={setBusinessTypes} max={5} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Plano</Label>
