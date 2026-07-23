@@ -174,8 +174,18 @@ export function CartDrawer({
 
   const buildWhatsappOrderMessage = () => {
     const lines: string[] = [];
+    const modeLabels: Record<string, string> = {
+      entrega: "Entrega",
+      retirada: "Retirada no balcão",
+      consumo_local: "Consumo no local",
+    };
     lines.push(`Olá! Gostaria de fazer um pedido em *${tenant?.name ?? ""}*:`);
     lines.push("");
+    if (name) lines.push(`*Cliente:* ${name}`);
+    if (phone) lines.push(`*WhatsApp:* ${phone}`);
+    if (mode) lines.push(`*Modalidade:* ${modeLabels[mode] ?? mode}`);
+    lines.push("");
+    lines.push("*Itens:*");
     for (const i of items) {
       const unit = computeUnitPrice(i);
       const parts: string[] = [];
@@ -187,8 +197,29 @@ export function CartDrawer({
       lines.push(`• ${i.qty}x ${i.product.name}${detail} — ${brl(unit * i.qty)}`);
       if (i.note) lines.push(`  obs: ${i.note}`);
     }
+    if (mode === "entrega" && (street || neighborhood || cep)) {
+      lines.push("");
+      lines.push("*Endereço de entrega:*");
+      if (street || number) lines.push(`${street}${number ? ", " + number : ""}`);
+      if (neighborhood) lines.push(`Bairro: ${neighborhood}`);
+      if (complement) lines.push(`Compl.: ${complement}`);
+      if (reference) lines.push(`Ref.: ${reference}`);
+      if (cep) lines.push(`CEP: ${cep}`);
+    }
+    if (mode === "consumo_local" && table) {
+      lines.push("");
+      lines.push(`*Mesa/Comanda:* ${table}`);
+    }
     lines.push("");
-    lines.push(`*Subtotal:* ${brl(subtotal)}`);
+    lines.push(`Subtotal: ${brl(subtotal)}`);
+    if (deliveryFee > 0) lines.push(`Taxa de entrega: ${brl(deliveryFee)}`);
+    lines.push(`*Total: ${brl(total)}*`);
+    if (generalNote) {
+      lines.push("");
+      lines.push(`Observação: ${generalNote}`);
+    }
+    lines.push("");
+    lines.push("Aguardo confirmação. Obrigado!");
     return lines.join("\n");
   };
 
@@ -200,7 +231,9 @@ export function CartDrawer({
     }
     const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(buildWhatsappOrderMessage())}`;
     window.open(url, "_blank", "noopener");
+    onClose?.();
   };
+
 
 
   // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
