@@ -22,7 +22,7 @@ type Input = {
 
 export function buildWhatsAppMessage(i: Input) {
   const lines: string[] = [];
-  lines.push("Olá! Gostaria de fazer o seguinte pedido:");
+  lines.push("Olá! Vim pelo Menuzin e gostaria de fazer o pedido abaixo:");
   lines.push("");
   lines.push(`*Pedido nº ${i.number}*`);
   lines.push(`Cliente: ${i.customerName}`);
@@ -60,6 +60,8 @@ export function buildWhatsAppMessage(i: Input) {
   }
   lines.push("");
   lines.push("Aguardo confirmação. Obrigado!");
+  lines.push("");
+  lines.push("[by Menuzin]");
   return lines.join("\n");
 }
 
