@@ -12,6 +12,7 @@ import { maskPhone } from "@/lib/masks";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { PasswordInput } from "@/components/ui/password-input";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
 
 const STEPS = [
