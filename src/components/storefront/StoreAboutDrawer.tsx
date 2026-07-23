@@ -27,9 +27,15 @@ export function StoreAboutDrawer({
     staleTime: 60_000,
   });
 
-  const bannerStyle = {
-    backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
-  };
+  const bannerStyle = tenant.coverUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {
+        backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
+      };
 
   const deliveryOptions = [
     { key: "delivery", label: "Delivery", icon: Truck, active: tenant.acceptsDelivery },
