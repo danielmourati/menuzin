@@ -1,31 +1,25 @@
-## Substituir CTAs de WhatsApp na home pelo modal de cadastro
+## Ajustes CTAs da home
 
-### Botões afetados
-| Local | Antes | Depois |
-|---|---|---|
-| `src/routes/index.tsx` — Hero | "Falar no WhatsApp" (wa.me) | 🚀 "Criar meu cardápio grátis" (abre modal) |
-| `src/routes/index.tsx` — Plano Presença | "Cadastrar grátis" (wa.me) | idem |
-| `src/routes/index.tsx` — Plano Start | "Começar a vender" (wa.me) | idem |
-| `src/routes/index.tsx` — Plano Pro | "Profissionalizar meu delivery" (wa.me) | idem |
-| `LandingSections.tsx` — `CTABanner` | "Falar com a gente" (wa.me) | idem (variant `secondary`) |
+### 1. Hierarquia visual dos CTAs (mesma cor primary)
+No hero, os dois botões ("Ver loja demo" e "Criar meu cardápio grátis") estão ambos `primary` sólido laranja, sem hierarquia. Padrão UX/UI: um CTA primário sólido + um secundário `outline`.
 
-### Fora do escopo (mantidos)
-- `WhatsAppFloatingButton` (suporte).
-- `ContactSpecialistSection` (formulário de lead).
-- Link e telefone no rodapé (contato institucional).
-- Header "Começar Agora" (âncora `#plans`).
+- **Ver loja demo** → mantém `variant="default"` (primário sólido). É a ação exploratória mais leve? Não — a ação principal é "Criar meu cardápio grátis". Então inverter:
+  - **Criar meu cardápio grátis** → `variant="default"` (primário sólido, laranja).
+  - **Ver loja demo** → `variant="outline"` (secundário).
+- Aplicar mesma lógica no `CTABanner` (já `variant="secondary"`, fica) — sem alteração.
 
-### Implementação
-1. `src/routes/index.tsx`:
-   - Importar `QuickSignupModal` e `Rocket` (lucide-react).
-   - `const [signupOpen, setSignupOpen] = useState(false)`.
-   - Trocar os 4 `<Button asChild><a href={WHATSAPP_CONTACT_URL}>` (hero + 3 planos) por `<Button onClick={() => setSignupOpen(true)}><Rocket/> Criar meu cardápio grátis</Button>`, preservando `size`/`variant` de cada local.
-   - Renderizar `<QuickSignupModal open={signupOpen} onOpenChange={setSignupOpen} />` no fim do componente.
-   - Passar `onCTAClick={() => setSignupOpen(true)}` para `<CTABanner />`.
-   - Remover import `WHATSAPP_CONTACT_URL` se ficar sem uso.
-2. `src/components/landing/LandingSections.tsx`:
-   - `CTABanner` recebe `onCTAClick?: () => void`; quando fornecido, dispara handler em vez do link wa.me.
-   - Manter `WHATSAPP_CONTACT_URL` (ainda usado por `LandingFooter` e `ContactSpecialistSection`).
+### 2. Reverter CTAs dos planos Start e Pro para WhatsApp
+Apenas o plano **Presença** mantém o botão 🚀 "Criar meu cardápio grátis" (abre `QuickSignupModal`).
+
+Restaurar em `src/routes/index.tsx` no bloco `pricingPlans.map`:
+- **Start** → `<a href={WHATSAPP_CONTACT_URL}>` com texto original `p.cta` ("Começar a vender"), ícone `MessageCircle`.
+- **Pro** → idem, texto `p.cta` ("Profissionalizar meu delivery").
+- **Presença** → mantém `onClick={() => setSignupOpen(true)}` com `Rocket` + "Criar meu cardápio grátis".
+
+Reimportar `WHATSAPP_CONTACT_URL` em `src/routes/index.tsx`.
+
+### Arquivos alterados
+- `src/routes/index.tsx` — hero: swap de variants; planos: condicional por `p.id === "presenca"`.
 
 ### Verificação
-- `tsgo` para tipos; conferir no preview que cada botão abre o modal de 3 etapas.
+- Preview em `/`: hero com botão laranja sólido (Criar cardápio) + outline (Ver demo); cards Start/Pro voltam a abrir WhatsApp; Presença abre modal.

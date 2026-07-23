@@ -10,7 +10,7 @@ import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroDevices from "@/assets/landing-hero-devices.png";
 import couplePhoneAsset from "@/assets/couple-ordering.png.asset.json";
-import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
+import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
 import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import {
   FeatureShowcaseSection,
@@ -180,16 +180,16 @@ function Landing() {
               Cardápio online, carrinho, checkout e pedidos direto no WhatsApp. Tudo personalizável, em um link só, pronto para vender hoje.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
+                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
+              </Button>
               {demoSlug && (
-                <Button asChild size="lg" className="gap-2">
+                <Button asChild variant="outline" size="lg" className="gap-2">
                   <Link to="/$slug" params={{ slug: demoSlug }}>
                     Ver loja demo <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               )}
-              <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
-                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-              </Button>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem cartão</span>
@@ -381,14 +381,27 @@ function Landing() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    className="mt-8 w-full gap-2"
-                    size="lg"
-                    variant={highlighted ? "default" : "outline"}
-                    onClick={() => setSignupOpen(true)}
-                  >
-                    <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-                  </Button>
+                  {p.id === "presenca" ? (
+                    <Button
+                      className="mt-8 w-full gap-2"
+                      size="lg"
+                      variant={highlighted ? "default" : "outline"}
+                      onClick={() => setSignupOpen(true)}
+                    >
+                      <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      className="mt-8 w-full gap-2"
+                      size="lg"
+                      variant={highlighted ? "default" : "outline"}
+                    >
+                      <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4" /> {p.cta}
+                      </a>
+                    </Button>
+                  )}
                 </div>
               );
             })}
