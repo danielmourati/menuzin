@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,8 +92,8 @@ function PlatformGuiaRequests() {
                         </Button>
                       </>
                     )}
-                    <Button size="icon" variant="ghost" onClick={() => {
-                      if (confirm("Excluir esta solicitação?")) {
+                    <Button size="icon" variant="ghost" onClick={async () => {
+                      if (await confirmDialog({ title: "Excluir esta solicitação?", variant: "destructive", confirmText: "Excluir" })) {
                         guiaActions.deleteRequest(r.id);
                       }
                     }}>

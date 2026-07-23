@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -133,7 +134,7 @@ function SizesTable({ sizes, onChange, categoryId }: { sizes: PizzaSize[]; onCha
         <div></div>
       </div>
       {sizes.map((s) => (
-        <SizeRow key={s.id} size={s} onSave={(d) => saveMut.mutate(d)} onDelete={() => { if (confirm(`Remover "${s.name}"?`)) delMut.mutate(s.id); }} />
+        <SizeRow key={s.id} size={s} onSave={(d) => saveMut.mutate(d)} onDelete={async () => { if (await confirmDialog({ title: `Remover "${s.name}"?`, variant: "destructive", confirmText: "Remover" })) delMut.mutate(s.id); }} />
       ))}
       <div className="grid grid-cols-[1fr_120px_180px_120px_40px] items-center gap-2 px-3 py-3">
         <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ex: Pequena" />
@@ -244,7 +245,7 @@ function ExtraTable({
             <span className="text-xs">{it.active ? "Ativado" : "Pausado"}</span>
           </div>
           <Button size="icon" variant="ghost" className="text-destructive"
-            onClick={() => { if (confirm(`Remover "${it.name}"?`)) delMut.mutate(it.id); }}><Trash2 className="h-4 w-4" /></Button>
+            onClick={async () => { if (await confirmDialog({ title: `Remover "${it.name}"?`, variant: "destructive", confirmText: "Remover" })) delMut.mutate(it.id); }}><Trash2 className="h-4 w-4" /></Button>
         </div>
       ))}
       <div className="px-3 py-3">

@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -201,7 +202,7 @@ function CouponsPage() {
                         </Button>
                         <Button
                           variant="outline" size="icon" className="h-8 w-8 text-destructive"
-                          onClick={() => { if (confirm(`Excluir o cupom ${c.code}?`)) delMut.mutate(c.id); }}
+                          onClick={async () => { if (await confirmDialog({ title: `Excluir o cupom ${c.code}?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(c.id); }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

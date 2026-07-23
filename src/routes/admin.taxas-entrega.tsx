@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -374,7 +375,7 @@ function DeliveryZonesPage() {
                                 </Button>
                                 <Button
                                   variant="outline" size="icon" className="h-8 w-8 text-destructive"
-                                  onClick={() => { if (confirm(`Excluir o bairro ${z.neighborhood}?`)) delMut.mutate(z.id); }}
+                                  onClick={async () => { if (await confirmDialog({ title: `Excluir o bairro ${z.neighborhood}?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(z.id); }}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>

@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -288,7 +289,7 @@ function ProductsPage() {
                   }}><Edit2 className="h-4 w-4" /></Button>
                   <Switch checked={p.available} onCheckedChange={(v) => toggleMut.mutate({ id: p.id, available: v })} />
                   <Button size="icon" variant="ghost" className="text-destructive"
-                    onClick={() => { if (confirm(`Excluir "${p.name}"?`)) delMut.mutate(p.id); }}>
+                    onClick={async () => { if (await confirmDialog({ title: `Excluir "${p.name}"?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(p.id); }}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -711,7 +712,7 @@ function SizesEditor({ productId, sizes, onChanged }: {
             <CurrencyBlurInput className="w-32" initialValue={Number(s.price)}
               onCommit={(v) => saveMut.mutate({ id: s.id, product_id: productId, name: s.name, price: v, sort_order: s.sort_order })} />
             <Button size="icon" variant="ghost" className="text-destructive"
-              onClick={() => { if (confirm(`Remover "${s.name}"?`)) delMut.mutate(s.id); }}>
+              onClick={async () => { if (await confirmDialog({ title: `Remover "${s.name}"?`, variant: "destructive", confirmText: "Remover" })) delMut.mutate(s.id); }}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>

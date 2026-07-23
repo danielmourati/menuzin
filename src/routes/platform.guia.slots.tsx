@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,8 +100,8 @@ function PlatformGuiaSlots() {
                     <Button size="icon" variant="ghost" onClick={() => { setEditing(s); setOpen(true); }}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => {
-                      if (confirm(`Remover "${s.title}"?`)) {
+                    <Button size="icon" variant="ghost" onClick={async () => {
+                      if (await confirmDialog({ title: `Remover "${s.title}"?`, variant: "destructive", confirmText: "Remover" })) {
                         guiaActions.deleteSlot(s.id);
                         toast.success("Removido.");
                       }
