@@ -93,6 +93,7 @@ function OrderSettingsPage() {
         </Button>
       }
     >
+      <SettingsBreadcrumb current="Pedidos" />
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Painel de Alertas */}
         <Card>
