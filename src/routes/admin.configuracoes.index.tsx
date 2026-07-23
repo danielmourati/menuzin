@@ -420,3 +420,71 @@ function AdminAccountCard() {
   );
 }
 
+function QrCodeCard({ url, slug }: { url: string; slug: string }) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    import("qrcode").then((QR) =>
+      QR.toDataURL(url, { width: 512, margin: 2, color: { dark: "#0f172a", light: "#ffffff" } })
+        .then((d) => { if (!cancelled) setDataUrl(d); })
+        .catch(() => { if (!cancelled) setDataUrl(""); })
+    );
+    return () => { cancelled = true; };
+  }, [url]);
+
+  const download = () => {
+    if (!dataUrl) return;
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `menuzin-${slug}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const share = async () => {
+    if (typeof navigator === "undefined" || !navigator.share) return;
+    try {
+      await navigator.share({ title: "Meu cardápio no Menuzin", text: "Confira nosso cardápio:", url });
+    } catch { /* noop */ }
+  };
+
+  const canShare = typeof navigator !== "undefined" && !!navigator.share;
+
+  return (
+    <div className="rounded-xl border bg-card p-6">
+      <div className="mb-3">
+        <h3 className="text-base font-bold">QR Code de divulgação</h3>
+        <p className="text-xs text-muted-foreground">
+          Imprima ou compartilhe este QR Code. Ao escanear, o cliente é direcionado direto para o seu cardápio.
+        </p>
+      </div>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+        <div className="grid h-56 w-56 place-items-center rounded-xl border bg-white p-3">
+          {dataUrl ? (
+            <img src={dataUrl} alt={`QR Code do cardápio ${slug}`} className="h-full w-full object-contain" />
+          ) : (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          <Button onClick={download} disabled={!dataUrl} className="gap-2">
+            <Download className="h-4 w-4" /> Baixar PNG
+          </Button>
+          {canShare && (
+            <Button variant="outline" onClick={share} className="gap-2">
+              <Share2 className="h-4 w-4" /> Compartilhar
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Dica: cole o QR Code em cardápios impressos, embalagens, adesivos de mesa e vitrine.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
