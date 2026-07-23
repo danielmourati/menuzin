@@ -440,7 +440,12 @@ export function CartDrawer({
   // Persist a draft order if not already created (used before online MP call).
   // Returns the order id AND number to avoid React setState race conditions.
   const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number }> => {
+    if (isPresencaOnly) {
+      openWhatsappPresenca();
+      throw new Error("Esta loja recebe pedidos apenas pelo WhatsApp.");
+    }
     if (dbOrderId && dbOrderNumber != null) return { id: dbOrderId, number: dbOrderNumber };
+
     const { createOrder } = await import("@/lib/orders.functions");
     const res = await createOrder({
       data: {
