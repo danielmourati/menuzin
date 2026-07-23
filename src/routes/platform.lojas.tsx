@@ -294,6 +294,9 @@ function EditTenantDialog({
   const [plan, setPlan] = useState<TenantPlan>(normalizePlan(store.plan));
   const [status, setStatus] = useState<string>(store.status);
   const [active, setActive] = useState<boolean>(store.active);
+  const [businessTypes, setBusinessTypes] = useState<BusinessType[]>(
+    (store.business_types ?? []) as BusinessType[],
+  );
 
   const mut = useMutation({
     mutationFn: () =>
@@ -307,6 +310,7 @@ function EditTenantDialog({
           plan,
           status: status as "ativa" | "teste" | "suspensa",
           active,
+          business_types: businessTypes,
         },
       }),
     onSuccess: () => {
@@ -315,6 +319,7 @@ function EditTenantDialog({
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
