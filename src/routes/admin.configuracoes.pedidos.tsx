@@ -231,45 +231,6 @@ function OrderSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Simulador de Pedidos para Demos */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-bold">
-              <Play className="h-5 w-5 text-primary" /> Simulador de Fluxo (Demos)
-            </CardTitle>
-            <CardDescription>
-              Simule a atividade de clientes fazendo pedidos no catálogo digital.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="bg-card border rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <h4 className="font-semibold text-sm">Simulação Automática</h4>
-                <p className="text-xs text-muted-foreground max-w-sm">
-                  Cria um pedido aleatório com status "Novo" no banco a cada 45 segundos para simular fluxo de clientes.
-                </p>
-              </div>
-              <Switch
-                checked={isSimulating}
-                onCheckedChange={toggleSimulation}
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
-              <Button
-                onClick={handleManualSimulate}
-                className="w-full sm:w-auto font-bold bg-primary text-primary-foreground hover:bg-primary/95 shadow-md"
-              >
-                Simular Novo Pedido Agora
-              </Button>
-              
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-card border px-3 py-1.5 rounded-lg w-full sm:w-auto">
-                <AlertCircle className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span>Os pedidos simulados aparecem no painel e na aba do sino em tempo real.</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </AdminLayout>
   );
