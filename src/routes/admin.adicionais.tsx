@@ -241,7 +241,7 @@ function AdicionaisPage() {
                   </Button>
                   <Button
                     size="icon" variant="ghost" className="text-destructive"
-                    onClick={async () => { if (await confirm({ title: `Excluir subcategoria "${g.name}"?`, variant: "destructive", confirmText: "Excluir" })) delGroupMut.mutate(g.id); }}
+                    onClick={async () => { if (await confirmDialog({ title: `Excluir subcategoria "${g.name}"?`, variant: "destructive", confirmText: "Excluir" })) delGroupMut.mutate(g.id); }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
