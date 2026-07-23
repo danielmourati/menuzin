@@ -526,6 +526,12 @@ function PrinterSettingsPage() {
       title="Impressora de Cupom"
       action={
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/admin/configuracoes">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </Link>
+          </Button>
+
           <Button variant="outline" onClick={() => setWizardOpen(true)}>
             <Printer className="mr-2 h-4 w-4" />
             Configurar impressora
