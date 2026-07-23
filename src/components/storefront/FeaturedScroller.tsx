@@ -8,15 +8,11 @@ export function FeaturedScroller({
   products,
   onSelect,
   title = "Destaques",
-  badgeLabel = "Destaque",
-  badgeClassName = "bg-primary text-primary-foreground",
   viewAllHref,
 }: {
   products: Product[];
   onSelect: (p: Product) => void;
   title?: string;
-  badgeLabel?: string;
-  badgeClassName?: string;
   viewAllHref?: string;
 }) {
   if (products.length === 0) return null;
