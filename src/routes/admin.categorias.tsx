@@ -37,7 +37,7 @@ type Editing = {
 
 function CategoriesPage() {
   const qc = useQueryClient();
-  const { confirm, ConfirmDialog } = useConfirm();
+  
   const tenantQ = useQuery({
     queryKey: ["tenant-probe"],
     queryFn: () => getMyTenant({ data: {} }),
