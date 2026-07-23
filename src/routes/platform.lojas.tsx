@@ -358,7 +358,7 @@ function EditTenantDialog({
           </div>
           <OwnerEditor tenantId={store.id} />
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6 border-t pt-4">
           <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
             Cancelar
           </Button>
