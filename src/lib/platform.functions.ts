@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
+import { BUSINESS_TYPES } from "@/lib/business-types";
 
 /**
  * Garante que o usuário autenticado é platform_admin antes de qualquer
@@ -122,12 +123,6 @@ const SlugSchema = z
   .max(60)
   .regex(/^[a-z0-9-]+$/)
   .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
-
-const BUSINESS_TYPES = [
-  "pizzaria", "hamburgueria", "churrascaria", "espetaria", "restaurante",
-  "acaiteria", "sorveteria", "cafeteria", "padaria", "lanchonete",
-  "marmitaria", "sushi", "pastelaria", "food_truck", "bar", "conveniencia", "outros",
-] as const;
 
 const CreateTenantInput = z.object({
   slug: SlugSchema,

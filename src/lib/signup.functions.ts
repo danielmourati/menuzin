@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { slugify } from "@/lib/utils";
+import { BUSINESS_TYPES } from "@/lib/business-types";
 
 const SlugSchema = z
   .string()
@@ -28,6 +29,7 @@ const SignupInput = z.object({
   email: z.string().trim().email().max(160),
   password: z.string().min(8).max(72),
   full_name: z.string().trim().max(120).optional().default(""),
+  business_type: z.enum(BUSINESS_TYPES),
 });
 
 export const signupPresencaTenant = createServerFn({ method: "POST" })
@@ -78,6 +80,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         active: true,
         theme_from: "#FF6A1F",
         theme_to: "#FF9A3C",
+        business_types: [data.business_type],
       } as never)
       .select("id, slug")
       .single();

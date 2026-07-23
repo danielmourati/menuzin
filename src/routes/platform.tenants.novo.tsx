@@ -15,6 +15,7 @@ import { slugify } from "@/lib/utils";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { adminCreateTenant } from "@/lib/platform.functions";
 import { maskPhone } from "@/lib/masks";
+import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
 import { PlatformLayout } from "./platform.dashboard";
 
 export const Route = createFileRoute("/platform/tenants/novo")({ component: NewTenantPage });
@@ -93,7 +94,7 @@ function NewTenantPage() {
           theme_to: themeTo,
           active,
           plan,
-          business_types: businessTypes as ("pizzaria" | "hamburgueria" | "churrascaria" | "espetaria" | "restaurante" | "acaiteria" | "sorveteria" | "cafeteria" | "padaria" | "lanchonete" | "marmitaria" | "sushi" | "pastelaria" | "food_truck" | "bar" | "conveniencia" | "outros")[],
+          business_types: businessTypes as BusinessType[],
           owner_email: ownerEmail.trim().toLowerCase(),
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
@@ -214,28 +215,10 @@ function NewTenantPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[
-                { v: "pizzaria", l: "Pizzaria" },
-                { v: "hamburgueria", l: "Hamburgueria" },
-                { v: "churrascaria", l: "Churrascaria" },
-                { v: "espetaria", l: "Espetaria" },
-                { v: "restaurante", l: "Restaurante" },
-                { v: "acaiteria", l: "Açaíteria" },
-                { v: "sorveteria", l: "Sorveteria" },
-                { v: "cafeteria", l: "Cafeteria" },
-                { v: "padaria", l: "Padaria" },
-                { v: "lanchonete", l: "Lanchonete" },
-                { v: "marmitaria", l: "Marmitaria" },
-                { v: "sushi", l: "Sushi/Japonês" },
-                { v: "pastelaria", l: "Pastelaria" },
-                { v: "food_truck", l: "Food Truck" },
-                { v: "bar", l: "Bar e Petiscaria" },
-                { v: "conveniencia", l: "Conveniência" },
-                { v: "outros", l: "Outros" },
-              ].map((t) => (
-                <label key={t.v} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-card p-2 text-sm transition hover:border-primary/40">
-                  <Checkbox checked={businessTypes.includes(t.v)} onCheckedChange={() => toggleBusinessType(t.v)} />
-                  <span>{t.l}</span>
+              {BUSINESS_TYPES.map((t) => (
+                <label key={t} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-card p-2 text-sm transition hover:border-primary/40">
+                  <Checkbox checked={businessTypes.includes(t)} onCheckedChange={() => toggleBusinessType(t)} />
+                  <span>{BUSINESS_TYPE_LABELS[t]}</span>
                 </label>
               ))}
             </div>
