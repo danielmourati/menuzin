@@ -191,7 +191,7 @@ export function CartDrawer({
       retirada: "Retirada no balcão",
       consumo_local: "Consumo no local",
     };
-    lines.push(`Olá! Gostaria de fazer um pedido em *${tenant?.name ?? ""}*:`);
+    lines.push("Olá! Vim pelo Menuzin e gostaria de fazer o pedido abaixo:");
     lines.push("");
     if (name) lines.push(`*Cliente:* ${name}`);
     if (phone) lines.push(`*WhatsApp:* ${phone}`);
@@ -232,6 +232,8 @@ export function CartDrawer({
     }
     lines.push("");
     lines.push("Aguardo confirmação. Obrigado!");
+    lines.push("");
+    lines.push("[by Menuzin]");
     return lines.join("\n");
   };
 
