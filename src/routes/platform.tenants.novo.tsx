@@ -215,28 +215,10 @@ function NewTenantPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {[
-                { v: "pizzaria", l: "Pizzaria" },
-                { v: "hamburgueria", l: "Hamburgueria" },
-                { v: "churrascaria", l: "Churrascaria" },
-                { v: "espetaria", l: "Espetaria" },
-                { v: "restaurante", l: "Restaurante" },
-                { v: "acaiteria", l: "Açaíteria" },
-                { v: "sorveteria", l: "Sorveteria" },
-                { v: "cafeteria", l: "Cafeteria" },
-                { v: "padaria", l: "Padaria" },
-                { v: "lanchonete", l: "Lanchonete" },
-                { v: "marmitaria", l: "Marmitaria" },
-                { v: "sushi", l: "Sushi/Japonês" },
-                { v: "pastelaria", l: "Pastelaria" },
-                { v: "food_truck", l: "Food Truck" },
-                { v: "bar", l: "Bar e Petiscaria" },
-                { v: "conveniencia", l: "Conveniência" },
-                { v: "outros", l: "Outros" },
-              ].map((t) => (
-                <label key={t.v} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-card p-2 text-sm transition hover:border-primary/40">
-                  <Checkbox checked={businessTypes.includes(t.v)} onCheckedChange={() => toggleBusinessType(t.v)} />
-                  <span>{t.l}</span>
+              {BUSINESS_TYPES.map((t) => (
+                <label key={t} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-card p-2 text-sm transition hover:border-primary/40">
+                  <Checkbox checked={businessTypes.includes(t)} onCheckedChange={() => toggleBusinessType(t)} />
+                  <span>{BUSINESS_TYPE_LABELS[t]}</span>
                 </label>
               ))}
             </div>
