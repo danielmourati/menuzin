@@ -175,12 +175,14 @@ export function CartDrawer({
   const tenant = (storefrontTenant ?? tenantData?.tenant ?? null) as TenantLike | null;
   const tenantAddress = tenant?.address ?? "";
   const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
-  const acceptsDelivery = tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true;
-  const acceptsTakeout = tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true;
-  const acceptsDinein = tenant?.acceptsDinein ?? tenant?.accepts_dinein ?? true;
   const rawTenantPlan = (tenant as { plan?: string } | null | undefined)?.plan;
   const tenantPlan = rawTenantPlan === "pro" ? "pro" : rawTenantPlan === "start" ? "start" : "presenca";
   const isPresencaOnly = tenantPlan === "presenca";
+  const isStartPlan = tenantPlan === "start";
+  // Presença ignora flags (loja não configura modalidades) — sempre mostra as 3 opções.
+  const acceptsDelivery = isPresencaOnly ? true : (tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true);
+  const acceptsTakeout = isPresencaOnly ? true : (tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true);
+  const acceptsDinein = isPresencaOnly ? true : (tenant?.acceptsDinein ?? tenant?.accepts_dinein ?? true);
 
   const buildWhatsappOrderMessage = () => {
     const lines: string[] = [];
