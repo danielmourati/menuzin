@@ -125,7 +125,7 @@ function ConfirmedPage() {
             </div>
           </div>
 
-          {order.paymentMethod === "pix_manual" && (
+          {/pix manual/i.test(order.payment ?? "") && (
             <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left">
               <p className="text-sm font-semibold">Envie o comprovante do PIX</p>
               <p className="mt-1 text-xs text-muted-foreground">
