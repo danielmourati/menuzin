@@ -669,7 +669,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
       />
-      <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} />
+      <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} tenant={tenant} />
       <MobileBottomNav
         slug={tenant.slug}
         onOpenCart={() => storeOpen && setCartOpen(true)}
