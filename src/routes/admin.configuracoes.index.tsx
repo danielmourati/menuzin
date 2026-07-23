@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -47,7 +47,6 @@ type FormState = {
 
 function SettingsPage() {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ["my-tenant"],
     queryFn: () => getMyTenant(),

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Sparkles, CheckCircle2, XCircle, Store } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "@tanstack/react-router";
 import { slugify } from "@/lib/utils";
 import { maskPhone } from "@/lib/masks";
 import { isSlugAvailable } from "@/lib/tenants.functions";
@@ -15,7 +14,6 @@ import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
