@@ -182,6 +182,17 @@ function SettingsPage() {
               <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
               <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>
               <div className="md:col-span-2">
+                <Label>Tipo de negócio</Label>
+                <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
+                  Define como sua loja aparece no Guia Menuzin. Selecionar <strong>Pizzaria</strong> habilita categorias de Pizza e Oferta do Dia.
+                </p>
+                <BusinessTypesField
+                  value={form.business_types}
+                  onChange={(v) => set("business_types", v)}
+                  max={5}
+                />
+              </div>
+              <div className="md:col-span-2">
                 <AdminAccountCard />
               </div>
             </TabsContent>
