@@ -84,7 +84,9 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
     onSuccess: () => {
       toast.success("Loja criada! Vamos completar seu perfil.");
       onOpenChange(false);
-      navigate({ to: "/admin/configuracoes", search: { onboarding: 1 } as never });
+      // Hard navigation garante que o query string chega ao destino
+      // e que o novo estado de auth é refletido em toda a árvore.
+      window.location.href = "/admin/configuracoes?onboarding=1";
     },
     onError: (e: Error) => toast.error(e.message),
   });

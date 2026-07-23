@@ -317,7 +317,7 @@ function SettingsPage() {
               className="w-full gap-2"
               onClick={() => {
                 setNextStepOpen(false);
-                navigate({ to: "/admin/cardapio/novo", search: { onboarding: 1 } as never });
+                window.location.href = "/admin/cardapio/novo?onboarding=1";
               }}
             >
               <Sparkles className="h-4 w-4" /> Montar meu cardápio agora
