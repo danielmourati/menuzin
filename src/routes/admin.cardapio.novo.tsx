@@ -110,11 +110,12 @@ function WizardPage() {
           description: "",
           sort_order: categories.length + 1,
           active: true,
-          kind: "standard",
+          kind: isPizzaria ? catKind : "standard",
         },
       });
       return res.id;
     },
+
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
       setCatId(id);
