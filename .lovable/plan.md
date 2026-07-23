@@ -1,69 +1,50 @@
-## Escopo
+## 1. Corrigir erro do plano Presença no checkout
 
-Quatro ajustes independentes conforme anexos.
+**Bug:** `CartDrawer` já detecta `isPresencaOnly` e mostra "Pedir pelo WhatsApp" na tela do carrinho, **mas** a função `openWhatsappPresenca` (linhas 195–203) usa um texto mínimo (só itens + subtotal). Além disso, se o cliente conseguir avançar por outro caminho, `ensureOrder → createOrder` continua sendo chamado e o backend responde `Esta loja recebe pedidos apenas pelo WhatsApp…`, causando o erro do console.
 
-### 1. Nomenclatura de planos em `/platform/lojas` (anexo 1)
-`src/routes/platform.lojas.tsx` (linhas 262–333) e `src/lib/platform.functions.ts` (linha 471) ainda listam `"max"` no Select e no schema Zod. O modelo atual só tem **Presença / Start / Pro** (`src/lib/plan-features.tsx`).
+**Correção em `src/components/storefront/CartDrawer.tsx`:**
+- Reescrever `buildWhatsappOrderMessage` usando o helper canônico `buildWhatsAppMessage` de `src/lib/whatsapp.ts` (já monta pedido completo: nº, cliente, modalidade, itens, endereço/mesa, pagamento, taxa, total, observação). O número do pedido usará `Date.now() % 100000` (não há registro no banco).
+- Rota alternativa "Presença": em vez de saltar direto do carrinho ao WhatsApp com dados vazios, transformar o fluxo em wizard reduzido — reaproveitar os passos existentes `mode → mode-address/mode-table → customer → review`, e no `review` substituir o botão "Confirmar" por **"Enviar pedido pelo WhatsApp"** que chama a nova versão de `openWhatsappPresenca(orderInput)` sem tocar `createOrder`.
+- Guard extra: em `ensureOrder`, se `isPresencaOnly` for true, abortar cedo com `openWhatsappPresenca()` e `return` — nunca deixa cair no backend.
 
-- Trocar as opções do `<Select>` para `presenca | start | pro` com rótulos "Presença", "Start", "Pro".
-- Ajustar tipo do cast em `adminUpdateTenant` para `"presenca" | "start" | "pro"`.
-- Atualizar o Zod enum de `adminUpdateTenant` em `platform.functions.ts` para os mesmos três slugs.
-- Exibir o badge do plano em `platform.lojas.tsx` (linha 159) usando `PLAN_LABEL` em vez do slug cru.
+## 2. Bloquear funcionalidades não contempladas no plano Presença
 
-### 2. Modal criar/editar loja com scroller (anexo 1)
-O `DialogContent` de `EditTenantDialog` (e do dialog de nova loja em `platform.tenants.novo.tsx`, se aplicável) não limita altura — em viewports pequenos o formulário estoura.
+**Impressoras — `src/routes/admin.configuracoes.impressora.tsx`:**
+Envolver o `PrinterSettingsPage` com `PlanGate min="pro" featureLabel="Configuração de impressora"`. Hoje só há gate para `multiplePrinters` no `ExtraPrintersManager`; a página principal fica acessível para Presença/Start. `kitchenPrinter`, `autoPrint` e `multiplePrinters` só existem no Pro.
 
-- Aplicar `max-h-[90vh] flex flex-col` no `DialogContent`.
-- Envolver o corpo do formulário num `<div className="overflow-y-auto -mx-6 px-6 flex-1">`, mantendo `DialogHeader` e `DialogFooter` fixos (mesmo padrão já usado em `admin.taxas-entrega.tsx` linha 332).
+**Pagamentos online — `src/routes/admin.configuracoes.pagamentos.tsx`:**
+Envolver `AdminPaymentSettingsPage` com `PlanGate min="start" featureLabel="Configurações de pagamento"` (bloqueia Presença 100%). Dentro da página, manter o bloco atual `!canMP → UpgradeNotice` para o Mercado Pago no Start (só Pro tem `mercadoPago`).
 
-### 3. Agrupar bairros duplicados por faixa de CEP em `/admin/taxas-entrega` (anexo 2)
-Hoje "Boa Esperança 1" e "Boa Esperança 2" aparecem como itens separados. O objetivo é consolidar visualmente entradas com o mesmo bairro (normalizado sem sufixo numérico/acento) na mesma cidade/UF, listando as faixas de CEP como sub-itens agregados — sem alterar schema nem dados.
+**Cardápio avançado (Presença tem catálogo 20/4):**
+Já há limites no backend (`getTenantPlanLimits`) — nenhuma mudança adicional aqui.
 
-- Criar helper local `normalizeNeighborhoodKey(name, city, uf)`: strip de acentos, lowercase, remoção de sufixo `\s+\d+$` (ex.: "Boa Esperança 1" → "boa esperanca|parnaiba|pi").
-- Agrupar `list` por essa chave antes de renderizar (linha 286). Quando o grupo tiver 1 item, manter o card atual. Quando tiver 2+:
-  - Card único com o nome base ("Boa Esperança") e badge "N faixas".
-  - Cada faixa listada abaixo com seu próprio CEP range, taxa, mín. e ações (editar/excluir/toggle) individuais — nenhuma operação em lote nesta iteração.
-  - Alerta discreto quando as taxas divergirem entre faixas do mesmo grupo ("Taxas diferentes cadastradas para este bairro").
-- Toggle "Agrupar bairros duplicados" (default ligado) para permitir voltar à visão plana em caso de necessidade.
+## 3. Auditoria de gates por plano
 
-Sem migração de dados; a mudança é somente de apresentação/UX.
+Rodar a matriz `PLAN_FEATURES` contra as rotas do sidebar e aplicar `PlanGate` onde faltar. Estado atual e ação:
 
-### 4. Bloqueio efetivo das funções por plano (anexo 3)
-Já existem `PLAN_FEATURES`, `canUse`, `useTenantPlan`, `requirePlanAtLeast` e algumas quebras (checkout Presença → WhatsApp, limites de criação em `catalog-admin.functions`). Falta cobrir as áreas que hoje ficam acessíveis mesmo em Presença/Start.
+| Rota | Feature exigida | Presença | Start | Pro | Ação |
+|---|---|---|---|---|---|
+| `/admin/dashboard` | `dashboard` | ❌ | ✅ | ✅ | `PlanGate min="start"` |
+| `/admin/pedidos` | `ordersPanel` | ❌ | ✅ | ✅ | `PlanGate min="start"` |
+| `/admin/relatorios` | `basicReports` | ❌ | ✅ | ✅ | `PlanGate min="start"` |
+| `/admin/avaliacoes` | `customerCrm` | ❌ | ✅ | ✅ | `PlanGate min="start"` |
+| `/admin/cupons` | `basicCoupons` | ❌ | ✅ | ✅ | já tem gate |
+| `/admin/taxas-entrega` | `basicReports` (proxy) | ❌ | ✅ | ✅ | já tem gate |
+| `/admin/configuracoes/pagamentos` | `onlinePayment` | ❌ | ❌ | ✅ | novo gate `min="start"` (Presença bloqueado) + gate MP interno |
+| `/admin/configuracoes/impressora` | `manualPrint` | ❌ | ✅ | ✅ | novo `PlanGate min="pro"` (impressoras QZ = Pro) |
+| `/admin/configuracoes/promocao` | `advancedCoupons` | ❌ | ❌ | ✅ | já tem gate |
+| `/admin/adicionais` | `advancedAddons` | ❌ | ❌ | ✅ | novo `PlanGate min="pro"` |
+| `/admin/observacoes` | `advancedAddons` | ❌ | ❌ | ✅ | novo `PlanGate min="pro"` |
 
-Auditar e aplicar gates nestes pontos (frontend + servidor):
+Rotas sem gate necessário (todos os planos): `produtos`, `categorias`, `cardapio/novo`, `diretorio`, `aparencia`, `configuracoes` (index), `assinatura`, `configuracoes/pedidos`.
 
-| Recurso | Plano mínimo | Frontend | Servidor |
-|---|---|---|---|
-| Painel de pedidos (`/admin/pedidos`, realtime, impressão) | Start | Bloquear rota com card "Disponível no Start" + CTA upgrade | `orders.functions` já rejeita criação em Presença — manter |
-| Cupons (`/admin/cupons`) | Start | Idem | `coupons.functions` valida `requirePlanAtLeast(tenantId,"start")` em create/update |
-| Taxas de entrega (`/admin/taxas-entrega`) | Start | Idem | `delivery-zones.functions` valida no upsert |
-| Pagamento online / Mercado Pago (`/admin/configuracoes/pagamentos`) | Pro | Bloquear rota | `payments.functions` + `store_payment_settings` upsert com `requireProPlan` |
-| Impressão automática / QZ / impressoras extras | Pro | Ocultar toggle "auto imprimir" e wizard QZ, mantendo impressão manual | `printer-settings.functions` rejeita habilitar auto sem Pro |
-| Destaques no Guia (opt-in em `/admin/diretorio` marcando como destaque) | Pro | Toggle de destaque desabilitado com tooltip | `directory-admin.functions` valida |
-| Avaliações agregadas / relatórios avançados | Pro | Gate na rota `/admin/relatorios` (bloquear métricas Pro-only) | `reports.functions` filtra métricas |
-| Promoções recorrentes / promo modal | Start | Gate no `/admin/configuracoes/promocao` | `promo-modal.functions` valida |
+Sidebar: adicionar ícone de cadeado ao lado do label quando `!can(feature)` (visual apenas — clique continua indo para a rota que já mostra `UpgradeNotice`).
 
-Padrão a seguir para cada gate:
+## 4. Impacto técnico
 
-```tsx
-// componente de rota
-const { plan, atLeast } = useTenantPlan();
-if (!atLeast("start")) return <PlanLockedCard required="start" current={plan} />;
-```
+Arquivos a editar:
+- `src/components/storefront/CartDrawer.tsx` — reescrever msg WhatsApp + guard em `ensureOrder` + fluxo review para Presença.
+- `src/routes/admin.configuracoes.pagamentos.tsx`, `admin.configuracoes.impressora.tsx`, `admin.dashboard.tsx`, `admin.pedidos.tsx`, `admin.relatorios.tsx`, `admin.avaliacoes.tsx`, `admin.adicionais.tsx`, `admin.observacoes.tsx` — envolver com `PlanGate`.
+- `src/components/admin/AdminLayout.tsx` — badge de cadeado nos itens bloqueados (consulta `useTenantPlan().can`).
 
-```ts
-// server function
-await requirePlanAtLeast(tenantId, "start");
-```
-
-- Criar componente reutilizável `src/components/subscription/PlanLockedCard.tsx` com título, descrição, lista de features do plano alvo (`PLAN_FEATURES`) e botão "Fazer upgrade" → `/admin/assinatura`.
-- Nas telas listadas, manter o `AdminLayout` e trocar apenas o conteúdo pelo `PlanLockedCard` quando o plano não atender ao mínimo.
-- Não alterar RLS nem a estrutura das server functions — só somar `await requirePlanAtLeast(...)` no topo do handler correspondente.
-
-### Detalhes técnicos
-
-- Todas as edições ficam em código de rota / componentes / server functions existentes; nenhuma migração de banco.
-- Nenhum novo pacote.
-- `platform.functions.ts::adminUpdateTenant` já usa `supabaseAdmin` e não valida plano — só ajustar enum.
-- Manter compatibilidade: tenants antigos com `plan="max"` no banco (se existirem) passam por `normalizePlan` que já cai em `"presenca"`; não haverá crash, mas ao editar o Select mostrará "Presença" — aceitável e corrige o dado ao salvar.
+Nenhuma migração de banco. Nenhum novo pacote.
