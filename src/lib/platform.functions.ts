@@ -124,8 +124,6 @@ const SlugSchema = z
   .regex(/^[a-z0-9-]+$/)
   .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
 
-import { BUSINESS_TYPES } from "@/lib/business-types";
-
 const CreateTenantInput = z.object({
   slug: SlugSchema,
   name: z.string().min(2).max(120),
