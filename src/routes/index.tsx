@@ -381,14 +381,27 @@ function Landing() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    className="mt-8 w-full gap-2"
-                    size="lg"
-                    variant={highlighted ? "default" : "outline"}
-                    onClick={() => setSignupOpen(true)}
-                  >
-                    <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-                  </Button>
+                  {p.id === "presenca" ? (
+                    <Button
+                      className="mt-8 w-full gap-2"
+                      size="lg"
+                      variant={highlighted ? "default" : "outline"}
+                      onClick={() => setSignupOpen(true)}
+                    >
+                      <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      className="mt-8 w-full gap-2"
+                      size="lg"
+                      variant={highlighted ? "default" : "outline"}
+                    >
+                      <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4" /> {p.cta}
+                      </a>
+                    </Button>
+                  )}
                 </div>
               );
             })}
