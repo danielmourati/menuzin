@@ -444,6 +444,7 @@ function AdicionaisPage() {
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </AdminLayout>
   );
 }
