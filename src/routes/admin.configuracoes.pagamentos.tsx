@@ -12,11 +12,11 @@ import {
   getStorePaymentSettings,
   connectMercadoPago,
   disconnectMercadoPago,
-  simulateMpConnectSuccess,
   updatePaymentSettings,
   testPayment,
   saveMpCredentials,
 } from "@/lib/payment-service";
+import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment-types";
 import { toast } from "sonner";
 import { AlertCircle, CreditCard, Landmark, Wallet, DollarSign, HelpCircle, ArrowLeft, RefreshCw } from "lucide-react";
