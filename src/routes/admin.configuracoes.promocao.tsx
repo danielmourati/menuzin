@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Upload, Trash2 } from "lucide-react";
+import { Loader2, Upload, Trash2, ArrowLeft } from "lucide-react";
+
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -145,9 +146,17 @@ function PromoModalSettingsPage() {
     setWeekdays((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v].sort()));
   }
 
+  const backAction = (
+    <Button variant="outline" asChild>
+      <Link to="/admin/configuracoes">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+      </Link>
+    </Button>
+  );
+
   if (promoQ.isLoading) {
     return (
-      <AdminLayout title="Modal promocional">
+      <AdminLayout title="Modal promocional" action={backAction}>
         <div className="grid place-items-center py-16">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
@@ -156,7 +165,8 @@ function PromoModalSettingsPage() {
   }
 
   return (
-    <AdminLayout title="Modal promocional">
+    <AdminLayout title="Modal promocional" action={backAction}>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card>
           <CardContent className="space-y-6 p-6">

@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, PartyPopper, ArrowRight, Rocket } from "lucide-react";
+import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
@@ -104,10 +104,11 @@ function SettingsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
       toast.success("Configurações salvas");
-      if (onboarding) setNextStepOpen(true);
+      setNextStepOpen(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -120,8 +121,9 @@ function SettingsPage() {
       action={
         <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !tenant}>
           {saveMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Salvar
+          Salvar Configurações
         </Button>
+
       }
     >
       {onboarding && (
@@ -289,13 +291,17 @@ function SettingsPage() {
               <div><Label>Facebook</Label><Input placeholder="/suamarca" className="mt-1.5" /></div>
             </TabsContent>
 
-            <TabsContent value="link" className="mt-6">
-              <Label>Link público da sua loja</Label>
-              <div className="mt-1.5 flex gap-2">
-                <Input readOnly value={publicLink} />
-                <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(publicLink); toast.success("Copiado"); }}>Copiar</Button>
+            <TabsContent value="link" className="mt-6 space-y-4">
+              <div>
+                <Label>Link público da sua loja</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <Input readOnly value={publicLink} />
+                  <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(publicLink); toast.success("Copiado"); }}>Copiar</Button>
+                </div>
               </div>
+              <QrCodeCard url={publicLink} slug={tenant?.slug ?? "menuzin"} />
             </TabsContent>
+
           </Tabs>
         </CardContent></Card>
       )}
@@ -413,4 +419,72 @@ function AdminAccountCard() {
     </div>
   );
 }
+
+function QrCodeCard({ url, slug }: { url: string; slug: string }) {
+  const [dataUrl, setDataUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    import("qrcode").then((QR) =>
+      QR.toDataURL(url, { width: 512, margin: 2, color: { dark: "#0f172a", light: "#ffffff" } })
+        .then((d) => { if (!cancelled) setDataUrl(d); })
+        .catch(() => { if (!cancelled) setDataUrl(""); })
+    );
+    return () => { cancelled = true; };
+  }, [url]);
+
+  const download = () => {
+    if (!dataUrl) return;
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `menuzin-${slug}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const share = async () => {
+    if (typeof navigator === "undefined" || !navigator.share) return;
+    try {
+      await navigator.share({ title: "Meu cardápio no Menuzin", text: "Confira nosso cardápio:", url });
+    } catch { /* noop */ }
+  };
+
+  const canShare = typeof navigator !== "undefined" && !!navigator.share;
+
+  return (
+    <div className="rounded-xl border bg-card p-6">
+      <div className="mb-3">
+        <h3 className="text-base font-bold">QR Code de divulgação</h3>
+        <p className="text-xs text-muted-foreground">
+          Imprima ou compartilhe este QR Code. Ao escanear, o cliente é direcionado direto para o seu cardápio.
+        </p>
+      </div>
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+        <div className="grid h-56 w-56 place-items-center rounded-xl border bg-white p-3">
+          {dataUrl ? (
+            <img src={dataUrl} alt={`QR Code do cardápio ${slug}`} className="h-full w-full object-contain" />
+          ) : (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          )}
+        </div>
+        <div className="flex flex-1 flex-col gap-2">
+          <Button onClick={download} disabled={!dataUrl} className="gap-2">
+            <Download className="h-4 w-4" /> Baixar PNG
+          </Button>
+          {canShare && (
+            <Button variant="outline" onClick={share} className="gap-2">
+              <Share2 className="h-4 w-4" /> Compartilhar
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Dica: cole o QR Code em cardápios impressos, embalagens, adesivos de mesa e vitrine.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
