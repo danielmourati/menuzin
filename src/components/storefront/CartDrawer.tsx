@@ -231,7 +231,7 @@ export function CartDrawer({
     }
     const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(buildWhatsappOrderMessage())}`;
     window.open(url, "_blank", "noopener");
-    onClose?.();
+    onOpenChange(false);
   };
 
 
