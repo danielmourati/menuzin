@@ -63,6 +63,7 @@ function emptyDraft(): GroupDraft {
 
 function AdicionaisPage() {
   const qc = useQueryClient();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const groupsQ = useQuery({
     queryKey: ["admin", "addon-groups"],
