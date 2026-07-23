@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -267,33 +267,77 @@ export function ProductModal({
     onOpenChange(false);
   };
 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const handleScroll = () => {
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const y = scrollRef.current?.scrollTop ?? 0;
+      if (imgRef.current) {
+        const translate = Math.min(y * 0.35, 120);
+        const scale = 1 + Math.min(y, 200) * 0.0006;
+        imgRef.current.style.transform = `translate3d(0, ${translate}px, 0) scale(${scale})`;
+      }
+      if (overlayRef.current) {
+        overlayRef.current.style.opacity = String(Math.min(y / 220, 0.45));
+      }
+    });
+  };
+
+  const isDefaultImg = isDefaultProductImage(product.image);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
+        className="relative flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
-        <div className="relative shrink-0">
-          <div className="relative h-48 w-full overflow-hidden bg-muted sm:h-56">
-            <img src={productImage(product.image)} alt={product.name} className={`h-full w-full ${isDefaultProductImage(product.image) ? "object-contain p-8" : "object-cover"}`} loading="eager" fetchPriority="high" decoding="async" />
-          </div>
-          <Button
-            size="icon" variant="default"
-            onClick={() => onOpenChange(false)}
-            className="absolute left-3 top-3 z-10 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-background hover:bg-primary/90"
-            aria-label="Voltar"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          {product.featured && (
-            <span className="absolute right-3 top-3 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-md">
-              Destaque
-            </span>
-          )}
+        {/* Camada 1: imagem fixa com parallax */}
+        <div className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-56 overflow-hidden sm:h-64 ${isDefaultImg ? "bg-muted" : "bg-black"}`}>
+          <img
+            ref={imgRef}
+            src={productImage(product.image)}
+            alt={product.name}
+            className={`h-full w-full will-change-transform ${isDefaultImg ? "object-contain p-8" : "object-cover"}`}
+            style={{ transform: "translate3d(0,0,0) scale(1)" }}
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+          />
+          <div ref={overlayRef} className="absolute inset-0 bg-black" style={{ opacity: 0 }} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/20" />
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-card px-5 pt-5">
+        {/* Camada 3: chrome (voltar / destaque) */}
+        <Button
+          size="icon" variant="default"
+          onClick={() => onOpenChange(false)}
+          className="absolute left-3 top-3 z-20 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg ring-2 ring-background hover:bg-primary/90"
+          aria-label="Voltar"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        {product.featured && (
+          <span className="absolute right-3 top-3 z-20 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-md">
+            Destaque
+          </span>
+        )}
+
+        {/* Camada 2: conteúdo com scroll que sobrepõe a imagem (parallax) */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="relative z-10 flex-1 overflow-y-auto"
+        >
+          <div aria-hidden className="h-48 sm:h-56" />
+          <div className="relative -mt-6 rounded-t-3xl bg-card px-5 pt-6 shadow-[0_-10px_28px_-14px_rgba(0,0,0,0.25)]">
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/25" />
+
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
           <p className="mt-1 text-base">
             {isPizzaCategory && n === 0 && pizzaStartingFrom > 0 ? (
@@ -737,7 +781,9 @@ export function ProductModal({
           )}
 
           <div className="pb-6" />
+          </div>
         </div>
+
 
         <div className="shrink-0 border-t bg-card px-4 py-3">
           {validations.length > 0 && (

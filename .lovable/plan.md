@@ -1,49 +1,32 @@
+## Objetivo
+No `ProductModal`, transformar a imagem do produto em um bloco fixo no topo, enquanto o conteúdo (nome, preço, seções) rola por cima com efeito parallax — como no iFood/aiqfome moderno.
 
-## Diagnóstico (confirmado por query)
+## Comportamento
+- Imagem ocupa o topo do modal (h-56 mobile / h-64 desktop) e **permanece fixa** enquanto o usuário rola.
+- Conteúdo desliza sobre a imagem, com a borda superior arredondada (`rounded-t-3xl`) e leve sombra, criando a sensação de "folha subindo".
+- Parallax sutil: a imagem se desloca ~30% da velocidade do scroll (translateY negativo) e recebe um leve zoom/escurecimento conforme o conteúdo cobre.
+- Botão "Voltar" e badge "Destaque" permanecem ancorados no topo da imagem (posição absoluta no header do modal, acima do conteúdo).
+- Footer com quantidade + "Adicionar" segue fixo no rodapé (comportamento atual mantido).
 
-- **Pizza D'Primeira** não tem linha em `tenant_subscriptions` (por isso aparece como "SEM ASSINATURA" e sem ações). A listagem em `/platform/assinaturas` gera uma linha "virtual" (`id = "virtual-..."`), e a coluna Ações esconde os botões justamente porque `isVirtual === true`.
-- **Comparativos**: Burger Prime (Pro, ativa), Churrascaria Vila Boêmia (Presença, ativa) e Restaurante O Nêgo (Presença, ativa) têm todos linha real em `tenant_subscriptions`.
-- **Bônus observado (fora do escopo)**: `Restaurante O Nêgo` tem `tenants.plan = 'pro'` mas assinatura Presença — divergência real de plano; posso corrigir num passo separado se você confirmar.
+## Implementação técnica
+Arquivo único: `src/components/storefront/ProductModal.tsx`
 
-## Correção proposta
+1. Reestruturar o layout interno do `DialogContent`:
+   - Wrapper `relative` ocupando todo o modal.
+   - **Camada 1 (imagem)**: `absolute inset-x-0 top-0 h-56 sm:h-64`, com `<img>` em `object-cover` + overlay gradiente sutil.
+   - **Camada 2 (scroll container)**: `relative h-full overflow-y-auto`, com `padding-top` igual à altura da imagem. Primeiro filho é um "espaçador" transparente, seguido do painel de conteúdo com `bg-card rounded-t-3xl -mt-6 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.15)]` para sobrepor a imagem.
+   - **Camada 3 (chrome)**: botão voltar/badge em `absolute z-20`, sempre visíveis.
 
-### 1. Backfill + trigger no banco (migração)
-- **Backfill**: para todo tenant sem `tenant_subscriptions`, criar uma linha:
-  - `plan_id` = plano `presenca`
-  - `status` = `ativa`, `billing_period` = `mensal`, `amount` = 0
-  - `due_date` = `null`, `grace_days` = 0, `auto_block_enabled` = false
-  - `notes` = "Criado automaticamente (plano Presença)"
-- **Trigger `AFTER INSERT` em `public.tenants`**: cria automaticamente a mesma linha para novos tenants, garantindo que nunca mais apareça "sem assinatura".
+2. Parallax:
+   - `onScroll` no container captura `scrollTop`.
+   - Aplicar `transform: translateY(${scrollTop * 0.3}px) scale(${1 + scrollTop * 0.0005})` na imagem via `ref` + estilo inline.
+   - Overlay escurece proporcionalmente (`opacity: Math.min(scrollTop / 200, 0.4)`).
+   - Usar `requestAnimationFrame` para suavizar.
 
-Isso resolve o caso de Pizza D'Primeira criando uma assinatura real Presença/ativa, idêntica em forma às demais.
+3. Preservar o tratamento de imagem padrão (`isDefaultProductImage` → `object-contain p-8`).
 
-### 2. Remover fallback "virtual" na listagem
-- Em `src/lib/subscriptions.functions.ts` (`adminListSubscriptions`): remover o bloco que sintetiza linhas `virtual-*`. Como o trigger garante 1 linha por tenant, a lista fica consistente.
+4. Ajustar `pt-5` do container de conteúdo para compensar o novo `rounded-t-3xl`.
 
-### 3. Habilitar Ações uniformes na tabela
-- Em `src/routes/platform.assinaturas.tsx`:
-  - Remover a condicional `!isVirtual` — botões **Editar** e **Histórico** aparecem para todas as linhas.
-  - Remover o chip "SEM ASSINATURA" (não haverá mais linhas virtuais).
-  - Manter o label "Ativa (grátis)" para plano Presença.
-
-## Detalhes técnicos
-
-**SQL (esboço da migração):**
-```sql
-INSERT INTO public.tenant_subscriptions (tenant_id, plan_id, status, billing_period, amount, notes)
-SELECT t.id, p.id, 'ativa', 'mensal', 0, 'Criado automaticamente (plano Presença)'
-FROM public.tenants t
-CROSS JOIN LATERAL (SELECT id FROM public.plans WHERE slug='presenca' LIMIT 1) p
-WHERE NOT EXISTS (SELECT 1 FROM public.tenant_subscriptions s WHERE s.tenant_id = t.id);
-
-CREATE OR REPLACE FUNCTION public.create_default_subscription_for_tenant() ...
-CREATE TRIGGER trg_tenant_default_subscription AFTER INSERT ON public.tenants ...
-```
-
-**Arquivos afetados:**
-- Migração nova (backfill + função + trigger)
-- `src/lib/subscriptions.functions.ts` (remover bloco virtual)
-- `src/routes/platform.assinaturas.tsx` (remover `isVirtual` gate nas Ações e o chip)
-
-## Confirmar antes de prosseguir
-Corrijo também o mismatch de `Restaurante O Nêgo` (tenant.plan='pro' vs assinatura Presença) no mesmo passo? Se sim, digo qual é a fonte-de-verdade (assinatura vence).
+## Fora de escopo
+- Não altera lógica de preços, validações, addons, pizza, brindes ou carrinho.
+- Não mexe em `ProductCard`, `Storefront`, ou outros componentes.
