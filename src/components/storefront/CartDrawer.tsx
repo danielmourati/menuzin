@@ -456,10 +456,10 @@ export function CartDrawer({
 
   // Persist a draft order if not already created (used before online MP call).
   // Returns the order id AND number to avoid React setState race conditions.
-  const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number }> => {
+  const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number } | null> => {
     if (isPresencaOnly) {
       openWhatsappPresenca();
-      throw new Error("Esta loja recebe pedidos apenas pelo WhatsApp.");
+      return null;
     }
     if (dbOrderId && dbOrderNumber != null) return { id: dbOrderId, number: dbOrderNumber };
 
@@ -505,7 +505,7 @@ export function CartDrawer({
     });
     if (!res.order) {
       openWhatsappPresenca();
-      throw new Error(res.reason ?? "Esta loja recebe pedidos apenas pelo WhatsApp.");
+      return null;
     }
     setDbOrderId(res.order.id);
     setDbOrderNumber(res.order.number);
@@ -528,7 +528,12 @@ export function CartDrawer({
     if (m === "pix_online") {
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
-        const { id: orderId } = await ensureOrder(methodLabels[m]);
+        const persisted = await ensureOrder(methodLabels[m]);
+        if (!persisted) {
+          toast.dismiss(toastId);
+          return;
+        }
+        const { id: orderId } = persisted;
         const res = await createPixPayment({
           store_slug: slug || "",
           order_id: orderId,
@@ -550,7 +555,8 @@ export function CartDrawer({
     } else if (m === "credit_card" || m === "debit_card") {
       // Ensure order exists so CardCheckout has a real order_id to bind
       try {
-        await ensureOrder(methodLabels[m]);
+        const persisted = await ensureOrder(methodLabels[m]);
+        if (!persisted) return;
         goTo("payment-online-card");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Falha ao iniciar pagamento.";
@@ -572,7 +578,9 @@ export function CartDrawer({
     installments: number;
     cardToken: string;
   }) => {
-    const { id: orderId } = await ensureOrder(paymentMethod);
+    const persisted = await ensureOrder(paymentMethod);
+    if (!persisted) return null;
+    const { id: orderId } = persisted;
     const res = await createCardPayment({
       store_slug: slug || "",
       order_id: orderId,
@@ -623,6 +631,7 @@ export function CartDrawer({
       let orderNumber: number;
       try {
         const persisted = await ensureOrder(paymentMethod);
+        if (!persisted) return;
         orderId = persisted.id;
         orderNumber = persisted.number;
       } catch (err) {
