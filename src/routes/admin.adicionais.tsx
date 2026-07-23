@@ -23,9 +23,16 @@ import {
   listMyCategories, listMyProducts,
 } from "@/lib/catalog-admin.functions";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/adicionais")({
-  component: AdicionaisPage,
+  component: () => (
+    <PlanGate min="pro" title="Adicionais" featureLabel="Grupos de adicionais">
+      <AdicionaisPage />
+    </PlanGate>
+  ),
 });
+
 
 type GroupDraft = {
   id?: string;

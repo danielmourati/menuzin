@@ -14,8 +14,13 @@ import { useAuth } from "@/lib/auth-context";
 import { exportReportToPdf, exportReportToExcel } from "@/lib/reports-export";
 
 export const Route = createFileRoute("/admin/relatorios")({
-  component: ReportsPage,
+  component: () => (
+    <PlanGate min="start" title="Relatórios" featureLabel="Relatórios">
+      <ReportsPage />
+    </PlanGate>
+  ),
 });
+
 
 type Preset = "today" | "7d" | "month" | "custom";
 

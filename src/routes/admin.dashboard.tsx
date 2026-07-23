@@ -23,8 +23,13 @@ export const Route = createFileRoute("/admin/dashboard")({
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
-  component: DashboardPage,
+  component: () => (
+    <PlanGate min="start" title="Dashboard" featureLabel="Painel administrativo">
+      <DashboardPage />
+    </PlanGate>
+  ),
 });
+
 
 const chartColors = ["oklch(0.66 0.22 35)", "oklch(0.78 0.16 75)", "oklch(0.62 0.16 145)", "oklch(0.55 0.18 260)"];
 

@@ -31,9 +31,16 @@ import { QzPrinterWizard } from "@/components/printer/QzPrinterWizard";
 import { ExtraPrintersManager } from "@/components/printer/ExtraPrintersManager";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
-  component: PrinterSettingsPage,
+  component: () => (
+    <PlanGate min="pro" title="Impressora" featureLabel="Configuração de impressora">
+      <PrinterSettingsPage />
+    </PlanGate>
+  ),
 });
+
 
 function PrinterSettingsPage() {
   const qc = useQueryClient();
