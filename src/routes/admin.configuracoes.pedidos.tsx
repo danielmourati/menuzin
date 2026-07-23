@@ -32,10 +32,6 @@ function OrderSettingsPage() {
     toast.success("Som de teste reproduzido!");
   };
 
-  const handleManualSimulate = () => {
-    simulateNewOrder();
-    toast.success("Novo pedido simulado!");
-  };
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
