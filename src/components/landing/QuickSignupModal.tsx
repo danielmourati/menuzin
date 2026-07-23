@@ -146,9 +146,12 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
         {/* Stepper */}
         <div className="px-6 pt-2 shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="mx-auto flex max-w-sm items-start justify-center">
             {STEPS.map((s, idx) => (
-              <div key={s.id} className="flex flex-1 items-center">
+              <div
+                key={s.id}
+                className={`flex items-start ${idx < STEPS.length - 1 ? "flex-1" : ""}`}
+              >
                 <div className="flex flex-col items-center gap-1">
                   <div
                     className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${
@@ -159,13 +162,13 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                   >
                     {step > s.id ? <CheckCircle2 className="h-4 w-4" /> : s.id}
                   </div>
-                  <span className={`text-[10px] ${step >= s.id ? "text-foreground" : "text-muted-foreground"}`}>
+                  <span className={`whitespace-nowrap text-[10px] ${step >= s.id ? "text-foreground" : "text-muted-foreground"}`}>
                     {s.label}
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (
                   <div
-                    className={`mx-1 h-0.5 flex-1 rounded-full ${
+                    className={`mx-2 mt-3 h-0.5 flex-1 rounded-full ${
                       step > s.id ? "bg-primary" : "bg-muted"
                     }`}
                   />
@@ -174,6 +177,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
             ))}
           </div>
         </div>
+
 
         <div className="overflow-y-auto px-6 pb-6 mt-2">
           {step === 1 && (
