@@ -56,10 +56,8 @@ export function FeaturedScroller({
                     loading="lazy"
                     decoding="async"
                   />
-                  <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide shadow-sm ${badgeClassName}`}>
-                    {badgeLabel}
-                  </span>
                   {unavailable && (
+
                     <div className="absolute inset-0 grid place-items-center bg-background/60">
                       <Badge variant="secondary">Indisponível</Badge>
                     </div>
