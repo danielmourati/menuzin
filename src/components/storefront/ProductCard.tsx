@@ -8,12 +8,10 @@ export function ProductCard({
   product,
   onClick,
   view = "grid",
-  tenantSlug,
 }: {
   product: Product;
   onClick: () => void;
   view?: "grid" | "list";
-  tenantSlug?: string;
 }) {
   const unavailable = !product.available;
   const isPizza = product.categoryKind === "pizza";
