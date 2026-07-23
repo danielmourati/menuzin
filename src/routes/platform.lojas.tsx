@@ -157,7 +157,7 @@ function PlatformStores() {
                   <Badge variant="secondary" className={statusTone[s.status] ?? ""}>
                     {s.status}
                   </Badge>
-                  <Badge variant="outline">{s.plan}</Badge>
+                  <Badge variant="outline">{PLAN_LABEL[normalizePlan(s.plan)]}</Badge>
                   {!s.active && <Badge variant="destructive">inativa</Badge>}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
