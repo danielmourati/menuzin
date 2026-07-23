@@ -19,7 +19,7 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import type { DbCategory } from "@/lib/db-types";
 import { PizzaCategoryConfigDialog } from "@/components/admin/PizzaCategoryConfigDialog";
-import { useConfirm } from "@/hooks/useConfirm";
+import { confirmDialog } from "@/hooks/useConfirm";
 
 
 export const Route = createFileRoute("/admin/categorias")({
