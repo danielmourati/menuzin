@@ -279,37 +279,6 @@ export const adminListSubscriptions = createServerFn({ method: "POST" })
       .order("due_date", { ascending: true, nullsFirst: false });
     let list = (rows ?? []) as Array<SubscriptionRow & { tenant: { id: string; name: string; slug: string } | null }>;
 
-    // Inclui tenants SEM assinatura como linha sintética (plano presença por padrão)
-    const { data: allTenants } = await supabaseAdmin
-      .from("tenants")
-      .select("id, name, slug, plan, created_at")
-      .order("name");
-    const withSub = new Set(list.map((s) => s.tenant_id));
-    const { data: presencaPlan } = await supabaseAdmin
-      .from("plans").select("*").eq("slug", "presenca").maybeSingle();
-    const presenca = presencaPlan as unknown as PlanRow | null;
-    for (const t of allTenants ?? []) {
-      const row = t as { id: string; name: string; slug: string; plan: string | null; created_at: string };
-      if (withSub.has(row.id)) continue;
-      list.push({
-        id: `virtual-${row.id}`,
-        tenant_id: row.id,
-        plan_id: presenca?.id ?? "",
-        status: "ativa",
-        billing_period: "mensal",
-        amount: 0,
-        start_date: row.created_at,
-        due_date: null,
-        grace_days: 0,
-        auto_block_enabled: false,
-        blocked_at: null,
-        unblocked_at: null,
-        notes: "Sem assinatura registrada (plano Presença)",
-        plan: presenca,
-        tenant: { id: row.id, name: row.name, slug: row.slug },
-      } as SubscriptionRow & { tenant: { id: string; name: string; slug: string } | null });
-    }
-
     if (data.plan_slug) list = list.filter((s) => s.plan?.slug === data.plan_slug);
     const now = new Date();
     const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
