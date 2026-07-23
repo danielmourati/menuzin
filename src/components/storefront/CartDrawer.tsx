@@ -1495,6 +1495,31 @@ export function CartDrawer({
                 </div>
               )}
 
+              {/* PIX manual — enviar comprovante via WhatsApp (Start) */}
+              {isStartPlan && selectedMethod === "pix_manual" && (tenant?.whatsapp ?? "") && (
+                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Smartphone className="h-5 w-5 text-primary" /> Envie o comprovante
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Após pagar o PIX, envie o comprovante ao lojista pelo WhatsApp para agilizar a confirmação.
+                  </p>
+                  <Button
+                    type="button"
+                    className="mt-3 h-11 w-full bg-success text-success-foreground hover:bg-success/90"
+                    onClick={() => {
+                      const raw = (tenant?.whatsapp ?? "").replace(/\D/g, "");
+                      if (!raw) return toast.error("Loja sem WhatsApp cadastrado.");
+                      const phoneWa = raw.startsWith("55") ? raw : "55" + raw;
+                      const msg = `Olá! Segue comprovante do PIX referente ao meu pedido${dbOrderNumber ? ` #${dbOrderNumber}` : ""} — ${name || "cliente"}. Total: ${brl(total)}.`;
+                      window.open(`https://wa.me/${phoneWa}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+                    }}
+                  >
+                    Enviar comprovante via WhatsApp
+                  </Button>
+                </div>
+              )}
+
               {/* Items */}
               <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-center justify-between">
