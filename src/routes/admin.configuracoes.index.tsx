@@ -125,6 +125,19 @@ function SettingsPage() {
         </Button>
       }
     >
+      {onboarding && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-orange-100/40 p-4">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold">Bem-vindo(a) ao Menuzin!</p>
+            <p className="text-sm text-muted-foreground">
+              Complete os dados da sua loja aqui embaixo e clique em <strong>Salvar</strong>. Depois vamos montar seu cardápio.
+            </p>
+          </div>
+        </div>
+      )}
       {isLoading ? (
         <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
