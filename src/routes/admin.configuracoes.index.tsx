@@ -300,6 +300,35 @@ function SettingsPage() {
           </Tabs>
         </CardContent></Card>
       )}
+
+      <Dialog open={nextStepOpen} onOpenChange={setNextStepOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Rocket className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center">Loja configurada!</DialogTitle>
+            <DialogDescription className="text-center">
+              Agora vamos cadastrar seus primeiros produtos com o assistente guiado.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:flex-col sm:gap-2 sm:space-x-0">
+            <Button
+              className="w-full gap-2"
+              onClick={() => {
+                setNextStepOpen(false);
+                navigate({ to: "/admin/cardapio/novo", search: { onboarding: 1 } as never });
+              }}
+            >
+              <Sparkles className="h-4 w-4" /> Montar meu cardápio agora
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setNextStepOpen(false)}>
+              Fazer isso depois
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
