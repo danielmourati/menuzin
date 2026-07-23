@@ -122,26 +122,10 @@ function AdminPaymentSettingsPage() {
   };
 
   const handleConnectMP = async () => {
-    setMpStatus("connecting");
-    try {
-      const { authorization_url } = await connectMercadoPago(storeId);
-      toast.info("Iniciando conexão segura com Mercado Pago...");
-
-      // Simular redirecionamento de sucesso do OAuth após 2 segundos
-      setTimeout(async () => {
-        await simulateMpConnectSuccess(storeId);
-        const data = await getStorePaymentSettings(storeId);
-        if (data) {
-          setSettings(data);
-          setMpStatus("connected");
-          setConnectedVia("oauth");
-          toast.success("Conta Mercado Pago conectada com sucesso!");
-        }
-      }, 2000);
-    } catch (err) {
-      setMpStatus("error");
-      toast.error("Falha ao iniciar conexão OAuth.");
-    }
+    // Conexão OAuth automática ainda não disponível — instrui o lojista a usar credenciais manuais.
+    toast.info(
+      "Conexão automática (OAuth) em breve. Use a aba 'Credenciais Manuais' para conectar sua conta agora."
+    );
   };
 
   const handleConnectMPManual = async (
