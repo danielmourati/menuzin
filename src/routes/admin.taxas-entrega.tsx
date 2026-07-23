@@ -169,6 +169,24 @@ function DeliveryZonesPage() {
   });
 
   const list = data ?? [];
+  const [groupDuplicates, setGroupDuplicates] = useState(true);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, { key: string; baseName: string; city: string; uf: string; items: DeliveryZoneRow[] }>();
+    for (const z of list) {
+      const key = neighborhoodKey(z.neighborhood, z.city ?? "", (z.uf ?? "").toUpperCase());
+      const existing = map.get(key);
+      if (existing) existing.items.push(z);
+      else map.set(key, {
+        key,
+        baseName: neighborhoodBaseName(z.neighborhood),
+        city: z.city ?? "",
+        uf: (z.uf ?? "").toUpperCase(),
+        items: [z],
+      });
+    }
+    return Array.from(map.values());
+  }, [list]);
 
   const openNew = () => { setEditing(empty({ city: tenantCity, uf: tenantUf })); setOpen(true); };
   const openEdit = (z: DeliveryZoneRow) => {
