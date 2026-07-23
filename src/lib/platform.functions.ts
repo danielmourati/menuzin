@@ -26,9 +26,11 @@ export type PlatformStoreRow = {
   plan: string;
   active: boolean;
   created_at: string;
+  business_types: string[];
   orders_month: number;
   revenue_month: number;
 };
+
 
 export const listPlatformStores = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -36,7 +38,7 @@ export const listPlatformStores = createServerFn({ method: "POST" })
     await ensurePlatformAdmin(context.userId);
 
     const { data: tenants, error: tErr } = await supabaseAdmin
-      .from("tenants").select("id, name, slug, city, state, status, plan, active, created_at")
+      .from("tenants").select("id, name, slug, city, state, status, plan, active, created_at, business_types")
       .order("created_at", { ascending: false });
     if (tErr) throw new Error(tErr.message);
 
@@ -65,6 +67,7 @@ export const listPlatformStores = createServerFn({ method: "POST" })
         plan: t.plan as string,
         active: t.active as boolean,
         created_at: t.created_at as string,
+        business_types: ((t as { business_types?: string[] }).business_types ?? []),
         orders_month: agg.count,
         revenue_month: agg.revenue,
       };
@@ -468,6 +471,7 @@ const UpdateTenantInput = z.object({
   active: z.boolean().optional(),
   theme_from: z.string().max(40).optional(),
   theme_to: z.string().max(40).optional(),
+  business_types: z.array(z.enum(BUSINESS_TYPES)).max(5).optional(),
 });
 
 export const adminUpdateTenant = createServerFn({ method: "POST" })

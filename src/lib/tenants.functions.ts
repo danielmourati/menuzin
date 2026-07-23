@@ -4,6 +4,8 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveEffectiveTenantId, tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
+import { BUSINESS_TYPES } from "@/lib/business-types";
+
 
 const SlugSchema = z
   .string()
@@ -122,6 +124,7 @@ const UpdateTenantInput = z.object({
   delivery_mode: z.enum(["none", "single", "neighborhood"]).optional(),
   notification_sound_url: z.string().max(2000).nullable().optional(),
   notification_sound_name: z.string().max(200).nullable().optional(),
+  business_types: z.array(z.enum(BUSINESS_TYPES)).max(5).optional(),
 });
 
 
