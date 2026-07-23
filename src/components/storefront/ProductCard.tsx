@@ -22,29 +22,6 @@ export function ProductCard({
   const minSizePrice = positiveSizePrices.length > 0 ? Math.min(...positiveSizePrices) : undefined;
   const displayPrice = isPizza && minSizePrice != null ? minSizePrice : (product.promoPrice ?? product.price);
   const showFromPrefix = isPizza;
-  const externalBadges = tenantSlug === "vilaboemia";
-
-  const badges = (
-    <>
-      {product.bestseller && (
-        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white shadow-sm whitespace-nowrap">
-          🔥 Mais vendido
-        </span>
-      )}
-      {isOferta && externalBadges && (
-        <span className="rounded-full bg-destructive px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-destructive-foreground shadow-sm whitespace-nowrap">
-          Oferta
-        </span>
-      )}
-      {product.featured && (
-        <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground shadow-sm whitespace-nowrap">
-          Destaque
-        </span>
-      )}
-    </>
-  );
-
-  const hasAnyBadge = product.bestseller || product.featured || (isOferta && externalBadges);
 
   if (view === "list") {
     return (
