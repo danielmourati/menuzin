@@ -25,7 +25,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/promocao")({
   component: () => (
-    <PlanGate min="pro" title="Pop-up promocional" featureLabel="Pop-up promocional na loja">
+    <PlanGate min="pro" title="Pop-up promocional" featureLabel="Pop-up promocional na loja" backTo="/admin/configuracoes">
       <PromoModalSettingsPage />
     </PlanGate>
   ),
