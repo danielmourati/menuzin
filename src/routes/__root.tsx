@@ -131,6 +131,7 @@ function RootComponent() {
           <CartProvider>
             <Outlet />
             <Toaster position="top-center" richColors />
+            <ConfirmDialogHost />
           </CartProvider>
         </PrintServerProvider>
       </AuthProvider>
