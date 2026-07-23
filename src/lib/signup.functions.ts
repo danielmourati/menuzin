@@ -29,6 +29,7 @@ const SignupInput = z.object({
   email: z.string().trim().email().max(160),
   password: z.string().min(8).max(72),
   full_name: z.string().trim().max(120).optional().default(""),
+  business_type: z.enum(BUSINESS_TYPES),
 });
 
 export const signupPresencaTenant = createServerFn({ method: "POST" })
