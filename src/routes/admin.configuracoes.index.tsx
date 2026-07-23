@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, Sparkles, ArrowRight, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
@@ -46,11 +47,21 @@ type FormState = {
 
 function SettingsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data, isLoading } = useQuery({
     queryKey: ["my-tenant"],
     queryFn: () => getMyTenant(),
   });
   const tenant = data?.tenant;
+
+  // Onboarding: vindo do cadastro rápido em /comece-agora
+  const [onboarding, setOnboarding] = useState(false);
+  const [nextStepOpen, setNextStepOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "1") setOnboarding(true);
+  }, []);
 
 
   const [form, setForm] = useState<FormState>({
@@ -94,6 +105,7 @@ function SettingsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
       toast.success("Configurações salvas");
+      if (onboarding) setNextStepOpen(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
