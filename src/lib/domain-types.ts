@@ -174,6 +174,7 @@ export type Tenant = {
   hours: string;
   logoLetter: string;
   logoUrl?: string;
+  coverUrl?: string;
   themeFrom: string;
   themeTo: string;
   plan: string;

@@ -23,6 +23,7 @@ export type DbTenant = {
   delivery_mode: "none" | "single" | "neighborhood";
 
   logo_url: string | null;
+  cover_url: string | null;
   logo_letter: string;
   theme_from: string;
   theme_to: string;

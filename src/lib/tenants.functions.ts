@@ -113,6 +113,7 @@ const UpdateTenantInput = z.object({
   open_mode: z.enum(["auto", "open", "closed"]).optional(),
   open: z.boolean().optional(),
   logo_url: z.string().max(1000).nullable().optional(),
+  cover_url: z.string().max(1000).nullable().optional(),
   logo_letter: z.string().max(2).optional(),
   theme_from: z.string().max(40).optional(),
   theme_to: z.string().max(40).optional(),
