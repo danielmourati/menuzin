@@ -571,7 +571,12 @@ export function CartDrawer({
 
   const finalize = async () => {
     if (submitting) return;
+    if (isPresencaOnly) {
+      openWhatsappPresenca();
+      return;
+    }
     setSubmitting(true);
+
     try {
       // Status mapping
       let finalPaymentStatus: "pending" | "approved" | "rejected" | "manual" = "pending";
@@ -1402,9 +1407,15 @@ export function CartDrawer({
                       <MapPin className="h-4 w-4" /> Endereço:
                     </p>
                     <p className="mt-1">{tenantAddress}</p>
-                    <button className="mt-2 flex items-center gap-1 text-sm font-semibold text-primary">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tenantAddress)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary"
+                    >
                       <Map className="h-4 w-4" /> Ver no mapa
-                    </button>
+                    </a>
+
                   </div>
                 )}
                 {mode === "consumo_local" && (
