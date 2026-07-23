@@ -238,7 +238,7 @@ function CategoriesPage() {
           categoryName={pizzaCfg.name}
         />
       )}
-      {ConfirmDialog}
+      
     </AdminLayout>
   );
 }
