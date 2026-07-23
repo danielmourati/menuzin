@@ -104,10 +104,11 @@ function SettingsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
       toast.success("Configurações salvas");
-      if (onboarding) setNextStepOpen(true);
+      setNextStepOpen(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
