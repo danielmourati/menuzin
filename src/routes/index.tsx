@@ -11,6 +11,7 @@ import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroDevices from "@/assets/landing-hero-devices.png";
 import couplePhoneAsset from "@/assets/couple-ordering.png.asset.json";
 import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
+import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import {
   FeatureShowcaseSection,
   CTABanner,
