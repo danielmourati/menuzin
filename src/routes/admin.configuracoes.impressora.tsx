@@ -35,7 +35,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: () => (
-    <PlanGate min="pro" title="Impressora" featureLabel="Configuração de impressora">
+    <PlanGate min="pro" title="Impressora" featureLabel="Configuração de impressora" backTo="/admin/configuracoes">
       <PrinterSettingsPage />
     </PlanGate>
   ),
