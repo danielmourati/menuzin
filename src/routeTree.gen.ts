@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuiaIndexRouteImport } from './routes/guia.index'
@@ -67,6 +68,11 @@ import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$sl
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
+  id: '/comece-agora',
+  path: '/comece-agora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SlugRoute = SlugRouteImport.update({
@@ -346,6 +352,7 @@ const LojaSlugAcompanharOrderIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/comece-agora': typeof ComeceAgoraRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/comece-agora': typeof ComeceAgoraRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -457,6 +465,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/comece-agora': typeof ComeceAgoraRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$slug'
+    | '/comece-agora'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -571,6 +581,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$slug'
+    | '/comece-agora'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -625,6 +636,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$slug'
+    | '/comece-agora'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -682,6 +694,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
+  ComeceAgoraRoute: typeof ComeceAgoraRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
@@ -726,6 +739,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comece-agora': {
+      id: '/comece-agora'
+      path: '/comece-agora'
+      fullPath: '/comece-agora'
+      preLoaderRoute: typeof ComeceAgoraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$slug': {
@@ -1176,6 +1196,7 @@ const PlatformGuiaRouteWithChildren = PlatformGuiaRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
+  ComeceAgoraRoute: ComeceAgoraRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,

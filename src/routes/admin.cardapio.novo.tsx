@@ -11,7 +11,7 @@
 // de entrada opcional para quem está começando do zero.
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,12 +25,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Plus, Tag, UtensilsCrossed,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, Loader2, Plus, Rocket, Tag, UtensilsCrossed,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, saveProduct,
 } from "@/lib/catalog-admin.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/cardapio/novo")({
   head: () => ({
@@ -56,7 +57,19 @@ function WizardPage() {
   });
   const categories = categoriesQ.data ?? [];
 
+  const tenantQ = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant() });
+  const tenantSlug = tenantQ.data?.tenant?.slug ?? "";
+
+  const [onboarding, setOnboarding] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "1") setOnboarding(true);
+  }, []);
+
   const [step, setStep] = useState<Step>(1);
+
+
 
   // Passo 1
   const [catMode, setCatMode] = useState<"new" | "existing">("new");
@@ -331,13 +344,46 @@ function WizardPage() {
                 <CheckCircle2 className="h-7 w-7" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold">Cardápio no ar</h2>
+                <h2 className="text-lg font-semibold">
+                  {onboarding ? "Tudo pronto para publicar!" : "Cardápio no ar"}
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {createdProducts} produto{createdProducts === 1 ? "" : "s"} adicionado
                   {createdProducts === 1 ? "" : "s"}
                   {selectedCategory ? ` em ${selectedCategory.name}` : ""}.
                 </p>
               </div>
+
+              {onboarding && tenantSlug && (
+                <div className="mx-auto max-w-md rounded-2xl border bg-muted/40 p-4 text-left">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Link público da sua loja</p>
+                  <p className="mt-1 break-all rounded-lg bg-background px-3 py-2 font-mono text-sm">
+                    menuzin.app/{tenantSlug}
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => window.open(`/${tenantSlug}`, "_blank")}
+                    >
+                      <Eye className="h-4 w-4" /> Preview da loja
+                    </Button>
+                    <Button
+                      className="gap-2"
+                      onClick={() => {
+                        toast.success("Loja publicada! Já pode compartilhar o link.");
+                        navigate({ to: "/admin/dashboard" });
+                      }}
+                    >
+                      <Rocket className="h-4 w-4" /> Publicar loja
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Sua loja já está no ar. Você pode continuar adicionando produtos a qualquer momento.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-center gap-2 pt-2">
                 <Button
                   variant="outline"
@@ -358,13 +404,16 @@ function WizardPage() {
                 >
                   <Tag className="mr-1 h-4 w-4" /> Nova categoria
                 </Button>
-                <Button onClick={() => navigate({ to: "/admin/produtos" })}>
-                  Ir para produtos <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
+                {!onboarding && (
+                  <Button onClick={() => navigate({ to: "/admin/produtos" })}>
+                    Ir para produtos <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         )}
+
       </div>
     </AdminLayout>
   );

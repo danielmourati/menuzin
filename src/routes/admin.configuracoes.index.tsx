@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Loader2, Sparkles, ArrowRight, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
@@ -51,6 +52,15 @@ function SettingsPage() {
     queryFn: () => getMyTenant(),
   });
   const tenant = data?.tenant;
+
+  // Onboarding: vindo do cadastro rápido em /comece-agora
+  const [onboarding, setOnboarding] = useState(false);
+  const [nextStepOpen, setNextStepOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "1") setOnboarding(true);
+  }, []);
 
 
   const [form, setForm] = useState<FormState>({
@@ -94,6 +104,7 @@ function SettingsPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
       toast.success("Configurações salvas");
+      if (onboarding) setNextStepOpen(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -113,6 +124,19 @@ function SettingsPage() {
         </Button>
       }
     >
+      {onboarding && (
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-orange-100/40 p-4">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold">Bem-vindo(a) ao Menuzin!</p>
+            <p className="text-sm text-muted-foreground">
+              Complete os dados da sua loja aqui embaixo e clique em <strong>Salvar</strong>. Depois vamos montar seu cardápio.
+            </p>
+          </div>
+        </div>
+      )}
       {isLoading ? (
         <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : (
@@ -275,6 +299,35 @@ function SettingsPage() {
           </Tabs>
         </CardContent></Card>
       )}
+
+      <Dialog open={nextStepOpen} onOpenChange={setNextStepOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Rocket className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center">Loja configurada!</DialogTitle>
+            <DialogDescription className="text-center">
+              Agora vamos cadastrar seus primeiros produtos com o assistente guiado.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:flex-col sm:gap-2 sm:space-x-0">
+            <Button
+              className="w-full gap-2"
+              onClick={() => {
+                setNextStepOpen(false);
+                window.location.href = "/admin/cardapio/novo?onboarding=1";
+              }}
+            >
+              <Sparkles className="h-4 w-4" /> Montar meu cardápio agora
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setNextStepOpen(false)}>
+              Fazer isso depois
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

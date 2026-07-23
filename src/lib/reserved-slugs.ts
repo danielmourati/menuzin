@@ -26,4 +26,6 @@ export const RESERVED_SLUGS = new Set<string>([
   "favicon.ico",
   "robots.txt",
   "sitemap.xml",
+  "comece-agora",
+  "guia",
 ]);
