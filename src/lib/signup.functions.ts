@@ -74,7 +74,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         city: data.city || "",
         logo_letter: data.name.charAt(0).toUpperCase(),
         plan: "presenca",
-        status: "ativo",
+        status: "ativa",
         active: true,
         theme_from: "#FF6A1F",
         theme_to: "#FF9A3C",
