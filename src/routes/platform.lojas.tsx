@@ -287,12 +287,12 @@ function EditTenantDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>Editar loja</DialogTitle>
           <DialogDescription>Atualize os dados deste estabelecimento.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3">
+        <div className="grid gap-3 overflow-y-auto px-6 py-4 flex-1">
           <div>
             <Label>Nome</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
