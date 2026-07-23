@@ -77,6 +77,8 @@ function WizardPage() {
   const [catMode, setCatMode] = useState<"new" | "existing">("new");
   const [catName, setCatName] = useState("");
   const [catId, setCatId] = useState<string | null>(null);
+  const [catKind, setCatKind] = useState<"standard" | "pizza" | "oferta">("standard");
+
 
   // Passo 2
   const [prodName, setProdName] = useState("");
