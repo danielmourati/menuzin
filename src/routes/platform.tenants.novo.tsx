@@ -94,7 +94,7 @@ function NewTenantPage() {
           theme_to: themeTo,
           active,
           plan,
-          business_types: businessTypes as ("pizzaria" | "hamburgueria" | "churrascaria" | "espetaria" | "restaurante" | "acaiteria" | "sorveteria" | "cafeteria" | "padaria" | "lanchonete" | "marmitaria" | "sushi" | "pastelaria" | "food_truck" | "bar" | "conveniencia" | "outros")[],
+          business_types: businessTypes as BusinessType[],
           owner_email: ownerEmail.trim().toLowerCase(),
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
