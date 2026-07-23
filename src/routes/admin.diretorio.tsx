@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Compass, Sparkles, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import { Compass, Star, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
 import {
   setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct,
   featureDirectoryProduct, clearDirectoryFeature,
@@ -71,7 +71,7 @@ function RequestFeatureBlock() {
     <section className="rounded-2xl border bg-gradient-to-br from-primary/5 to-fuchsia-500/5 p-5 shadow-sm">
       <div className="flex flex-wrap items-start gap-4">
         <div className="rounded-xl bg-primary/10 p-3">
-          <Sparkles className="h-6 w-6 text-primary" />
+          <Star className="h-6 w-6 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold">Turbinar sua loja no Guia</h2>
@@ -80,7 +80,7 @@ function RequestFeatureBlock() {
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
-          <Sparkles className="mr-1 h-4 w-4" /> Solicitar destaque
+          <Star className="mr-1 h-4 w-4" /> Solicitar destaque
         </Button>
       </div>
 
@@ -308,7 +308,7 @@ function ProductsBlock() {
     <section className="rounded-2xl border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-3">
         <div className="rounded-xl bg-primary/10 p-3">
-          <Sparkles className="h-6 w-6 text-primary" />
+          <Star className="h-6 w-6 text-primary" />
         </div>
         <div>
           <h2 className="text-lg font-bold">Produtos publicados no Guia</h2>
@@ -362,7 +362,7 @@ function ProductsBlock() {
                     </Button>
                   ) : (
                     <Button size="sm" onClick={() => featureMut.mutate(p.id)} disabled={!p.directory_visible}>
-                      <Sparkles className="mr-1 h-3 w-3" /> Destacar 7 dias
+                      <Star className="mr-1 h-3 w-3" /> Destacar 7 dias
                     </Button>
                   )
                 ) : (

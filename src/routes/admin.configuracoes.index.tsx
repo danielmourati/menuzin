@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Sparkles, ArrowRight, Rocket } from "lucide-react";
+import { Loader2, PartyPopper, ArrowRight, Rocket } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
@@ -127,7 +127,7 @@ function SettingsPage() {
       {onboarding && (
         <div className="mb-4 flex items-start gap-3 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-orange-100/40 p-4">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-            <Sparkles className="h-5 w-5" />
+            <PartyPopper className="h-5 w-5" />
           </div>
           <div className="flex-1">
             <p className="font-semibold">Bem-vindo(a) ao Menuzin!</p>
@@ -319,7 +319,7 @@ function SettingsPage() {
                 window.location.href = "/admin/cardapio/novo?onboarding=1";
               }}
             >
-              <Sparkles className="h-4 w-4" /> Montar meu cardápio agora
+              <PartyPopper className="h-4 w-4" /> Montar meu cardápio agora
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setNextStepOpen(false)}>

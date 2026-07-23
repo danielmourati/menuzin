@@ -3,7 +3,7 @@ import { computeStoreOpen } from "@/lib/store-hours";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Sparkles, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, type LucideIcon } from "lucide-react";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, type LucideIcon } from "lucide-react";
 import { StoreSideMenu } from "@/components/storefront/StoreSideMenu";
 import { StoreAboutDrawer } from "@/components/storefront/StoreAboutDrawer";
 import { getDeliveryFeeRange } from "@/lib/delivery-zones.functions";
