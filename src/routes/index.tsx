@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Bell } from "lucide-react";
+import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Bell, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
@@ -10,7 +10,8 @@ import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
 import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
 import landingHeroDevices from "@/assets/landing-hero-devices.png";
 import couplePhoneAsset from "@/assets/couple-ordering.png.asset.json";
-import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
+import { WhatsAppFloatingButton } from "@/components/WhatsAppFloatingButton";
+import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import {
   FeatureShowcaseSection,
   CTABanner,
@@ -136,6 +137,7 @@ function Landing() {
   });
   const demoSlug = tenantsData?.tenants?.[0]?.slug;
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const [signupOpen, setSignupOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
@@ -185,10 +187,8 @@ function Landing() {
                   </Link>
                 </Button>
               )}
-              <Button asChild variant="outline" size="lg" className="gap-2">
-                <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-4 w-4" /> Falar no WhatsApp
-                </a>
+              <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
+                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
               </Button>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
@@ -382,14 +382,12 @@ function Landing() {
                     ))}
                   </ul>
                   <Button
-                    asChild
-                    className="mt-8 w-full"
+                    className="mt-8 w-full gap-2"
                     size="lg"
                     variant={highlighted ? "default" : "outline"}
+                    onClick={() => setSignupOpen(true)}
                   >
-                    <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
-                      {p.cta}
-                    </a>
+                    <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
                   </Button>
                 </div>
               );
@@ -405,10 +403,11 @@ function Landing() {
       <FaqSection />
 
       {/* CTA final + contato */}
-      <CTABanner />
+      <CTABanner onCTAClick={() => setSignupOpen(true)} />
       <ContactSpecialistSection />
       <LandingFooter />
 
+      <QuickSignupModal open={signupOpen} onOpenChange={setSignupOpen} />
       <WhatsAppFloatingButton />
     </div>
   );
