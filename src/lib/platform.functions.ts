@@ -123,11 +123,7 @@ const SlugSchema = z
   .regex(/^[a-z0-9-]+$/)
   .refine((s) => !RESERVED_SLUGS.has(s), { message: "Esse endereço é reservado pelo sistema." });
 
-const BUSINESS_TYPES = [
-  "pizzaria", "hamburgueria", "churrascaria", "espetaria", "restaurante",
-  "acaiteria", "sorveteria", "cafeteria", "padaria", "lanchonete",
-  "marmitaria", "sushi", "pastelaria", "food_truck", "bar", "conveniencia", "outros",
-] as const;
+import { BUSINESS_TYPES } from "@/lib/business-types";
 
 const CreateTenantInput = z.object({
   slug: SlugSchema,
