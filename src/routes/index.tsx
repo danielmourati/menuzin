@@ -180,16 +180,16 @@ function Landing() {
               Cardápio online, carrinho, checkout e pedidos direto no WhatsApp. Tudo personalizável, em um link só, pronto para vender hoje.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
+              <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
+                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
+              </Button>
               {demoSlug && (
-                <Button asChild size="lg" className="gap-2">
+                <Button asChild variant="outline" size="lg" className="gap-2">
                   <Link to="/$slug" params={{ slug: demoSlug }}>
                     Ver loja demo <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               )}
-              <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
-                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-              </Button>
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem cartão</span>
