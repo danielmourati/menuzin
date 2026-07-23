@@ -175,12 +175,14 @@ export function CartDrawer({
   const tenant = (storefrontTenant ?? tenantData?.tenant ?? null) as TenantLike | null;
   const tenantAddress = tenant?.address ?? "";
   const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
-  const acceptsDelivery = tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true;
-  const acceptsTakeout = tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true;
-  const acceptsDinein = tenant?.acceptsDinein ?? tenant?.accepts_dinein ?? true;
   const rawTenantPlan = (tenant as { plan?: string } | null | undefined)?.plan;
   const tenantPlan = rawTenantPlan === "pro" ? "pro" : rawTenantPlan === "start" ? "start" : "presenca";
   const isPresencaOnly = tenantPlan === "presenca";
+  const isStartPlan = tenantPlan === "start";
+  // Presença ignora flags (loja não configura modalidades) — sempre mostra as 3 opções.
+  const acceptsDelivery = isPresencaOnly ? true : (tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true);
+  const acceptsTakeout = isPresencaOnly ? true : (tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true);
+  const acceptsDinein = isPresencaOnly ? true : (tenant?.acceptsDinein ?? tenant?.accepts_dinein ?? true);
 
   const buildWhatsappOrderMessage = () => {
     const lines: string[] = [];
@@ -268,9 +270,9 @@ export function CartDrawer({
     staleTime: 30_000,
   });
 
-  const deliveryFee = mode === "entrega" ? Number(feeResolution?.fee ?? 0) : 0;
-  const deliveryAvailable = mode !== "entrega" || (feeResolution?.available ?? false);
-  const deliveryMinOrder = Number(feeResolution?.min_order_total ?? 0);
+  const deliveryFee = isPresencaOnly ? 0 : (mode === "entrega" ? Number(feeResolution?.fee ?? 0) : 0);
+  const deliveryAvailable = isPresencaOnly ? true : (mode !== "entrega" || (feeResolution?.available ?? false));
+  const deliveryMinOrder = isPresencaOnly ? 0 : Number(feeResolution?.min_order_total ?? 0);
   const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
@@ -1490,6 +1492,31 @@ export function CartDrawer({
                       <Pencil className="h-4 w-4" />
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* PIX manual — enviar comprovante via WhatsApp (Start) */}
+              {isStartPlan && selectedMethod === "pix_manual" && (tenant?.whatsapp ?? "") && (
+                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Smartphone className="h-5 w-5 text-primary" /> Envie o comprovante
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Após pagar o PIX, envie o comprovante ao lojista pelo WhatsApp para agilizar a confirmação.
+                  </p>
+                  <Button
+                    type="button"
+                    className="mt-3 h-11 w-full bg-success text-success-foreground hover:bg-success/90"
+                    onClick={() => {
+                      const raw = (tenant?.whatsapp ?? "").replace(/\D/g, "");
+                      if (!raw) return toast.error("Loja sem WhatsApp cadastrado.");
+                      const phoneWa = raw.startsWith("55") ? raw : "55" + raw;
+                      const msg = `Olá! Segue comprovante do PIX referente ao meu pedido${dbOrderNumber ? ` #${dbOrderNumber}` : ""} — ${name || "cliente"}. Total: ${brl(total)}.`;
+                      window.open(`https://wa.me/${phoneWa}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+                    }}
+                  >
+                    Enviar comprovante via WhatsApp
+                  </Button>
                 </div>
               )}
 

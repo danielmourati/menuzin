@@ -125,6 +125,27 @@ function ConfirmedPage() {
             </div>
           </div>
 
+          {/pix manual/i.test(order.payment ?? "") && (
+            <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left">
+              <p className="text-sm font-semibold">Envie o comprovante do PIX</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Após efetuar o PIX, envie o comprovante ao lojista pelo WhatsApp para agilizar a confirmação.
+              </p>
+              <Button asChild className="mt-3 h-11 w-full bg-success text-success-foreground hover:bg-success/90">
+                <a
+                  href={whatsappLink(
+                    tenant.whatsapp,
+                    `Olá ${tenant.name}! Segue comprovante do PIX referente ao meu pedido #${order.number} — ${order.customerName}. Total: ${brl(order.total)}.`,
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" /> Enviar comprovante via WhatsApp
+                </a>
+              </Button>
+            </div>
+          )}
+
           <div className="mt-6 space-y-2">
             <Button asChild className="h-12 w-full bg-success hover:bg-success/90 text-success-foreground">
               <a href={whatsappLink(tenant.whatsapp, waMessage)} target="_blank" rel="noreferrer">
