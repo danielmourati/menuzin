@@ -1,0 +1,41 @@
+export const BUSINESS_TYPES = [
+  "pizzaria",
+  "hamburgueria",
+  "churrascaria",
+  "espetaria",
+  "restaurante",
+  "acaiteria",
+  "sorveteria",
+  "cafeteria",
+  "padaria",
+  "lanchonete",
+  "marmitaria",
+  "sushi",
+  "pastelaria",
+  "food_truck",
+  "bar",
+  "conveniencia",
+  "outros",
+] as const;
+
+export type BusinessType = (typeof BUSINESS_TYPES)[number];
+
+export const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
+  pizzaria: "Pizzaria",
+  hamburgueria: "Hamburgueria",
+  churrascaria: "Churrascaria",
+  espetaria: "Espetaria",
+  restaurante: "Restaurante",
+  acaiteria: "Açaíteria",
+  sorveteria: "Sorveteria",
+  cafeteria: "Cafeteria",
+  padaria: "Padaria",
+  lanchonete: "Lanchonete",
+  marmitaria: "Marmitaria",
+  sushi: "Sushi/Japonês",
+  pastelaria: "Pastelaria",
+  food_truck: "Food Truck",
+  bar: "Bar e Petiscaria",
+  conveniencia: "Conveniência",
+  outros: "Outros",
+};
