@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,7 +12,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type ConfirmOptions = {
+export type ConfirmOptions = {
   title: string;
   description?: string;
   confirmText?: string;
@@ -20,51 +20,68 @@ type ConfirmOptions = {
   variant?: "default" | "destructive";
 };
 
-export function useConfirm() {
-  const [open, setOpen] = useState(false);
-  const [opts, setOpts] = useState<ConfirmOptions>({ title: "" });
-  const resolverRef = useRef<((v: boolean) => void) | null>(null);
+type State = { opts: ConfirmOptions; resolve: (v: boolean) => void } | null;
 
-  const confirm = useCallback((o: ConfirmOptions) => {
-    setOpts(o);
-    setOpen(true);
-    return new Promise<boolean>((resolve) => {
-      resolverRef.current = resolve;
-    });
+let setStateExternal: ((s: State) => void) | null = null;
+
+/**
+ * Imperative confirmation dialog. Returns a Promise<boolean>.
+ * Requires <ConfirmDialogHost /> mounted once at the app root.
+ */
+export function confirmDialog(opts: ConfirmOptions): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!setStateExternal) {
+      // Fallback if host not mounted (SSR or misuse)
+      // eslint-disable-next-line no-alert
+      if (typeof window !== "undefined") resolve(window.confirm(opts.title));
+      else resolve(false);
+      return;
+    }
+    setStateExternal({ opts, resolve });
+  });
+}
+
+export function ConfirmDialogHost() {
+  const [state, setState] = useState<State>(null);
+
+  useEffect(() => {
+    setStateExternal = setState;
+    return () => {
+      setStateExternal = null;
+    };
   }, []);
 
   const handle = (v: boolean) => {
-    setOpen(false);
-    resolverRef.current?.(v);
-    resolverRef.current = null;
+    state?.resolve(v);
+    setState(null);
   };
 
-  const ConfirmDialog = (
-    <AlertDialog open={open} onOpenChange={(v) => { if (!v) handle(false); }}>
+  const opts = state?.opts;
+
+  return (
+    <AlertDialog open={!!state} onOpenChange={(v) => { if (!v) handle(false); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{opts.title}</AlertDialogTitle>
-          {opts.description && (
+          <AlertDialogTitle>{opts?.title}</AlertDialogTitle>
+          {opts?.description && (
             <AlertDialogDescription>{opts.description}</AlertDialogDescription>
           )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => handle(false)}>
-            {opts.cancelText ?? "Cancelar"}
+            {opts?.cancelText ?? "Cancelar"}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={() => handle(true)}
             className={cn(
-              opts.variant === "destructive" &&
+              opts?.variant === "destructive" &&
                 buttonVariants({ variant: "destructive" }),
             )}
           >
-            {opts.confirmText ?? "Confirmar"}
+            {opts?.confirmText ?? "Confirmar"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
-
-  return { confirm, ConfirmDialog };
 }
