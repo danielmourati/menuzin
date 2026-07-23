@@ -44,6 +44,7 @@ import {
   adminApplyTemplateToAll,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
+import { PLAN_LABEL, normalizePlan, type TenantPlan } from "@/lib/plan-features";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
 import { useAuth } from "@/lib/auth-context";
