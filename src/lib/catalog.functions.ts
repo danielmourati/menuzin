@@ -19,7 +19,9 @@ export const getTenantBySlug = createServerFn({ method: "POST" })
       .eq("active", true)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return { tenant: tenant as DbTenant | null };
+    if (!tenant) return { tenant: null as DbTenant | null };
+    const { getTenantPlan } = await import("@/lib/plan-server");
+    return { tenant: { ...tenant, plan: await getTenantPlan(tenant.id as string) } as DbTenant };
   });
 
 export const getCatalog = createServerFn({ method: "POST" })
@@ -31,10 +33,12 @@ export const getCatalog = createServerFn({ method: "POST" })
     if (!tenant) return { tenant: null, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: false };
 
     const tenantId = tenant.id as string;
+    const { getTenantPlan } = await import("@/lib/plan-server");
+    const tenantWithEffectivePlan = { ...tenant, plan: await getTenantPlan(tenantId) } as DbTenant;
 
     const { isTenantBlocked } = await import("@/lib/tenant-access.server");
     if (await isTenantBlocked(tenantId)) {
-      return { tenant: tenant as DbTenant, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: true };
+      return { tenant: tenantWithEffectivePlan, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: true };
     }
 
     const [
@@ -148,7 +152,7 @@ export const getCatalog = createServerFn({ method: "POST" })
       : [{ data: [] }, { data: [] }, { data: [] }];
 
     return {
-      tenant: tenant as DbTenant,
+      tenant: tenantWithEffectivePlan,
       categories: cats,
       products: prods,
       pizzaSizes: (pSizes ?? []) as unknown as DbCategoryPizzaSize[],

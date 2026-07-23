@@ -178,6 +178,7 @@ export function useOrdersRealtime() {
           }],
         },
       });
+      if (!created.order) return;
       const res = await listOrdersForMyTenant();
       const ui = res.orders.map((o) => dbOrderToUi(o));
       const createdOrder = ui.find((o) => o.id === created.order.id);

@@ -75,6 +75,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UpsellSuggestions } from "@/components/storefront/UpsellSuggestions";
+import type { Tenant } from "@/lib/domain-types";
 
 type Step =
   | "cart"
@@ -94,9 +95,11 @@ type Mode = "entrega" | "retirada" | "consumo_local";
 export function CartDrawer({
   open,
   onOpenChange,
+  tenant: storefrontTenant,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  tenant?: Tenant;
 }) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
@@ -160,16 +163,23 @@ export function CartDrawer({
   const { data: tenantData } = useQuery({
     queryKey: ["public-tenant", slug],
     queryFn: () => (slug ? getTenantBySlug({ data: { slug } }) : Promise.resolve({ tenant: null })),
-    enabled: !!slug,
+    enabled: !!slug && !storefrontTenant,
     staleTime: 60_000,
   });
-  const tenant = tenantData?.tenant;
+  type TenantLike = Partial<Tenant> & {
+    accepts_delivery?: boolean | null;
+    accepts_takeout?: boolean | null;
+    accepts_dinein?: boolean | null;
+    delivery_mode?: "none" | "single" | "neighborhood" | null;
+  };
+  const tenant = (storefrontTenant ?? tenantData?.tenant ?? null) as TenantLike | null;
   const tenantAddress = tenant?.address ?? "";
-  const deliveryMode = (tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
-  const tenantPlan = ((tenant as { plan?: string } | null | undefined)?.plan ?? "start") as
-    | "presenca"
-    | "start"
-    | "pro";
+  const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
+  const acceptsDelivery = tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true;
+  const acceptsTakeout = tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true;
+  const acceptsDinein = tenant?.acceptsDinein ?? tenant?.accepts_dinein ?? true;
+  const rawTenantPlan = (tenant as { plan?: string } | null | undefined)?.plan;
+  const tenantPlan = rawTenantPlan === "pro" ? "pro" : rawTenantPlan === "start" ? "start" : "presenca";
   const isPresencaOnly = tenantPlan === "presenca";
 
   const buildWhatsappOrderMessage = () => {
@@ -428,6 +438,13 @@ export function CartDrawer({
 
   const confirmCustomer = () => {
     if (!name || !phone) return toast.error("Informe nome e telefone");
+    if (isPresencaOnly) {
+      setPaymentWhen(null);
+      setSelectedMethod(null);
+      setPaymentMethod("WhatsApp");
+      goTo("review");
+      return;
+    }
     goTo("payment-when");
   };
 
@@ -439,10 +456,10 @@ export function CartDrawer({
 
   // Persist a draft order if not already created (used before online MP call).
   // Returns the order id AND number to avoid React setState race conditions.
-  const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number }> => {
+  const ensureOrder = async (methodLabel: string): Promise<{ id: string; number: number } | null> => {
     if (isPresencaOnly) {
       openWhatsappPresenca();
-      throw new Error("Esta loja recebe pedidos apenas pelo WhatsApp.");
+      return null;
     }
     if (dbOrderId && dbOrderNumber != null) return { id: dbOrderId, number: dbOrderNumber };
 
@@ -486,6 +503,10 @@ export function CartDrawer({
         }),
       },
     });
+    if (!res.order) {
+      openWhatsappPresenca();
+      return null;
+    }
     setDbOrderId(res.order.id);
     setDbOrderNumber(res.order.number);
     return { id: res.order.id, number: res.order.number };
@@ -507,7 +528,12 @@ export function CartDrawer({
     if (m === "pix_online") {
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
-        const { id: orderId } = await ensureOrder(methodLabels[m]);
+        const persisted = await ensureOrder(methodLabels[m]);
+        if (!persisted) {
+          toast.dismiss(toastId);
+          return;
+        }
+        const { id: orderId } = persisted;
         const res = await createPixPayment({
           store_slug: slug || "",
           order_id: orderId,
@@ -529,7 +555,8 @@ export function CartDrawer({
     } else if (m === "credit_card" || m === "debit_card") {
       // Ensure order exists so CardCheckout has a real order_id to bind
       try {
-        await ensureOrder(methodLabels[m]);
+        const persisted = await ensureOrder(methodLabels[m]);
+        if (!persisted) return;
         goTo("payment-online-card");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Falha ao iniciar pagamento.";
@@ -551,7 +578,9 @@ export function CartDrawer({
     installments: number;
     cardToken: string;
   }) => {
-    const { id: orderId } = await ensureOrder(paymentMethod);
+    const persisted = await ensureOrder(paymentMethod);
+    if (!persisted) throw new Error("Pagamento online indisponível para este plano.");
+    const { id: orderId } = persisted;
     const res = await createCardPayment({
       store_slug: slug || "",
       order_id: orderId,
@@ -602,6 +631,7 @@ export function CartDrawer({
       let orderNumber: number;
       try {
         const persisted = await ensureOrder(paymentMethod);
+        if (!persisted) return;
         orderId = persisted.id;
         orderNumber = persisted.number;
       } catch (err) {
@@ -965,9 +995,9 @@ export function CartDrawer({
               isPresencaOnly ? (
                 <>
                   <div className="border-t bg-amber-50 px-4 py-2 text-xs text-amber-900">
-                    Esta loja recebe pedidos diretamente pelo WhatsApp.
+                    Esta loja finaliza pedidos pelo WhatsApp. Continue para montar a mensagem completa.
                   </div>
-                  <StickySubtotal cta="Pedir pelo WhatsApp" onCta={openWhatsappPresenca} />
+                  <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />
                 </>
               ) : (
                 <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />
@@ -981,7 +1011,7 @@ export function CartDrawer({
           <>
             <Header title="Opções de entrega" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {(tenant?.accepts_delivery ?? true) && (
+              {acceptsDelivery && (
                 <OptionRow
                   icon={<Truck className="h-5 w-5" />}
                   title="Entrega"
@@ -990,7 +1020,7 @@ export function CartDrawer({
                   active={mode === "entrega"}
                 />
               )}
-              {(tenant?.accepts_takeout ?? true) && (
+              {acceptsTakeout && (
                 <OptionRow
                   icon={<StoreIcon className="h-5 w-5" />}
                   title="Retirada"
@@ -999,7 +1029,7 @@ export function CartDrawer({
                   active={mode === "retirada"}
                 />
               )}
-              {(tenant?.accepts_dinein ?? true) && (
+              {acceptsDinein && (
                 <OptionRow
                   icon={<Utensils className="h-5 w-5" />}
                   title="Consumo no local"
@@ -1426,31 +1456,42 @@ export function CartDrawer({
               </div>
 
               {/* Payment */}
-              <div className="rounded-2xl bg-card p-4">
-                <div className="flex items-start justify-between">
+              {isPresencaOnly ? (
+                <div className="rounded-2xl bg-card p-4">
                   <div className="flex items-center gap-2 font-semibold">
-                    <Smartphone className="h-5 w-5" /> {paymentWhenLabel}
+                    <Smartphone className="h-5 w-5" /> Finalização pelo WhatsApp
                   </div>
-                  <button
-                    onClick={() => setStep("payment-when")}
-                    className="text-sm font-semibold text-primary"
-                  >
-                    Alterar
-                  </button>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Ao enviar, abriremos o WhatsApp da loja com todos os dados do pedido preenchidos.
+                  </p>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-sm">
-                    <p className="font-medium">Pagamento com {paymentMethod}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com{" "}
-                      {paymentMethod}
-                    </p>
+              ) : (
+                <div className="rounded-2xl bg-card p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <Smartphone className="h-5 w-5" /> {paymentWhenLabel}
+                    </div>
+                    <button
+                      onClick={() => setStep("payment-when")}
+                      className="text-sm font-semibold text-primary"
+                    >
+                      Alterar
+                    </button>
                   </div>
-                  <button onClick={() => setStep("payment-method")} className="text-primary">
-                    <Pencil className="h-4 w-4" />
-                  </button>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="text-sm">
+                      <p className="font-medium">Pagamento com {paymentMethod}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com{" "}
+                        {paymentMethod}
+                      </p>
+                    </div>
+                    <button onClick={() => setStep("payment-method")} className="text-primary">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Items */}
               <div className="rounded-2xl bg-card p-4">
@@ -1553,7 +1594,7 @@ export function CartDrawer({
               </div>
             </div>
             <StickySubtotal
-              cta="Fazer pedido"
+              cta={isPresencaOnly ? "Enviar pelo WhatsApp" : "Fazer pedido"}
               onCta={finalize}
               loading={submitting}
               disabled={submitting}

@@ -164,6 +164,7 @@ export type Tenant = {
   open: boolean;
   openMode: "auto" | "open" | "closed";
   hoursSchedule: { weekday: number; enabled: boolean; open: string; close: string }[];
+  deliveryMode: "none" | "single" | "neighborhood";
   acceptsDelivery: boolean;
   acceptsTakeout: boolean;
   acceptsDinein: boolean;
@@ -175,6 +176,7 @@ export type Tenant = {
   logoUrl?: string;
   themeFrom: string;
   themeTo: string;
+  plan: string;
   active: boolean;
   social?: { instagram?: string; facebook?: string };
 };

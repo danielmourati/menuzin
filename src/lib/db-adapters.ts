@@ -72,6 +72,7 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     open: t.open,
     openMode: (t.open_mode ?? "auto"),
     hoursSchedule: Array.isArray(t.hours_schedule) ? t.hours_schedule : [],
+    deliveryMode: t.delivery_mode ?? "single",
     acceptsDelivery: t.accepts_delivery ?? true,
     acceptsTakeout: t.accepts_takeout ?? true,
     acceptsDinein: t.accepts_dinein ?? true,
@@ -83,6 +84,7 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     logoUrl: t.logo_url ?? undefined,
     themeFrom: t.theme_from,
     themeTo: t.theme_to,
+    plan: t.plan,
     active: t.active,
     social: (t.social as { instagram?: string; facebook?: string }) ?? {},
   };
