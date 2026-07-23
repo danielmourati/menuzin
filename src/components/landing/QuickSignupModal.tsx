@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, CheckCircle2, XCircle, Store } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Store } from "lucide-react";
 import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
 import { maskPhone } from "@/lib/masks";
@@ -91,10 +91,10 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-            <Sparkles className="h-6 w-6" />
+            <Store className="h-6 w-6" />
           </div>
           <DialogTitle className="text-center text-2xl">Crie seu cardápio grátis</DialogTitle>
           <DialogDescription className="text-center">
@@ -102,7 +102,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-2 grid gap-3">
+        <div className="overflow-y-auto px-6 pb-6 mt-2 grid gap-3">
+
           <div>
             <Label>Nome do estabelecimento</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Pizzaria Napoli" className="mt-1.5" />
