@@ -382,14 +382,12 @@ function Landing() {
                     ))}
                   </ul>
                   <Button
-                    asChild
-                    className="mt-8 w-full"
+                    className="mt-8 w-full gap-2"
                     size="lg"
                     variant={highlighted ? "default" : "outline"}
+                    onClick={() => setSignupOpen(true)}
                   >
-                    <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
-                      {p.cta}
-                    </a>
+                    <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
                   </Button>
                 </div>
               );
