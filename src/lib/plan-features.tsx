@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
@@ -217,7 +217,7 @@ export function UpgradeNotice({
     >
       <div className="flex items-start gap-4">
         <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-          <Sparkles className="h-5 w-5" />
+          <Crown className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="flex items-center gap-2 font-semibold">

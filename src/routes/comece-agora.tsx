@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight, CheckCircle2, MessageCircle, Rocket, ShieldCheck,
-  Smartphone, Rocket, Store, Zap,
+  Smartphone, Store, Zap,
 } from "lucide-react";
 import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import { LandingFooter } from "@/components/landing/LandingSections";

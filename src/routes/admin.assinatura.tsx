@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Copy, CheckCircle2, Sparkles, CreditCard } from "lucide-react";
+import { Loader2, Copy, CheckCircle2, Crown, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -174,7 +174,7 @@ function SubscriptionPage() {
                     {isCurrent && <Badge>Atual</Badge>}
                     {!isCurrent && isPro && (
                       <Badge variant="secondary" className="gap-1">
-                        <Sparkles className="h-3 w-3" /> Recomendado
+                        <Crown className="h-3 w-3" /> Recomendado
                       </Badge>
                     )}
                   </div>
@@ -215,7 +215,7 @@ function SubscriptionPage() {
                         {chargeMut.isPending ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
-                          <Sparkles className="mr-2 h-4 w-4" />
+                          <Crown className="mr-2 h-4 w-4" />
                         )}
                         Fazer upgrade
                       </Button>

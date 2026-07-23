@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle, Crown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMyPlanUsage } from "@/lib/plan-usage.functions";
@@ -90,7 +90,7 @@ export function PlanUsageCard({ variant = "full" }: Props) {
         {showUpgrade && (
           <Button asChild size="sm" variant="outline">
             <Link to="/admin/assinatura">
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              <Crown className="mr-1.5 h-3.5 w-3.5" />
               Upgrade {PLAN_LABEL[nextPlan]}
             </Link>
           </Button>
