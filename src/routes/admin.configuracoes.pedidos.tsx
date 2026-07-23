@@ -22,7 +22,7 @@ const MAX_AUDIO_BYTES = 2 * 1024 * 1024;
 
 function OrderSettingsPage() {
   const { prefs, updatePrefs } = useNotificationPrefs();
-  const { isSimulating, toggleSimulation, simulateNewOrder } = useOrdersRealtime();
+  useOrdersRealtime();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
