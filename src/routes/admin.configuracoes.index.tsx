@@ -23,6 +23,8 @@ import {
   type HoursSchedule,
   type WeekdayCode,
 } from "@/lib/store-hours";
+import { BusinessTypesField } from "@/components/admin/BusinessTypesField";
+import { type BusinessType } from "@/lib/business-types";
 
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: SettingsPage });
@@ -43,6 +45,7 @@ type FormState = {
   accepts_delivery: boolean;
   accepts_takeout: boolean;
   accepts_dinein: boolean;
+  business_types: BusinessType[];
 };
 
 function SettingsPage() {
@@ -68,6 +71,7 @@ function SettingsPage() {
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
+    business_types: [],
   });
 
   useEffect(() => {
@@ -78,6 +82,7 @@ function SettingsPage() {
       accepts_delivery?: boolean;
       accepts_takeout?: boolean;
       accepts_dinein?: boolean;
+      business_types?: string[];
     };
     const sched = normalizeSchedule(t.hours_schedule);
     setForm({
@@ -95,6 +100,7 @@ function SettingsPage() {
       accepts_delivery: t.accepts_delivery ?? true,
       accepts_takeout: t.accepts_takeout ?? true,
       accepts_dinein: t.accepts_dinein ?? true,
+      business_types: (t.business_types ?? []) as BusinessType[],
     });
   }, [tenant]);
 
