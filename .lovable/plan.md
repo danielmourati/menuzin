@@ -1,32 +1,30 @@
-## Objetivo
-No `ProductModal`, transformar a imagem do produto em um bloco fixo no topo, enquanto o conteúdo (nome, preço, seções) rola por cima com efeito parallax — como no iFood/aiqfome moderno.
+## Plano
 
-## Comportamento
-- Imagem ocupa o topo do modal (h-56 mobile / h-64 desktop) e **permanece fixa** enquanto o usuário rola.
-- Conteúdo desliza sobre a imagem, com a borda superior arredondada (`rounded-t-3xl`) e leve sombra, criando a sensação de "folha subindo".
-- Parallax sutil: a imagem se desloca ~30% da velocidade do scroll (translateY negativo) e recebe um leve zoom/escurecimento conforme o conteúdo cobre.
-- Botão "Voltar" e badge "Destaque" permanecem ancorados no topo da imagem (posição absoluta no header do modal, acima do conteúdo).
-- Footer com quantidade + "Adicionar" segue fixo no rodapé (comportamento atual mantido).
+1. **Auditar os pontos de renderização de produto**
+   - Revisar `ProductCard`, `FeaturedScroller`, listagens do storefront, páginas de destaques/promoções e modal de produto.
+   - Confirmar se o problema aparece em grade, lista, carrossel horizontal ou detalhe do produto.
 
-## Implementação técnica
-Arquivo único: `src/components/storefront/ProductModal.tsx`
+2. **Corrigir badges/elementos indevidos**
+   - Remover qualquer renderização remanescente de `Destaque`, `Oferta` ou similares associada ao produto.
+   - Manter apenas badges funcionais necessários, como `Indisponível`, se fizer sentido para disponibilidade.
 
-1. Reestruturar o layout interno do `DialogContent`:
-   - Wrapper `relative` ocupando todo o modal.
-   - **Camada 1 (imagem)**: `absolute inset-x-0 top-0 h-56 sm:h-64`, com `<img>` em `object-cover` + overlay gradiente sutil.
-   - **Camada 2 (scroll container)**: `relative h-full overflow-y-auto`, com `padding-top` igual à altura da imagem. Primeiro filho é um "espaçador" transparente, seguido do painel de conteúdo com `bg-card rounded-t-3xl -mt-6 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.15)]` para sobrepor a imagem.
-   - **Camada 3 (chrome)**: botão voltar/badge em `absolute z-20`, sempre visíveis.
+3. **Ajustar consistência visual dos cards**
+   - Garantir que imagem, título, descrição, preço e botão de adicionar fiquem alinhados em grid, lista e carrossel.
+   - Evitar sobreposição de textos, badges, preço ou botão `+`.
+   - Preservar o tratamento da imagem padrão (`object-contain`) e imagens reais (`object-cover`).
 
-2. Parallax:
-   - `onScroll` no container captura `scrollTop`.
-   - Aplicar `transform: translateY(${scrollTop * 0.3}px) scale(${1 + scrollTop * 0.0005})` na imagem via `ref` + estilo inline.
-   - Overlay escurece proporcionalmente (`opacity: Math.min(scrollTop / 200, 0.4)`).
-   - Usar `requestAnimationFrame` para suavizar.
+4. **Verificar no storefront**
+   - Conferir a renderização em lista e grade.
+   - Conferir também carrosséis de “Mais vendidos” e “Promoções”, porque usam outro componente.
 
-3. Preservar o tratamento de imagem padrão (`isDefaultProductImage` → `object-contain p-8`).
+## Detalhes técnicos
 
-4. Ajustar `pt-5` do container de conteúdo para compensar o novo `rounded-t-3xl`.
+- Arquivos principais envolvidos:
+  - `src/components/storefront/ProductCard.tsx`
+  - `src/components/storefront/FeaturedScroller.tsx`
+  - `src/components/storefront/ProductModal.tsx`
+  - `src/routes/$slug.tsx`
+  - `src/routes/$slug.destaques.tsx`
+  - `src/routes/$slug.promocoes.tsx`
 
-## Fora de escopo
-- Não altera lógica de preços, validações, addons, pizza, brindes ou carrinho.
-- Não mexe em `ProductCard`, `Storefront`, ou outros componentes.
+- Já foi localizado um ponto remanescente relacionado a produto: o modal ainda renderiza a etiqueta `Destaque` quando `product.featured` está ativo. Essa correção será incluída junto da revisão dos cards.
