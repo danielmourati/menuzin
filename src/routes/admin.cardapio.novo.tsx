@@ -11,7 +11,7 @@
 // de entrada opcional para quem está começando do zero.
 
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,12 +25,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2, Plus, Tag, UtensilsCrossed,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, Loader2, Plus, Rocket, Tag, UtensilsCrossed,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, saveProduct,
 } from "@/lib/catalog-admin.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/cardapio/novo")({
   head: () => ({
@@ -56,7 +57,19 @@ function WizardPage() {
   });
   const categories = categoriesQ.data ?? [];
 
+  const tenantQ = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant() });
+  const tenantSlug = tenantQ.data?.tenant?.slug ?? "";
+
+  const [onboarding, setOnboarding] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("onboarding") === "1") setOnboarding(true);
+  }, []);
+
   const [step, setStep] = useState<Step>(1);
+
+
 
   // Passo 1
   const [catMode, setCatMode] = useState<"new" | "existing">("new");
