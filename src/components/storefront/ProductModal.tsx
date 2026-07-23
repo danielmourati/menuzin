@@ -781,7 +781,9 @@ export function ProductModal({
           )}
 
           <div className="pb-6" />
+          </div>
         </div>
+
 
         <div className="shrink-0 border-t bg-card px-4 py-3">
           {validations.length > 0 && (
