@@ -40,9 +40,6 @@ export function ProductCard({
             loading="lazy"
             decoding="async"
           />
-          {!externalBadges && hasAnyBadge && (
-            <div className="absolute right-1 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
-          )}
           {unavailable && (
             <div className="absolute inset-0 grid place-items-center bg-background/60">
               <Badge variant="secondary" className="text-[10px]">Indisponível</Badge>
@@ -51,9 +48,6 @@ export function ProductCard({
         </div>
 
         <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-1 pr-12">
-          {externalBadges && hasAnyBadge && (
-            <div className="absolute right-12 top-1 flex flex-wrap justify-end gap-1">{badges}</div>
-          )}
           <h3 className="line-clamp-2 text-sm font-semibold sm:text-base">{product.name}</h3>
           {product.description && (
             <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
@@ -90,11 +84,6 @@ export function ProductCard({
       disabled={unavailable}
       className="group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
     >
-      {externalBadges && hasAnyBadge && (
-        <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex flex-wrap justify-end gap-1">
-          {badges}
-        </div>
-      )}
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <img
           src={productImage(product.image)}
@@ -105,9 +94,6 @@ export function ProductCard({
           loading="lazy"
           decoding="async"
         />
-        {!externalBadges && hasAnyBadge && (
-          <div className="absolute right-1.5 top-1.5 flex flex-wrap justify-end gap-1">{badges}</div>
-        )}
         {unavailable && (
           <div className="absolute inset-0 grid place-items-center bg-background/60">
             <Badge variant="secondary">Indisponível</Badge>
