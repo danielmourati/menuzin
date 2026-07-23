@@ -270,9 +270,9 @@ export function CartDrawer({
     staleTime: 30_000,
   });
 
-  const deliveryFee = mode === "entrega" ? Number(feeResolution?.fee ?? 0) : 0;
-  const deliveryAvailable = mode !== "entrega" || (feeResolution?.available ?? false);
-  const deliveryMinOrder = Number(feeResolution?.min_order_total ?? 0);
+  const deliveryFee = isPresencaOnly ? 0 : (mode === "entrega" ? Number(feeResolution?.fee ?? 0) : 0);
+  const deliveryAvailable = isPresencaOnly ? true : (mode !== "entrega" || (feeResolution?.available ?? false));
+  const deliveryMinOrder = isPresencaOnly ? 0 : Number(feeResolution?.min_order_total ?? 0);
   const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
