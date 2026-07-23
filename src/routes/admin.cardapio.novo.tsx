@@ -234,7 +234,13 @@ function WizardPage() {
                     onChange={(e) => setCatName(e.target.value)}
                     placeholder="Ex.: Lanches"
                     autoFocus
+                    aria-invalid={duplicateCatName}
                   />
+                  {duplicateCatName && (
+                    <p className="text-xs text-destructive">
+                      Já existe uma categoria com esse nome.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
