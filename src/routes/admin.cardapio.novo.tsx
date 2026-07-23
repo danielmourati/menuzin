@@ -59,6 +59,8 @@ function WizardPage() {
 
   const tenantQ = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant() });
   const tenantSlug = tenantQ.data?.tenant?.slug ?? "";
+  const isPizzaria = (tenantQ.data?.tenant?.business_types ?? []).includes("pizzaria");
+
 
   const [onboarding, setOnboarding] = useState(false);
   useEffect(() => {
