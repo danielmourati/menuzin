@@ -121,8 +121,9 @@ function SettingsPage() {
       action={
         <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !tenant}>
           {saveMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Salvar
+          Salvar Configurações
         </Button>
+
       }
     >
       {onboarding && (
