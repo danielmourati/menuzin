@@ -224,6 +224,7 @@ function AdminPaymentSettingsPage() {
         </Button>
       }
     >
+      <SettingsBreadcrumb current="Pagamento" />
       <div className="mx-auto max-w-4xl space-y-6">
         {/* Header descritivo */}
         <div className="space-y-1">
