@@ -490,8 +490,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 <FeaturedScroller
                   products={promoProducts}
                   title="Promoções"
-                  badgeLabel="Oferta"
-                  badgeClassName="bg-destructive text-destructive-foreground"
                   viewAllHref={`/${tenant.slug}/promocoes`}
                   onSelect={(p) => {
                     if (!storeOpen) return;

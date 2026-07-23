@@ -316,7 +316,7 @@ export function ProductModal({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/20" />
         </div>
 
-        {/* Camada 3: chrome (voltar / destaque) */}
+        {/* Camada 3: chrome (voltar) */}
         <Button
           size="icon" variant="default"
           onClick={() => onOpenChange(false)}
@@ -325,12 +325,6 @@ export function ProductModal({
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        {product.featured && (
-          <span className="absolute right-3 top-3 z-20 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-md">
-            Destaque
-          </span>
-        )}
-
         {/* Camada 2: conteúdo com scroll que sobrepõe a imagem (parallax) */}
         <div
           ref={scrollRef}
