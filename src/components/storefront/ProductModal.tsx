@@ -296,7 +296,7 @@ export function ProductModal({
 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="relative flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
+        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
