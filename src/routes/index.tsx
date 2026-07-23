@@ -403,10 +403,11 @@ function Landing() {
       <FaqSection />
 
       {/* CTA final + contato */}
-      <CTABanner />
+      <CTABanner onCTAClick={() => setSignupOpen(true)} />
       <ContactSpecialistSection />
       <LandingFooter />
 
+      <QuickSignupModal open={signupOpen} onOpenChange={setSignupOpen} />
       <WhatsAppFloatingButton />
     </div>
   );
