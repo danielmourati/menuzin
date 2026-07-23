@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight, CheckCircle2, MessageCircle, Rocket, ShieldCheck,
-  Smartphone, Sparkles, Store, Zap,
+  Smartphone, Rocket, Store, Zap,
 } from "lucide-react";
 import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import { LandingFooter } from "@/components/landing/LandingSections";
@@ -47,7 +47,7 @@ function ComeceAgora() {
               Entrar
             </Link>
             <Button onClick={() => setOpen(true)} className="gap-2">
-              <Sparkles className="h-4 w-4" />
+              <Rocket className="h-4 w-4" />
               Criar grátis
             </Button>
           </div>
@@ -237,7 +237,7 @@ function ComeceAgora() {
             Sua loja pode estar no ar em menos de 2 minutos. Sem cartão, sem letra miúda.
           </p>
           <Button size="lg" variant="secondary" onClick={() => setOpen(true)} className="mt-6 gap-2 shadow-xl">
-            <Sparkles className="h-4 w-4" /> Criar meu cardápio grátis
+            <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
           </Button>
         </div>
       </section>

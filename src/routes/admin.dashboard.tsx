@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@tanstack/react-router";
-import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingBag, Package, AlertCircle, ChevronRight, Loader2, Rocket } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell, Pie, PieChart, Legend, Line, LineChart, CartesianGrid } from "recharts";
 import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
@@ -116,7 +116,7 @@ function DashboardPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-primary">
-                  <Sparkles className="h-5 w-5" />
+                  <Rocket className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="text-base font-semibold">Monte seu cardápio em 2 minutos</p>
@@ -127,7 +127,7 @@ function DashboardPage() {
               </div>
               <Button asChild>
                 <Link to="/admin/cardapio/novo">
-                  <Sparkles className="mr-1.5 h-4 w-4" /> Começar assistente
+                  <Rocket className="mr-1.5 h-4 w-4" /> Começar assistente
                 </Link>
               </Button>
             </div>
