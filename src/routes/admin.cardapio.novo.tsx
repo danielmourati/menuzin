@@ -325,35 +325,30 @@ function WizardPage() {
                 />
               </div>
 
-              <div className="flex flex-wrap justify-between gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => prodMut.mutate({ thenAnother: true })}
+                  disabled={prodMut.isPending || !prodName.trim()}
+                >
+                  {prodMut.isPending ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-1 h-4 w-4" />
+                  )}
+                  Salvar e adicionar outro
                 </Button>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => prodMut.mutate({ thenAnother: true })}
-                    disabled={prodMut.isPending}
-                  >
-                    {prodMut.isPending ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="mr-1 h-4 w-4" />
-                    )}
-                    Salvar e adicionar outro
-                  </Button>
-                  <Button
-                    onClick={() => prodMut.mutate({ thenAnother: false })}
-                    disabled={prodMut.isPending}
-                  >
-                    {prodMut.isPending ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="mr-1 h-4 w-4" />
-                    )}
-                    Salvar e concluir
-                  </Button>
-                </div>
+                <Button
+                  onClick={finalizeWizard}
+                  disabled={prodMut.isPending}
+                >
+                  {prodMut.isPending ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1 h-4 w-4" />
+                  )}
+                  Finalizar cadastro
+                </Button>
               </div>
             </CardContent>
           </Card>
