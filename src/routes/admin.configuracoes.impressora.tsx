@@ -548,6 +548,7 @@ function PrinterSettingsPage() {
         </div>
       }
     >
+      <SettingsBreadcrumb current="Impressora" />
       {isLoading ? (
         <div className="grid place-items-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
