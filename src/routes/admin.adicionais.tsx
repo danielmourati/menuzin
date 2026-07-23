@@ -24,7 +24,7 @@ import {
 } from "@/lib/catalog-admin.functions";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
-import { useConfirm } from "@/hooks/useConfirm";
+import { confirmDialog } from "@/hooks/useConfirm";
 
 export const Route = createFileRoute("/admin/adicionais")({
   component: () => (
