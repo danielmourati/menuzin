@@ -278,9 +278,15 @@ function SettingsPage() {
                 <Label>Pedido mínimo</Label>
                 <CurrencyInput value={form.min_order} onChange={(v) => set("min_order", v)} className="mt-1.5" />
               </div>
-              <div className="md:col-span-2">
+              <div className="max-w-xs">
                 <Label>Tempo médio de preparo</Label>
-                <Input value={form.prep_time} onChange={(e) => set("prep_time", e.target.value)} className="mt-1.5" />
+                <Input
+                  type="time"
+                  placeholder="00:30"
+                  value={form.prep_time}
+                  onChange={(e) => set("prep_time", e.target.value)}
+                  className="mt-1.5"
+                />
               </div>
             </TabsContent>
 
