@@ -1735,6 +1735,7 @@ export type Database = {
           business_types: string[]
           cep: string | null
           city: string | null
+          cover_url: string | null
           created_at: string
           delivery_fee: number
           delivery_mode: string
@@ -1773,6 +1774,7 @@ export type Database = {
           business_types?: string[]
           cep?: string | null
           city?: string | null
+          cover_url?: string | null
           created_at?: string
           delivery_fee?: number
           delivery_mode?: string
@@ -1811,6 +1813,7 @@ export type Database = {
           business_types?: string[]
           cep?: string | null
           city?: string | null
+          cover_url?: string | null
           created_at?: string
           delivery_fee?: number
           delivery_mode?: string
