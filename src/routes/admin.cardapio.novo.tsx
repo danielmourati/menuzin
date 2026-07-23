@@ -161,14 +161,30 @@ function WizardPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const duplicateCatName = useMemo(() => {
+    const n = catName.trim().toLowerCase();
+    if (!n) return false;
+    return categories.some((c) => c.name.trim().toLowerCase() === n);
+  }, [catName, categories]);
+
   const goToStep2 = () => {
     if (catMode === "new") {
       if (!catName.trim()) return toast.error("Dê um nome à categoria.");
+      if (duplicateCatName) return toast.error("Já existe uma categoria com esse nome.");
       catMut.mutate(catName.trim());
       return;
     }
     if (!catId) return toast.error("Selecione uma categoria.");
     setStep(2);
+  };
+
+  const finalizeWizard = () => {
+    const hasContent = prodName.trim().length > 0;
+    if (hasContent) {
+      prodMut.mutate({ thenAnother: false });
+    } else {
+      setStep(3);
+    }
   };
 
   return (
