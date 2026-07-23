@@ -100,14 +100,12 @@ function SubscriptionsAdmin() {
                 <tbody>
                   {list.map((s) => {
                     const c = computeSubscriptionStatus(s as never);
-                    const isVirtual = String(s.id).startsWith("virtual-");
                     const planSlug = s.plan?.slug ?? "presenca";
                     const isPresenca = planSlug === "presenca";
                     return (
                       <tr key={s.id} className="border-t">
                         <td className="px-4 py-3 font-medium">
                           {(s as { tenant?: { name: string } }).tenant?.name ?? "—"}
-                          {isVirtual && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">sem assinatura</span>}
                         </td>
                         <td className="px-4 py-3">{s.plan?.name ?? "Presença"}</td>
                         <td className="px-4 py-3">{brl(Number(s.amount))}</td>
@@ -126,16 +124,12 @@ function SubscriptionsAdmin() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
-                            {!isVirtual && (
-                              <>
-                                <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(s as never)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" title="Histórico" onClick={() => setHistory({ tenant_id: s.tenant_id, tenant_name: (s as { tenant?: { name: string } }).tenant?.name ?? "Loja" })}>
-                                  <History className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
+                            <Button size="icon" variant="ghost" title="Editar" onClick={() => setEditing(s as never)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" title="Histórico" onClick={() => setHistory({ tenant_id: s.tenant_id, tenant_name: (s as { tenant?: { name: string } }).tenant?.name ?? "Loja" })}>
+                              <History className="h-4 w-4" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
