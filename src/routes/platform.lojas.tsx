@@ -260,7 +260,7 @@ function EditTenantDialog({
   const [slug, setSlug] = useState(store.slug);
   const [city, setCity] = useState(store.city ?? "");
   const [state, setState] = useState(store.state ?? "");
-  const [plan, setPlan] = useState<string>(store.plan);
+  const [plan, setPlan] = useState<TenantPlan>(normalizePlan(store.plan));
   const [status, setStatus] = useState<string>(store.status);
   const [active, setActive] = useState<boolean>(store.active);
 
