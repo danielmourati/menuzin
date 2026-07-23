@@ -51,7 +51,11 @@ export const createOrder = createServerFn({ method: "POST" })
     const { getTenantPlanLimits } = await import("@/lib/plan-server");
     const limits = await getTenantPlanLimits(tenant.id as string);
     if (limits.max_orders_per_month === 0) {
-      throw new Error("Esta loja recebe pedidos apenas pelo WhatsApp. Finalize por lá.");
+      return {
+        order: null,
+        whatsappOnly: true,
+        reason: "Esta loja recebe pedidos apenas pelo WhatsApp. Finalize por lá.",
+      };
     }
     if (limits.max_orders_per_month != null) {
       const startOfMonth = new Date();
@@ -156,7 +160,7 @@ export const createOrder = createServerFn({ method: "POST" })
       changed_by_name: "Sistema",
     });
 
-    return { order: order as unknown as DbOrder };
+    return { order: order as unknown as DbOrder, whatsappOnly: false, reason: null };
   });
 
 async function loadOrderBundle(orderId: string) {

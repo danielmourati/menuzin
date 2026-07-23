@@ -503,6 +503,10 @@ export function CartDrawer({
         }),
       },
     });
+    if (!res.order) {
+      openWhatsappPresenca();
+      throw new Error(res.reason ?? "Esta loja recebe pedidos apenas pelo WhatsApp.");
+    }
     setDbOrderId(res.order.id);
     setDbOrderNumber(res.order.number);
     return { id: res.order.id, number: res.order.number };
