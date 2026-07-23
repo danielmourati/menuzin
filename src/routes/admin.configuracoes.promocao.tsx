@@ -167,7 +167,7 @@ function PromoModalSettingsPage() {
 
   return (
     <AdminLayout title="Modal promocional" action={backAction}>
-
+      <SettingsBreadcrumb current="Pop-up promocional" />
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <Card>
           <CardContent className="space-y-6 p-6">
