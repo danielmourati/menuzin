@@ -101,6 +101,8 @@ function SubscriptionsAdmin() {
                   {list.map((s) => {
                     const c = computeSubscriptionStatus(s as never);
                     const isVirtual = String(s.id).startsWith("virtual-");
+                    const planSlug = s.plan?.slug ?? "presenca";
+                    const isPresenca = planSlug === "presenca";
                     return (
                       <tr key={s.id} className="border-t">
                         <td className="px-4 py-3 font-medium">
@@ -110,9 +112,13 @@ function SubscriptionsAdmin() {
                         <td className="px-4 py-3">{s.plan?.name ?? "Presença"}</td>
                         <td className="px-4 py-3">{brl(Number(s.amount))}</td>
                         <td className="px-4 py-3">{s.billing_period}</td>
-                        <td className="px-4 py-3">{isVirtual ? <Badge variant="outline">gratuito</Badge> : <SubscriptionStatusBadge status={c.effective} />}</td>
-                        <td className="px-4 py-3">{s.due_date ? new Date(`${s.due_date}T00:00:00Z`).toLocaleDateString("pt-BR") : "—"}</td>
-                        <td className="px-4 py-3">{c.daysRemaining ?? "—"}</td>
+                        <td className="px-4 py-3">
+                          {isPresenca
+                            ? <SubscriptionStatusBadge status="ativa" label="Ativa (grátis)" />
+                            : <SubscriptionStatusBadge status={c.effective} />}
+                        </td>
+                        <td className="px-4 py-3">{isPresenca ? "—" : (s.due_date ? new Date(`${s.due_date}T00:00:00Z`).toLocaleDateString("pt-BR") : "—")}</td>
+                        <td className="px-4 py-3">{isPresenca ? "—" : (c.daysRemaining ?? "—")}</td>
                         <td className="px-4 py-3">
                           {(s as { last_paid_at?: string | null }).last_paid_at
                             ? new Date((s as { last_paid_at: string }).last_paid_at).toLocaleDateString("pt-BR")
