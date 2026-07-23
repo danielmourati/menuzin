@@ -82,6 +82,7 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     hours: t.hours ?? "",
     logoLetter: t.logo_letter ?? (t.name.charAt(0).toUpperCase()),
     logoUrl: t.logo_url ?? undefined,
+    coverUrl: t.cover_url ?? undefined,
     themeFrom: t.theme_from,
     themeTo: t.theme_to,
     plan: t.plan,
