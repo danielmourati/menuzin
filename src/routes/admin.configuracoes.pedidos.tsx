@@ -10,7 +10,7 @@ import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
 import { useOrdersRealtime, playNotificationSound } from "@/hooks/useOrdersRealtime";
 import { uploadTenantAudio } from "@/lib/storage";
 import { updateMyTenant } from "@/lib/tenants.functions";
-import { ArrowLeft, Volume2, Bell, AlertCircle, Play, Upload, Music, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Volume2, Bell, Upload, Music, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/configuracoes/pedidos")({
