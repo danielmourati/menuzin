@@ -25,8 +25,14 @@ import {
   lookupByCep, searchByAddress, rankResults, type ViaCepResult, type ViaCepResponse,
 } from "@/lib/viacep";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/taxas-entrega")({
-  component: DeliveryZonesPage,
+  component: () => (
+    <PlanGate min="start" title="Taxas de entrega" featureLabel="Taxas de entrega por bairro">
+      <DeliveryZonesPage />
+    </PlanGate>
+  ),
 });
 
 type Mode = "none" | "single" | "neighborhood";
