@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MercadoPagoStatus } from "@/components/payment/MercadoPagoStatus";
 import {
   getStorePaymentSettings,
-  connectMercadoPago,
   disconnectMercadoPago,
   updatePaymentSettings,
   testPayment,
