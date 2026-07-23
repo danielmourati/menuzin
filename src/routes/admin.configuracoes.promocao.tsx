@@ -20,8 +20,14 @@ import {
 import { listMyProducts } from "@/lib/catalog-admin.functions";
 import { uploadTenantImage } from "@/lib/storage";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/configuracoes/promocao")({
-  component: PromoModalSettingsPage,
+  component: () => (
+    <PlanGate min="pro" title="Pop-up promocional" featureLabel="Pop-up promocional na loja">
+      <PromoModalSettingsPage />
+    </PlanGate>
+  ),
 });
 
 type Mode = "window" | "recurring";

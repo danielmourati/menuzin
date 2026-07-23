@@ -44,6 +44,7 @@ import {
   adminApplyTemplateToAll,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
+import { PLAN_LABEL, normalizePlan, type TenantPlan } from "@/lib/plan-features";
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
 import { useAuth } from "@/lib/auth-context";
@@ -156,7 +157,7 @@ function PlatformStores() {
                   <Badge variant="secondary" className={statusTone[s.status] ?? ""}>
                     {s.status}
                   </Badge>
-                  <Badge variant="outline">{s.plan}</Badge>
+                  <Badge variant="outline">{PLAN_LABEL[normalizePlan(s.plan)]}</Badge>
                   {!s.active && <Badge variant="destructive">inativa</Badge>}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -259,7 +260,7 @@ function EditTenantDialog({
   const [slug, setSlug] = useState(store.slug);
   const [city, setCity] = useState(store.city ?? "");
   const [state, setState] = useState(store.state ?? "");
-  const [plan, setPlan] = useState<string>(store.plan);
+  const [plan, setPlan] = useState<TenantPlan>(normalizePlan(store.plan));
   const [status, setStatus] = useState<string>(store.status);
   const [active, setActive] = useState<boolean>(store.active);
 
@@ -272,7 +273,7 @@ function EditTenantDialog({
           slug,
           city,
           state,
-          plan: plan as "start" | "pro" | "max",
+          plan,
           status: status as "ativa" | "teste" | "suspensa",
           active,
         },
@@ -286,12 +287,12 @@ function EditTenantDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>Editar loja</DialogTitle>
           <DialogDescription>Atualize os dados deste estabelecimento.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3">
+        <div className="grid gap-3 overflow-y-auto px-6 py-4 flex-1">
           <div>
             <Label>Nome</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -325,12 +326,12 @@ function EditTenantDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Plano</Label>
-              <Select value={plan} onValueChange={setPlan}>
+              <Select value={plan} onValueChange={(v) => setPlan(v as TenantPlan)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="presenca">Presença</SelectItem>
                   <SelectItem value="start">Start</SelectItem>
                   <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="max">Max</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -357,7 +358,7 @@ function EditTenantDialog({
           </div>
           <OwnerEditor tenantId={store.id} />
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6 border-t pt-4">
           <Button variant="outline" onClick={onClose} disabled={mut.isPending}>
             Cancelar
           </Button>

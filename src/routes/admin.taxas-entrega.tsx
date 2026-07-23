@@ -25,8 +25,14 @@ import {
   lookupByCep, searchByAddress, rankResults, type ViaCepResult, type ViaCepResponse,
 } from "@/lib/viacep";
 
+import { PlanGate } from "@/components/subscription/PlanGate";
+
 export const Route = createFileRoute("/admin/taxas-entrega")({
-  component: DeliveryZonesPage,
+  component: () => (
+    <PlanGate min="start" title="Taxas de entrega" featureLabel="Taxas de entrega por bairro">
+      <DeliveryZonesPage />
+    </PlanGate>
+  ),
 });
 
 type Mode = "none" | "single" | "neighborhood";
@@ -61,6 +67,14 @@ const maskCep = (v: string) => {
   return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 };
 const cepDigits = (v: string) => v.replace(/\D/g, "");
+
+const stripAcc = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const neighborhoodKey = (name: string, city: string, uf: string) => {
+  const base = stripAcc(name.trim()).toLowerCase().replace(/\s+\d+$/, "").trim();
+  return `${base}|${stripAcc(city.trim()).toLowerCase()}|${uf.trim().toLowerCase()}`;
+};
+const neighborhoodBaseName = (name: string) =>
+  name.trim().replace(/\s+\d+$/, "").trim() || name;
 
 function DeliveryZonesPage() {
   const qc = useQueryClient();
@@ -161,6 +175,24 @@ function DeliveryZonesPage() {
   });
 
   const list = data ?? [];
+  const [groupDuplicates, setGroupDuplicates] = useState(true);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, { key: string; baseName: string; city: string; uf: string; items: DeliveryZoneRow[] }>();
+    for (const z of list) {
+      const key = neighborhoodKey(z.neighborhood, z.city ?? "", (z.uf ?? "").toUpperCase());
+      const existing = map.get(key);
+      if (existing) existing.items.push(z);
+      else map.set(key, {
+        key,
+        baseName: neighborhoodBaseName(z.neighborhood),
+        city: z.city ?? "",
+        uf: (z.uf ?? "").toUpperCase(),
+        items: [z],
+      });
+    }
+    return Array.from(map.values());
+  }, [list]);
 
   const openNew = () => { setEditing(empty({ city: tenantCity, uf: tenantUf })); setOpen(true); };
   const openEdit = (z: DeliveryZoneRow) => {
@@ -261,11 +293,17 @@ function DeliveryZonesPage() {
 
         {mode === "neighborhood" && (
           <Card>
-            <CardHeader>
-              <CardTitle>Bairros atendidos</CardTitle>
-              <CardDescription>
-                Cadastre os bairros, faixas de CEP e taxas. O CEP permite identificar a área automaticamente no checkout.
-              </CardDescription>
+            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Bairros atendidos</CardTitle>
+                <CardDescription>
+                  Cadastre os bairros, faixas de CEP e taxas. O CEP permite identificar a área automaticamente no checkout.
+                </CardDescription>
+              </div>
+              <label className="flex items-center gap-2 text-xs whitespace-nowrap">
+                <Switch checked={groupDuplicates} onCheckedChange={setGroupDuplicates} />
+                Agrupar bairros duplicados
+              </label>
             </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
@@ -284,43 +322,69 @@ function DeliveryZonesPage() {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {list.map((z) => (
-                    <div key={z.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-bold text-base truncate">{z.neighborhood}</span>
-                          <Badge variant={z.active ? "default" : "secondary"}>{z.active ? "Ativo" : "Inativo"}</Badge>
-                          <Badge variant="outline">Taxa {brl(Number(z.fee))}</Badge>
-                          {Number(z.min_order_total) > 0 && (
-                            <Badge variant="outline">Mín. {brl(Number(z.min_order_total))}</Badge>
-                          )}
-                          {z.estimated_minutes && (
-                            <Badge variant="outline">~{z.estimated_minutes} min</Badge>
-                          )}
-                          {(z.city || z.uf) && (
-                            <Badge variant="outline">{[z.city, z.uf].filter(Boolean).join("/")}</Badge>
-                          )}
-                          {(z.cep_start || z.cep_end) && (
-                            <Badge variant="outline">
-                              CEP {z.cep_start ? maskCep(z.cep_start) : "?"} → {z.cep_end ? maskCep(z.cep_end) : "?"}
-                            </Badge>
-                          )}
+                  {(groupDuplicates ? grouped : list.map((z) => ({ key: z.id, baseName: z.neighborhood, city: z.city ?? "", uf: (z.uf ?? "").toUpperCase(), items: [z] }))).map((g) => {
+                    const isGroup = g.items.length > 1;
+                    const fees = new Set(g.items.map((i) => Number(i.fee)));
+                    const feesDiffer = isGroup && fees.size > 1;
+                    return (
+                      <div key={g.key} className={isGroup ? "p-4 space-y-2" : "p-0"}>
+                        {isGroup && (
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-base">{g.baseName}</span>
+                              <Badge variant="secondary">{g.items.length} faixas</Badge>
+                              {(g.city || g.uf) && (
+                                <Badge variant="outline">{[g.city, g.uf].filter(Boolean).join("/")}</Badge>
+                              )}
+                              {feesDiffer && (
+                                <Badge variant="destructive" className="text-[10px]">Taxas diferentes</Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        <div className={isGroup ? "divide-y rounded-md border" : "divide-y"}>
+                          {g.items.map((z) => (
+                            <div key={z.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {!isGroup && <span className="font-bold text-base truncate">{z.neighborhood}</span>}
+                                  {isGroup && <span className="text-sm text-muted-foreground">{z.neighborhood}</span>}
+                                  <Badge variant={z.active ? "default" : "secondary"}>{z.active ? "Ativo" : "Inativo"}</Badge>
+                                  <Badge variant="outline">Taxa {brl(Number(z.fee))}</Badge>
+                                  {Number(z.min_order_total) > 0 && (
+                                    <Badge variant="outline">Mín. {brl(Number(z.min_order_total))}</Badge>
+                                  )}
+                                  {z.estimated_minutes && (
+                                    <Badge variant="outline">~{z.estimated_minutes} min</Badge>
+                                  )}
+                                  {!isGroup && (z.city || z.uf) && (
+                                    <Badge variant="outline">{[z.city, z.uf].filter(Boolean).join("/")}</Badge>
+                                  )}
+                                  {(z.cep_start || z.cep_end) && (
+                                    <Badge variant="outline">
+                                      CEP {z.cep_start ? maskCep(z.cep_start) : "?"} → {z.cep_end ? maskCep(z.cep_end) : "?"}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Switch checked={z.active} onCheckedChange={() => toggleMut.mutate(z)} />
+                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(z)}>
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="outline" size="icon" className="h-8 w-8 text-destructive"
+                                  onClick={() => { if (confirm(`Excluir o bairro ${z.neighborhood}?`)) delMut.mutate(z.id); }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Switch checked={z.active} onCheckedChange={() => toggleMut.mutate(z)} />
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(z)}>
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="outline" size="icon" className="h-8 w-8 text-destructive"
-                          onClick={() => { if (confirm(`Excluir o bairro ${z.neighborhood}?`)) delMut.mutate(z.id); }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
