@@ -24,6 +24,7 @@ import {
 } from "@/lib/catalog-admin.functions";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
+import { confirmDialog } from "@/hooks/useConfirm";
 
 export const Route = createFileRoute("/admin/adicionais")({
   component: () => (
@@ -62,6 +63,7 @@ function emptyDraft(): GroupDraft {
 
 function AdicionaisPage() {
   const qc = useQueryClient();
+  
 
   const groupsQ = useQuery({
     queryKey: ["admin", "addon-groups"],
@@ -239,7 +241,7 @@ function AdicionaisPage() {
                   </Button>
                   <Button
                     size="icon" variant="ghost" className="text-destructive"
-                    onClick={() => { if (confirm(`Excluir subcategoria "${g.name}"?`)) delGroupMut.mutate(g.id); }}
+                    onClick={async () => { if (await confirmDialog({ title: `Excluir subcategoria "${g.name}"?`, variant: "destructive", confirmText: "Excluir" })) delGroupMut.mutate(g.id); }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -442,6 +444,7 @@ function AdicionaisPage() {
           )}
         </DialogContent>
       </Dialog>
+      
     </AdminLayout>
   );
 }

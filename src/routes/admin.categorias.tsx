@@ -19,6 +19,7 @@ import {
 import { getMyTenant } from "@/lib/tenants.functions";
 import type { DbCategory } from "@/lib/db-types";
 import { PizzaCategoryConfigDialog } from "@/components/admin/PizzaCategoryConfigDialog";
+import { confirmDialog } from "@/hooks/useConfirm";
 
 
 export const Route = createFileRoute("/admin/categorias")({
@@ -36,6 +37,7 @@ type Editing = {
 
 function CategoriesPage() {
   const qc = useQueryClient();
+  
   const tenantQ = useQuery({
     queryKey: ["tenant-probe"],
     queryFn: () => getMyTenant({ data: {} }),
@@ -149,7 +151,7 @@ function CategoriesPage() {
                   setOpen(true);
                 }}><Edit2 className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" className="text-destructive"
-                  onClick={() => { if (confirm(`Excluir "${c.name}"?`)) delMut.mutate(c.id); }}>
+                  onClick={async () => { if (await confirmDialog({ title: `Excluir "${c.name}"?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(c.id); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </li>
@@ -236,6 +238,7 @@ function CategoriesPage() {
           categoryName={pizzaCfg.name}
         />
       )}
+      
     </AdminLayout>
   );
 }

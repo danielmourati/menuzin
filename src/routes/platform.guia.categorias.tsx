@@ -1,3 +1,4 @@
+import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -77,8 +78,8 @@ function PlatformGuiaCategorias() {
                 <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => {
-                  if (confirm(`Remover categoria "${c.label}"?`)) {
+                <Button size="icon" variant="ghost" onClick={async () => {
+                  if (await confirmDialog({ title: `Remover categoria "${c.label}"?`, variant: "destructive", confirmText: "Remover" })) {
                     guiaActions.deleteCategory(c.id);
                     toast.success("Categoria removida.");
                   }

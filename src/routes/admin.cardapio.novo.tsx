@@ -161,14 +161,30 @@ function WizardPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const duplicateCatName = useMemo(() => {
+    const n = catName.trim().toLowerCase();
+    if (!n) return false;
+    return categories.some((c) => c.name.trim().toLowerCase() === n);
+  }, [catName, categories]);
+
   const goToStep2 = () => {
     if (catMode === "new") {
       if (!catName.trim()) return toast.error("Dê um nome à categoria.");
+      if (duplicateCatName) return toast.error("Já existe uma categoria com esse nome.");
       catMut.mutate(catName.trim());
       return;
     }
     if (!catId) return toast.error("Selecione uma categoria.");
     setStep(2);
+  };
+
+  const finalizeWizard = () => {
+    const hasContent = prodName.trim().length > 0;
+    if (hasContent) {
+      prodMut.mutate({ thenAnother: false });
+    } else {
+      setStep(3);
+    }
   };
 
   return (
@@ -218,7 +234,13 @@ function WizardPage() {
                     onChange={(e) => setCatName(e.target.value)}
                     placeholder="Ex.: Lanches"
                     autoFocus
+                    aria-invalid={duplicateCatName}
                   />
+                  {duplicateCatName && (
+                    <p className="text-xs text-destructive">
+                      Já existe uma categoria com esse nome.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -303,35 +325,30 @@ function WizardPage() {
                 />
               </div>
 
-              <div className="flex flex-wrap justify-between gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => prodMut.mutate({ thenAnother: true })}
+                  disabled={prodMut.isPending || !prodName.trim()}
+                >
+                  {prodMut.isPending ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-1 h-4 w-4" />
+                  )}
+                  Salvar e adicionar outro
                 </Button>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => prodMut.mutate({ thenAnother: true })}
-                    disabled={prodMut.isPending}
-                  >
-                    {prodMut.isPending ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="mr-1 h-4 w-4" />
-                    )}
-                    Salvar e adicionar outro
-                  </Button>
-                  <Button
-                    onClick={() => prodMut.mutate({ thenAnother: false })}
-                    disabled={prodMut.isPending}
-                  >
-                    {prodMut.isPending ? (
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="mr-1 h-4 w-4" />
-                    )}
-                    Salvar e concluir
-                  </Button>
-                </div>
+                <Button
+                  onClick={finalizeWizard}
+                  disabled={prodMut.isPending}
+                >
+                  {prodMut.isPending ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1 h-4 w-4" />
+                  )}
+                  Finalizar cadastro
+                </Button>
               </div>
             </CardContent>
           </Card>

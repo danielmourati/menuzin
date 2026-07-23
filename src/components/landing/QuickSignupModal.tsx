@@ -12,6 +12,7 @@ import { maskPhone } from "@/lib/masks";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { PasswordInput } from "@/components/ui/password-input";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
 
 const STEPS = [
@@ -279,11 +280,11 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>Senha</Label>
-                  <Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Mínimo 8 caracteres" className="mt-1.5" autoComplete="new-password" />
+                  <PasswordInput value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Mínimo 8 caracteres" className="mt-1.5" autoComplete="new-password" />
                 </div>
                 <div>
                   <Label>Confirmar senha</Label>
-                  <Input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} className="mt-1.5" autoComplete="new-password" />
+                  <PasswordInput value={pw2} onChange={(e) => setPw2(e.target.value)} className="mt-1.5" autoComplete="new-password" />
                   {pw2.length > 0 && !pwMatch && (
                     <p className="mt-1 text-xs text-destructive">As senhas não coincidem.</p>
                   )}

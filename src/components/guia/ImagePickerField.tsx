@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Link2, X, ImageIcon } from "lucide-react";
+import { Upload, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { SLOT_IMAGE_SPECS, type GuiaSlotKind } from "@/lib/guia-mock";
 
@@ -18,6 +18,7 @@ type Props = {
 
 export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Props) {
   const spec = SLOT_IMAGE_SPECS[specKey];
+  const [mode, setMode] = useState<"upload" | "url">("upload");
   const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -33,10 +34,7 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
       );
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      onChange(dataUrl, fit);
-    };
+    reader.onload = () => onChange(reader.result as string, fit);
     reader.onerror = () => toast.error("Falha ao ler o arquivo.");
     reader.readAsDataURL(file);
   };
@@ -53,8 +51,8 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
   };
 
   return (
-    <div className="space-y-2 rounded-xl border p-3">
-      <div className="flex items-center justify-between gap-2">
+    <div className="space-y-3 rounded-xl border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4 text-muted-foreground" />
           <Label className="text-sm font-semibold">Imagem</Label>
@@ -64,12 +62,31 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
         </Badge>
       </div>
 
-      <p className="text-xs text-muted-foreground">{spec.hint}</p>
+      <div className="inline-flex rounded-lg bg-muted p-1 text-xs">
+        <button
+          type="button"
+          onClick={() => setMode("upload")}
+          className={`rounded-md px-3 py-1 font-medium transition ${
+            mode === "upload" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          Upload
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("url")}
+          className={`rounded-md px-3 py-1 font-medium transition ${
+            mode === "url" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          URL
+        </button>
+      </div>
 
       <div className="flex items-start gap-3">
         <div
           className="relative grid shrink-0 place-items-center overflow-hidden rounded-lg border bg-muted/40"
-          style={{ width: 96, aspectRatio: `${spec.width} / ${spec.height}` }}
+          style={{ width: 88, aspectRatio: `${spec.width} / ${spec.height}` }}
         >
           {value ? (
             <img
@@ -83,46 +100,37 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
         </div>
 
         <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-                e.target.value = "";
-              }}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => fileRef.current?.click()}
-            >
-              <Upload className="mr-1 h-4 w-4" /> Enviar arquivo
-            </Button>
-            {value && (
+          {mode === "upload" ? (
+            <>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFile(f);
+                  e.target.value = "";
+                }}
+              />
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                onClick={() => onChange(undefined, fit)}
+                variant="outline"
+                className="w-full justify-center"
+                onClick={() => fileRef.current?.click()}
               >
-                <X className="mr-1 h-4 w-4" /> Remover
+                <Upload className="mr-2 h-4 w-4" /> Escolher do dispositivo
               </Button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Link2 className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <p className="text-[11px] text-muted-foreground">JPG, PNG ou WebP até {spec.maxKB}KB.</p>
+            </>
+          ) : (
+            <>
               <Input
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://…"
-                className="h-8 pl-7 text-xs"
+                placeholder="https://exemplo.com/imagem.jpg"
+                className="h-9 text-sm"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -130,31 +138,46 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
                   }
                 }}
               />
-            </div>
-            <Button type="button" size="sm" variant="secondary" onClick={applyUrl}>
-              Usar URL
-            </Button>
-          </div>
+              <Button type="button" size="sm" variant="secondary" className="w-full" onClick={applyUrl}>
+                Usar URL
+              </Button>
+            </>
+          )}
 
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Ajuste:</span>
-            <button
+          {value && (
+            <Button
               type="button"
-              className={`rounded-md border px-2 py-0.5 ${fit === "cover" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
-              onClick={() => onChange(value, "cover")}
+              size="sm"
+              variant="ghost"
+              className="w-full justify-center text-destructive hover:text-destructive"
+              onClick={() => onChange(undefined, fit)}
             >
-              preencher
-            </button>
-            <button
-              type="button"
-              className={`rounded-md border px-2 py-0.5 ${fit === "contain" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
-              onClick={() => onChange(value, "contain")}
-            >
-              conter
-            </button>
-          </div>
+              <X className="mr-1 h-4 w-4" /> Remover imagem
+            </Button>
+          )}
         </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">{spec.hint}</p>
+
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-muted-foreground">Ajuste:</span>
+        <button
+          type="button"
+          className={`rounded-md border px-2 py-0.5 ${fit === "cover" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
+          onClick={() => onChange(value, "cover")}
+        >
+          preencher
+        </button>
+        <button
+          type="button"
+          className={`rounded-md border px-2 py-0.5 ${fit === "contain" ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}
+          onClick={() => onChange(value, "contain")}
+        >
+          conter
+        </button>
       </div>
     </div>
   );
 }
+

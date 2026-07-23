@@ -16,6 +16,7 @@ import { AuthProvider } from "../lib/auth-context";
 import { PrintServerProvider } from "../lib/print-server-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmDialogHost } from "@/hooks/useConfirm";
 
 
 function NotFoundComponent() {
@@ -130,6 +131,7 @@ function RootComponent() {
           <CartProvider>
             <Outlet />
             <Toaster position="top-center" richColors />
+            <ConfirmDialogHost />
           </CartProvider>
         </PrintServerProvider>
       </AuthProvider>

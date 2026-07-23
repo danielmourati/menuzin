@@ -1,25 +1,49 @@
-## Ajustes CTAs da home
+## Escopo
 
-### 1. Hierarquia visual dos CTAs (mesma cor primary)
-No hero, os dois botões ("Ver loja demo" e "Criar meu cardápio grátis") estão ambos `primary` sólido laranja, sem hierarquia. Padrão UX/UI: um CTA primário sólido + um secundário `outline`.
+Quatro ajustes de UX em fluxos de cadastro/edição.
 
-- **Ver loja demo** → mantém `variant="default"` (primário sólido). É a ação exploratória mais leve? Não — a ação principal é "Criar meu cardápio grátis". Então inverter:
-  - **Criar meu cardápio grátis** → `variant="default"` (primário sólido, laranja).
-  - **Ver loja demo** → `variant="outline"` (secundário).
-- Aplicar mesma lógica no `CTABanner` (já `variant="secondary"`, fica) — sem alteração.
+### 1. Olhinho nas senhas do modal de cadastro
+Em `src/components/landing/QuickSignupModal.tsx`, trocar os dois `<Input type="password">` (Senha e Confirmar senha) pelo componente já existente `PasswordInput` (`src/components/ui/password-input.tsx`), que já implementa o toggle de mostrar/ocultar.
 
-### 2. Reverter CTAs dos planos Start e Pro para WhatsApp
-Apenas o plano **Presença** mantém o botão 🚀 "Criar meu cardápio grátis" (abre `QuickSignupModal`).
+### 2. Inputs de imagem no wizard (anexo 1)
+Em `src/components/guia/ImagePickerField.tsx`:
+- Substituir o layout atual (toggle Upload/URL em pill separada) por um cabeçalho com duas abas segmentadas mais claras, alinhadas à largura do campo.
+- Quando modo Upload: mostrar botão único cheio "Escolher do dispositivo" com ícone, sem sobrepor a label "Preço" (o texto está vazando por causa da altura do bloco). Ajustar espaçamento e `min-height` para caber ao lado do campo Nome sem colidir.
+- Quando modo URL: input de URL em linha própria, ocupando 100% da largura do campo.
+- Manter dica de dimensões/formatos abaixo.
 
-Restaurar em `src/routes/index.tsx` no bloco `pricingPlans.map`:
-- **Start** → `<a href={WHATSAPP_CONTACT_URL}>` com texto original `p.cta` ("Começar a vender"), ícone `MessageCircle`.
-- **Pro** → idem, texto `p.cta` ("Profissionalizar meu delivery").
-- **Presença** → mantém `onClick={() => setSignupOpen(true)}` com `Rocket` + "Criar meu cardápio grátis".
+O objetivo é que o bloco Imagem fique auto-contido e não invada os campos vizinhos (Nome/Preço).
 
-Reimportar `WHATSAPP_CONTACT_URL` em `src/routes/index.tsx`.
+### 3. Wizard Novo Cardápio — Passo 2 → Passo 3 (anexo 2)
+Em `src/routes/admin.cardapio.novo.tsx`:
+- No passo Categoria: bloquear nomes duplicados (case-insensitive, trim) ao criar; exibir erro inline e desabilitar botão Avançar.
+- No passo Produto: remover o botão "Voltar" (para não permitir voltar e editar a categoria recém criada). Substituir por botão "Pular" ou apenas manter Salvar/Adicionar outro/Concluir.
+- Adicionar botão explícito **"Finalizar cadastro"** que leva ao passo 3 (Pronto) — hoje o passo Concluir salva mas não necessariamente encaminha o fluxo. Garantir que ao clicar Finalizar, salva o produto atual (se houver campos preenchidos) e navega para o passo Pronto com os CTAs Preview/Publicar já existentes.
 
-### Arquivos alterados
-- `src/routes/index.tsx` — hero: swap de variants; planos: condicional por `p.id === "presenca"`.
+### 4. Modal de confirmação (anexo 3)
+Substituir todos os `window.confirm(...)` por um `AlertDialog` (shadcn, já instalado em `src/components/ui/alert-dialog.tsx`).
 
-### Verificação
-- Preview em `/`: hero com botão laranja sólido (Criar cardápio) + outline (Ver demo); cards Start/Pro voltam a abrir WhatsApp; Presença abre modal.
+Abordagem: criar hook utilitário `src/hooks/useConfirm.tsx` que expõe:
+```ts
+const { confirm, ConfirmDialog } = useConfirm();
+// await confirm({ title, description, confirmText, variant: "destructive" })
+```
+E renderiza `<ConfirmDialog />` uma vez no componente.
+
+Arquivos a migrar (10):
+- `src/routes/admin.adicionais.tsx`
+- `src/routes/admin.taxas-entrega.tsx`
+- `src/routes/admin.categorias.tsx`
+- `src/routes/admin.cupons.tsx`
+- `src/routes/admin.observacoes.tsx`
+- `src/routes/admin.produtos.tsx`
+- `src/routes/platform.guia.solicitacoes.tsx`
+- `src/routes/platform.guia.slots.tsx`
+- `src/routes/platform.guia.categorias.tsx`
+- `src/components/admin/PizzaCategoryConfigDialog.tsx`
+
+Cada `if (!confirm("Excluir X?")) return;` vira `if (!(await confirm({ title: "Excluir X?", variant: "destructive" }))) return;`.
+
+## Fora do escopo
+- Nenhuma alteração de schema, RLS ou lógica de negócio.
+- Sem novos endpoints.
