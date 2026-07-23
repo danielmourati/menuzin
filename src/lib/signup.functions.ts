@@ -12,6 +12,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { slugify } from "@/lib/utils";
+import { BUSINESS_TYPES } from "@/lib/business-types";
 
 const SlugSchema = z
   .string()
