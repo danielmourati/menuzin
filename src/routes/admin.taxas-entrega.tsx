@@ -379,7 +379,6 @@ function DeliveryZonesPage() {
                       </div>
                     );
                   })}
-                  ))}
                 </div>
               )}
             </CardContent>
