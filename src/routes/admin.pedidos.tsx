@@ -1,3 +1,4 @@
+import { PlanGate } from "@/components/subscription/PlanGate";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
