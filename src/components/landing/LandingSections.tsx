@@ -192,7 +192,7 @@ function PrintMockup() {
   );
 }
 
-export function CTABanner() {
+export function CTABanner({ onCTAClick }: { onCTAClick?: () => void } = {}) {
   return (
     <section className="container mx-auto px-4 py-16">
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/80 px-6 py-14 text-center text-primary-foreground shadow-[var(--shadow-pop)] md:px-12">
@@ -206,11 +206,17 @@ export function CTABanner() {
           começar a vender pelo WhatsApp.
         </p>
         <div className="relative mt-7 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg" variant="secondary" className="gap-2">
-            <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
-              Falar com a gente <ArrowRight className="h-4 w-4" />
-            </a>
-          </Button>
+          {onCTAClick ? (
+            <Button size="lg" variant="secondary" className="gap-2" onClick={onCTAClick}>
+              <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
+            </Button>
+          ) : (
+            <Button asChild size="lg" variant="secondary" className="gap-2">
+              <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
+                Falar com a gente <ArrowRight className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
         </div>
       </div>
     </section>
