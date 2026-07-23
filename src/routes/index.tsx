@@ -137,6 +137,7 @@ function Landing() {
   });
   const demoSlug = tenantsData?.tenants?.[0]?.slug;
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const [signupOpen, setSignupOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
