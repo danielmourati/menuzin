@@ -232,21 +232,48 @@ function WizardPage() {
               )}
 
               {catMode === "new" ? (
-                <div className="space-y-2">
-                  <Label>Nome da categoria</Label>
-                  <Input
-                    value={catName}
-                    onChange={(e) => setCatName(e.target.value)}
-                    placeholder="Ex.: Lanches"
-                    autoFocus
-                    aria-invalid={duplicateCatName}
-                  />
-                  {duplicateCatName && (
-                    <p className="text-xs text-destructive">
-                      Já existe uma categoria com esse nome.
-                    </p>
+                <div className="space-y-3">
+                  {isPizzaria && (
+                    <div className="space-y-2">
+                      <Label>Tipo</Label>
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        {([
+                          { k: "standard", label: "Itens principais" },
+                          { k: "pizza", label: "Pizza" },
+                          { k: "oferta", label: "Oferta do Dia" },
+                        ] as const).map(({ k, label }) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setCatKind(k)}
+                            className={
+                              "rounded-lg border p-2 text-sm font-medium transition " +
+                              (catKind === k ? "border-primary bg-primary/5 text-primary" : "text-muted-foreground hover:bg-muted")
+                            }
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
+                  <div className="space-y-2">
+                    <Label>Nome da categoria</Label>
+                    <Input
+                      value={catName}
+                      onChange={(e) => setCatName(e.target.value)}
+                      placeholder="Ex.: Lanches"
+                      autoFocus
+                      aria-invalid={duplicateCatName}
+                    />
+                    {duplicateCatName && (
+                      <p className="text-xs text-destructive">
+                        Já existe uma categoria com esse nome.
+                      </p>
+                    )}
+                  </div>
                 </div>
+
               ) : (
                 <div className="space-y-2">
                   <Label>Categoria</Label>
