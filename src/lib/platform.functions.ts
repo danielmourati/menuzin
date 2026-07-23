@@ -468,7 +468,7 @@ const UpdateTenantInput = z.object({
   city: z.string().max(80).optional(),
   state: z.string().max(40).optional(),
   address: z.string().max(240).optional(),
-  plan: z.enum(["start", "pro", "max"]).optional(),
+  plan: z.enum(["presenca", "start", "pro"]).optional(),
   status: z.enum(["ativa", "teste", "suspensa"]).optional(),
   active: z.boolean().optional(),
   theme_from: z.string().max(40).optional(),
