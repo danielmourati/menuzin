@@ -579,7 +579,7 @@ export function CartDrawer({
     cardToken: string;
   }) => {
     const persisted = await ensureOrder(paymentMethod);
-    if (!persisted) return null;
+    if (!persisted) throw new Error("Pagamento online indisponível para este plano.");
     const { id: orderId } = persisted;
     const res = await createCardPayment({
       store_slug: slug || "",
