@@ -273,7 +273,7 @@ function EditTenantDialog({
           slug,
           city,
           state,
-          plan: plan as "start" | "pro" | "max",
+          plan,
           status: status as "ativa" | "teste" | "suspensa",
           active,
         },
