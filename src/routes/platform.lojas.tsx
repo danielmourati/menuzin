@@ -326,12 +326,12 @@ function EditTenantDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Plano</Label>
-              <Select value={plan} onValueChange={setPlan}>
+              <Select value={plan} onValueChange={(v) => setPlan(v as TenantPlan)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="presenca">Presença</SelectItem>
                   <SelectItem value="start">Start</SelectItem>
                   <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="max">Max</SelectItem>
                 </SelectContent>
               </Select>
             </div>
