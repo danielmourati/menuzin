@@ -107,7 +107,7 @@ function CategoriesPage() {
   };
 
   return (
-    <AdminLayout title="Categorias" action={<Button onClick={() => setPickerOpen(true)}><Plus className="mr-1 h-4 w-4" /> Nova categoria</Button>}>
+    <AdminLayout title="Categorias" action={<Button onClick={() => isPizzaria ? setPickerOpen(true) : openNew("standard")}><Plus className="mr-1 h-4 w-4" /> Nova categoria</Button>}>
       <Card>
         <CardContent className="p-2">
           {isLoading && (
