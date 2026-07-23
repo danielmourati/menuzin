@@ -230,10 +230,9 @@ function SettingsPage() {
 
 
             <TabsContent value="pagamento" className="mt-6 space-y-4">
-              <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
-                <h3 className="text-lg font-bold tracking-tight">Central de Pagamentos</h3>
+              <div className="max-w-2xl mx-auto text-center space-y-4 py-4">
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Conecte sua conta do <strong>Mercado Pago</strong> com checkout transparente e configure métodos manuais.
+                  Conecte sua conta do <strong>Mercado Pago</strong> com checkout transparente e configure métodos manuais (Pix, dinheiro e cartão na entrega).
                 </p>
                 <div className="pt-2">
                   <Button asChild className="h-11 px-6 rounded-xl font-semibold">
@@ -244,10 +243,9 @@ function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="pedidos" className="mt-6 space-y-4">
-              <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
-                <h3 className="text-lg font-bold tracking-tight">Alertas de pedidos em tempo real</h3>
+              <div className="max-w-2xl mx-auto text-center space-y-4 py-4">
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Configure alertas sonoros e notificações para novos pedidos.
+                  Configure alertas sonoros e notificações em tempo real para não perder nenhum pedido novo.
                 </p>
                 <div className="pt-2">
                   <Button asChild className="h-11 px-6 rounded-xl font-semibold">
@@ -258,8 +256,7 @@ function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="impressora" className="mt-6 space-y-4">
-              <div className="rounded-2xl border bg-card p-6 shadow-sm max-w-2xl mx-auto text-center space-y-4">
-                <h3 className="text-lg font-bold tracking-tight">Impressora de Cupom</h3>
+              <div className="max-w-2xl mx-auto text-center space-y-4 py-4">
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
                   Configure sua impressora térmica não fiscal (55mm ou 80mm), Bluetooth, USB ou rede,
                   com perfis ESC/POS para mini impressoras e modelos ELGIN i8/i9.
@@ -271,6 +268,7 @@ function SettingsPage() {
                 </div>
               </div>
             </TabsContent>
+
 
             <TabsContent value="entrega" className="mt-6 grid gap-3 md:grid-cols-2">
               <Row label="Aceita entrega" value={form.accepts_delivery} onChange={(v) => set("accepts_delivery", v)} />
