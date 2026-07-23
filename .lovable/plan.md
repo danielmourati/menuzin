@@ -1,32 +1,13 @@
-## Objetivo
-Tornar o **tipo de negócio (business_types)** visível e editável em toda a plataforma, agrupar as lojas por esse tipo na lista do superadmin e garantir que, ao trocar o tipo para/de `pizzaria`, os fluxos de criação de categoria já reagem corretamente (o guard `isPizzaria` que decide o picker Pizza/Oferta do Dia já está pronto — só precisa consumir o campo atualizado).
+Problema: no Passo 2 do assistente `/admin/cardapio/novo`, o campo de upload de imagem está dentro de um grid de duas colunas (`sm:grid-cols-[120px_1fr]`). O conteúdo do upload (botão "Escolher do dispositivo" + legenda) excede os 120px da coluna da imagem e invade a área do Nome/Preço, conforme o anexo.
 
-## Escopo
+Solução: isolar o upload de imagem em uma `div` separada, fora do grid de duas colunas, para que ocupe a largura total disponível e não haja mais overflow.
 
-### 1. `platform.functions.ts`
-- `PlatformStoreRow` passa a expor `business_types: string[]`.
-- `listPlatformStores`: adicionar `business_types` no `select` do tenants e propagar no map.
-- `UpdateTenantInput` (admin): aceitar `business_types: z.array(z.enum(BUSINESS_TYPES)).optional()` e persistir junto do `patch`.
+Ações:
+1. Em `src/routes/admin.cardapio.novo.tsx`, no Passo 2 (`step === 2`), alterar o layout do formulário de produto:
+   - Mover o bloco `<Label>Imagem</Label> + <ImageUploader>` para uma `div` própria, antes ou depois do grid Nome/Preço.
+   - Manter Nome e Preço dentro de um grid de duas colunas (ou empilhados em mobile).
+   - Garantir espaçamento consistente (`space-y-4` ou `gap-4`) entre a imagem e os demais campos.
+2. Opcionalmente, ajustar `src/components/ui/image-uploader.tsx` para que o botão e a legenda quebrem corretamente em telas estreitas (ex.: `whitespace-normal` no botão, se necessário).
+3. Verificar visualmente no preview que o label "Preço" e o input de preço não são mais sobrepostos pelo upload.
 
-### 2. `src/lib/tenants.functions.ts`
-- `UpdateTenantInput`: aceitar `business_types: z.array(z.enum(BUSINESS_TYPES)).max(5).optional()` para permitir que o admin da loja edite o próprio tipo.
-
-### 3. Superadmin — `src/routes/platform.lojas.tsx`
-- **Agrupar por category-kind (business_types)**:
-  - Derivar grupos a partir de `stores`: para cada tipo em `business_types` classificar a loja; tenants sem tipo caem em "Sem categoria".
-  - Renderizar cada grupo com header (`BUSINESS_TYPE_LABELS[type]` + contagem) e as cards atuais dentro. Manter contador total no topo.
-  - Cards ganham `Badge` com o(s) tipo(s) ao lado de plano/status.
-- **`EditTenantDialog`**: adicionar campo "Tipo de negócio" (multi-select simples via checkboxes ou combobox reaproveitando `BUSINESS_TYPES`/`BUSINESS_TYPE_LABELS`) entre o bloco cidade/UF e plano/status. Estado inicial vindo de `store.business_types`; enviar no `adminUpdateTenant`.
-
-### 4. Admin — `src/routes/admin.configuracoes.index.tsx`
-- Aba **Dados**: novo bloco "Tipo de negócio" (mesmo componente de multi-select da tela do superadmin) alimentado por `tenant.business_types`.
-- Ampliar `FormState` com `business_types: BusinessType[]`, inicializar no `useEffect` e enviar em `updateMyTenant`.
-- Após salvar, a `queryKey ["my-tenant"]` já é invalidada — `admin.categorias.tsx` e `admin.cardapio.novo.tsx` recomputam `isPizzaria` automaticamente e o picker Pizza/Oferta passa a aparecer/desaparecer sem código extra.
-
-### 5. Componente compartilhado
-- Criar `src/components/admin/BusinessTypesField.tsx` (grid de chips selecionáveis usando `BUSINESS_TYPES` / `BUSINESS_TYPE_LABELS`) para reuso em `platform.lojas` e `admin.configuracoes`. Props: `value`, `onChange`, `max?`.
-
-## Fora de escopo
-- Não mexer no wizard `/comece-agora` (já coleta o tipo).
-- Sem mudanças em schema/RLS (colunas `business_types` já existem).
-- Sem novo seeding automático de categorias ao editar o tipo depois da criação (só cria-se no cadastro inicial, comportamento atual).
+Escopo limitado: apenas correção de layout do upload de imagem no assistente de novo cardápio. Nenhuma mudança de funcionalidade ou de outros fluxos.

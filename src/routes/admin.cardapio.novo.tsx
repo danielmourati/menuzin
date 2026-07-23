@@ -318,16 +318,8 @@ function WizardPage() {
                 }
               />
 
-              <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
-                <div>
-                  <Label className="mb-1 block">Imagem</Label>
-                  <ImageUploader
-                    value={prodImage}
-                    onChange={(v) => setProdImage(v)}
-                    folder="products"
-                  />
-                </div>
-                <div className="space-y-3">
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <Label>Nome</Label>
                     <Input
@@ -344,6 +336,15 @@ function WizardPage() {
                       onChange={setProdPrice}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label className="mb-1 block">Imagem</Label>
+                  <ImageUploader
+                    value={prodImage}
+                    onChange={(v) => setProdImage(v)}
+                    folder="products"
+                  />
                 </div>
               </div>
 
