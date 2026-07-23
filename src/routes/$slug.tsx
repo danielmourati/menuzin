@@ -581,7 +581,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                               key={p.id}
                               product={p}
                               view={viewMode}
-                              tenantSlug={tenant.slug}
                               onClick={() => {
                                 if (!storeOpen) return;
                                 setSelectedProduct(p);
@@ -606,7 +605,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                         key={p.id}
                         product={p}
                         view={viewMode}
-                        tenantSlug={tenant.slug}
                         onClick={() => {
                           if (!storeOpen) return;
                           setSelectedProduct(p);

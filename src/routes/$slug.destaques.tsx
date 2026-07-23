@@ -72,7 +72,6 @@ export function FeaturedList({
                 key={p.id}
                 product={p}
                 view="grid"
-                tenantSlug={slug}
                 onClick={() => {
                   setSelected(p);
                   setOpen(true);
