@@ -291,13 +291,17 @@ function SettingsPage() {
               <div><Label>Facebook</Label><Input placeholder="/suamarca" className="mt-1.5" /></div>
             </TabsContent>
 
-            <TabsContent value="link" className="mt-6">
-              <Label>Link público da sua loja</Label>
-              <div className="mt-1.5 flex gap-2">
-                <Input readOnly value={publicLink} />
-                <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(publicLink); toast.success("Copiado"); }}>Copiar</Button>
+            <TabsContent value="link" className="mt-6 space-y-4">
+              <div>
+                <Label>Link público da sua loja</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <Input readOnly value={publicLink} />
+                  <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(publicLink); toast.success("Copiado"); }}>Copiar</Button>
+                </div>
               </div>
+              <QrCodeCard url={publicLink} slug={tenant?.slug ?? "menuzin"} />
             </TabsContent>
+
           </Tabs>
         </CardContent></Card>
       )}
