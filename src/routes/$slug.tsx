@@ -318,9 +318,15 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     return out;
   }, [filtered, activeCat, categories]);
 
-  const bannerStyle = {
-    backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
-  };
+  const bannerStyle = tenant.coverUrl
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {
+        backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
+      };
 
   return (
     <div className="min-h-screen bg-background pb-32">
