@@ -12,6 +12,49 @@ function normalize(raw: string | null | undefined): ServerTenantPlan {
   return "presenca";
 }
 
+/**
+ * Sincroniza tenants.plan a partir do plan_id atual da assinatura.
+ * Usado quando o superadmin altera plan_id na assinatura ou quando um
+ * pagamento aprovado promoveu o plano.
+ */
+export async function syncTenantPlanFromSubscription(
+  tenantId: string,
+  planId: string,
+): Promise<ServerTenantPlan> {
+  const { data: plan } = await supabaseAdmin
+    .from("plans")
+    .select("slug, monthly_price")
+    .eq("id", planId)
+    .maybeSingle();
+  const slug = normalize((plan as { slug?: string } | null)?.slug);
+  await supabaseAdmin.from("tenants").update({ plan: slug }).eq("id", tenantId);
+  return slug;
+}
+
+/**
+ * Sincroniza a assinatura a partir do slug do plano definido no tenant.
+ * Usado quando o superadmin altera tenants.plan em /platform/lojas.
+ * Retorna o plan_id resolvido para o slug, ou null se plans não existir.
+ */
+export async function syncSubscriptionFromTenantPlan(
+  tenantId: string,
+  planSlug: ServerTenantPlan,
+): Promise<{ planId: string; amount: number } | null> {
+  const { data: plan } = await supabaseAdmin
+    .from("plans")
+    .select("id, monthly_price")
+    .eq("slug", planSlug)
+    .maybeSingle();
+  const p = plan as { id?: string; monthly_price?: number } | null;
+  if (!p?.id) return null;
+  const amount = Number(p.monthly_price) || 0;
+  await supabaseAdmin
+    .from("tenant_subscriptions")
+    .update({ plan_id: p.id, amount })
+    .eq("tenant_id", tenantId);
+  return { planId: p.id, amount };
+}
+
 export async function getTenantPlan(tenantId: string): Promise<ServerTenantPlan> {
   // Plano efetivo = slug do plano da assinatura (quando existe), senão tenants.plan.
   const { data: sub } = await supabaseAdmin
