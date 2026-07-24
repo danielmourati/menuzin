@@ -652,7 +652,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         open={modalOpen && storeOpen}
         onOpenChange={setModalOpen}
         tenantSlug={tenant.slug}
-        tenantInfo={{ name: tenant.name, logoUrl: tenant.logo_url ?? null, logoLetter: tenant.logo_letter ?? null, ratingAvg: (tenant as { rating_avg?: number | null }).rating_avg ?? null, prepTimeLabel: tenant.prepTime ?? null }}
+        tenantInfo={{ name: tenant.name, logoUrl: tenant.logoUrl ?? null, logoLetter: tenant.logoLetter ?? null, ratingAvg: (tenant as { ratingAvg?: number | null }).ratingAvg ?? null, prepTimeLabel: tenant.prepTime ?? null }}
         pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed" })) : []}
         pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
           ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available && p.listedAsFlavor === true).map((p) => ({
