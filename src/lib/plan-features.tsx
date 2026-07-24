@@ -173,13 +173,28 @@ export function useTenantPlan() {
   const { profile, isAuthenticated } = useAuth();
   const activeTenantId = useActiveTenantId();
   const enabled = isAuthenticated && !!(profile?.tenant_id || activeTenantId);
+  // Plano efetivo (server): tenant_subscriptions.plan.slug || tenants.plan.
+  // Mudança pelo superadmin ou aprovação de pagamento aparece na próxima refetch.
+  const { data: effective, isLoading: loadingEffective } = useQuery({
+    queryKey: ["my-effective-plan", activeTenantId ?? profile?.tenant_id ?? "none"],
+    queryFn: async () => {
+      const { getMyEffectivePlan } = await import("@/lib/plan-features.functions");
+      return getMyEffectivePlan();
+    },
+    enabled,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  // Mantém tenants.plan como fallback enquanto o efetivo carrega.
   const { data, isLoading } = useQuery({
     queryKey: ["my-tenant", activeTenantId ?? profile?.tenant_id ?? "none"],
     queryFn: () => getMyTenant(),
     enabled,
     staleTime: 60_000,
   });
-  const rawPlan = (data?.tenant as { plan?: string } | null | undefined)?.plan ?? null;
+  const rawPlan =
+    effective?.plan ??
+    ((data?.tenant as { plan?: string } | null | undefined)?.plan ?? null);
   const plan: TenantPlan = normalizePlan(rawPlan);
   return {
     plan,
@@ -189,7 +204,7 @@ export function useTenantPlan() {
     can: (feature: PlanFeature) => canUse(plan, feature),
     atLeast: (min: TenantPlan) => planAtLeast(plan, min),
     limits: getPlanLimits(plan),
-    loading: isLoading,
+    loading: isLoading || loadingEffective,
   };
 }
 
