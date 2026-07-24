@@ -487,9 +487,37 @@ export const adminUpdateTenant = createServerFn({ method: "POST" })
       if (taken) throw new Error("Esse endereço (slug) já está em uso.");
     }
 
+    // Detecta troca de plano para propagar à assinatura no mesmo commit.
+    let previousPlan: string | null = null;
+    if (patch.plan) {
+      const { data: prev } = await supabaseAdmin
+        .from("tenants").select("plan").eq("id", id).maybeSingle();
+      previousPlan = (prev as { plan?: string } | null)?.plan ?? null;
+    }
+
     const { error } = await supabaseAdmin
       .from("tenants").update(patch as never).eq("id", id);
     if (error) throw new Error(error.message);
+
+    if (patch.plan && patch.plan !== previousPlan) {
+      const { syncSubscriptionFromTenantPlan } = await import("@/lib/plan-server");
+      const synced = await syncSubscriptionFromTenantPlan(id, patch.plan as never);
+      // Registra evento de auditoria.
+      const { data: sub } = await supabaseAdmin
+        .from("tenant_subscriptions").select("id").eq("tenant_id", id).maybeSingle();
+      const subId = (sub as { id?: string } | null)?.id ?? null;
+      if (subId) {
+        await supabaseAdmin.from("subscription_events").insert({
+          tenant_id: id,
+          subscription_id: subId,
+          event_type: "plan_changed",
+          description: `Plano alterado pelo super-admin: ${previousPlan ?? "—"} → ${patch.plan}`,
+          metadata: { from: previousPlan, to: patch.plan, by: "platform_admin", plan_id: synced?.planId ?? null },
+          created_by: context.userId,
+        });
+      }
+    }
+
     return { ok: true };
   });
 
