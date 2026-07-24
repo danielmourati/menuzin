@@ -336,12 +336,28 @@ export const adminUpdateSubscription = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { subscription_id, ...patch } = data;
     const { data: existing } = await supabaseAdmin
-      .from("tenant_subscriptions").select("tenant_id").eq("id", subscription_id).maybeSingle();
+      .from("tenant_subscriptions").select("tenant_id, plan_id").eq("id", subscription_id).maybeSingle();
     if (!existing) throw new Error("Assinatura não encontrada");
+    const e = existing as { tenant_id: string; plan_id: string };
     const { error } = await supabaseAdmin.from("tenant_subscriptions").update(patch).eq("id", subscription_id);
     if (error) throw new Error(error.message);
+
+    // Se plano mudou, propaga slug para tenants.plan.
+    if (patch.plan_id && patch.plan_id !== e.plan_id) {
+      const { syncTenantPlanFromSubscription } = await import("@/lib/plan-server");
+      const newSlug = await syncTenantPlanFromSubscription(e.tenant_id, patch.plan_id);
+      await supabaseAdmin.from("subscription_events").insert({
+        tenant_id: e.tenant_id,
+        subscription_id,
+        event_type: "plan_changed",
+        description: `Plano alterado pelo super-admin (assinatura) → ${newSlug}`,
+        metadata: { from_plan_id: e.plan_id, to_plan_id: patch.plan_id, to_slug: newSlug, by: "platform_admin" },
+        created_by: context.userId,
+      });
+    }
+
     await supabaseAdmin.from("subscription_events").insert({
-      tenant_id: (existing as { tenant_id: string }).tenant_id,
+      tenant_id: e.tenant_id,
       subscription_id,
       event_type: "subscription_updated",
       description: "Assinatura atualizada pelo super-admin",

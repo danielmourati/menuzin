@@ -184,7 +184,7 @@ function EditDialog({
       auto_block_enabled: form.auto_block_enabled,
       notes: form.notes,
     } }),
-    onSuccess: () => { toast.success("Assinatura atualizada"); qc.invalidateQueries({ queryKey: ["admin-subs"] }); onClose(); },
+    onSuccess: () => { toast.success("Assinatura atualizada"); qc.invalidateQueries({ queryKey: ["admin-subs"] }); qc.invalidateQueries({ queryKey: ["my-tenant"] }); qc.invalidateQueries({ queryKey: ["my-effective-plan"] }); onClose(); },
     onError: (e: Error) => toast.error(e.message),
   });
   const extendMut = useMutation({

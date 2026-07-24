@@ -249,6 +249,9 @@ function PlatformStores() {
           onSaved={() => {
             setEditing(null);
             qc.invalidateQueries({ queryKey: ["platform"] });
+            qc.invalidateQueries({ queryKey: ["admin-subs"] });
+            qc.invalidateQueries({ queryKey: ["my-tenant"] });
+            qc.invalidateQueries({ queryKey: ["my-effective-plan"] });
           }}
         />
       )}
