@@ -42,7 +42,7 @@ type PizzaFlavorOption = {
 
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug,
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo,
 }: {
   product: Product | null;
   open: boolean;
@@ -53,6 +53,7 @@ export function ProductModal({
   pizzaCrusts?: PizzaExtra[];
   freeGiftProduct?: Product | null;
   tenantSlug?: string;
+  tenantInfo?: { name?: string | null; logoUrl?: string | null; logoLetter?: string | null; ratingAvg?: number | null; prepTimeLabel?: string | null } | null;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
