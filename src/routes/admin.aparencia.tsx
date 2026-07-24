@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,8 +13,6 @@ import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/aparencia")({ component: AppearancePage });
 
-const palette = ["#FF4F1F", "#FFB020", "#16A34A", "#2563EB", "#9333EA", "#DC2626"];
-
 function AppearancePage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
@@ -24,21 +21,18 @@ function AppearancePage() {
   });
   const tenant = data?.tenant;
 
-  const [color, setColor] = useState(palette[0]);
-  const [dark, setDark] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (tenant?.theme_from) setColor(tenant.theme_from);
     setLogoUrl(tenant?.logo_url ?? null);
     setCoverUrl((tenant as { cover_url?: string | null })?.cover_url ?? null);
-  }, [tenant?.theme_from, tenant?.logo_url, (tenant as { cover_url?: string | null })?.cover_url]);
+  }, [tenant?.logo_url, (tenant as { cover_url?: string | null })?.cover_url]);
 
   const save = useMutation({
     mutationFn: () =>
       updateMyTenant({
-        data: { theme_from: color, theme_to: color, logo_url: logoUrl, cover_url: coverUrl },
+        data: { logo_url: logoUrl, cover_url: coverUrl },
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
@@ -54,7 +48,7 @@ function AppearancePage() {
         backgroundSize: "cover",
         backgroundPosition: "center",
       }
-    : { background: `linear-gradient(135deg, ${color}, ${color})` };
+    : { background: "linear-gradient(135deg, hsl(var(--muted)), hsl(var(--muted-foreground)/0.3))" };
 
   return (
     <AdminLayout
@@ -90,29 +84,13 @@ function AppearancePage() {
               previewHeight="h-40"
             />
             <p className="-mt-3 text-xs text-muted-foreground">
-              Substitui o banner colorido por uma foto. Recomendado: paisagem, mínimo 1200px de largura.
+              Foto exibida no topo do cardápio. Recomendado: paisagem, mínimo 1200px de largura.
             </p>
-
-            <div>
-              <Label>Cor principal</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {palette.map((c) => (
-                  <button key={c} type="button" onClick={() => setColor(c)} className={`h-10 w-10 rounded-full border-2 transition ${color === c ? "border-foreground scale-110" : "border-transparent"}`} style={{ background: c }} />
-                ))}
-              </div>
-            </div>
-            <div>
-              <Label>Tema</Label>
-              <div className="mt-2 flex gap-2">
-                <Button variant={!dark ? "default" : "outline"} onClick={() => setDark(false)}>Claro</Button>
-                <Button variant={dark ? "default" : "outline"} onClick={() => setDark(true)}>Escuro</Button>
-              </div>
-            </div>
           </CardContent></Card>
 
           <Card><CardContent className="p-0 overflow-hidden">
             <div className="border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">Preview da loja</div>
-            <div className={dark ? "dark bg-background" : "bg-background"}>
+            <div className="bg-background">
               <div
                 className="flex flex-col items-center gap-2 px-4 py-6 text-center"
                 style={previewHeaderStyle}
@@ -133,9 +111,9 @@ function AppearancePage() {
                 <div className="grid grid-cols-2 gap-2">
                   {[1, 2].map((i) => (
                     <div key={i} className="rounded-xl border p-2">
-                      <div className="aspect-square rounded-lg" style={{ background: `${color}22` }} />
+                      <div className="aspect-square rounded-lg bg-muted" />
                       <p className="mt-1 text-xs font-semibold">Produto {i}</p>
-                      <p className="text-xs" style={{ color }}>R$ 24,90</p>
+                      <p className="text-xs text-muted-foreground">R$ 24,90</p>
                     </div>
                   ))}
                 </div>
@@ -147,3 +125,4 @@ function AppearancePage() {
     </AdminLayout>
   );
 }
+
