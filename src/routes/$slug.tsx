@@ -643,7 +643,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   </div>
                 )}
               </section>
-            ))
+              );
+            })
           )}
         </div>
       </div>
