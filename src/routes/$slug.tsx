@@ -330,26 +330,26 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="container mx-auto px-4 pt-4">
-        {/* Mobile compact header (anexo 1 + anexo 2) */}
-        <div className="md:hidden">
+      <div className="container mx-auto max-w-3xl px-4 pt-4">
+        {/* Header unificado (mobile + desktop) */}
+        <div>
           {/* Linha 1: menu + lupa */}
           <div className="mb-3 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
               aria-label="Abrir menu"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border bg-card text-foreground shadow-sm active:bg-muted"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border bg-card text-foreground shadow-sm active:bg-muted md:h-10 md:w-10"
             >
-              <Menu className="h-4 w-4" />
+              <Menu className="h-4 w-4 md:h-5 md:w-5" />
             </button>
             <button
               type="button"
               onClick={() => setSearchOpen((v) => !v)}
               aria-label="Buscar produtos"
-              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
+              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 md:h-10 md:w-10 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
             >
-              {searchOpen ? <XIcon className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              {searchOpen ? <XIcon className="h-4 w-4 md:h-5 md:w-5" /> : <Search className="h-4 w-4 md:h-5 md:w-5" />}
             </button>
           </div>
 
@@ -357,19 +357,19 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
-            className="group flex w-full flex-col rounded-2xl border bg-card p-3 text-left shadow-[var(--shadow-soft)] active:bg-muted/40"
+            className="group flex w-full flex-col rounded-2xl border bg-card p-3 text-left shadow-[var(--shadow-soft)] active:bg-muted/40 md:p-4"
           >
             <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
+              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted md:h-14 md:w-14">
                 {tenant.logoUrl ? (
                   <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-sm font-bold">{tenant.logoLetter}</span>
+                  <span className="text-sm font-bold md:text-base">{tenant.logoLetter}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold leading-tight">{tenant.name}</p>
-                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold ${storeOpen ? "text-success" : "text-destructive"}`}>
+                <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
+                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${storeOpen ? "text-success" : "text-destructive"}`}>
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
                   {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}
                 </p>
@@ -378,12 +378,12 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             </div>
 
             {tenant.description && (
-              <p className="mt-3 line-clamp-2 border-t pt-2.5 text-[11px] text-muted-foreground">
+              <p className="mt-3 line-clamp-2 border-t pt-2.5 text-[11px] text-muted-foreground md:text-xs">
                 {tenant.description}
               </p>
             )}
 
-            <div className="mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground">
+            <div className="mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground md:text-xs">
               <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
               </span>
@@ -396,13 +396,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             </div>
           </button>
 
-          {/* Search input (mobile, colapsável) */}
+          {/* Search input (colapsável) */}
           {searchOpen && (
             <div className="relative mt-3">
-              <label htmlFor="storefront-search-mobile" className="sr-only">Buscar produtos no cardápio</label>
+              <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
-                id="storefront-search-mobile"
+                id="storefront-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar produtos..."
@@ -414,60 +414,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           )}
         </div>
 
-        {/* Desktop header + search (unchanged) */}
-        <div className="hidden md:block">
-          <div className="rounded-2xl border bg-card p-4 sm:p-5 shadow-[var(--shadow-soft)]">
-            <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:gap-4 sm:text-left">
-              <div className="relative">
-                {tenant.logoUrl ? (
-                  <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-20 w-auto object-contain sm:h-24" loading="eager" fetchPriority="high" decoding="async" />
-                ) : (
-                  <div
-                    className="grid h-20 w-20 place-items-center rounded-2xl border-4 border-card text-3xl font-bold text-white shadow-md sm:h-24 sm:w-24 sm:text-4xl"
-                    style={bannerStyle}
-                    aria-label={`Logo ${tenant.name}`}
-                  >
-                    {tenant.logoLetter}
-                  </div>
-                )}
-              </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                  <h1 className="text-lg font-bold sm:text-xl">{tenant.name}</h1>
-                  <Badge className={storeOpen ? "bg-success text-success-foreground" : "bg-destructive text-destructive-foreground"}>
-                    {storeOpen ? "Aberta" : "Fechada"}
-                  </Badge>
-                </div>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{tenant.description}</p>
-                <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground sm:justify-start">
-                  <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {tenant.prepTime}</span>
-                  <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {tenant.address}</span>
-                  <span>Pedido mín. {brl(tenant.minOrder)}</span>
-                </div>
-              </div>
-
-              <Button asChild size="icon" variant="outline" className="h-10 w-10 shrink-0">
-                <a href={whatsappLink(tenant.whatsapp, "Olá! Tenho uma dúvida sobre o cardápio.")} target="_blank" rel="noreferrer">
-                  <MessageCircle className="h-4 w-4 text-success" />
-                </a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative mt-4">
-            <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="storefront-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produtos..."
-              aria-label="Buscar produtos no cardápio"
-              className="h-12 rounded-2xl border-input bg-white pl-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
-            />
-          </div>
-        </div>
 
 
         {activeCat === "Todos" && !search && (
@@ -519,44 +466,48 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </div>
         )}
 
-        <div className="mt-4 -mx-4 overflow-x-auto px-4 scrollbar-hide">
-          <div className="flex gap-2">
-            {[
-              { key: "Todos", label: "Todos" },
-              ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
-              ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
-            ].map((c) => {
-              const Icon = getCategoryIcon(c.label);
-              const active = activeCat === c.key;
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => setActiveCat(c.key)}
-                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
-                    active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
-          {grouped.length > 0 && (
-            <div className="flex justify-end">
+        {/* Barra sticky: categorias + toggle grid/lista */}
+        <div className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-2">
+                {[
+                  { key: "Todos", label: "Todos" },
+                  ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
+                  ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
+                ].map((c) => {
+                  const Icon = getCategoryIcon(c.label);
+                  const active = activeCat === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => setActiveCat(c.key)}
+                      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {grouped.length > 0 && (
               <button
                 type="button"
                 onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
                 aria-label={viewMode === "grid" ? "Visualizar em lista" : "Visualizar em grade"}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
               >
                 {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
               </button>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+
+        <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
+
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
               Nenhum produto encontrado.
