@@ -209,6 +209,9 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [modalOpen, setModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [visibleCat, setVisibleCat] = useState<string>("Todos");
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal } = useCart();
 
 
