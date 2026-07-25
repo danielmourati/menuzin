@@ -367,7 +367,7 @@ export function ProductModal({
           onScroll={handleScroll}
           className="relative z-10 flex-1 overflow-y-auto"
         >
-          <div aria-hidden className="h-48 sm:h-56" />
+          <div aria-hidden className="h-64 sm:h-[22rem]" />
           <div className="relative -mt-6 rounded-t-3xl bg-card px-5 pt-6 shadow-[0_-10px_28px_-14px_rgba(0,0,0,0.25)]">
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/25" />
 
