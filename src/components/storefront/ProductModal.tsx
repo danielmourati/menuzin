@@ -317,45 +317,50 @@ export function ProductModal({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/20" />
         </div>
 
-        {/* Camada 3: chrome (recolher/voltar) */}
-        <Button
-          size="icon" variant="default"
-          onClick={() => onOpenChange(false)}
-          className="absolute left-3 top-3 z-20 h-10 w-10 rounded-full bg-white/95 text-foreground shadow-lg ring-1 ring-black/10 hover:bg-white"
-          aria-label="Voltar"
-        >
-          <ChevronDown className="h-5 w-5" />
-        </Button>
+        {/* Camada 3: chrome (recolher/voltar) + badge da loja — envolvido em div
+            para não cair no seletor [&>button]:hidden do DialogContent. */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
+          <div className="pointer-events-auto absolute left-3 top-3">
+            <Button
+              size="icon" variant="default"
+              onClick={() => onOpenChange(false)}
+              className="h-10 w-10 rounded-full bg-white/95 text-foreground shadow-lg ring-1 ring-black/10 hover:bg-white"
+              aria-label="Voltar"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </Button>
+          </div>
 
-        {/* Badge da loja (estilo iFood): logo + nome + rating + tempo de preparo */}
-        {tenantInfo && (
-          <div className="absolute right-3 top-3 z-20 flex max-w-[62%] items-center gap-2 rounded-full bg-white/95 py-1.5 pl-1.5 pr-3 shadow-lg ring-1 ring-black/10">
-            {tenantInfo.logoUrl ? (
-              <img src={tenantInfo.logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
-            ) : (
-              <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                {(tenantInfo.logoLetter || tenantInfo.name?.[0] || "L").toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0 leading-tight">
-              <p className="truncate text-[11px] font-semibold text-foreground">{tenantInfo.name ?? "Loja"}</p>
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                {typeof tenantInfo.ratingAvg === "number" && tenantInfo.ratingAvg > 0 && (
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
-                    {tenantInfo.ratingAvg.toFixed(1)}
-                  </span>
-                )}
-                {tenantInfo.prepTimeLabel && (
-                  <span className="flex items-center gap-0.5">
-                    <Clock className="h-2.5 w-2.5" />
-                    {tenantInfo.prepTimeLabel}
-                  </span>
-                )}
+          {tenantInfo && (
+            <div className="pointer-events-auto absolute right-3 top-3 flex max-w-[62%] items-center gap-2 rounded-full bg-white/95 py-1.5 pl-1.5 pr-3 shadow-lg ring-1 ring-black/10">
+              {tenantInfo.logoUrl ? (
+                <img src={tenantInfo.logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  {(tenantInfo.logoLetter || tenantInfo.name?.[0] || "L").toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 leading-tight">
+                <p className="truncate text-[11px] font-semibold text-foreground">{tenantInfo.name ?? "Loja"}</p>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  {typeof tenantInfo.ratingAvg === "number" && tenantInfo.ratingAvg > 0 && (
+                    <span className="flex items-center gap-0.5">
+                      <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                      {tenantInfo.ratingAvg.toFixed(1)}
+                    </span>
+                  )}
+                  {tenantInfo.prepTimeLabel && (
+                    <span className="flex items-center gap-0.5">
+                      <Clock className="h-2.5 w-2.5" />
+                      {tenantInfo.prepTimeLabel}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
         {/* Camada 2: conteúdo com scroll que sobrepõe a imagem (parallax) */}
         <div
           ref={scrollRef}
