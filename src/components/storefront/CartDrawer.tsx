@@ -440,6 +440,9 @@ export function CartDrawer({
     goTo("customer");
   };
 
+  const hasOnlinePayment = !!settings?.mp_connected && !!(settings?.pix_enabled || settings?.credit_card_enabled || settings?.debit_card_enabled);
+  const hasManualPayment = !!(settings?.cash_enabled || settings?.pix_manual_enabled || settings?.card_on_delivery_enabled);
+
   const confirmCustomer = () => {
     if (!name || !phone) return toast.error("Informe nome e telefone");
     if (isPresencaOnly) {
@@ -447,6 +450,19 @@ export function CartDrawer({
       setSelectedMethod(null);
       setPaymentMethod("WhatsApp");
       goTo("review");
+      return;
+    }
+    // Auto-skip when só há um dos modos disponíveis
+    if (hasOnlinePayment && !hasManualPayment) {
+      setPaymentWhen("agora");
+      setSelectedMethod(null);
+      goTo("payment-method");
+      return;
+    }
+    if (!hasOnlinePayment && hasManualPayment) {
+      setPaymentWhen("na_retirada");
+      setSelectedMethod(null);
+      goTo("payment-method");
       return;
     }
     goTo("payment-when");
