@@ -576,8 +576,18 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               Nenhum produto encontrado.
             </div>
           ) : (
-            grouped.map((g) => (
-              <section key={g.name}>
+            grouped.map((g) => {
+              const catKey = g.isPizzaParent ? PIZZAS_KEY : g.name;
+              return (
+              <section
+                key={g.name}
+                data-cat-key={catKey}
+                ref={(el) => {
+                  if (el) sectionRefs.current.set(catKey, el);
+                  else sectionRefs.current.delete(catKey);
+                }}
+                className="scroll-mt-24"
+              >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">{g.name}</h2>
                 </div>
