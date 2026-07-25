@@ -1,46 +1,46 @@
-## 1. Corrigir alteração de plano pelo superadmin (anexos 1 e 2)
+## 1. PIX Manual: refletir chave configurada no checkout
 
-**Diagnóstico:** hoje o plano efetivo do tenant é derivado de `tenant_subscriptions.plan.slug` (ver `src/lib/plan-server.ts` → `getTenantPlan`), mas:
-- Em `/platform/lojas`, `adminUpdateTenant` só grava `tenants.plan` — a assinatura fica com o plano antigo, então gates server-side não mudam.
-- Em `/platform/assinaturas`, o update da assinatura muda `tenant_subscriptions.plan_id`, mas `tenants.plan` (usado pelo hook client `useTenantPlan` → `getMyTenant`) fica desatualizado.
-- `useTenantPlan` lê `tenants.plan` direto, não o plano efetivo da assinatura → UI destoa do server.
-- Quando o admin do tenant paga um upgrade via PIX (`createSubscriptionCharge` com `plan_id` diferente), o webhook (`approveAndRenew`) só renova `due_date`/`status` — **não troca `plan_id` nem `amount`** da assinatura, então o "upgrade pago" não vira efetivo.
+**Bug**: `src/components/storefront/CartDrawer.tsx:1289-1294` renderiza chave e recebedor hardcoded (`pix@burgerprime.com.br` / `Burger Prime LTDA`), ignorando `settings.pix_manual_key`, `settings.pix_manual_key_type` e `settings.pix_manual_receiver` já retornados por `getPublicPaymentSettingsBySlug`.
 
-**Ações:**
-1. `src/lib/platform.functions.ts` (`adminUpdateTenant`): quando `patch.plan` mudar, resolver `plan_id` via `plans.slug`, atualizar `tenant_subscriptions` (`plan_id`, `amount = plans.monthly_price`) e registrar `subscription_events` (`event_type: "plan_changed"`, `metadata: { from, to, by: "platform_admin" }`). Escrever `tenants.plan` no mesmo update para manter consistência.
-2. `src/lib/subscriptions.functions.ts` (`adminUpdateSubscription`): após update da assinatura, propagar `tenants.plan` para o slug do novo plano. Mesmo evento `plan_changed`.
-3. `src/lib/subscription-renewal.server.ts` (`approveAndRenew`): ao aprovar, ler `subscription_payments.plan_id` e, se diferir do `tenant_subscriptions.plan_id`, atualizar `plan_id` + `amount` da assinatura e `tenants.plan` (via slug). Adicionar evento `plan_upgraded` (ou `downgraded`).
-4. `src/lib/plan-features.tsx` (`useTenantPlan`): trocar a fonte de `plan` para o slug efetivo. Criar server fn leve `getMyEffectivePlan` (em `src/lib/plan-features.functions.ts`) que retorna `{ plan: getTenantPlan(tenantId) }` usando `requireSupabaseAuth` + `tryResolveEffectiveTenantId`; usar essa query no hook (com `staleTime: 30_000`). Isso garante mudança imediata assim que o superadmin salva ou o webhook aprova.
-5. Invalidação imediata:
-   - `/platform/lojas` e `/platform/assinaturas`: após `mutate` de plano, `qc.invalidateQueries` em `["admin-tenants"]`, `["admin-subs"]`, `["my-tenant"]`, `["my-effective-plan"]`.
-   - Webhook MP: não há client — o polling / próximo `staleTime` cobre; hook usa `refetchOnWindowFocus: true` para reconhecer volta do PIX.
-6. Gates de plano: `PlanGate`, `UpgradeNotice`, `useTenantPlan` já centralizam — nenhuma UI adicional muda, mas passam a refletir o plano efetivo real, respeitando bloqueio/liberação.
+**Ação**:
+- Ler dos `settings` do drawer:
+  - Chave: `settings?.pix_manual_key` (fallback: mensagem "Loja não configurou a chave PIX").
+  - Recebedor: `settings?.pix_manual_receiver`.
+  - Tipo: `settings?.pix_manual_key_type` (rótulo humano: CPF/CNPJ/E-mail/Telefone/Aleatória).
+- Botão "Copiar chave" (usar `navigator.clipboard.writeText`) com toast de sucesso.
+- Manter o card "Envie o comprovante via WhatsApp" que já existe abaixo (linha ~1501), consolidando UX.
 
-## 2. Card do produto estilo iFood (anexo 3)
+## 2. Botão de voltar/recolher (ChevronDown) no ProductModal
 
-Editar `src/components/storefront/ProductModal.tsx`:
-- Substituir o botão flutuante atual (`ArrowLeft`) por um botão redondo com fundo `bg-black/50 text-white` e ícone `ChevronDown` (recolher) no canto superior esquerdo da imagem — mantém a ação `onOpenChange(false)`.
-- Adicionar um "badge da loja" flutuante sobre a base da imagem (padrão iFood):
-  - Container `absolute inset-x-3 bottom-3 rounded-xl bg-background/95 shadow-lg backdrop-blur px-3 py-2 flex items-center gap-3`.
-  - Logo circular (`tenant.logo_url` ou inicial), nome da loja + selo Pro (se `plan === "pro"`), linha secundária `★ rating (count) · prep_time · pedido mínimo` usando dados que já vêm em `tenant` (adaptar via nova prop `storeInfo`).
-- Passar `storeInfo` do storefront (`src/routes/$slug.tsx` / `loja.$slug.tsx`) para o modal com `{ name, logoUrl, rating, ratingCount, prepTime, minOrder, isPro }` derivado do catálogo/tenant existente.
-- Ao clicar no badge, abrir o `StoreAboutDrawer` (reaproveitar callback já existente na página) — opcional se dados prontos.
+**Bug**: `src/components/storefront/ProductModal.tsx:300` usa classe `[&>button]:hidden` no `DialogContent` para esconder o close default do Radix. Como o novo `<Button>` (linha 321) é filho direto do `DialogContent`, ele também está sendo escondido pelo mesmo seletor.
 
-## 3. Aba Aparência
+**Ação**: envolver o botão de voltar em um `<div className="absolute left-3 top-3 z-20">` (o seletor `[&>button]` só afeta botões filhos diretos). Fazer o mesmo com o badge da loja para blindar contra o mesmo problema. Nenhuma outra mudança de estilo/comportamento.
 
-Em `src/routes/admin.aparencia.tsx`:
-- Remover blocos "Cor principal" (paleta) e "Tema" (Claro/Escuro), estados `color`/`dark` e a constante `palette`.
-- Manter apenas upload de Logo + Imagem de fundo. Preview usa apenas `coverUrl` (com fallback para gradiente neutro `bg-muted`).
-- Persistir `theme_from`/`theme_to` com valor padrão fixo (ex.: `#FF4F1F`) para não quebrar consumidores existentes; ou remover do payload se `updateMyTenant` aceitar parciais (verificar antes de tocar).
+## 3. Consolidar layout desktop/mobile do storefront
+
+**Diagnóstico**: `src/routes/$slug.tsx:335-470` mantém dois blocos distintos (`md:hidden` mobile e `hidden md:block` desktop) com HTML diferente para o mesmo header/busca. Isso duplica manutenção e diverge estilos.
+
+**Ação**:
+- Remover o bloco desktop; usar somente o layout mobile (card compacto com logo + status + chips de delivery/tempo/mínimo + busca colapsável) para todos os breakpoints, limitando largura via `container mx-auto max-w-3xl`.
+- Aumentar densidade em ≥ md (`md:` tipografia levemente maior, `md:h-14 md:w-14` logo, `md:text-base` nome), mantendo a mesma estrutura JSX.
+- Manter grid de produtos responsivo (já é: `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5`).
+
+## 4. Categorias fixas no topo (anexo 1)
+
+**Ação em `src/routes/$slug.tsx`**:
+- Envolver a barra de chips de categorias (linhas 522-545) + o toggle grid/lista (linhas 549-559) num único container `sticky top-0 z-30 -mx-4 border-b bg-background/95 backdrop-blur px-4 py-2`.
+- Enquanto a barra fica pinada, o card da loja (header) desce naturalmente para fora da viewport na rolagem — comportamento nativo de `sticky` sem JS.
+- Ao pinar (`stuck`), reduzir levemente o padding vertical (Tailwind: usar `IntersectionObserver` opcional NÃO necessário; padding fixo já resolve a demanda visual do anexo).
+- Ao clicar em uma categoria, rolar suavemente até a `<section>` correspondente com `scrollIntoView({ behavior: "smooth", block: "start" })`, ajustando o offset pela altura da barra sticky (via `scroll-margin-top` na `<section>`).
+- Consolidar o botão de alternar grid/lista dentro da mesma barra sticky à direita, mantendo o padrão único de um toggle já estabelecido.
+
+## Fora de escopo
+- Cálculo de categoria "ativa" pelo scroll spy (destaque automático conforme rola). Fica para próxima iteração se pedido.
+- Mudanças em `CartDrawer` além do bloco PIX manual.
+- Alterações em regras de plano, gateway MP ou modelo de dados.
 
 ## Detalhes técnicos
-
-- Novo arquivo: `src/lib/plan-features.functions.ts` com `getMyEffectivePlan` (server fn) chamado pelo hook `useTenantPlan`.
-- `adminUpdateTenant` / `adminUpdateSubscription` / `approveAndRenew`: helper local `syncTenantPlanFromSubscription(tenantId, planId)` em `src/lib/plan-server.ts` para evitar duplicação.
-- Nenhuma migração de schema — colunas já existem (`tenant_subscriptions.plan_id`, `tenants.plan`, `subscription_events`).
-- `ProductModal`: novos campos opcionais em props, sem breaking change para outros consumidores.
-- Aparência: se `theme_from` for obrigatório no `updateMyTenant`, manter default silencioso; não expor UI.
-
-## Escopo fora
-- Sem mudança de RLS, sem mudança de fluxo de pagamento MP em si (apenas o hook de aprovação passa a promover plano).
-- Sem novos ícones/telas além do card iFood.
+- Nenhuma migração de banco.
+- Sem novos pacotes.
+- `pix_manual_key_type` já vem tipado em `payments.functions.ts` → mapa local `{cpf:"CPF", cnpj:"CNPJ", email:"E-mail", phone:"Telefone", random:"Aleatória"}`.
+- Sticky funciona porque o pai (`.container`) não tem `overflow`. Verificar durante implementação; se necessário, subir o sticky para nível acima do container.
