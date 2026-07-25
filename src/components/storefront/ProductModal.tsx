@@ -302,7 +302,7 @@ export function ProductModal({
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
         {/* Camada 1: imagem fixa com parallax */}
-        <div className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-56 overflow-hidden sm:h-64 ${isDefaultImg ? "bg-muted" : "bg-black"}`}>
+        <div className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-72 overflow-hidden sm:h-96 ${isDefaultImg ? "bg-muted" : "bg-black"}`}>
           <img
             ref={imgRef}
             src={productImage(product.image)}
@@ -367,7 +367,7 @@ export function ProductModal({
           onScroll={handleScroll}
           className="relative z-10 flex-1 overflow-y-auto"
         >
-          <div aria-hidden className="h-48 sm:h-56" />
+          <div aria-hidden className="h-64 sm:h-[22rem]" />
           <div className="relative -mt-6 rounded-t-3xl bg-card px-5 pt-6 shadow-[0_-10px_28px_-14px_rgba(0,0,0,0.25)]">
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/25" />
 

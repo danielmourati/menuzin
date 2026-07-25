@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { computeStoreOpen } from "@/lib/store-hours";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
@@ -209,6 +209,9 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [modalOpen, setModalOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [visibleCat, setVisibleCat] = useState<string>("Todos");
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal } = useCart();
 
 
@@ -317,6 +320,45 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     }
     return out;
   }, [filtered, activeCat, categories]);
+
+  // Scroll spy: destaca automaticamente o chip da categoria visível
+  useEffect(() => {
+    if (activeCat !== "Todos") return;
+    if (typeof window === "undefined") return;
+
+    const onScroll = () => {
+      if (window.scrollY < 200) {
+        setVisibleCat("Todos");
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) {
+          const key = (visible.target as HTMLElement).dataset.catKey;
+          if (key) setVisibleCat(key);
+        }
+      },
+      { rootMargin: "-120px 0px -55% 0px", threshold: 0 },
+    );
+    sectionRefs.current.forEach((el) => observer.observe(el));
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [activeCat, grouped]);
+
+  // Rola o chip ativo para o centro
+  useEffect(() => {
+    const key = activeCat === "Todos" ? visibleCat : activeCat;
+    const chip = chipRefs.current.get(key);
+    chip?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [visibleCat, activeCat]);
+
 
   const bannerStyle = tenant.coverUrl
     ? {
@@ -477,11 +519,32 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
                 ].map((c) => {
                   const Icon = getCategoryIcon(c.label);
-                  const active = activeCat === c.key;
+                  const highlightKey = activeCat === "Todos" ? visibleCat : activeCat;
+                  const active = highlightKey === c.key;
                   return (
                     <button
                       key={c.key}
-                      onClick={() => setActiveCat(c.key)}
+                      ref={(el) => {
+                        if (el) chipRefs.current.set(c.key, el);
+                        else chipRefs.current.delete(c.key);
+                      }}
+                      onClick={() => {
+                        if (c.key === "Todos") {
+                          setActiveCat("Todos");
+                          setVisibleCat("Todos");
+                          if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+                          return;
+                        }
+                        if (activeCat === "Todos") {
+                          const target = sectionRefs.current.get(c.key);
+                          if (target) {
+                            setVisibleCat(c.key);
+                            target.scrollIntoView({ behavior: "smooth", block: "start" });
+                            return;
+                          }
+                        }
+                        setActiveCat(c.key);
+                      }}
                       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
                         active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
                       }`}
@@ -513,8 +576,18 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               Nenhum produto encontrado.
             </div>
           ) : (
-            grouped.map((g) => (
-              <section key={g.name}>
+            grouped.map((g) => {
+              const catKey = g.isPizzaParent ? PIZZAS_KEY : g.name;
+              return (
+              <section
+                key={g.name}
+                data-cat-key={catKey}
+                ref={(el) => {
+                  if (el) sectionRefs.current.set(catKey, el);
+                  else sectionRefs.current.delete(catKey);
+                }}
+                className="scroll-mt-24"
+              >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h2 className="text-lg font-bold">{g.name}</h2>
                 </div>
@@ -570,7 +643,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   </div>
                 )}
               </section>
-            ))
+              );
+            })
           )}
         </div>
       </div>

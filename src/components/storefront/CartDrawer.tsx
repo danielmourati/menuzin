@@ -440,6 +440,9 @@ export function CartDrawer({
     goTo("customer");
   };
 
+  const hasOnlinePayment = !!settings?.mp_connected && !!(settings?.pix_enabled || settings?.credit_card_enabled || settings?.debit_card_enabled);
+  const hasManualPayment = !!(settings?.cash_enabled || settings?.pix_manual_enabled || settings?.card_on_delivery_enabled);
+
   const confirmCustomer = () => {
     if (!name || !phone) return toast.error("Informe nome e telefone");
     if (isPresencaOnly) {
@@ -447,6 +450,19 @@ export function CartDrawer({
       setSelectedMethod(null);
       setPaymentMethod("WhatsApp");
       goTo("review");
+      return;
+    }
+    // Auto-skip when só há um dos modos disponíveis
+    if (hasOnlinePayment && !hasManualPayment) {
+      setPaymentWhen("agora");
+      setSelectedMethod(null);
+      goTo("payment-method");
+      return;
+    }
+    if (!hasOnlinePayment && hasManualPayment) {
+      setPaymentWhen("na_retirada");
+      setSelectedMethod(null);
+      goTo("payment-method");
       return;
     }
     goTo("payment-when");
@@ -1201,22 +1217,32 @@ export function CartDrawer({
           <>
             <Header title="Opções de pagamento" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              <OptionRow
-                icon={<Smartphone className="h-5 w-5" />}
-                title="Pagar agora"
-                subtitle="Pague agora pelo aplicativo"
-                onClick={() => selectPaymentWhen("agora")}
-              />
-              <OptionRow
-                icon={<DollarSign className="h-5 w-5" />}
-                title={mode === "entrega" ? "Pagar na entrega" : "Pagar na retirada"}
-                subtitle={
-                  mode === "entrega"
-                    ? "Pague no momento da entrega"
-                    : "Pague no momento da retirada"
-                }
-                onClick={() => selectPaymentWhen("na_retirada")}
-              />
+              {hasOnlinePayment && (
+                <OptionRow
+                  icon={<Smartphone className="h-5 w-5" />}
+                  title="Pagar agora"
+                  subtitle="Pague agora pelo aplicativo"
+                  onClick={() => selectPaymentWhen("agora")}
+                />
+              )}
+              {hasManualPayment && (
+                <OptionRow
+                  icon={<DollarSign className="h-5 w-5" />}
+                  title={mode === "entrega" ? "Pagar na entrega" : "Pagar na retirada"}
+                  subtitle={
+                    mode === "entrega"
+                      ? "Pague no momento da entrega"
+                      : "Pague no momento da retirada"
+                  }
+                  onClick={() => selectPaymentWhen("na_retirada")}
+                />
+              )}
+              {!hasOnlinePayment && !hasManualPayment && (
+                <div className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground bg-muted/10 space-y-1">
+                  <p className="font-semibold text-sm">Nenhuma forma de pagamento disponível</p>
+                  <p className="text-xs">Consulte o estabelecimento para acertar a forma de pagamento.</p>
+                </div>
+              )}
             </div>
             <StickySubtotal />
           </>
