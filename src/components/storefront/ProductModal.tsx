@@ -302,7 +302,7 @@ export function ProductModal({
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
         {/* Camada 1: imagem fixa com parallax */}
-        <div className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-56 overflow-hidden sm:h-64 ${isDefaultImg ? "bg-muted" : "bg-black"}`}>
+        <div className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-72 overflow-hidden sm:h-96 ${isDefaultImg ? "bg-muted" : "bg-black"}`}>
           <img
             ref={imgRef}
             src={productImage(product.image)}
