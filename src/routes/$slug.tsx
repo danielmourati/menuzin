@@ -466,44 +466,48 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </div>
         )}
 
-        <div className="mt-4 -mx-4 overflow-x-auto px-4 scrollbar-hide">
-          <div className="flex gap-2">
-            {[
-              { key: "Todos", label: "Todos" },
-              ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
-              ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
-            ].map((c) => {
-              const Icon = getCategoryIcon(c.label);
-              const active = activeCat === c.key;
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => setActiveCat(c.key)}
-                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
-                    active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
-          {grouped.length > 0 && (
-            <div className="flex justify-end">
+        {/* Barra sticky: categorias + toggle grid/lista */}
+        <div className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-2">
+                {[
+                  { key: "Todos", label: "Todos" },
+                  ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
+                  ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
+                ].map((c) => {
+                  const Icon = getCategoryIcon(c.label);
+                  const active = activeCat === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => setActiveCat(c.key)}
+                      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
+                        active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {grouped.length > 0 && (
               <button
                 type="button"
                 onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
                 aria-label={viewMode === "grid" ? "Visualizar em lista" : "Visualizar em grade"}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
               >
                 {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
               </button>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+
+        <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
+
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
               Nenhum produto encontrado.
