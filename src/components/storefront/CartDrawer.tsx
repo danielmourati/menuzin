@@ -1285,18 +1285,60 @@ export function CartDrawer({
           <>
             <Header title="Pagamento com PIX" />
             <div className="flex-1 overflow-y-auto p-4">
-              <div className="rounded-2xl border bg-card p-5">
-                <p className="text-sm text-muted-foreground">Chave PIX</p>
-                <p className="mt-1 font-mono text-primary">pix@burgerprime.com.br</p>
-                <p className="mt-3 text-xs text-muted-foreground">Recebedor: Burger Prime LTDA</p>
-                <p className="mt-3 text-xs">
-                  Envie o comprovante pelo WhatsApp após finalizar o pedido.
-                </p>
-              </div>
+              {(() => {
+                const keyTypeLabel: Record<string, string> = {
+                  cpf: "CPF",
+                  cnpj: "CNPJ",
+                  email: "E-mail",
+                  phone: "Telefone",
+                  random: "Aleatória",
+                };
+                const pixKey = settings?.pix_manual_key?.trim();
+                const receiver = settings?.pix_manual_receiver?.trim();
+                const kt = settings?.pix_manual_key_type;
+                const ktLabel = kt ? keyTypeLabel[kt] ?? kt : null;
+                if (!pixKey) {
+                  return (
+                    <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 text-sm text-destructive">
+                      Esta loja ainda não configurou a chave PIX. Escolha outra forma de pagamento.
+                    </div>
+                  );
+                }
+                return (
+                  <div className="rounded-2xl border bg-card p-5">
+                    <p className="text-sm text-muted-foreground">
+                      Chave PIX{ktLabel ? ` (${ktLabel})` : ""}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-primary">{pixKey}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="mt-3 h-9"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(pixKey);
+                          toast.success("Chave PIX copiada");
+                        } catch {
+                          toast.error("Não foi possível copiar");
+                        }
+                      }}
+                    >
+                      Copiar chave
+                    </Button>
+                    {receiver && (
+                      <p className="mt-3 text-xs text-muted-foreground">Recebedor: {receiver}</p>
+                    )}
+                    <p className="mt-3 text-xs">
+                      Envie o comprovante pelo WhatsApp após finalizar o pedido.
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
             <StickySubtotal cta="Continuar" onCta={() => goTo("customer")} />
           </>
         )}
+
 
         {/* CUSTOMER */}
         {step === "customer" && (
