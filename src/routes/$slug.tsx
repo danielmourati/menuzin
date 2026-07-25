@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { computeStoreOpen } from "@/lib/store-hours";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
