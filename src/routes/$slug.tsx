@@ -321,6 +321,45 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     return out;
   }, [filtered, activeCat, categories]);
 
+  // Scroll spy: destaca automaticamente o chip da categoria visível
+  useEffect(() => {
+    if (activeCat !== "Todos") return;
+    if (typeof window === "undefined") return;
+
+    const onScroll = () => {
+      if (window.scrollY < 200) {
+        setVisibleCat("Todos");
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) {
+          const key = (visible.target as HTMLElement).dataset.catKey;
+          if (key) setVisibleCat(key);
+        }
+      },
+      { rootMargin: "-120px 0px -55% 0px", threshold: 0 },
+    );
+    sectionRefs.current.forEach((el) => observer.observe(el));
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [activeCat, grouped]);
+
+  // Rola o chip ativo para o centro
+  useEffect(() => {
+    const key = activeCat === "Todos" ? visibleCat : activeCat;
+    const chip = chipRefs.current.get(key);
+    chip?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [visibleCat, activeCat]);
+
+
   const bannerStyle = tenant.coverUrl
     ? {
         backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
