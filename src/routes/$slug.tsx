@@ -519,11 +519,32 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
                 ].map((c) => {
                   const Icon = getCategoryIcon(c.label);
-                  const active = activeCat === c.key;
+                  const highlightKey = activeCat === "Todos" ? visibleCat : activeCat;
+                  const active = highlightKey === c.key;
                   return (
                     <button
                       key={c.key}
-                      onClick={() => setActiveCat(c.key)}
+                      ref={(el) => {
+                        if (el) chipRefs.current.set(c.key, el);
+                        else chipRefs.current.delete(c.key);
+                      }}
+                      onClick={() => {
+                        if (c.key === "Todos") {
+                          setActiveCat("Todos");
+                          setVisibleCat("Todos");
+                          if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+                          return;
+                        }
+                        if (activeCat === "Todos") {
+                          const target = sectionRefs.current.get(c.key);
+                          if (target) {
+                            setVisibleCat(c.key);
+                            target.scrollIntoView({ behavior: "smooth", block: "start" });
+                            return;
+                          }
+                        }
+                        setActiveCat(c.key);
+                      }}
                       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
                         active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
                       }`}
