@@ -48,10 +48,30 @@ export async function syncSubscriptionFromTenantPlan(
   const p = plan as { id?: string; monthly_price?: number } | null;
   if (!p?.id) return null;
   const amount = Number(p.monthly_price) || 0;
-  await supabaseAdmin
+  const { data: existing } = await supabaseAdmin
     .from("tenant_subscriptions")
-    .update({ plan_id: p.id, amount })
-    .eq("tenant_id", tenantId);
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if ((existing as { id?: string } | null)?.id) {
+    await supabaseAdmin
+      .from("tenant_subscriptions")
+      .update({ plan_id: p.id, amount })
+      .eq("tenant_id", tenantId);
+  } else {
+    await supabaseAdmin
+      .from("tenant_subscriptions")
+      .insert({
+        tenant_id: tenantId,
+        plan_id: p.id,
+        amount,
+        status: "ativa",
+        billing_period: "mensal",
+        grace_days: 0,
+        auto_block_enabled: false,
+        notes: "Criado automaticamente ao definir plano via super-admin",
+      });
+  }
   return { planId: p.id, amount };
 }
 
