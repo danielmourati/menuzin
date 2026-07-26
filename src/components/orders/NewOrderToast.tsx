@@ -44,14 +44,15 @@ export function NewOrderToast({ order, toastId, onView, onAccept }: NewOrderToas
           <p className="text-xs text-muted-foreground mt-0.5 font-medium">
             Pedido #{order.number} · {order.customerName}
           </p>
-          <div className="flex items-baseline gap-1 mt-1">
-            <span className="text-sm font-extrabold text-foreground">
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+            <span className="text-sm font-extrabold text-foreground whitespace-nowrap">
               {brl(order.total)}
             </span>
             <span className="text-[10px] text-muted-foreground uppercase font-semibold">
               ({order.payment})
             </span>
           </div>
+
         </div>
       </div>
 

@@ -1361,7 +1361,7 @@ export function CartDrawer({
                 );
               })()}
             </div>
-            <StickySubtotal cta="Continuar" onCta={() => goTo("customer")} />
+            <StickySubtotal cta="Continuar" onCta={() => goTo("review")} />
           </>
         )}
 

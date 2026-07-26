@@ -45,24 +45,8 @@ const pricingPlans = [
     ],
     cta: "Cadastrar grátis",
   },
-  {
-    id: "start",
-    name: "Start",
-    price: 57.9,
-    priceLabel: "R$ 57,90",
-    tagline: "Pedidos organizados no painel, prontos para vender.",
-    features: [
-      "Tudo do Presença",
-      "Produtos e categorias ilimitados",
-      "Painel de pedidos (entrega e retirada)",
-      "Status do pedido em tempo real",
-      "Cadastro de clientes e cupons básicos",
-      "Impressão manual e relatórios básicos",
-      "Até 2 usuários",
-    ],
-    cta: "Começar a vender",
-    highlighted: true,
-  },
+
+
   {
     id: "pro",
     name: "Pro",
