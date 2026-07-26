@@ -84,8 +84,10 @@ function SubscriptionPage() {
   const currentPlan: TenantPlan = normalizePlan(plan?.slug);
   const orderedSlugs: TenantPlan[] = ["presenca", "start", "pro"];
   const allPlans = (plansData?.plans ?? [])
+    .filter((p) => (p as { active?: boolean }).active !== false)
     .filter((p) => orderedSlugs.includes(p.slug as TenantPlan))
     .sort((a, b) => orderedSlugs.indexOf(a.slug as TenantPlan) - orderedSlugs.indexOf(b.slug as TenantPlan));
+
 
   return (
     <div className="space-y-6 max-w-5xl">

@@ -72,7 +72,7 @@ function SubscriptionsAdmin() {
           <SelectTrigger className="w-44"><SelectValue placeholder="Todos os planos" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os planos</SelectItem>
-            {plansData?.plans.map((p) => <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>)}
+            {plansData?.plans.filter((p) => (p as { active?: boolean }).active !== false).map((p) => <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -145,7 +145,7 @@ function SubscriptionsAdmin() {
         </CardContent>
       </Card>
 
-      {editing && <EditDialog sub={editing as never} plans={plansData?.plans ?? []} onClose={() => setEditing(null)} />}
+      {editing && <EditDialog sub={editing as never} plans={(plansData?.plans ?? []).filter((p) => (p as { active?: boolean }).active !== false)} onClose={() => setEditing(null)} />}
       {history && <HistoryDialog tenantId={history.tenant_id} tenantName={history.tenant_name} onClose={() => setHistory(null)} />}
     </div>
   );
