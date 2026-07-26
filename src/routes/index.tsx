@@ -45,24 +45,8 @@ const pricingPlans = [
     ],
     cta: "Cadastrar grátis",
   },
-  {
-    id: "start",
-    name: "Start",
-    price: 57.9,
-    priceLabel: "R$ 57,90",
-    tagline: "Pedidos organizados no painel, prontos para vender.",
-    features: [
-      "Tudo do Presença",
-      "Produtos e categorias ilimitados",
-      "Painel de pedidos (entrega e retirada)",
-      "Status do pedido em tempo real",
-      "Cadastro de clientes e cupons básicos",
-      "Impressão manual e relatórios básicos",
-      "Até 2 usuários",
-    ],
-    cta: "Começar a vender",
-    highlighted: true,
-  },
+
+
   {
     id: "pro",
     name: "Pro",
@@ -334,7 +318,7 @@ function Landing() {
           </div>
           <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
             {pricingPlans.map((p) => {
-              const highlighted = "highlighted" in p && p.highlighted;
+              const highlighted = "highlighted" in p && (p as { highlighted?: boolean }).highlighted === true;
               const monthly = p.price;
               const annualMonthly = Math.round(p.price * 10) / 12; // 2 meses grátis
               const displayed = billing === "annual" ? annualMonthly : monthly;

@@ -44,7 +44,9 @@ import {
   adminApplyTemplateToAll,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
+import { listPlans } from "@/lib/subscriptions.functions";
 import { PLAN_LABEL, normalizePlan, type TenantPlan } from "@/lib/plan-features";
+
 import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
 import { useAuth } from "@/lib/auth-context";
@@ -370,15 +372,9 @@ function EditTenantDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Plano</Label>
-              <Select value={plan} onValueChange={(v) => setPlan(v as TenantPlan)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="presenca">Presença</SelectItem>
-                  <SelectItem value="start">Start</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                </SelectContent>
-              </Select>
+              <PlanSelect value={plan} onChange={(v) => setPlan(v)} />
             </div>
+
             <div>
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
@@ -491,3 +487,25 @@ function OwnerEditor({ tenantId }: { tenantId: string }) {
     </div>
   );
 }
+
+function PlanSelect({ value, onChange }: { value: TenantPlan; onChange: (v: TenantPlan) => void }) {
+  const { data } = useQuery({ queryKey: ["plans"], queryFn: () => listPlans() });
+  const active = (data?.plans ?? []).filter(
+    (p) => (p as { active?: boolean }).active !== false && ["presenca", "start", "pro"].includes(p.slug),
+  );
+  const fallback: { slug: TenantPlan; name: string }[] = [
+    { slug: "presenca", name: "Presença" }, { slug: "start", name: "Start" }, { slug: "pro", name: "Pro" },
+  ];
+  const items = active.length > 0 ? active.map((p) => ({ slug: p.slug as TenantPlan, name: p.name })) : fallback;
+  const includesCurrent = items.some((p) => p.slug === value);
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as TenantPlan)}>
+      <SelectTrigger><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {!includesCurrent && <SelectItem value={value}>{PLAN_LABEL[value]} (inativo)</SelectItem>}
+        {items.map((p) => <SelectItem key={p.slug} value={p.slug}>{p.name}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+

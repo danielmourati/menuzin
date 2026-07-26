@@ -3,12 +3,14 @@ import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
 import { showNewOrderToast } from "./NewOrderToast";
 import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
 import { useNavigate } from "@tanstack/react-router";
+import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
 
 export function OrdersRealtimeListener() {
-  const { newOrderAlert, dismissAlert, acceptOrder } = useOrdersRealtime();
+  const { newOrderAlert, dismissAlert, orders, updateOrderStatus } = useOrdersRealtime();
+  const { acceptOrder } = useAcceptOrderWithKitchenPrint(orders, updateOrderStatus);
   const { prefs } = useNotificationPrefs();
   const navigate = useNavigate();
-  
+
   // Evitar duplicar toast de um mesmo pedido
   const notifiedIdsRef = useRef<Set<string>>(new Set());
 
@@ -23,11 +25,9 @@ export function OrdersRealtimeListener() {
 
     notifiedIdsRef.current.add(orderId);
 
-    // Se preferência de toast estiver ativa, dispara o toast customizado
     if (prefs.toastEnabled) {
       showNewOrderToast(
         newOrderAlert,
-        // Ao clicar em "Ver Pedido"
         () => {
           navigate({ to: "/admin/pedidos" });
           setTimeout(() => {
@@ -38,7 +38,7 @@ export function OrdersRealtimeListener() {
             );
           }, 100);
         },
-        // Ao clicar em "Aceitar"
+        // Ao clicar em "Aceitar" — dispara impressão automática quando configurada
         () => {
           acceptOrder(orderId);
         }
@@ -48,5 +48,5 @@ export function OrdersRealtimeListener() {
     dismissAlert();
   }, [newOrderAlert, prefs.toastEnabled, acceptOrder, dismissAlert, navigate]);
 
-  return null; // componente puramente lógico
+  return null;
 }

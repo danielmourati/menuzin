@@ -1,46 +1,32 @@
-## 1. PIX Manual: refletir chave configurada no checkout
+## 1) `/platform/planos` — toggle ativar/desativar refletindo nos tenants
 
-**Bug**: `src/components/storefront/CartDrawer.tsx:1289-1294` renderiza chave e recebedor hardcoded (`pix@burgerprime.com.br` / `Burger Prime LTDA`), ignorando `settings.pix_manual_key`, `settings.pix_manual_key_type` e `settings.pix_manual_receiver` já retornados por `getPublicPaymentSettingsBySlug`.
+- Em `src/routes/platform.planos.tsx`, adicionar `Switch` de "Ativo/Inativo" direto no card de cada plano (além do que já existe no modal), disparando `adminUpsertPlan` com `active: !p.active` e invalidando `admin-plans` + `my-effective-plan`.
+- Nos pontos onde o tenant escolhe/exibe planos, filtrar por `active = true`:
+  - `src/routes/admin.assinatura.tsx` (comparativo de planos exibido ao lojista).
+  - `src/routes/platform.lojas.tsx` (dropdown de plano ao editar loja) — apenas ativos.
+  - `src/routes/platform.assinaturas.tsx` (dropdown de plan_id) — apenas ativos.
+- Observação: a mudança no cadastro do tenant continua imediata via `syncSubscriptionFromTenantPlan` / `syncTenantPlanFromSubscription` já existentes; nenhum plano é excluído — apenas oculto para novas seleções.
 
-**Ação**:
-- Ler dos `settings` do drawer:
-  - Chave: `settings?.pix_manual_key` (fallback: mensagem "Loja não configurou a chave PIX").
-  - Recebedor: `settings?.pix_manual_receiver`.
-  - Tipo: `settings?.pix_manual_key_type` (rótulo humano: CPF/CNPJ/E-mail/Telefone/Aleatória).
-- Botão "Copiar chave" (usar `navigator.clipboard.writeText`) com toast de sucesso.
-- Manter o card "Envie o comprovante via WhatsApp" que já existe abaixo (linha ~1501), consolidando UX.
+## 2) Esconder plano Start da home
 
-## 2. Botão de voltar/recolher (ChevronDown) no ProductModal
+- Em `src/routes/index.tsx`, remover a entrada `id: "start"` do array `pricingPlans` (linhas 48–65) e ajustar o texto de `Presença → Pro` na seção de planos (linha ~301). Manter em `src/lib/plans.ts` (usado em outros lugares).
 
-**Bug**: `src/components/storefront/ProductModal.tsx:300` usa classe `[&>button]:hidden` no `DialogContent` para esconder o close default do Radix. Como o novo `<Button>` (linha 321) é filho direto do `DialogContent`, ele também está sendo escondido pelo mesmo seletor.
+## 3) Corrigir fluxo do checkout PIX manual (anexo 1)
 
-**Ação**: envolver o botão de voltar em um `<div className="absolute left-3 top-3 z-20">` (o seletor `[&>button]` só afeta botões filhos diretos). Fazer o mesmo com o badge da loja para blindar contra o mesmo problema. Nenhuma outra mudança de estilo/comportamento.
+- `src/components/storefront/CartDrawer.tsx` linha 1364: o `StickySubtotal` da tela `payment-pix` chama `goTo("customer")`, o que volta para a tela de dados do cliente. Trocar para `goTo("review")` para seguir ao resumo/finalização, coerente com os outros métodos manuais (`cash`, `card_on_delivery`) que caem em `review` em `handleSelectMethod` (linha 588).
 
-## 3. Consolidar layout desktop/mobile do storefront
+## 4) Corrigir quebra de linha do valor no toast de novo pedido (anexo 2)
 
-**Diagnóstico**: `src/routes/$slug.tsx:335-470` mantém dois blocos distintos (`md:hidden` mobile e `hidden md:block` desktop) com HTML diferente para o mesmo header/busca. Isso duplica manutenção e diverge estilos.
+- `src/components/orders/NewOrderToast.tsx` linhas 47–54: o valor "R$ 7,00" está quebrando entre "R$ 7," e "00". Adicionar `whitespace-nowrap` ao `<span>` do preço e trocar o wrapper `flex items-baseline gap-1` para permitir wrap apenas no rótulo (mantendo o valor íntegro). Também aplicar `whitespace-nowrap` no rótulo `({order.payment})` ou envolver em `<span className="block">` para forçar quebra abaixo do preço.
 
-**Ação**:
-- Remover o bloco desktop; usar somente o layout mobile (card compacto com logo + status + chips de delivery/tempo/mínimo + busca colapsável) para todos os breakpoints, limitando largura via `container mx-auto max-w-3xl`.
-- Aumentar densidade em ≥ md (`md:` tipografia levemente maior, `md:h-14 md:w-14` logo, `md:text-base` nome), mantendo a mesma estrutura JSX.
-- Manter grid de produtos responsivo (já é: `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5`).
+## 5) Impressão automática ao clicar em "Aceitar" em qualquer tela (anexo 3)
 
-## 4. Categorias fixas no topo (anexo 1)
+- Hoje o botão "Aceitar" do toast global (`OrdersRealtimeListener`) chama `acceptOrder` do hook `useOrdersRealtime`, que **não** dispara impressão. Só a página `/admin/pedidos` usa `useAcceptOrderWithKitchenPrint`.
+- Refatorar `src/components/orders/OrdersRealtimeListener.tsx` para usar `useAcceptOrderWithKitchenPrint(orders, updateOrderStatus)` (obtendo `orders` e `updateOrderStatus` do mesmo `useOrdersRealtime()`), passando o `acceptOrder` retornado como handler do toast. Assim, aceitar pelo toast em qualquer tela dispara a impressão da cozinha (respeitando plano Pro e impressora configurada — comportamento já existente no hook, incluindo o toast de fallback quando não há impressora).
 
-**Ação em `src/routes/$slug.tsx`**:
-- Envolver a barra de chips de categorias (linhas 522-545) + o toggle grid/lista (linhas 549-559) num único container `sticky top-0 z-30 -mx-4 border-b bg-background/95 backdrop-blur px-4 py-2`.
-- Enquanto a barra fica pinada, o card da loja (header) desce naturalmente para fora da viewport na rolagem — comportamento nativo de `sticky` sem JS.
-- Ao pinar (`stuck`), reduzir levemente o padding vertical (Tailwind: usar `IntersectionObserver` opcional NÃO necessário; padding fixo já resolve a demanda visual do anexo).
-- Ao clicar em uma categoria, rolar suavemente até a `<section>` correspondente com `scrollIntoView({ behavior: "smooth", block: "start" })`, ajustando o offset pela altura da barra sticky (via `scroll-margin-top` na `<section>`).
-- Consolidar o botão de alternar grid/lista dentro da mesma barra sticky à direita, mantendo o padrão único de um toggle já estabelecido.
+### Detalhes técnicos
 
-## Fora de escopo
-- Cálculo de categoria "ativa" pelo scroll spy (destaque automático conforme rola). Fica para próxima iteração se pedido.
-- Mudanças em `CartDrawer` além do bloco PIX manual.
-- Alterações em regras de plano, gateway MP ou modelo de dados.
-
-## Detalhes técnicos
-- Nenhuma migração de banco.
-- Sem novos pacotes.
-- `pix_manual_key_type` já vem tipado em `payments.functions.ts` → mapa local `{cpf:"CPF", cnpj:"CNPJ", email:"E-mail", phone:"Telefone", random:"Aleatória"}`.
-- Sticky funciona porque o pai (`.container`) não tem `overflow`. Verificar durante implementação; se necessário, subir o sticky para nível acima do container.
+- Filtro de planos ativos: usar `plans.filter(p => p.active)` no client (`adminListPlans` já retorna o campo).
+- Toggle inline: `Switch` do shadcn com `onCheckedChange` acionando `adminUpsertPlan({ data: { ...p, active: v } })` e `toast.success`.
+- `NewOrderToast`: manter estilo, apenas garantir `whitespace-nowrap` no valor; colocar `({order.payment})` numa linha própria abaixo do preço para não competir por espaço.
+- `OrdersRealtimeListener`: nenhuma nova prop; toda a lógica fica dentro do componente (chamar dois hooks e combinar handlers).

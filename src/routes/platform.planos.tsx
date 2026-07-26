@@ -14,6 +14,7 @@ import { PlatformLayout } from "./platform.dashboard";
 import { adminListPlans, adminUpsertPlan, type PlanRow, type SubscriptionPeriod } from "@/lib/subscriptions.functions";
 import { brl } from "@/lib/format";
 
+
 export const Route = createFileRoute("/platform/planos")({ component: Page });
 
 const PERIODS: SubscriptionPeriod[] = ["mensal","trimestral","semestral","anual","personalizado"];
@@ -27,9 +28,21 @@ function Page() {
 }
 
 function PlansAdmin() {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["admin-plans"], queryFn: () => adminListPlans() });
   const [editing, setEditing] = useState<PlanRow | null>(null);
   const [creating, setCreating] = useState(false);
+
+  const toggleMut = useMutation({
+    mutationFn: (p: PlanRow) => adminUpsertPlan({ data: { ...p, active: !p.active } }),
+    onSuccess: (_r, p) => {
+      toast.success(`Plano ${p.name} ${!p.active ? "ativado" : "desativado"}`);
+      qc.invalidateQueries({ queryKey: ["admin-plans"] });
+      qc.invalidateQueries({ queryKey: ["plans"] });
+      qc.invalidateQueries({ queryKey: ["my-effective-plan"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-4">
@@ -55,7 +68,15 @@ function PlansAdmin() {
                 <ul className="mt-2 space-y-0.5 text-xs">
                   {p.features.slice(0, 4).map((f) => <li key={f}>• {f}</li>)}
                 </ul>
-                <Button size="sm" variant="outline" className="mt-3 w-full" onClick={() => setEditing(p)}>
+                <div className="mt-3 flex items-center justify-between rounded-md border bg-muted/30 px-2.5 py-1.5">
+                  <span className="text-xs font-medium">{p.active ? "Ativo" : "Inativo"}</span>
+                  <Switch
+                    checked={p.active}
+                    disabled={toggleMut.isPending}
+                    onCheckedChange={() => toggleMut.mutate(p)}
+                  />
+                </div>
+                <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => setEditing(p)}>
                   <Pencil className="mr-1 h-3.5 w-3.5" />Editar
                 </Button>
               </CardContent>
@@ -63,6 +84,7 @@ function PlansAdmin() {
           ))}
         </div>
       )}
+
       {(editing || creating) && (
         <PlanForm
           plan={editing}
