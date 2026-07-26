@@ -318,7 +318,7 @@ function Landing() {
           </div>
           <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
             {pricingPlans.map((p) => {
-              const highlighted = "highlighted" in p && p.highlighted;
+              const highlighted = "highlighted" in p && (p as { highlighted?: boolean }).highlighted === true;
               const monthly = p.price;
               const annualMonthly = Math.round(p.price * 10) / 12; // 2 meses grátis
               const displayed = billing === "annual" ? annualMonthly : monthly;

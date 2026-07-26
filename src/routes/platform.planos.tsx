@@ -14,7 +14,6 @@ import { PlatformLayout } from "./platform.dashboard";
 import { adminListPlans, adminUpsertPlan, type PlanRow, type SubscriptionPeriod } from "@/lib/subscriptions.functions";
 import { brl } from "@/lib/format";
 
-import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/platform/planos")({ component: Page });
 
