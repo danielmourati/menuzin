@@ -30,3 +30,13 @@ Arquivo: `src/routes/admin.assinatura.tsx` (seção "Compare os planos", linhas 
 - Item 2 requer nova `useQuery` em `admin.configuracoes.index.tsx` chamando o loader de menu já usado em `admin.categorias.tsx`/`admin.produtos.tsx` (verificar `catalog-admin.functions.ts` para função reutilizável).
 - Item 4 usa apenas classes Tailwind existentes + tokens semânticos (`emerald-*` já aceito no projeto para status).
 - Nenhuma migração de banco necessária.
+
+---
+
+## Próxima etapa (backlog)
+
+Implementar persistência de pedidos de convidado conforme especificação em `user-uploads://menuzin-guest-order-persistence-prompt-2.md`:
+- Tabelas `guest_customers` e `guest_magic_links` no Supabase
+- Colunas `guest_customer_id` e `source` em `orders`
+- Fluxo de recuperação cross-device via magic link entregue por WhatsApp
+- Identidade soft por telefone (E.164), sem cadastro/senha
