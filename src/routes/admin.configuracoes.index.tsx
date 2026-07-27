@@ -106,12 +106,18 @@ function SettingsPage() {
   }, [tenant]);
 
 
+  const { data: catsData } = useQuery({ queryKey: ["my-categories"], queryFn: () => listMyCategories() });
+  const { data: prodsData } = useQuery({ queryKey: ["my-products"], queryFn: () => listMyProducts() });
+  const hasMenu =
+    ((catsData as { categories?: unknown[] } | undefined)?.categories?.length ?? 0) > 0 ||
+    ((prodsData as { products?: unknown[] } | undefined)?.products?.length ?? 0) > 0;
+
   const saveMut = useMutation({
     mutationFn: () => updateMyTenant({ data: form }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
       toast.success("Configurações salvas");
-      setNextStepOpen(true);
+      if (!hasMenu) setNextStepOpen(true);
     },
     onError: (e: Error) => toast.error(e.message),
   });
