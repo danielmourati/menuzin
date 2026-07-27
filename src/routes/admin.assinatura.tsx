@@ -157,37 +157,51 @@ function SubscriptionPage() {
             const slug = p.slug as TenantPlan;
             const isCurrent = slug === currentPlan;
             const isPro = slug === "pro";
+            const isPresenca = slug === "presenca";
             const rank = { presenca: 0, start: 1, pro: 2 } as const;
             const isUpgrade = rank[slug] > rank[currentPlan];
+            const upgradeLabel = isPro ? "Upgrade PRO" : "Fazer upgrade";
             return (
               <Card
                 key={p.id}
                 className={
-                  isCurrent
+                  "relative flex flex-col " +
+                  (isCurrent
                     ? "border-primary ring-2 ring-primary/30"
                     : isPro
                       ? "border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10"
-                      : ""
+                      : isPresenca
+                        ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10"
+                        : "")
                 }
               >
                 <CardContent className="flex h-full flex-col p-5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <p className="text-lg font-bold">{p.name}</p>
-                    {isCurrent && <Badge>Atual</Badge>}
-                    {!isCurrent && isPro && (
+                    {isCurrent ? (
+                      <Badge>Atual</Badge>
+                    ) : isPresenca ? (
+                      <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
+                        Grátis
+                      </Badge>
+                    ) : isPro ? (
                       <Badge variant="secondary" className="gap-1">
                         <Crown className="h-3 w-3" /> Recomendado
                       </Badge>
-                    )}
+                    ) : null}
                   </div>
                   <div className="mt-3">
-                    <span className="text-2xl font-bold">
-                      {Number(p.monthly_price) === 0
-                        ? "Grátis"
-                        : brl(Number(p.monthly_price))}
-                    </span>
-                    {Number(p.monthly_price) > 0 && (
-                      <span className="text-xs text-muted-foreground">/mês</span>
+                    {Number(p.monthly_price) === 0 ? (
+                      <span className="text-2xl font-bold text-emerald-600">
+                        Grátis
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-bold">
+                          {brl(Number(p.monthly_price))}
+                        </span>
+                        <span className="text-xs text-muted-foreground">/mês</span>
+                      </>
                     )}
                   </div>
                   {p.description && (
@@ -219,7 +233,7 @@ function SubscriptionPage() {
                         ) : (
                           <Crown className="mr-2 h-4 w-4" />
                         )}
-                        Fazer upgrade
+                        {upgradeLabel}
                       </Button>
                     ) : (
                       <Button className="w-full" variant="ghost" disabled>
@@ -236,6 +250,7 @@ function SubscriptionPage() {
           Precisa de ajuda com upgrade/downgrade? Fale com o suporte pelo WhatsApp.
         </p>
       </div>
+
 
 
       <Card>

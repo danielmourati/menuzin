@@ -1,32 +1,42 @@
-## 1) `/platform/planos` — toggle ativar/desativar refletindo nos tenants
+## Plano
 
-- Em `src/routes/platform.planos.tsx`, adicionar `Switch` de "Ativo/Inativo" direto no card de cada plano (além do que já existe no modal), disparando `adminUpsertPlan` com `active: !p.active` e invalidando `admin-plans` + `my-effective-plan`.
-- Nos pontos onde o tenant escolhe/exibe planos, filtrar por `active = true`:
-  - `src/routes/admin.assinatura.tsx` (comparativo de planos exibido ao lojista).
-  - `src/routes/platform.lojas.tsx` (dropdown de plano ao editar loja) — apenas ativos.
-  - `src/routes/platform.assinaturas.tsx` (dropdown de plan_id) — apenas ativos.
-- Observação: a mudança no cadastro do tenant continua imediata via `syncSubscriptionFromTenantPlan` / `syncTenantPlanFromSubscription` já existentes; nenhum plano é excluído — apenas oculto para novas seleções.
+### 1. Badge de upgrade sempre sugere PRO quando plano Start estiver inativo
+Arquivo: `src/routes/admin.assinatura.tsx`
+- No card de comparação, quando `currentPlan === "presenca"` e o plano Start estiver inativo/oculto, o botão "Fazer upgrade" do card PRO deve aparecer com label **"Upgrade PRO"** (com ícone `Crown`).
+- A lista `allPlans` já filtra por `active !== false`, então se Start estiver desativado ele nem aparece — garantir que o cálculo `isUpgrade` e o CTA do card PRO continuem funcionando corretamente nesse cenário (mostrar "Upgrade PRO" ao invés de apenas "Fazer upgrade" quando for o único upgrade disponível).
 
-## 2) Esconder plano Start da home
+### 2. Modal "Loja configurada!" só aparece se ainda não há cardápio
+Arquivo: `src/routes/admin.configuracoes.index.tsx`
+- Buscar contagem de categorias/produtos do tenant via query existente (`getMyMenu` ou similar em `catalog-admin.functions.ts`).
+- Em `saveMut.onSuccess` (linha 110-114), só chamar `setNextStepOpen(true)` quando `categories.length === 0 && products.length === 0`. Caso contrário, apenas mostrar o toast de sucesso.
 
-- Em `src/routes/index.tsx`, remover a entrada `id: "start"` do array `pricingPlans` (linhas 48–65) e ajustar o texto de `Presença → Pro` na seção de planos (linha ~301). Manter em `src/lib/plans.ts` (usado em outros lugares).
+### 3. Chips de categorias só quando houver produtos
+Arquivo: `src/routes/$slug.tsx` (linhas 511-…)
+- Envolver o bloco sticky de chips em uma condicional: renderizar apenas quando `products.length > 0`.
+- Assim lojas sem produtos cadastrados não exibem uma barra sticky vazia.
 
-## 3) Corrigir fluxo do checkout PIX manual (anexo 1)
+### 4. Cards de planos — destaque do Presença com badge "Grátis"
+Arquivo: `src/routes/admin.assinatura.tsx` (seção "Compare os planos", linhas 151-238)
+- Ajustar a lógica visual dos cards:
+  - **Presença**: badge verde "Grátis" no topo direito; borda/gradiente sutil para destacar como ponto de entrada.
+  - **Pro**: manter destaque atual "Recomendado" com coroa.
+  - Padronizar altura, espaçamento e ordem visual (Presença → Start → Pro), mantendo o card atual em destaque quando for o do usuário.
+- Ajustar tipografia do preço (Grátis em verde para Presença), CTAs com largura uniforme, e listar até 6 features com espaçamento consistente.
 
-- `src/components/storefront/CartDrawer.tsx` linha 1364: o `StickySubtotal` da tela `payment-pix` chama `goTo("customer")`, o que volta para a tela de dados do cliente. Trocar para `goTo("review")` para seguir ao resumo/finalização, coerente com os outros métodos manuais (`cash`, `card_on_delivery`) que caem em `review` em `handleSelectMethod` (linha 588).
-
-## 4) Corrigir quebra de linha do valor no toast de novo pedido (anexo 2)
-
-- `src/components/orders/NewOrderToast.tsx` linhas 47–54: o valor "R$ 7,00" está quebrando entre "R$ 7," e "00". Adicionar `whitespace-nowrap` ao `<span>` do preço e trocar o wrapper `flex items-baseline gap-1` para permitir wrap apenas no rótulo (mantendo o valor íntegro). Também aplicar `whitespace-nowrap` no rótulo `({order.payment})` ou envolver em `<span className="block">` para forçar quebra abaixo do preço.
-
-## 5) Impressão automática ao clicar em "Aceitar" em qualquer tela (anexo 3)
-
-- Hoje o botão "Aceitar" do toast global (`OrdersRealtimeListener`) chama `acceptOrder` do hook `useOrdersRealtime`, que **não** dispara impressão. Só a página `/admin/pedidos` usa `useAcceptOrderWithKitchenPrint`.
-- Refatorar `src/components/orders/OrdersRealtimeListener.tsx` para usar `useAcceptOrderWithKitchenPrint(orders, updateOrderStatus)` (obtendo `orders` e `updateOrderStatus` do mesmo `useOrdersRealtime()`), passando o `acceptOrder` retornado como handler do toast. Assim, aceitar pelo toast em qualquer tela dispara a impressão da cozinha (respeitando plano Pro e impressora configurada — comportamento já existente no hook, incluindo o toast de fallback quando não há impressora).
+### 5. Próxima etapa (não implementar agora)
+- Registrar a persistência de pedidos de convidado (arquivo `menuzin-guest-order-persistence-prompt-2.md`) como próximo escopo em `.lovable/plan.md`, sem alterar código de backend ainda.
 
 ### Detalhes técnicos
+- Item 2 requer nova `useQuery` em `admin.configuracoes.index.tsx` chamando o loader de menu já usado em `admin.categorias.tsx`/`admin.produtos.tsx` (verificar `catalog-admin.functions.ts` para função reutilizável).
+- Item 4 usa apenas classes Tailwind existentes + tokens semânticos (`emerald-*` já aceito no projeto para status).
+- Nenhuma migração de banco necessária.
 
-- Filtro de planos ativos: usar `plans.filter(p => p.active)` no client (`adminListPlans` já retorna o campo).
-- Toggle inline: `Switch` do shadcn com `onCheckedChange` acionando `adminUpsertPlan({ data: { ...p, active: v } })` e `toast.success`.
-- `NewOrderToast`: manter estilo, apenas garantir `whitespace-nowrap` no valor; colocar `({order.payment})` numa linha própria abaixo do preço para não competir por espaço.
-- `OrdersRealtimeListener`: nenhuma nova prop; toda a lógica fica dentro do componente (chamar dois hooks e combinar handlers).
+---
+
+## Próxima etapa (backlog)
+
+Implementar persistência de pedidos de convidado conforme especificação em `user-uploads://menuzin-guest-order-persistence-prompt-2.md`:
+- Tabelas `guest_customers` e `guest_magic_links` no Supabase
+- Colunas `guest_customer_id` e `source` em `orders`
+- Fluxo de recuperação cross-device via magic link entregue por WhatsApp
+- Identidade soft por telefone (E.164), sem cadastro/senha
