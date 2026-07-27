@@ -569,6 +569,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             )}
           </div>
         </div>
+        )}
 
         <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
 
