@@ -15,6 +15,7 @@ import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2 } from "luci
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
+import { listMyCategories, listMyProducts } from "@/lib/catalog-admin.functions";
 import {
   defaultSchedule,
   normalizeSchedule,
