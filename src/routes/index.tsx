@@ -338,7 +338,14 @@ function Landing() {
                       MAIS ESCOLHIDO
                     </span>
                   )}
-                  <h3 className="text-2xl font-bold">{p.name}</h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-2xl font-bold">{p.name}</h3>
+                    {p.id === "presenca" && (
+                      <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
+                        Grátis
+                      </Badge>
+                    )}
+                  </div>
                   <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
                   <div className="mt-5">
                     {billing === "annual" && (
