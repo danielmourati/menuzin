@@ -1,42 +1,73 @@
-## Plano
+## Objetivo
 
-### 1. Badge de upgrade sempre sugere PRO quando plano Start estiver inativo
-Arquivo: `src/routes/admin.assinatura.tsx`
-- No card de comparação, quando `currentPlan === "presenca"` e o plano Start estiver inativo/oculto, o botão "Fazer upgrade" do card PRO deve aparecer com label **"Upgrade PRO"** (com ícone `Crown`).
-- A lista `allPlans` já filtra por `active !== false`, então se Start estiver desativado ele nem aparece — garantir que o cálculo `isUpgrade` e o CTA do card PRO continuem funcionando corretamente nesse cenário (mostrar "Upgrade PRO" ao invés de apenas "Fazer upgrade" quando for o único upgrade disponível).
-
-### 2. Modal "Loja configurada!" só aparece se ainda não há cardápio
-Arquivo: `src/routes/admin.configuracoes.index.tsx`
-- Buscar contagem de categorias/produtos do tenant via query existente (`getMyMenu` ou similar em `catalog-admin.functions.ts`).
-- Em `saveMut.onSuccess` (linha 110-114), só chamar `setNextStepOpen(true)` quando `categories.length === 0 && products.length === 0`. Caso contrário, apenas mostrar o toast de sucesso.
-
-### 3. Chips de categorias só quando houver produtos
-Arquivo: `src/routes/$slug.tsx` (linhas 511-…)
-- Envolver o bloco sticky de chips em uma condicional: renderizar apenas quando `products.length > 0`.
-- Assim lojas sem produtos cadastrados não exibem uma barra sticky vazia.
-
-### 4. Cards de planos — destaque do Presença com badge "Grátis"
-Arquivo: `src/routes/admin.assinatura.tsx` (seção "Compare os planos", linhas 151-238)
-- Ajustar a lógica visual dos cards:
-  - **Presença**: badge verde "Grátis" no topo direito; borda/gradiente sutil para destacar como ponto de entrada.
-  - **Pro**: manter destaque atual "Recomendado" com coroa.
-  - Padronizar altura, espaçamento e ordem visual (Presença → Start → Pro), mantendo o card atual em destaque quando for o do usuário.
-- Ajustar tipografia do preço (Grátis em verde para Presença), CTAs com largura uniforme, e listar até 6 features com espaçamento consistente.
-
-### 5. Próxima etapa (não implementar agora)
-- Registrar a persistência de pedidos de convidado (arquivo `menuzin-guest-order-persistence-prompt-2.md`) como próximo escopo em `.lovable/plan.md`, sem alterar código de backend ainda.
-
-### Detalhes técnicos
-- Item 2 requer nova `useQuery` em `admin.configuracoes.index.tsx` chamando o loader de menu já usado em `admin.categorias.tsx`/`admin.produtos.tsx` (verificar `catalog-admin.functions.ts` para função reutilizável).
-- Item 4 usa apenas classes Tailwind existentes + tokens semânticos (`emerald-*` já aceito no projeto para status).
-- Nenhuma migração de banco necessária.
+1. **Zerar vendas (prioridade)**: apagar todos os pedidos/vendas de todos os tenants.
+2. **`/platform/lojas`**: remover agrupamento por tipo de negócio (elimina duplicação de tenants), mantendo os badges.
+3. **Home `/` — seção de planos**: redimensionar cards, destacar Presença com borda + badge flutuante "Grátis", botões na cor `#F46622`.
+4. **Correção de preço**: `R$ 127,9` → `R$ 127,90` (duas casas decimais sempre).
 
 ---
 
-## Próxima etapa (backlog)
+## 1. Zerar vendas de todos os tenants (IRREVERSÍVEL)
 
-Implementar persistência de pedidos de convidado conforme especificação em `user-uploads://menuzin-guest-order-persistence-prompt-2.md`:
-- Tabelas `guest_customers` e `guest_magic_links` no Supabase
-- Colunas `guest_customer_id` e `source` em `orders`
-- Fluxo de recuperação cross-device via magic link entregue por WhatsApp
-- Identidade soft por telefone (E.164), sem cadastro/senha
+Estado atual do banco: 18 pedidos, 27 itens, 44 registros de histórico, 3 avaliações, 0 pagamentos.
+
+Excluir **todos** os registros, de todos os tenants, na ordem segura para as chaves estrangeiras:
+
+1. `order_status_history` (44 linhas)
+2. `order_ratings` (3 linhas)
+3. `order_items` (27 linhas)
+4. `payments` (0 linhas)
+5. `orders` (18 linhas)
+6. `coupons.used_count` → resetar para `0`
+
+**Preservado**: produtos, categorias, clientes, tenants, assinaturas, configurações.
+
+Efeitos colaterais esperados (desejados): cards "pedidos (30d)"/receita em `/platform/lojas` zeram, dashboards e relatórios dos tenants zeram, e a numeração de pedidos (`orders.number`) volta a começar do 1 em cada loja.
+
+---
+
+## 2. `/platform/lojas` — lista plana sem duplicação (anexo 1)
+
+Arquivo: `src/routes/platform.lojas.tsx` (linhas 155–243).
+
+- Remover a lógica de agrupamento (`Map` por `business_types`) que insere o mesmo tenant em N seções — hoje "Restaurante O Nêgo" aparece 3× (Churrascaria, Restaurante, Marmitaria).
+- Renderizar uma única lista `grid gap-3` com **cada loja uma única vez**, mantendo no card todos os badges existentes: status, plano, todos os `business_types` e "inativa".
+- Sem alteração em server functions ou dados.
+
+---
+
+## 3. Home — cards de planos (anexos 2 e 3)
+
+Arquivo: `src/routes/index.tsx` (seção `#plans`, linhas 320–400 + array `pricingPlans` linhas 32–69).
+
+- **Redimensionar**: grid `md:grid-cols-3 max-w-5xl` → `md:grid-cols-2 max-w-3xl` (só existem 2 planos; cards param de esticar e cabem melhor no viewport).
+- **Destaque Presença** (conforme anexo 3):
+  - Card com borda primária + anel: `border-primary ring-2 ring-primary/20 shadow-pop`.
+  - Badge "Grátis" como pill flutuante centralizada no topo da borda (mesmo padrão visual do "MAIS ESCOLHIDO" do anexo 3), fundo verde esmeralda.
+  - Pro volta ao estilo neutro (sem anel).
+- **Botões `#F46622`**: "Criar meu cardápio grátis" e "Profissionalizar meu delivery" passam de `outline` para sólido com fundo `#F46622` (hover escurecido, ex. `#d9561a`) e texto branco — cor exata pedida, aplicada via utilitário arbitrário do Tailwind.
+
+---
+
+## 4. Preço com duas casas decimais (anexo 4)
+
+Arquivo: `src/routes/index.tsx` (linhas 353–362).
+
+- Linha 357: `minimumFractionDigits` muda de `billing === "annual" ? 2 : 0` para sempre `2` → `R$ 127,90/mês` no mensal e `R$ 106,58/mês` no anual.
+- Linha 353 ("De R$ {monthly}/mês"): usar formatação pt-BR com 2 casas → `De R$ 127,90/mês`.
+- Linha 362 (total anual): `toLocaleString("pt-BR", { minimumFractionDigits: 2 })` → `R$ 1.279,00 por ano`.
+
+---
+
+## Arquivos tocados
+
+| Arquivo | Mudança |
+|---|---|
+| Banco (via ferramenta de dados) | Deletes nas 5 tabelas + reset `coupons.used_count` |
+| `src/routes/platform.lojas.tsx` | Lista plana de lojas |
+| `src/routes/index.tsx` | Grid 2 col, destaque Presença, botões `#F46622`, formatação de preço |
+
+## Verificação
+
+- Query de contagem pós-delete confirmando 0 linhas nas 5 tabelas.
+- Smoke SSR + screenshot da home `#plans` (badge/botões/preço) e de `/platform/lojas` (sem duplicação).
