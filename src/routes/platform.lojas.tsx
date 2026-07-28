@@ -51,7 +51,7 @@ import { brl } from "@/lib/format";
 import { PlatformLayout } from "./platform.dashboard";
 import { useAuth } from "@/lib/auth-context";
 import { setActiveTenantId } from "@/lib/active-tenant";
-import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
+import { BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
 import { BusinessTypesField } from "@/components/admin/BusinessTypesField";
 
 export const Route = createFileRoute("/platform/lojas")({ component: PlatformStores });
