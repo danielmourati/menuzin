@@ -280,12 +280,25 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
 
 
+  const PIZZAS_KEY = "__pizzas__";
   const pizzaCatNames = useMemo(
     () => new Set(categories.filter((c) => c.kind === "pizza").map((c) => c.name)),
     [categories],
   );
-  const hasPizza = pizzaCatNames.size > 0;
-  const PIZZAS_KEY = "__pizzas__";
+
+  // Chips apenas para categorias que possuem ao menos um produto cadastrado
+  const chips = useMemo(() => {
+    const withProducts = new Set(products.map((p) => p.category));
+    const list: { key: string; label: string }[] = [{ key: "Todos", label: "Todos" }];
+    if (products.some((p) => pizzaCatNames.has(p.category))) {
+      list.push({ key: PIZZAS_KEY, label: "Pizzas" });
+    }
+    for (const c of categories) {
+      if (c.kind === "pizza" || !withProducts.has(c.name)) continue;
+      list.push({ key: c.name, label: c.name });
+    }
+    return list;
+  }, [categories, products, pizzaCatNames]);
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -301,7 +314,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   type Group = { name: string; items: Product[]; isPizzaParent?: boolean; children?: { name: string; items: Product[] }[] };
   const grouped = useMemo<Group[]>(() => {
     if (activeCat !== "Todos" && activeCat !== PIZZAS_KEY) {
-      return [{ name: activeCat, items: filtered }];
+      return filtered.length > 0 ? [{ name: activeCat, items: filtered }] : [];
     }
     const out: Group[] = [];
     const pizzaChildren: { name: string; items: Product[] }[] = [];
@@ -514,11 +527,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
               <div className="flex gap-2">
-                {[
-                  { key: "Todos", label: "Todos" },
-                  ...(hasPizza ? [{ key: PIZZAS_KEY, label: "Pizzas" }] : []),
-                  ...categories.filter((c) => c.kind !== "pizza").map((c) => ({ key: c.name, label: c.name })),
-                ].map((c) => {
+                {chips.map((c) => {
                   const Icon = getCategoryIcon(c.label);
                   const highlightKey = activeCat === "Todos" ? visibleCat : activeCat;
                   const active = highlightKey === c.key;
