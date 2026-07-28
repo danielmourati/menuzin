@@ -317,49 +317,46 @@ function Landing() {
               </p>
             </div>
           </div>
-          <div className="mx-auto mt-12 grid max-w-5xl gap-6 md:grid-cols-3">
+          <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
             {pricingPlans.map((p) => {
-              const highlighted = "highlighted" in p && (p as { highlighted?: boolean }).highlighted === true;
+              const isFree = p.id === "presenca";
               const monthly = p.price;
               const annualMonthly = Math.round(p.price * 10) / 12; // 2 meses grátis
               const displayed = billing === "annual" ? annualMonthly : monthly;
               const annualTotal = p.price * 10;
+              const fmt = (n: number) =>
+                n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               return (
                 <div
                   key={p.id}
                   className={`relative flex flex-col rounded-3xl border bg-card p-8 transition ${
-                    highlighted
-                      ? "border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
+                    isFree
+                      ? "border-2 border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
                       : "shadow-[var(--shadow-soft)]"
                   }`}
                 >
-                  {highlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground shadow">
-                      MAIS ESCOLHIDO
+                  {isFree && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-emerald-600 px-4 py-1 text-xs font-bold uppercase tracking-wide text-white shadow">
+                      Grátis
                     </span>
                   )}
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-2xl font-bold">{p.name}</h3>
-                    {p.id === "presenca" && (
-                      <Badge className="gap-1 bg-emerald-600 hover:bg-emerald-600">
-                        Grátis
-                      </Badge>
-                    )}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
                   <div className="mt-5">
-                    {billing === "annual" && (
+                    {billing === "annual" && !isFree && (
                       <p className="text-sm text-muted-foreground line-through">
-                        De R$ {monthly}/mês
+                        De R$ {fmt(monthly)}/mês
                       </p>
                     )}
                     <p className="text-4xl font-bold">
-                      R$ {displayed.toLocaleString("pt-BR", { minimumFractionDigits: billing === "annual" ? 2 : 0, maximumFractionDigits: 2 })}
+                      R$ {fmt(displayed)}
                       <span className="text-base font-normal text-muted-foreground">/mês</span>
                     </p>
-                    {billing === "annual" ? (
+                    {billing === "annual" && !isFree ? (
                       <p className="mt-1 text-xs font-medium text-success">
-                        R$ {annualTotal.toLocaleString("pt-BR")} por ano · 2 meses grátis
+                        R$ {fmt(annualTotal)} por ano · 2 meses grátis
                       </p>
                     ) : (
                       <p className="mt-1 text-xs text-muted-foreground">Cobrado mensalmente</p>
@@ -368,16 +365,15 @@ function Landing() {
                   <ul className="mt-6 space-y-3 text-sm">
                     {p.features.map((f) => (
                       <li key={f} className="flex items-start gap-2">
-                        <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${highlighted ? "text-primary" : "text-success"}`} />
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#F46622]" />
                         <span>{f}</span>
                       </li>
                     ))}
                   </ul>
-                  {p.id === "presenca" ? (
+                  {isFree ? (
                     <Button
-                      className="mt-8 w-full gap-2"
+                      className="mt-8 w-full gap-2 bg-[#F46622] text-white hover:bg-[#d9561a]"
                       size="lg"
-                      variant={highlighted ? "default" : "outline"}
                       onClick={() => setSignupOpen(true)}
                     >
                       <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
@@ -385,9 +381,8 @@ function Landing() {
                   ) : (
                     <Button
                       asChild
-                      className="mt-8 w-full gap-2"
+                      className="mt-8 w-full gap-2 bg-[#F46622] text-white hover:bg-[#d9561a]"
                       size="lg"
-                      variant={highlighted ? "default" : "outline"}
                     >
                       <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
                         <MessageCircle className="h-4 w-4" /> {p.cta}
@@ -398,6 +393,7 @@ function Landing() {
               );
             })}
           </div>
+
           <p className="mt-8 text-center text-xs text-muted-foreground">
             Sem fidelidade. Você pode mudar de plano quando quiser.
           </p>

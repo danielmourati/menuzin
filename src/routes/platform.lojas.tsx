@@ -152,95 +152,72 @@ function PlatformStores() {
             Nenhuma loja cadastrada.
           </p>
         )}
-        {(() => {
-          if (isLoading || error || stores.length === 0) return null;
-          const groups = new Map<string, PlatformStoreRow[]>();
-          for (const s of stores) {
-            const types = s.business_types && s.business_types.length > 0 ? s.business_types : ["__none__"];
-            for (const t of types) {
-              const arr = groups.get(t) ?? [];
-              arr.push(s);
-              groups.set(t, arr);
-            }
-          }
-          const order = [...BUSINESS_TYPES as readonly string[], "__none__"];
-          const sorted = order.filter((k) => groups.has(k));
-          return sorted.map((key) => {
-            const list = groups.get(key)!;
-            const label = key === "__none__" ? "Sem categoria" : BUSINESS_TYPE_LABELS[key as BusinessType];
-            return (
-              <section key={key} className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{label}</h2>
-                  <span className="text-xs text-muted-foreground">({list.length})</span>
-                </div>
-                <div className="grid gap-3">
-                  {list.map((s) => (
-                    <Card key={`${key}-${s.id}`}>
-                      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-bold">{s.name}</p>
-                            <Badge variant="secondary" className={statusTone[s.status] ?? ""}>
-                              {s.status}
-                            </Badge>
-                            <Badge variant="outline">{PLAN_LABEL[normalizePlan(s.plan)]}</Badge>
-                            {s.business_types?.map((bt) => (
-                              <Badge key={bt} variant="outline" className="bg-primary/5 text-primary border-primary/30">
-                                {BUSINESS_TYPE_LABELS[bt as BusinessType] ?? bt}
-                              </Badge>
-                            ))}
-                            {!s.active && <Badge variant="destructive">inativa</Badge>}
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {s.city}
-                            {s.state ? `/${s.state}` : ""} · /{s.slug} · cadastrada em{" "}
-                            {new Date(s.created_at).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-right pr-2">
-                            <p className="text-sm">{s.orders_month} pedidos (30d)</p>
-                            <p className="text-xs text-muted-foreground">{brl(s.revenue_month)}</p>
-                          </div>
-                          <Button asChild size="icon" variant="outline" title="Abrir loja">
-                            <Link to="/$slug" params={{ slug: s.slug }} target="_blank">
-                              <ExternalLink className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button size="icon" variant="outline" title="Acessar painel desta loja" onClick={() => accessStore(s.id)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title="Aplicar template padrão (não sobrescreve)"
-                            onClick={() => applyOneMut.mutate(s.id)}
-                            disabled={applyOneMut.isPending}
-                          >
-                            <Wand2 className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="outline" title="Editar" onClick={() => setEditing(s)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            title="Excluir"
-                            className="text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleting(s)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </section>
-            );
-          });
-        })()}
+        {!isLoading && !error && stores.length > 0 && (
+          <div className="grid gap-3">
+            {stores.map((s) => (
+              <Card key={s.id}>
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-bold">{s.name}</p>
+                      <Badge variant="secondary" className={statusTone[s.status] ?? ""}>
+                        {s.status}
+                      </Badge>
+                      <Badge variant="outline">{PLAN_LABEL[normalizePlan(s.plan)]}</Badge>
+                      {s.business_types?.map((bt) => (
+                        <Badge key={bt} variant="outline" className="bg-primary/5 text-primary border-primary/30">
+                          {BUSINESS_TYPE_LABELS[bt as BusinessType] ?? bt}
+                        </Badge>
+                      ))}
+                      {!s.active && <Badge variant="destructive">inativa</Badge>}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {s.city}
+                      {s.state ? `/${s.state}` : ""} · /{s.slug} · cadastrada em{" "}
+                      {new Date(s.created_at).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-right pr-2">
+                      <p className="text-sm">{s.orders_month} pedidos (30d)</p>
+                      <p className="text-xs text-muted-foreground">{brl(s.revenue_month)}</p>
+                    </div>
+                    <Button asChild size="icon" variant="outline" title="Abrir loja">
+                      <Link to="/$slug" params={{ slug: s.slug }} target="_blank">
+                        <ExternalLink className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button size="icon" variant="outline" title="Acessar painel desta loja" onClick={() => accessStore(s.id)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      title="Aplicar template padrão (não sobrescreve)"
+                      onClick={() => applyOneMut.mutate(s.id)}
+                      disabled={applyOneMut.isPending}
+                    >
+                      <Wand2 className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="outline" title="Editar" onClick={() => setEditing(s)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      title="Excluir"
+                      className="text-destructive hover:bg-destructive/10"
+                      onClick={() => setDeleting(s)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
       </div>
 
 
