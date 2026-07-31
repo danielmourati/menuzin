@@ -4,7 +4,7 @@ import { AlertTriangle, Crown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMyPlanUsage } from "@/lib/plan-usage.functions";
-import { PLAN_LABEL } from "@/lib/plan-features";
+import { PLAN_LABEL, useRequiredPlan } from "@/lib/plan-features";
 
 function Bar({ used, limit }: { used: number; limit: number | null }) {
   if (limit == null) return null;
@@ -79,7 +79,7 @@ export function PlanUsageCard({ variant = "full" }: Props) {
     !ordersOver;
 
   const showUpgrade = plan !== "pro";
-  const nextPlan = plan === "presenca" ? "start" : "pro";
+  const nextPlan = plan === "presenca" ? nextFromPresenca.plan : nextFromStart.plan;
 
   return (
     <Card>
