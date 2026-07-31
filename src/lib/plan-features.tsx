@@ -169,6 +169,27 @@ export function planAtLeast(plan: TenantPlan | null | undefined, min: TenantPlan
   return PLAN_RANK[normalizePlan(plan)] >= PLAN_RANK[min];
 }
 
+/**
+ * Resolve o menor plano ATIVO capaz de liberar um recurso que exige `min`.
+ * Evita mostrar ao lojista o nome de um plano desativado (ex.: "Plano Start").
+ */
+export function useRequiredPlan(min: TenantPlan): { plan: TenantPlan; label: string } {
+  const { data } = useQuery({
+    queryKey: ["plans", "active"],
+    queryFn: async () => {
+      const { listPlans } = await import("@/lib/subscriptions.functions");
+      return listPlans();
+    },
+    staleTime: 5 * 60_000,
+  });
+  const activeSlugs = (data?.plans ?? [])
+    .map((p) => normalizePlan((p as { slug?: string }).slug))
+    .filter((s) => PLAN_RANK[s] >= PLAN_RANK[min])
+    .sort((a, b) => PLAN_RANK[a] - PLAN_RANK[b]);
+  const plan = activeSlugs[0] ?? min;
+  return { plan, label: PLAN_LABEL[plan] };
+}
+
 export function useTenantPlan() {
   const { profile, isAuthenticated } = useAuth();
   const activeTenantId = useActiveTenantId();
