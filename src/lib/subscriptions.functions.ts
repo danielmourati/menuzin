@@ -131,7 +131,12 @@ export const createSubscriptionCharge = createServerFn({ method: "POST" })
       .from("plans").select("*").eq("id", planId).maybeSingle();
     if (!plan) throw new Error("Plano não encontrado");
 
-    const amount = Number((sub as { amount: number }).amount) || Number(plan.monthly_price) || 0;
+    // Cobrança sempre pelo preço vigente do plano (superadmin em /platform/planos).
+    const period = (sub as { billing_period: SubscriptionPeriod }).billing_period;
+    const amount =
+      period === "anual" && plan.annual_price != null
+        ? Number(plan.annual_price)
+        : Number(plan.monthly_price) || 0;
     if (amount <= 0) throw new Error("Plano gratuito não exige pagamento");
 
     const { data: tenant } = await supabaseAdmin
