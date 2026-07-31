@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Bell, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
+import { listPlans } from "@/lib/subscriptions.functions";
 import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
 import landingComboSmash from "@/assets/demo-combo-smash.jpg";
 import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
@@ -29,12 +30,13 @@ const demoProducts = [
   { name: "Batata + Refri", desc: "Porção de batata com refri 350ml", price: 18.5, img: landingBatataRefri },
 ];
 
-const pricingPlans = [
+// Fallback estático usado apenas enquanto os planos do banco carregam.
+const fallbackPricingPlans = [
   {
     id: "presenca",
     name: "Presença",
     price: 0,
-    priceLabel: "Grátis",
+    annualPrice: null as number | null,
     tagline: "Sua vitrine no Guia Menuzin, sem pagar nada.",
     features: [
       "Página no Guia Menuzin",
@@ -46,27 +48,14 @@ const pricingPlans = [
     ],
     cta: "Cadastrar grátis",
   },
-
-
-  {
-    id: "pro",
-    name: "Pro",
-    price: 127.9,
-    priceLabel: "R$ 127,90",
-    tagline: "Automação completa e pagamento online.",
-    features: [
-      "Tudo do Start",
-      "Pagamento online (Mercado Pago)",
-      "Impressão automática (cozinha + entrega)",
-      "Adicionais avançados, combos e pizza multi-sabor",
-      "Cupons avançados, upsell e recuperação",
-      "Taxa de entrega por distância",
-      "Relatórios completos e múltiplos usuários",
-      "Destaque no Guia • suporte prioritário",
-    ],
-    cta: "Profissionalizar meu delivery",
-  },
 ] as const;
+
+const PLAN_CTA: Record<string, string> = {
+  presenca: "Cadastrar grátis",
+  start: "Começar a vender",
+  pro: "Profissionalizar meu delivery",
+};
+
 
 
 const HOME_TITLE = "Menuzin — Cardápio digital e pedidos por WhatsApp";
@@ -120,9 +109,32 @@ function Landing() {
     queryFn: () => listActiveTenants(),
     staleTime: 60_000,
   });
+  // Fonte da verdade dos preços = planos ativos configurados pelo superadmin.
+  const { data: plansData } = useQuery({
+    queryKey: ["plans"],
+    queryFn: () => listPlans(),
+    staleTime: 60_000,
+  });
+  const pricingPlans = useMemo(() => {
+    const rows = plansData?.plans ?? [];
+    if (!rows.length) return fallbackPricingPlans.map((p) => ({ ...p, features: [...p.features] }));
+    return rows
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({
+        id: p.slug,
+        name: p.name,
+        price: Number(p.monthly_price) || 0,
+        annualPrice: p.annual_price != null ? Number(p.annual_price) : null,
+        tagline: p.description ?? "",
+        features: p.features ?? [],
+        cta: PLAN_CTA[p.slug] ?? "Falar com a gente",
+      }));
+  }, [plansData]);
   const demoSlug = tenantsData?.tenants?.[0]?.slug;
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [signupOpen, setSignupOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
@@ -319,11 +331,12 @@ function Landing() {
           </div>
           <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
             {pricingPlans.map((p) => {
-              const isFree = p.id === "presenca";
+              const isFree = p.price <= 0;
               const monthly = p.price;
-              const annualMonthly = Math.round(p.price * 10) / 12; // 2 meses grátis
+              // Preço anual do banco quando configurado; senão 10x mensal (2 meses grátis).
+              const annualTotal = p.annualPrice != null ? p.annualPrice : p.price * 10;
+              const annualMonthly = Math.round((annualTotal / 12) * 100) / 100;
               const displayed = billing === "annual" ? annualMonthly : monthly;
-              const annualTotal = p.price * 10;
               const fmt = (n: number) =>
                 n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               return (
