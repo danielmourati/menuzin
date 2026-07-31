@@ -1,5 +1,11 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { UpgradeNotice, useTenantPlan, planAtLeast, type TenantPlan } from "@/lib/plan-features";
+import {
+  UpgradeNotice,
+  useTenantPlan,
+  useRequiredPlan,
+  planAtLeast,
+  type TenantPlan,
+} from "@/lib/plan-features";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
@@ -15,6 +21,7 @@ interface PlanGateProps {
 
 export function PlanGate({ min, title, featureLabel, children, backTo }: PlanGateProps) {
   const { plan, loading } = useTenantPlan();
+  const required = useRequiredPlan(min);
   if (loading) return <>{children}</>;
   if (planAtLeast(plan, min)) return <>{children}</>;
   return (
@@ -31,9 +38,9 @@ export function PlanGate({ min, title, featureLabel, children, backTo }: PlanGat
       }
     >
       <UpgradeNotice
-        requiredPlan={min}
-        title={`${featureLabel} — Plano ${min === "start" ? "Start" : "Pro"}`}
-        description={`${featureLabel} está disponível a partir do Plano ${min === "start" ? "Start" : "Pro"}. Faça upgrade para desbloquear.`}
+        requiredPlan={required.plan}
+        title={`${featureLabel} — Plano ${required.label}`}
+        description={`${featureLabel} está disponível a partir do Plano ${required.label}. Faça upgrade para desbloquear.`}
       />
     </AdminLayout>
   );

@@ -75,21 +75,50 @@ export async function syncSubscriptionFromTenantPlan(
   return { planId: p.id, amount };
 }
 
+/**
+ * Plano efetivo do tenant, com reconciliação automática (self-healing).
+ * Fontes: tenant_subscriptions.plan.slug e tenants.plan. Se divergirem, vence o
+ * registro atualizado mais recentemente e o outro lado é corrigido na hora.
+ */
 export async function getTenantPlan(tenantId: string): Promise<ServerTenantPlan> {
-  // Plano efetivo = slug do plano da assinatura (quando existe), senão tenants.plan.
-  const { data: sub } = await supabaseAdmin
-    .from("tenant_subscriptions")
-    .select("plan:plans(slug)")
-    .eq("tenant_id", tenantId)
-    .maybeSingle();
-  const subSlug = (sub as { plan?: { slug?: string } | null } | null)?.plan?.slug ?? null;
-  if (subSlug) return normalize(subSlug);
-  const { data } = await supabaseAdmin
-    .from("tenants")
-    .select("plan")
-    .eq("id", tenantId)
-    .maybeSingle();
-  return normalize((data as { plan?: string } | null)?.plan);
+  const [{ data: sub }, { data: tenant }] = await Promise.all([
+    supabaseAdmin
+      .from("tenant_subscriptions")
+      .select("id, plan_id, updated_at, plan:plans(slug)")
+      .eq("tenant_id", tenantId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("tenants")
+      .select("plan, updated_at")
+      .eq("id", tenantId)
+      .maybeSingle(),
+  ]);
+
+  const subRow = sub as
+    | { id: string; plan_id: string; updated_at: string | null; plan?: { slug?: string } | null }
+    | null;
+  const tenantRow = tenant as { plan?: string; updated_at?: string | null } | null;
+
+  const subSlug = subRow?.plan?.slug ? normalize(subRow.plan.slug) : null;
+  const tenantSlug = tenantRow ? normalize(tenantRow.plan) : null;
+
+  if (subSlug && tenantSlug && subSlug !== tenantSlug) {
+    const subAt = subRow?.updated_at ? new Date(subRow.updated_at).getTime() : 0;
+    const tenantAt = tenantRow?.updated_at ? new Date(tenantRow.updated_at).getTime() : 0;
+    const winner = tenantAt >= subAt ? tenantSlug : subSlug;
+    try {
+      if (winner === tenantSlug) {
+        await syncSubscriptionFromTenantPlan(tenantId, tenantSlug);
+      } else {
+        await supabaseAdmin.from("tenants").update({ plan: subSlug }).eq("id", tenantId);
+      }
+    } catch {
+      // leitura não deve falhar por causa da reconciliação
+    }
+    return winner;
+  }
+
+  return subSlug ?? tenantSlug ?? "presenca";
 }
 
 export async function requireProPlan(tenantId: string): Promise<void> {

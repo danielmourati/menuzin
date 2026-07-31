@@ -295,7 +295,7 @@ function Landing() {
             </span>
             <h2 className="mt-4 text-3xl font-bold md:text-4xl">Escolha o plano ideal para o seu negócio</h2>
             <p className="mt-3 text-muted-foreground">
-              Comece grátis no Presença, evolua para o Start quando quiser gerenciar pedidos e vá para o Pro quando precisar de pagamento online e automação. Sem fidelidade.
+              Comece grátis no Presença e evolua quando precisar de painel de pedidos, pagamento online e automação. Sem fidelidade.
             </p>
 
 

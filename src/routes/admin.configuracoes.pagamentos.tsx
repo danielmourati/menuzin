@@ -225,7 +225,7 @@ function AdminPaymentSettingsPage() {
           {!canMP ? (
             <UpgradeNotice
               title="Pagamento online no Plano Pro"
-              description="A integração com o Mercado Pago (Pix online, crédito e débito) está disponível no Plano Pro. No Plano Start você continua recebendo pedidos via WhatsApp e pode usar Pix manual, dinheiro e cartão na entrega."
+              description="A integração com o Mercado Pago (Pix online, crédito e débito) está disponível no Plano Pro. Nos demais planos você continua recebendo pedidos via WhatsApp e pode usar Pix manual, dinheiro e cartão na entrega."
             />
           ) : (
             <>
