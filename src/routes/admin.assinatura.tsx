@@ -121,16 +121,28 @@ function SubscriptionPage() {
               )}
             </p>
           </div>
-          {sub && Number((sub as { amount: number }).amount) > 0 && (
-            <Button onClick={() => chargeMut.mutate()} disabled={chargeMut.isPending}>
-              {chargeMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
-              Pagar via PIX
-            </Button>
+          {sub && currentAmount > 0 && (
+            <div className="text-right">
+              <Button
+                onClick={() => chargeMut.mutate()}
+                disabled={chargeMut.isPending || !canPayNow}
+              >
+                {chargeMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                Pagar via PIX
+              </Button>
+              {!canPayNow && (
+                <p className="mt-1 max-w-[14rem] text-xs text-muted-foreground">
+                  {computed.daysRemaining != null
+                    ? `Assinatura em dia — cobrança liberada perto do vencimento (em ${computed.daysRemaining} dia(s)).`
+                    : "Assinatura em dia — cobrança liberada perto do vencimento."}
+                </p>
+              )}
+            </div>
           )}
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Info label="Valor" value={brl(Number((sub as { amount?: number } | null)?.amount ?? 0))} />
+            <Info label="Valor" value={brl(currentAmount)} />
             <Info label="Período" value={(sub as { billing_period?: string } | null)?.billing_period ?? "—"} />
             <Info
               label="Próximo vencimento"
