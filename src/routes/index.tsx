@@ -414,7 +414,7 @@ function Landing() {
       </section>
 
       {/* FAQ — quebra objeções imediatamente após o preço */}
-      <FaqSection />
+      <FaqSection plans={pricingPlans.map((p) => ({ name: p.name, price: p.price }))} />
 
       {/* CTA final + contato */}
       <CTABanner onCTAClick={() => setSignupOpen(true)} />

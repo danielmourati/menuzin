@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { adminCreateTenant } from "@/lib/platform.functions";
+import { listPlans } from "@/lib/subscriptions.functions";
 import { maskPhone } from "@/lib/masks";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
 import { PlatformLayout } from "./platform.dashboard";
@@ -37,7 +38,10 @@ function NewTenantPage() {
   const [ownerName, setOwnerName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
-  const [plan, setPlan] = useState<"start" | "pro">("start");
+  // Plano padrão dos novos tenants = plano configurado pelo superadmin; fallback Presença.
+  const [plan, setPlan] = useState<"presenca" | "start" | "pro">("presenca");
+  const [showPwd, setShowPwd] = useState(false);
+  const [startEmpty, setStartEmpty] = useState(true);
   const [seedBusinessCategories, setSeedBusinessCategories] = useState(false);
   const [seedTemplateDefaults, setSeedTemplateDefaults] = useState(false);
   const [seedDemoData, setSeedDemoData] = useState(false);
@@ -57,14 +61,17 @@ function NewTenantPage() {
   });
   const slugOk = computedSlug.length >= 3 && !!slugCheck?.available;
 
+  const { data: plansData } = useQuery({ queryKey: ["plans"], queryFn: () => listPlans() });
+  const availablePlans = (plansData?.plans ?? []).filter((p) =>
+    ["presenca", "start", "pro"].includes(p.slug),
+  );
+
   const pwdChecks = {
     len: ownerPassword.length >= 8,
-    upper: /[A-Z]/.test(ownerPassword),
-    lower: /[a-z]/.test(ownerPassword),
+    letter: /[A-Za-z]/.test(ownerPassword),
     num: /[0-9]/.test(ownerPassword),
-    special: /[^A-Za-z0-9]/.test(ownerPassword),
   };
-  const pwdStrong = Object.values(pwdChecks).every(Boolean);
+  const pwdStrong = pwdChecks.len && pwdChecks.letter && pwdChecks.num;
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail.trim());
   const ownerOk = emailValid && pwdStrong;
 
@@ -99,9 +106,9 @@ function NewTenantPage() {
           owner_password: ownerPassword,
           owner_name: ownerName.trim() || null,
           clone_from_slug: null,
-          seed_business_categories: seedBusinessCategories,
-          seed_template_defaults: seedTemplateDefaults,
-          seed_demo_data: seedDemoData,
+          seed_business_categories: startEmpty ? false : seedBusinessCategories,
+          seed_template_defaults: startEmpty ? false : seedTemplateDefaults,
+          seed_demo_data: startEmpty ? false : seedDemoData,
         },
       }),
 
@@ -114,7 +121,7 @@ function NewTenantPage() {
 
   const handleSubmit = () => {
     if (!canSubmit) {
-      toast.error("Preencha os campos obrigatórios, defina email/senha do dono e use uma senha forte.");
+      toast.error("Preencha os campos obrigatórios e defina email/senha do dono (mínimo 8 caracteres, com letra e número).");
       return;
     }
     createMut.mutate();
@@ -186,15 +193,21 @@ function NewTenantPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>Plano</Label>
-              <Select value={plan} onValueChange={(v) => setPlan(v as "start" | "pro")}>
+              <Select value={plan} onValueChange={(v) => setPlan(v as "presenca" | "start" | "pro")}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="start">Start — WhatsApp + relatórios básicos</SelectItem>
-                  <SelectItem value="pro">Pro — Mercado Pago + múltiplas impressoras</SelectItem>
+                  {(availablePlans.length
+                    ? availablePlans.map((p) => ({ slug: p.slug, name: p.name, desc: p.description ?? "" }))
+                    : [{ slug: "presenca", name: "Presença", desc: "Vitrine grátis no Guia" }]
+                  ).map((p) => (
+                    <SelectItem key={p.slug} value={p.slug}>
+                      {p.name}{p.desc ? ` — ${p.desc}` : ""}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="mt-1 text-xs text-muted-foreground">
-                Padrão: Start. Pode ser alterado depois na edição da loja.
+                Padrão: Presença (grátis). Pode ser alterado depois na edição da loja.
               </p>
             </div>
             <div className="flex items-center justify-between rounded-2xl border p-4">
@@ -232,21 +245,39 @@ function NewTenantPage() {
               </p>
             </div>
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
-              <Checkbox checked={seedBusinessCategories} onCheckedChange={(v) => setSeedBusinessCategories(!!v)} />
+              <Checkbox
+                checked={startEmpty}
+                onCheckedChange={(v) => {
+                  const on = !!v;
+                  setStartEmpty(on);
+                  if (on) {
+                    setSeedBusinessCategories(false);
+                    setSeedTemplateDefaults(false);
+                    setSeedDemoData(false);
+                  }
+                }}
+              />
+              <span>
+                <span className="font-medium">Começar vazio (recomendado)</span>
+                <span className="block text-xs text-muted-foreground">Banco zerado: nenhuma categoria, produto, configuração ou dado demo é criado.</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
+              <Checkbox checked={seedBusinessCategories} onCheckedChange={(v) => { setSeedBusinessCategories(!!v); if (v) setStartEmpty(false); }} />
               <span>
                 <span className="font-medium">Criar categorias padrão pelo tipo de negócio</span>
                 <span className="block text-xs text-muted-foreground">Cria categorias vazias (ex.: Pizza, Bebidas) conforme os tipos selecionados acima.</span>
               </span>
             </label>
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
-              <Checkbox checked={seedTemplateDefaults} onCheckedChange={(v) => setSeedTemplateDefaults(!!v)} />
+              <Checkbox checked={seedTemplateDefaults} onCheckedChange={(v) => { setSeedTemplateDefaults(!!v); if (v) setStartEmpty(false); }} />
               <span>
                 <span className="font-medium">Aplicar configurações modelo</span>
                 <span className="block text-xs text-muted-foreground">Aplica horários, taxas e formas de pagamento padrão a partir de um tenant de referência (não copia produtos nem pedidos).</span>
               </span>
             </label>
             <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-card p-3 text-sm transition hover:border-primary/40">
-              <Checkbox checked={seedDemoData} onCheckedChange={(v) => setSeedDemoData(!!v)} />
+              <Checkbox checked={seedDemoData} onCheckedChange={(v) => { setSeedDemoData(!!v); if (v) setStartEmpty(false); }} />
               <span>
                 <span className="font-medium">Criar dados demo</span>
                 <span className="block text-xs text-muted-foreground">Apenas para testes — popula com produtos/exemplos. Não use em lojas reais.</span>
@@ -289,22 +320,30 @@ function NewTenantPage() {
             </div>
             <div>
               <Label>Senha inicial *</Label>
-              <Input
-                type="text"
-                value={ownerPassword}
-                onChange={(e) => setOwnerPassword(e.target.value)}
-                placeholder="Defina uma senha forte"
-                className="mt-1.5 font-mono"
-                autoComplete="off"
-                maxLength={72}
-              />
+              <div className="relative mt-1.5">
+                <Input
+                  type={showPwd ? "text" : "password"}
+                  value={ownerPassword}
+                  onChange={(e) => setOwnerPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres, com letra e número"
+                  className="pr-10 font-mono"
+                  autoComplete="off"
+                  maxLength={72}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <ul className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
                 {[
                   { ok: pwdChecks.len, label: "8+ caracteres" },
-                  { ok: pwdChecks.upper, label: "Letra maiúscula" },
-                  { ok: pwdChecks.lower, label: "Letra minúscula" },
-                  { ok: pwdChecks.num, label: "Número" },
-                  { ok: pwdChecks.special, label: "Caractere especial" },
+                  { ok: pwdChecks.letter, label: "Pelo menos uma letra" },
+                  { ok: pwdChecks.num, label: "Pelo menos um número" },
                 ].map((r) => (
                   <li
                     key={r.label}

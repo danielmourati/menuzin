@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck, Check, X } from "lucide-react";
+import { Loader2, ShieldCheck, Check, X, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { changeMyPassword } from "@/lib/account.functions";
@@ -13,12 +13,16 @@ export const Route = createFileRoute("/admin/trocar-senha")({
   component: ChangePasswordPage,
 });
 
+// Regras obrigatórias (mínimas) + dicas opcionais de segurança.
 const rules: { label: string; test: (s: string) => boolean }[] = [
   { label: "Mínimo de 8 caracteres", test: (s) => s.length >= 8 },
-  { label: "Letra maiúscula (A-Z)", test: (s) => /[A-Z]/.test(s) },
-  { label: "Letra minúscula (a-z)", test: (s) => /[a-z]/.test(s) },
-  { label: "Número (0-9)", test: (s) => /[0-9]/.test(s) },
-  { label: "Caractere especial (!@#…)", test: (s) => /[^A-Za-z0-9]/.test(s) },
+  { label: "Pelo menos uma letra", test: (s) => /[A-Za-z]/.test(s) },
+  { label: "Pelo menos um número", test: (s) => /[0-9]/.test(s) },
+];
+
+const tips: { label: string; test: (s: string) => boolean }[] = [
+  { label: "Letra maiúscula (opcional)", test: (s) => /[A-Z]/.test(s) },
+  { label: "Caractere especial (opcional)", test: (s) => /[^A-Za-z0-9]/.test(s) },
 ];
 
 function ChangePasswordPage() {
@@ -26,6 +30,7 @@ function ChangePasswordPage() {
   const navigate = useNavigate();
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
 
   const allValid = rules.every((r) => r.test(pwd)) && pwd === confirm;
   const forced = profile?.must_change_password === true;
@@ -72,19 +77,29 @@ function ChangePasswordPage() {
         >
           <div>
             <Label>Nova senha</Label>
-            <Input
-              type="password"
-              value={pwd}
-              onChange={(e) => setPwd(e.target.value)}
-              autoComplete="new-password"
-              className="mt-1.5"
-              maxLength={72}
-            />
+            <div className="relative mt-1.5">
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                autoComplete="new-password"
+                className="pr-10"
+                maxLength={72}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd((v) => !v)}
+                aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div>
             <Label>Confirmar nova senha</Label>
             <Input
-              type="password"
+              type={showPwd ? "text" : "password"}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               autoComplete="new-password"
@@ -109,6 +124,15 @@ function ChangePasswordPage() {
                   <span className={ok ? "text-foreground" : "text-muted-foreground"}>
                     {r.label}
                   </span>
+                </li>
+              );
+            })}
+            {tips.map((t) => {
+              const ok = t.test(pwd);
+              return (
+                <li key={t.label} className="flex items-center gap-2 opacity-70">
+                  {ok ? <Check className="h-3.5 w-3.5 text-success" /> : <X className="h-3.5 w-3.5 text-muted-foreground" />}
+                  <span className="text-muted-foreground">{t.label}</span>
                 </li>
               );
             })}

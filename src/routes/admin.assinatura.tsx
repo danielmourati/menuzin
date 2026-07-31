@@ -79,9 +79,20 @@ function SubscriptionPage() {
   const sub = data?.subscription ?? null;
   const payments = data?.payments ?? [];
   const computed = computeSubscriptionStatus(sub as never);
-  const plan = (sub as { plan?: { name: string; slug: string; features: string[] } } | null)?.plan;
+  const plan = (sub as { plan?: { name: string; slug: string; features: string[]; monthly_price?: number; annual_price?: number | null } } | null)?.plan;
   const features = plan?.features ?? [];
   const currentPlan: TenantPlan = normalizePlan(plan?.slug);
+  const period = (sub as { billing_period?: string } | null)?.billing_period ?? "mensal";
+  // Fonte da verdade do valor = preço vigente do plano configurado pelo superadmin.
+  const currentAmount =
+    period === "anual" && plan?.annual_price != null
+      ? Number(plan.annual_price)
+      : Number(plan?.monthly_price ?? (sub as { amount?: number } | null)?.amount ?? 0);
+  // Cobrança liberada apenas perto do vencimento, em tolerância, vencida ou bloqueada.
+  const canPayNow =
+    currentAmount > 0 &&
+    (computed.expiringSoon ||
+      ["pendente", "vencida", "tolerancia", "bloqueada"].includes(computed.effective));
   const orderedSlugs: TenantPlan[] = ["presenca", "start", "pro"];
   const allPlans = (plansData?.plans ?? [])
     .filter((p) => (p as { active?: boolean }).active !== false)
@@ -110,16 +121,28 @@ function SubscriptionPage() {
               )}
             </p>
           </div>
-          {sub && Number((sub as { amount: number }).amount) > 0 && (
-            <Button onClick={() => chargeMut.mutate()} disabled={chargeMut.isPending}>
-              {chargeMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
-              Pagar via PIX
-            </Button>
+          {sub && currentAmount > 0 && (
+            <div className="text-right">
+              <Button
+                onClick={() => chargeMut.mutate()}
+                disabled={chargeMut.isPending || !canPayNow}
+              >
+                {chargeMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                Pagar via PIX
+              </Button>
+              {!canPayNow && (
+                <p className="mt-1 max-w-[14rem] text-xs text-muted-foreground">
+                  {computed.daysRemaining != null
+                    ? `Assinatura em dia — cobrança liberada perto do vencimento (em ${computed.daysRemaining} dia(s)).`
+                    : "Assinatura em dia — cobrança liberada perto do vencimento."}
+                </p>
+              )}
+            </div>
           )}
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Info label="Valor" value={brl(Number((sub as { amount?: number } | null)?.amount ?? 0))} />
+            <Info label="Valor" value={brl(currentAmount)} />
             <Info label="Período" value={(sub as { billing_period?: string } | null)?.billing_period ?? "—"} />
             <Info
               label="Próximo vencimento"

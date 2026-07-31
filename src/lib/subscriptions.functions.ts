@@ -82,8 +82,24 @@ export const getMySubscription = createServerFn({ method: "POST" })
       .order("created_at", { ascending: false })
       .limit(20);
 
+    // Preço vigente do plano é a fonte da verdade; sincroniza amount se divergir.
+    const subRow = (sub ?? null) as unknown as SubscriptionRow | null;
+    if (subRow?.plan) {
+      const current =
+        subRow.billing_period === "anual" && subRow.plan.annual_price != null
+          ? Number(subRow.plan.annual_price)
+          : Number(subRow.plan.monthly_price) || 0;
+      if (Number(subRow.amount) !== current) {
+        await supabaseAdmin
+          .from("tenant_subscriptions")
+          .update({ amount: current })
+          .eq("id", subRow.id);
+        subRow.amount = current;
+      }
+    }
+
     return {
-      subscription: (sub ?? null) as unknown as SubscriptionRow | null,
+      subscription: subRow,
       payments: (pays ?? []) as unknown as PaymentRow[],
     };
   });
@@ -115,7 +131,12 @@ export const createSubscriptionCharge = createServerFn({ method: "POST" })
       .from("plans").select("*").eq("id", planId).maybeSingle();
     if (!plan) throw new Error("Plano não encontrado");
 
-    const amount = Number((sub as { amount: number }).amount) || Number(plan.monthly_price) || 0;
+    // Cobrança sempre pelo preço vigente do plano (superadmin em /platform/planos).
+    const period = (sub as { billing_period: SubscriptionPeriod }).billing_period;
+    const amount =
+      period === "anual" && plan.annual_price != null
+        ? Number(plan.annual_price)
+        : Number(plan.monthly_price) || 0;
     if (amount <= 0) throw new Error("Plano gratuito não exige pagamento");
 
     const { data: tenant } = await supabaseAdmin

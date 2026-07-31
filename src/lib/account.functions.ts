@@ -3,14 +3,13 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+// Requisito mínimo: 8 caracteres, com ao menos uma letra e um número.
 const StrongPassword = z
   .string()
   .min(8, "Mínimo de 8 caracteres.")
   .max(72, "Máximo de 72 caracteres.")
-  .regex(/[A-Z]/, "Inclua ao menos uma letra maiúscula.")
-  .regex(/[a-z]/, "Inclua ao menos uma letra minúscula.")
-  .regex(/[0-9]/, "Inclua ao menos um número.")
-  .regex(/[^A-Za-z0-9]/, "Inclua ao menos um caractere especial.");
+  .regex(/[A-Za-z]/, "Inclua ao menos uma letra.")
+  .regex(/[0-9]/, "Inclua ao menos um número.");
 
 const Input = z.object({ new_password: StrongPassword });
 

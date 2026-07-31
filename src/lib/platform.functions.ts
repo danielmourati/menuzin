@@ -137,7 +137,7 @@ const CreateTenantInput = z.object({
   theme_from: z.string().max(40).optional().default("#FF6A1F"),
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
-  plan: z.enum(["start", "pro"]).default("start"),
+  plan: z.enum(["presenca", "start", "pro"]).default("presenca"),
   business_types: z.array(z.enum(BUSINESS_TYPES)).optional().default([]),
   owner_user_id: z.string().uuid().nullable().optional(),
   owner_email: z.string().email().max(160).optional().nullable(),
@@ -241,6 +241,14 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       } catch {
         // não falhar a criação se o merge der erro
       }
+    }
+
+    // Novo tenant obedece o plano configurado pelo superadmin (fallback: Presença).
+    try {
+      const { syncSubscriptionFromTenantPlan } = await import("@/lib/plan-server");
+      await syncSubscriptionFromTenantPlan(tenant.id as string, data.plan as "presenca" | "start" | "pro");
+    } catch {
+      // não falhar a criação se a assinatura não puder ser sincronizada
     }
 
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
