@@ -331,11 +331,12 @@ function Landing() {
           </div>
           <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
             {pricingPlans.map((p) => {
-              const isFree = p.id === "presenca";
+              const isFree = p.price <= 0;
               const monthly = p.price;
-              const annualMonthly = Math.round(p.price * 10) / 12; // 2 meses grátis
+              // Preço anual do banco quando configurado; senão 10x mensal (2 meses grátis).
+              const annualTotal = p.annualPrice != null ? p.annualPrice : p.price * 10;
+              const annualMonthly = Math.round((annualTotal / 12) * 100) / 100;
               const displayed = billing === "annual" ? annualMonthly : monthly;
-              const annualTotal = p.price * 10;
               const fmt = (n: number) =>
                 n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
               return (
