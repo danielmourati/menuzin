@@ -29,12 +29,13 @@ const demoProducts = [
   { name: "Batata + Refri", desc: "Porção de batata com refri 350ml", price: 18.5, img: landingBatataRefri },
 ];
 
-const pricingPlans = [
+// Fallback estático usado apenas enquanto os planos do banco carregam.
+const fallbackPricingPlans = [
   {
     id: "presenca",
     name: "Presença",
     price: 0,
-    priceLabel: "Grátis",
+    annualPrice: null as number | null,
     tagline: "Sua vitrine no Guia Menuzin, sem pagar nada.",
     features: [
       "Página no Guia Menuzin",
@@ -46,27 +47,14 @@ const pricingPlans = [
     ],
     cta: "Cadastrar grátis",
   },
-
-
-  {
-    id: "pro",
-    name: "Pro",
-    price: 127.9,
-    priceLabel: "R$ 127,90",
-    tagline: "Automação completa e pagamento online.",
-    features: [
-      "Tudo do Start",
-      "Pagamento online (Mercado Pago)",
-      "Impressão automática (cozinha + entrega)",
-      "Adicionais avançados, combos e pizza multi-sabor",
-      "Cupons avançados, upsell e recuperação",
-      "Taxa de entrega por distância",
-      "Relatórios completos e múltiplos usuários",
-      "Destaque no Guia • suporte prioritário",
-    ],
-    cta: "Profissionalizar meu delivery",
-  },
 ] as const;
+
+const PLAN_CTA: Record<string, string> = {
+  presenca: "Cadastrar grátis",
+  start: "Começar a vender",
+  pro: "Profissionalizar meu delivery",
+};
+
 
 
 const HOME_TITLE = "Menuzin — Cardápio digital e pedidos por WhatsApp";
