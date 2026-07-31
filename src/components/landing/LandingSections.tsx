@@ -346,7 +346,7 @@ export function FaqSection({ plans }: { plans?: FaqPlanInfo[] }) {
       </div>
       <div className="mx-auto mt-10 max-w-3xl">
         <Accordion type="single" collapsible className="w-full">
-          {faqs.map((f, i) => (
+          {items.map((f, i) => (
             <AccordionItem key={f.q} value={`item-${i}`}>
               <AccordionTrigger className="text-left text-base font-semibold">
                 {f.q}
