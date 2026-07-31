@@ -1,73 +1,33 @@
-## Objetivo
+# Correções de planos, cobrança e criação de lojas
 
-1. **Zerar vendas (prioridade)**: apagar todos os pedidos/vendas de todos os tenants.
-2. **`/platform/lojas`**: remover agrupamento por tipo de negócio (elimina duplicação de tenants), mantendo os badges.
-3. **Home `/` — seção de planos**: redimensionar cards, destacar Presença com borda + badge flutuante "Grátis", botões na cor `#F46622`.
-4. **Correção de preço**: `R$ 127,9` → `R$ 127,90` (duas casas decimais sempre).
+## 1. Valor e botão "Pagar via PIX" em /admin/assinatura
+O card mostra R$ 127,90 porque o valor gravado na assinatura ficou congelado do preço antigo, enquanto o preço atual do plano (definido em /platform/planos) é outro.
 
----
+- Exibir sempre o preço vigente do plano como fonte da verdade (`plans.monthly_price` / `annual_price` conforme o período), e sincronizar `tenant_subscriptions.amount` quando o preço do plano mudar.
+- O botão "Pagar via PIX" passa a ficar ativo apenas quando a mensalidade estiver **próxima do vencimento (5 dias ou menos), em tolerância, vencida ou bloqueada**. Fora disso, botão desabilitado com texto de apoio ("Sua assinatura está em dia — vence em X dias").
+- Planos gratuitos (valor 0) continuam sem botão.
 
-## 1. Zerar vendas de todos os tenants (IRREVERSÍVEL)
+## 2. FAQ da home com planos errados
+Em "Quanto custa o Menuzin?" ainda aparecem "Essencial R$ 89" e "Controle R$ 159", planos que não existem mais. O FAQ passará a ler os planos ativos do banco (mesma fonte já usada na seção de preços) e montar a resposta dinamicamente (ex.: "Presença grátis e Pro por R$ X/mês"). Também corrigir a menção a "plano Controle" na pergunta sobre suporte.
 
-Estado atual do banco: 18 pedidos, 27 itens, 44 registros de histórico, 3 avaliações, 0 pagamentos.
+## 3. Iniciar sem dados (banco zerado)
+No bloco "Dados iniciais (isolamento)" do cadastro de loja, transformar as três opções em uma escolha explícita com uma quarta primeira opção **"Começar vazio (recomendado)"**, marcada por padrão, que desliga todas as demais. As opções passam a ser mutuamente coerentes: escolher "Começar vazio" desmarca categorias padrão, configurações modelo e dados demo.
 
-Excluir **todos** os registros, de todos os tenants, na ordem segura para as chaves estrangeiras:
+## 4. Senha: olhinho e regras mais leves
+- Adicionar botão de mostrar/ocultar (olho) nos campos de senha em /admin/trocar-senha e no cadastro de loja do superadmin.
+- Reduzir a exigência: mínimo de 8 caracteres com pelo menos uma letra e um número. Maiúscula/minúscula/caractere especial deixam de ser obrigatórios (viram dicas opcionais na lista).
+- Observação: o backend de autenticação ainda pode rejeitar senhas conhecidas como fracas (mensagem "Password is known to be weak"); manteremos a exibição amigável desse erro.
 
-1. `order_status_history` (44 linhas)
-2. `order_ratings` (3 linhas)
-3. `order_items` (27 linhas)
-4. `payments` (0 linhas)
-5. `orders` (18 linhas)
-6. `coupons.used_count` → resetar para `0`
+## 5. Plano padrão de novos tenants
+- No cadastro do superadmin (/platform/lojas → nova loja), o seletor de plano passa a listar os planos **ativos** (incluindo Presença) e o padrão passa a ser o plano marcado como padrão/primeiro ativo, em vez de "Start" fixo.
+- Se nenhum plano for escolhido/configurado, o tenant nasce em **Presença**.
+- O cadastro público (auto-cadastro) continua nascendo em Presença.
+- Na criação, a assinatura é gerada já com o plano e o valor corretos do plano escolhido.
 
-**Preservado**: produtos, categorias, clientes, tenants, assinaturas, configurações.
-
-Efeitos colaterais esperados (desejados): cards "pedidos (30d)"/receita em `/platform/lojas` zeram, dashboards e relatórios dos tenants zeram, e a numeração de pedidos (`orders.number`) volta a começar do 1 em cada loja.
-
----
-
-## 2. `/platform/lojas` — lista plana sem duplicação (anexo 1)
-
-Arquivo: `src/routes/platform.lojas.tsx` (linhas 155–243).
-
-- Remover a lógica de agrupamento (`Map` por `business_types`) que insere o mesmo tenant em N seções — hoje "Restaurante O Nêgo" aparece 3× (Churrascaria, Restaurante, Marmitaria).
-- Renderizar uma única lista `grid gap-3` com **cada loja uma única vez**, mantendo no card todos os badges existentes: status, plano, todos os `business_types` e "inativa".
-- Sem alteração em server functions ou dados.
-
----
-
-## 3. Home — cards de planos (anexos 2 e 3)
-
-Arquivo: `src/routes/index.tsx` (seção `#plans`, linhas 320–400 + array `pricingPlans` linhas 32–69).
-
-- **Redimensionar**: grid `md:grid-cols-3 max-w-5xl` → `md:grid-cols-2 max-w-3xl` (só existem 2 planos; cards param de esticar e cabem melhor no viewport).
-- **Destaque Presença** (conforme anexo 3):
-  - Card com borda primária + anel: `border-primary ring-2 ring-primary/20 shadow-pop`.
-  - Badge "Grátis" como pill flutuante centralizada no topo da borda (mesmo padrão visual do "MAIS ESCOLHIDO" do anexo 3), fundo verde esmeralda.
-  - Pro volta ao estilo neutro (sem anel).
-- **Botões `#F46622`**: "Criar meu cardápio grátis" e "Profissionalizar meu delivery" passam de `outline` para sólido com fundo `#F46622` (hover escurecido, ex. `#d9561a`) e texto branco — cor exata pedida, aplicada via utilitário arbitrário do Tailwind.
-
----
-
-## 4. Preço com duas casas decimais (anexo 4)
-
-Arquivo: `src/routes/index.tsx` (linhas 353–362).
-
-- Linha 357: `minimumFractionDigits` muda de `billing === "annual" ? 2 : 0` para sempre `2` → `R$ 127,90/mês` no mensal e `R$ 106,58/mês` no anual.
-- Linha 353 ("De R$ {monthly}/mês"): usar formatação pt-BR com 2 casas → `De R$ 127,90/mês`.
-- Linha 362 (total anual): `toLocaleString("pt-BR", { minimumFractionDigits: 2 })` → `R$ 1.279,00 por ano`.
-
----
-
-## Arquivos tocados
-
-| Arquivo | Mudança |
-|---|---|
-| Banco (via ferramenta de dados) | Deletes nas 5 tabelas + reset `coupons.used_count` |
-| `src/routes/platform.lojas.tsx` | Lista plana de lojas |
-| `src/routes/index.tsx` | Grid 2 col, destaque Presença, botões `#F46622`, formatação de preço |
-
-## Verificação
-
-- Query de contagem pós-delete confirmando 0 linhas nas 5 tabelas.
-- Smoke SSR + screenshot da home `#plans` (badge/botões/preço) e de `/platform/lojas` (sem duplicação).
+## Detalhes técnicos
+- `src/routes/admin.assinatura.tsx`: usar `plan.monthly_price` para exibição; condicionar o botão a `computed.expiringSoon || ["vencida","tolerancia","bloqueada","pendente"].includes(computed.effective)`.
+- `src/lib/subscriptions.functions.ts`: em `getMySubscription`, alinhar `amount` ao preço vigente do plano; em `createSubscriptionCharge`, cobrar o preço vigente.
+- `src/components/landing/LandingSections.tsx`: FAQ recebe os planos via props/`listPlans`.
+- `src/routes/platform.tenants.novo.tsx`: opção "Começar vazio", olho na senha, regras de senha simplificadas, select de plano vindo de `listPlans` com fallback `presenca`.
+- `src/routes/admin.trocar-senha.tsx`: olho na senha e regras reduzidas.
+- `src/lib/platform.functions.ts`: default de plano `presenca` quando ausente.
