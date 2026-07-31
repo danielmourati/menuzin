@@ -79,9 +79,20 @@ function SubscriptionPage() {
   const sub = data?.subscription ?? null;
   const payments = data?.payments ?? [];
   const computed = computeSubscriptionStatus(sub as never);
-  const plan = (sub as { plan?: { name: string; slug: string; features: string[] } } | null)?.plan;
+  const plan = (sub as { plan?: { name: string; slug: string; features: string[]; monthly_price?: number; annual_price?: number | null } } | null)?.plan;
   const features = plan?.features ?? [];
   const currentPlan: TenantPlan = normalizePlan(plan?.slug);
+  const period = (sub as { billing_period?: string } | null)?.billing_period ?? "mensal";
+  // Fonte da verdade do valor = preço vigente do plano configurado pelo superadmin.
+  const currentAmount =
+    period === "anual" && plan?.annual_price != null
+      ? Number(plan.annual_price)
+      : Number(plan?.monthly_price ?? (sub as { amount?: number } | null)?.amount ?? 0);
+  // Cobrança liberada apenas perto do vencimento, em tolerância, vencida ou bloqueada.
+  const canPayNow =
+    currentAmount > 0 &&
+    (computed.expiringSoon ||
+      ["pendente", "vencida", "tolerancia", "bloqueada"].includes(computed.effective));
   const orderedSlugs: TenantPlan[] = ["presenca", "start", "pro"];
   const allPlans = (plansData?.plans ?? [])
     .filter((p) => (p as { active?: boolean }).active !== false)
