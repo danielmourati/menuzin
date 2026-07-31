@@ -8,10 +8,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, MessageCircle, Smartphone, ShoppingBag, Printer, BarChart3, Rocket } from "lucide-react";
+import { ArrowRight, MessageCircle, Smartphone, ShoppingBag, Printer, BarChart3, Rocket, Instagram, Youtube } from "lucide-react";
 import {
   WHATSAPP_CONTACT_URL,
   WHATSAPP_PHONE_DISPLAY,
+  INSTAGRAM_URL,
+  YOUTUBE_URL,
   buildWhatsAppUrl,
 } from "@/components/WhatsAppFloatingButton";
 import { brl } from "@/lib/format";
@@ -363,7 +365,28 @@ export function LandingFooter() {
           >
             <MessageCircle className="h-4 w-4" /> {WHATSAPP_PHONE_DISPLAY}
           </a>
+          <div className="mt-4 flex items-center gap-3">
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram do Menuzin"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-muted-foreground transition hover:border-primary hover:text-primary"
+            >
+              <Instagram className="h-4 w-4" />
+            </a>
+            <a
+              href={YOUTUBE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="YouTube do Menuzin"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-muted-foreground transition hover:border-primary hover:text-primary"
+            >
+              <Youtube className="h-4 w-4" />
+            </a>
+          </div>
         </div>
+
 
         <FooterCol
           title="Produto"
@@ -385,6 +408,9 @@ export function LandingFooter() {
           title="Contato"
           links={[
             { label: "WhatsApp", href: WHATSAPP_CONTACT_URL, external: true },
+            { label: "Instagram", href: INSTAGRAM_URL, external: true },
+            { label: "YouTube", href: YOUTUBE_URL, external: true },
+
             { label: "Entrar", href: "/admin/login" },
           ]}
         />

@@ -1,7 +1,10 @@
 import { MessageCircle } from "lucide-react";
 
-export const WHATSAPP_PHONE = "5586994422827";
-export const WHATSAPP_PHONE_DISPLAY = "(86) 99442-2827";
+export const WHATSAPP_PHONE = "5586999312882";
+export const WHATSAPP_PHONE_DISPLAY = "(86) 99931-2882";
+
+export const INSTAGRAM_URL = "https://www.instagram.com/menuzin.oficial";
+export const YOUTUBE_URL = "https://www.youtube.com/@MenuzinOficial";
 export const WHATSAPP_CONTACT_URL =
   `https://wa.me/${WHATSAPP_PHONE}?text=` +
   encodeURIComponent("Olá, gostaria de saber mais sobre o Menuzin!");
