@@ -8,10 +8,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, MessageCircle, Smartphone, ShoppingBag, Printer, BarChart3, Rocket } from "lucide-react";
+import { ArrowRight, MessageCircle, Smartphone, ShoppingBag, Printer, BarChart3, Rocket, Instagram, Youtube } from "lucide-react";
 import {
   WHATSAPP_CONTACT_URL,
   WHATSAPP_PHONE_DISPLAY,
+  INSTAGRAM_URL,
+  YOUTUBE_URL,
   buildWhatsAppUrl,
 } from "@/components/WhatsAppFloatingButton";
 import { brl } from "@/lib/format";
