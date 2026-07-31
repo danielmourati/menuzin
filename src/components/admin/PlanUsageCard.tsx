@@ -53,6 +53,9 @@ export function PlanUsageCard({ variant = "full" }: Props) {
     queryFn: () => getMyPlanUsage(),
     staleTime: 60_000,
   });
+  // Sugestão de upgrade sempre para o menor plano ATIVO acima do atual.
+  const nextFromPresenca = useRequiredPlan("start");
+  const nextFromStart = useRequiredPlan("pro");
   if (!data) return null;
 
   const {
