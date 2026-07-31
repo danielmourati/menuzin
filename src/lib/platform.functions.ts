@@ -244,11 +244,18 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
     }
 
     // Novo tenant obedece o plano configurado pelo superadmin (fallback: Presença).
-    try {
+    // Erros aqui NÃO podem ser silenciados: a loja ficaria com plano divergente.
+    {
       const { syncSubscriptionFromTenantPlan } = await import("@/lib/plan-server");
-      await syncSubscriptionFromTenantPlan(tenant.id as string, data.plan as "presenca" | "start" | "pro");
-    } catch {
-      // não falhar a criação se a assinatura não puder ser sincronizada
+      const synced = await syncSubscriptionFromTenantPlan(
+        tenant.id as string,
+        data.plan as "presenca" | "start" | "pro",
+      );
+      if (!synced) {
+        throw new Error(
+          `Loja criada, mas o plano "${data.plan}" não existe em /platform/planos. Ajuste o plano da loja.`,
+        );
+      }
     }
 
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
