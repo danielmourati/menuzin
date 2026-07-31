@@ -108,9 +108,32 @@ function Landing() {
     queryFn: () => listActiveTenants(),
     staleTime: 60_000,
   });
+  // Fonte da verdade dos preços = planos ativos configurados pelo superadmin.
+  const { data: plansData } = useQuery({
+    queryKey: ["plans"],
+    queryFn: () => listPlans(),
+    staleTime: 60_000,
+  });
+  const pricingPlans = useMemo(() => {
+    const rows = plansData?.plans ?? [];
+    if (!rows.length) return fallbackPricingPlans.map((p) => ({ ...p, features: [...p.features] }));
+    return rows
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => ({
+        id: p.slug,
+        name: p.name,
+        price: Number(p.monthly_price) || 0,
+        annualPrice: p.annual_price != null ? Number(p.annual_price) : null,
+        tagline: p.description ?? "",
+        features: p.features ?? [],
+        cta: PLAN_CTA[p.slug] ?? "Falar com a gente",
+      }));
+  }, [plansData]);
   const demoSlug = tenantsData?.tenants?.[0]?.slug;
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [signupOpen, setSignupOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
