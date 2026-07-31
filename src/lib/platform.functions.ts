@@ -514,22 +514,29 @@ export const adminUpdateTenant = createServerFn({ method: "POST" })
       .from("tenants").update(patch as never).eq("id", id);
     if (error) throw new Error(error.message);
 
-    if (patch.plan && patch.plan !== previousPlan) {
+    // Sincroniza sempre que o plano vier no patch (mesmo sem mudança de valor):
+    // permite ao superadmin "re-salvar" para reparar divergências.
+    if (patch.plan) {
       const { syncSubscriptionFromTenantPlan } = await import("@/lib/plan-server");
       const synced = await syncSubscriptionFromTenantPlan(id, patch.plan as never);
-      // Registra evento de auditoria.
-      const { data: sub } = await supabaseAdmin
-        .from("tenant_subscriptions").select("id").eq("tenant_id", id).maybeSingle();
-      const subId = (sub as { id?: string } | null)?.id ?? null;
-      if (subId) {
-        await supabaseAdmin.from("subscription_events").insert({
-          tenant_id: id,
-          subscription_id: subId,
-          event_type: "plan_changed",
-          description: `Plano alterado pelo super-admin: ${previousPlan ?? "—"} → ${patch.plan}`,
-          metadata: { from: previousPlan, to: patch.plan, by: "platform_admin", plan_id: synced?.planId ?? null },
-          created_by: context.userId,
-        });
+      if (!synced) {
+        throw new Error(`Plano "${patch.plan}" não encontrado em /platform/planos.`);
+      }
+      // Registra evento de auditoria apenas em troca efetiva de plano.
+      if (patch.plan !== previousPlan) {
+        const { data: sub } = await supabaseAdmin
+          .from("tenant_subscriptions").select("id").eq("tenant_id", id).maybeSingle();
+        const subId = (sub as { id?: string } | null)?.id ?? null;
+        if (subId) {
+          await supabaseAdmin.from("subscription_events").insert({
+            tenant_id: id,
+            subscription_id: subId,
+            event_type: "plan_changed",
+            description: `Plano alterado pelo super-admin: ${previousPlan ?? "—"} → ${patch.plan}`,
+            metadata: { from: previousPlan, to: patch.plan, by: "platform_admin", plan_id: synced?.planId ?? null },
+            created_by: context.userId,
+          });
+        }
       }
     }
 
