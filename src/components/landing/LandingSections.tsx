@@ -295,30 +295,47 @@ export function ContactSpecialistSection() {
   );
 }
 
-export const faqs = [
-  {
-    q: "O que é o Menuzin?",
-    a: "O Menuzin é uma vitrine digital para negócios food. Com ele você cria um cardápio online, recebe pedidos pelo WhatsApp e gerencia tudo em um painel simples.",
-  },
-  {
-    q: "Posso acessar de qualquer lugar?",
-    a: "Sim. O Menuzin funciona 100% no navegador, em celular, tablet ou computador. Não precisa instalar nada.",
-  },
-  {
-    q: "Quanto custa o Menuzin?",
-    a: "Temos dois planos: Essencial por R$ 89/mês e Controle por R$ 159/mês. Sem fidelidade — você pode mudar de plano quando quiser.",
-  },
-  {
-    q: "Como começo a usar?",
-    a: "Fale com a gente pelo WhatsApp. Em poucos minutos seu cardápio está no ar, pronto para receber pedidos.",
-  },
-  {
-    q: "Como funciona o suporte?",
-    a: "Atendimento humano em português, direto pelo WhatsApp. No plano Controle o suporte é personalizado.",
-  },
-];
+export interface FaqPlanInfo {
+  name: string;
+  price: number;
+}
 
-export function FaqSection() {
+function priceLabel(p: FaqPlanInfo): string {
+  return p.price <= 0
+    ? `${p.name} (grátis)`
+    : `${p.name} por R$ ${p.price.toFixed(2).replace(".", ",")}/mês`;
+}
+
+/** FAQ com preços vindos dos planos ativos configurados pelo superadmin. */
+export function buildFaqs(plans?: FaqPlanInfo[]) {
+  const list = plans ?? [];
+  const paid = list.filter((p) => p.price > 0);
+  const priceAnswer = list.length
+    ? `${list.map(priceLabel).join(" e ")}. Sem fidelidade — você pode mudar de plano quando quiser.`
+    : "Temos o plano Presença (grátis) e o plano Pro. Sem fidelidade — você pode mudar de plano quando quiser.";
+  const supportAnswer = `Atendimento humano em português, direto pelo WhatsApp. No plano ${paid[paid.length - 1]?.name ?? "Pro"} o suporte é prioritário.`;
+  return [
+    {
+      q: "O que é o Menuzin?",
+      a: "O Menuzin é uma vitrine digital para negócios food. Com ele você cria um cardápio online, recebe pedidos pelo WhatsApp e gerencia tudo em um painel simples.",
+    },
+    {
+      q: "Posso acessar de qualquer lugar?",
+      a: "Sim. O Menuzin funciona 100% no navegador, em celular, tablet ou computador. Não precisa instalar nada.",
+    },
+    { q: "Quanto custa o Menuzin?", a: priceAnswer },
+    {
+      q: "Como começo a usar?",
+      a: "Crie seu cardápio grátis em poucos minutos — sem cartão de crédito. Se precisar de ajuda, fale com a gente pelo WhatsApp.",
+    },
+    { q: "Como funciona o suporte?", a: supportAnswer },
+  ];
+}
+
+export const faqs = buildFaqs();
+
+export function FaqSection({ plans }: { plans?: FaqPlanInfo[] }) {
+  const items = buildFaqs(plans);
   return (
     <section id="faq" className="container mx-auto px-4 py-20">
       <div className="text-center">
