@@ -243,6 +243,14 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       }
     }
 
+    // Novo tenant obedece o plano configurado pelo superadmin (fallback: Presença).
+    try {
+      const { syncSubscriptionFromTenantPlan } = await import("@/lib/plan-server");
+      await syncSubscriptionFromTenantPlan(tenant.id as string, data.plan as "presenca" | "start" | "pro");
+    } catch {
+      // não falhar a criação se a assinatura não puder ser sincronizada
+    }
+
     return { tenant_id: tenant.id as string, owner_user_id: ownerId };
   });
 
