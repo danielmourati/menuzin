@@ -365,7 +365,28 @@ export function LandingFooter() {
           >
             <MessageCircle className="h-4 w-4" /> {WHATSAPP_PHONE_DISPLAY}
           </a>
+          <div className="mt-4 flex items-center gap-3">
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram do Menuzin"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-muted-foreground transition hover:border-primary hover:text-primary"
+            >
+              <Instagram className="h-4 w-4" />
+            </a>
+            <a
+              href={YOUTUBE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="YouTube do Menuzin"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border text-muted-foreground transition hover:border-primary hover:text-primary"
+            >
+              <Youtube className="h-4 w-4" />
+            </a>
+          </div>
         </div>
+
 
         <FooterCol
           title="Produto"
