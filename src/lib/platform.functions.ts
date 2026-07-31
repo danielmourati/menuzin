@@ -137,7 +137,7 @@ const CreateTenantInput = z.object({
   theme_from: z.string().max(40).optional().default("#FF6A1F"),
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
-  plan: z.enum(["start", "pro"]).default("start"),
+  plan: z.enum(["presenca", "start", "pro"]).default("presenca"),
   business_types: z.array(z.enum(BUSINESS_TYPES)).optional().default([]),
   owner_user_id: z.string().uuid().nullable().optional(),
   owner_email: z.string().email().max(160).optional().nullable(),
