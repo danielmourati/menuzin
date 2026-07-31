@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 import { useQuery } from "@tanstack/react-query";
 import { listActiveTenants } from "@/lib/catalog.functions";
+import { listPlans } from "@/lib/subscriptions.functions";
 import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
 import landingComboSmash from "@/assets/demo-combo-smash.jpg";
 import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
