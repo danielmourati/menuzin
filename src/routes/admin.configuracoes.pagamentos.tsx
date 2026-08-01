@@ -66,7 +66,9 @@ function AdminPaymentSettingsPage() {
           isMpOAuthAvailable(),
         ]);
         if (cancelled) return;
-        setOauthAvailable(oauthOk);
+        setOauthAvailable(oauthOk.available);
+        setOauthRedirectUri(oauthOk.redirect_uri);
+        setOauthReason(oauthOk.reason);
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
