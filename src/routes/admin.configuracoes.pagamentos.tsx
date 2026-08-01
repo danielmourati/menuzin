@@ -62,7 +62,7 @@ function AdminPaymentSettingsPage() {
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
-          if (data.mp_connected) setConnectedVia("manual");
+          if (data.mp_connected) setConnectedVia(data.mp_connection_method ?? "manual");
           setPixKey(data.pix_manual_key || "");
           setPixKeyType(data.pix_manual_key_type || "email");
           setPixReceiver(data.pix_manual_receiver || "");
