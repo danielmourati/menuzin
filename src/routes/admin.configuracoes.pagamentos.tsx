@@ -58,8 +58,12 @@ function AdminPaymentSettingsPage() {
     let cancelled = false;
     async function loadSettings() {
       try {
-        const data = await getStorePaymentSettings(storeId);
+        const [data, oauthOk] = await Promise.all([
+          getStorePaymentSettings(storeId),
+          isMpOAuthAvailable(),
+        ]);
         if (cancelled) return;
+        setOauthAvailable(oauthOk);
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
