@@ -29,6 +29,8 @@ interface MercadoPagoStatusProps {
   expiresAt?: string;
   connectedPublicKey?: string; // masked key shown when connected via manual
   connectedVia?: "oauth" | "manual"; // how was it connected
+  /** A plataforma cadastrou as credenciais da aplicação MP (habilita OAuth). */
+  oauthAvailable?: boolean;
   /** Tipo da conta MP conectada — usado para alertar incoerência com mp_live_mode. */
   accountKind?: "test_user" | "production";
   /** Modo configurado no banco — usado em conjunto com accountKind. */
@@ -46,6 +48,7 @@ export function MercadoPagoStatus({
   expiresAt,
   connectedPublicKey,
   connectedVia,
+  oauthAvailable = true,
   accountKind,
   liveModeSaved,
   mpUserId,
@@ -340,9 +343,15 @@ export function MercadoPagoStatus({
                   Autorize diretamente com sua conta Mercado Pago. O token de acesso é gerado e renovado
                   automaticamente pelo nosso servidor — você não precisa copiar nenhuma chave.
                 </p>
+                {!oauthAvailable && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3.5 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+                    Conexão automática ainda não habilitada pela plataforma — use{" "}
+                    <strong>Credenciais Manuais</strong>.
+                  </div>
+                )}
                 <Button
                   className="h-10 bg-[#009EE3] hover:bg-[#0087c2] text-white font-semibold text-sm px-5 rounded-xl shadow-sm transition-all"
-                  disabled={status === "connecting"}
+                  disabled={status === "connecting" || !oauthAvailable}
                   onClick={onConnect}
                 >
                   {status === "connecting" ? (
@@ -354,6 +363,7 @@ export function MercadoPagoStatus({
                     "Conectar minha conta Mercado Pago"
                   )}
                 </Button>
+
               </TabsContent>
 
               {/* ── Manual Credentials Tab ── */}

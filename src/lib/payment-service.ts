@@ -11,6 +11,7 @@ import {
   getPaymentStatus as _getPaymentStatus,
   testMpCredentials as _testMpCredentials,
   startMpOAuth as _startMpOAuth,
+  getMpOAuthAvailability as _getMpOAuthAvailability,
 } from "./payments.functions";
 
 import type {
@@ -79,6 +80,17 @@ export async function connectMercadoPago(_storeId?: string): Promise<MpConnectSt
   const res = await _startMpOAuth();
   return { authorization_url: res.authorization_url } as MpConnectStartResponse;
 }
+
+/** A plataforma habilitou a conexão automática (credenciais da app MP)? */
+export async function isMpOAuthAvailable(): Promise<boolean> {
+  try {
+    const res = await _getMpOAuthAvailability();
+    return res.available;
+  } catch {
+    return false;
+  }
+}
+
 
 export async function simulateMpConnectSuccess(_storeId?: string): Promise<void> {
   throw new Error("Não implementado.");

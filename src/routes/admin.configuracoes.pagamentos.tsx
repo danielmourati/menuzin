@@ -15,6 +15,7 @@ import {
   updatePaymentSettings,
   testPayment,
   saveMpCredentials,
+  isMpOAuthAvailable,
 } from "@/lib/payment-service";
 import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment-types";
@@ -46,6 +47,7 @@ function AdminPaymentSettingsPage() {
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
   const [connectedVia, setConnectedVia] = useState<"oauth" | "manual" | undefined>(undefined);
+  const [oauthAvailable, setOauthAvailable] = useState(false);
 
   // Chaves Pix manuais
   const [pixKey, setPixKey] = useState("");
@@ -57,8 +59,12 @@ function AdminPaymentSettingsPage() {
     let cancelled = false;
     async function loadSettings() {
       try {
-        const data = await getStorePaymentSettings(storeId);
+        const [data, oauthOk] = await Promise.all([
+          getStorePaymentSettings(storeId),
+          isMpOAuthAvailable(),
+        ]);
         if (cancelled) return;
+        setOauthAvailable(oauthOk);
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
@@ -278,6 +284,7 @@ function AdminPaymentSettingsPage() {
                 onConnectManual={handleConnectMPManual}
                 expiresAt={settings?.mp_token_expires_at}
                 connectedVia={connectedVia}
+                oauthAvailable={oauthAvailable}
                 connectedPublicKey={settings?.mp_public_key}
                 accountKind={settings?.mp_account_kind}
                 liveModeSaved={settings?.mp_live_mode}

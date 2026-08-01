@@ -309,6 +309,18 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
 // ============================================================
 // OAuth — conexão automática da conta Mercado Pago do lojista
 // ============================================================
+/**
+ * Indica se a plataforma tem as credenciais da aplicação Mercado Pago
+ * cadastradas. Sem elas o botão de conexão automática fica desabilitado.
+ */
+export const getMpOAuthAvailability = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ available: boolean }> => {
+    const clientId = process.env["MP_CLIENT_ID"];
+    const clientSecret = process.env["MP_CLIENT_SECRET"];
+    return { available: Boolean(clientId && clientSecret) };
+  },
+);
+
 export const startMpOAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ authorization_url: string }> => {
