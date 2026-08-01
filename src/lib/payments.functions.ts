@@ -24,6 +24,8 @@ type DbRow = {
   mp_connected: boolean;
   mp_last_validated_at: string | null;
   mp_account_kind: string | null;
+  mp_connection_method: string | null;
+  mp_token_expires_at: string | null;
   cash_enabled: boolean;
   pix_manual_enabled: boolean;
   card_on_delivery_enabled: boolean;
