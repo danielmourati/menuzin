@@ -13,8 +13,8 @@ export interface MpOAuthConfig {
 }
 
 export function getMpOAuthConfig(): MpOAuthConfig {
-  const clientId = process.env.MP_CLIENT_ID;
-  const clientSecret = process.env.MP_CLIENT_SECRET;
+  const clientId = process.env["MP_CLIENT_ID"];
+  const clientSecret = process.env["MP_CLIENT_SECRET"];
   if (!clientId || !clientSecret) {
     throw new Error(
       "Conexão automática indisponível: MP_CLIENT_ID/MP_CLIENT_SECRET não configurados na plataforma.",
