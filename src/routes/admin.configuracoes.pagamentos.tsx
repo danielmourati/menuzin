@@ -48,6 +48,8 @@ function AdminPaymentSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [connectedVia, setConnectedVia] = useState<"oauth" | "manual" | undefined>(undefined);
   const [oauthAvailable, setOauthAvailable] = useState(false);
+  const [oauthRedirectUri, setOauthRedirectUri] = useState("");
+  const [oauthReason, setOauthReason] = useState<string | undefined>(undefined);
 
   // Chaves Pix manuais
   const [pixKey, setPixKey] = useState("");
