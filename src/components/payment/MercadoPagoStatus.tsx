@@ -48,6 +48,7 @@ export function MercadoPagoStatus({
   expiresAt,
   connectedPublicKey,
   connectedVia,
+  oauthAvailable = true,
   accountKind,
   liveModeSaved,
   mpUserId,
