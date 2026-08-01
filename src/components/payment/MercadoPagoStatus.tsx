@@ -31,6 +31,10 @@ interface MercadoPagoStatusProps {
   connectedVia?: "oauth" | "manual"; // how was it connected
   /** A plataforma cadastrou as credenciais da aplicação MP (habilita OAuth). */
   oauthAvailable?: boolean;
+  /** URL de retorno que precisa estar cadastrada na aplicação do Mercado Pago. */
+  oauthRedirectUri?: string;
+  /** Motivo da indisponibilidade: missing_credentials | invalid_client_id. */
+  oauthReason?: string;
   /** Tipo da conta MP conectada — usado para alertar incoerência com mp_live_mode. */
   accountKind?: "test_user" | "production";
   /** Modo configurado no banco — usado em conjunto com accountKind. */
@@ -49,6 +53,8 @@ export function MercadoPagoStatus({
   connectedPublicKey,
   connectedVia,
   oauthAvailable = true,
+  oauthRedirectUri,
+  oauthReason,
   accountKind,
   liveModeSaved,
   mpUserId,
@@ -345,8 +351,18 @@ export function MercadoPagoStatus({
                 </p>
                 {!oauthAvailable && (
                   <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3.5 py-2.5 text-xs text-amber-700 dark:text-amber-400">
-                    Conexão automática ainda não habilitada pela plataforma — use{" "}
-                    <strong>Credenciais Manuais</strong>.
+                    {oauthReason === "invalid_client_id" ? (
+                      <>
+                        Credenciais da plataforma inválidas: o <strong>Client ID</strong> cadastrado não é
+                        o Application ID numérico da aplicação Mercado Pago. Use{" "}
+                        <strong>Credenciais Manuais</strong> enquanto isso.
+                      </>
+                    ) : (
+                      <>
+                        Conexão automática ainda não habilitada pela plataforma — use{" "}
+                        <strong>Credenciais Manuais</strong>.
+                      </>
+                    )}
                   </div>
                 )}
                 <Button
@@ -363,6 +379,14 @@ export function MercadoPagoStatus({
                     "Conectar minha conta Mercado Pago"
                   )}
                 </Button>
+
+                {oauthRedirectUri && (
+                  <p className="text-[11px] text-muted-foreground leading-relaxed break-all">
+                    URL de retorno esperada (deve estar cadastrada na aplicação do Mercado Pago):{" "}
+                    <code className="font-mono">{oauthRedirectUri}</code>
+                  </p>
+                )}
+
 
               </TabsContent>
 

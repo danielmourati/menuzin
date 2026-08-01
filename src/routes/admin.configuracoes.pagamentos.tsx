@@ -48,6 +48,8 @@ function AdminPaymentSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [connectedVia, setConnectedVia] = useState<"oauth" | "manual" | undefined>(undefined);
   const [oauthAvailable, setOauthAvailable] = useState(false);
+  const [oauthRedirectUri, setOauthRedirectUri] = useState("");
+  const [oauthReason, setOauthReason] = useState<string | undefined>(undefined);
 
   // Chaves Pix manuais
   const [pixKey, setPixKey] = useState("");
@@ -64,7 +66,9 @@ function AdminPaymentSettingsPage() {
           isMpOAuthAvailable(),
         ]);
         if (cancelled) return;
-        setOauthAvailable(oauthOk);
+        setOauthAvailable(oauthOk.available);
+        setOauthRedirectUri(oauthOk.redirect_uri);
+        setOauthReason(oauthOk.reason);
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
@@ -285,6 +289,8 @@ function AdminPaymentSettingsPage() {
                 expiresAt={settings?.mp_token_expires_at}
                 connectedVia={connectedVia}
                 oauthAvailable={oauthAvailable}
+                oauthRedirectUri={oauthRedirectUri}
+                oauthReason={oauthReason}
                 connectedPublicKey={settings?.mp_public_key}
                 accountKind={settings?.mp_account_kind}
                 liveModeSaved={settings?.mp_live_mode}

@@ -314,36 +314,41 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
  * cadastradas. Sem elas o botão de conexão automática fica desabilitado.
  */
 export const getMpOAuthAvailability = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ available: boolean }> => {
-    const clientId = process.env["MP_CLIENT_ID"];
-    const clientSecret = process.env["MP_CLIENT_SECRET"];
-    return { available: Boolean(clientId && clientSecret) };
+  async (): Promise<{ available: boolean; redirect_uri: string; reason?: string }> => {
+    const { isValidMpClientId, resolveRedirectUri } = await import("@/lib/mp-oauth.server");
+    const clientId = process.env["MP_CLIENT_ID"]?.trim();
+    const clientSecret = process.env["MP_CLIENT_SECRET"]?.trim();
+    const redirect_uri = resolveRedirectUri();
+    if (!clientId || !clientSecret) {
+      return { available: false, redirect_uri, reason: "missing_credentials" };
+    }
+    if (!isValidMpClientId(clientId)) {
+      return { available: false, redirect_uri, reason: "invalid_client_id" };
+    }
+    return { available: true, redirect_uri };
   },
 );
 
 export const startMpOAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ authorization_url: string }> => {
+  .handler(async ({ context }): Promise<{ authorization_url: string; redirect_uri: string }> => {
     const { supabase, userId } = context;
     const tenantId = await resolveTenantId(supabase, userId);
     const { requireProPlan } = await import("@/lib/plan-server");
     await requireProPlan(tenantId);
 
-    const { getRequest } = await import("@tanstack/react-start/server");
-    const request = getRequest();
-    const {
-      getMpOAuthConfig,
-      resolveRedirectUri,
-      createOAuthState,
-      buildAuthorizationUrl,
-    } = await import("@/lib/mp-oauth.server");
+    const { getMpOAuthConfig, resolveRedirectUri, createOAuthState, buildAuthorizationUrl } =
+      await import("@/lib/mp-oauth.server");
 
     const { clientId } = getMpOAuthConfig();
     const state = await createOAuthState(tenantId, userId);
-    const redirectUri = resolveRedirectUri(request?.url);
-    return {
-      authorization_url: buildAuthorizationUrl({ clientId, state, redirectUri }),
-    };
+    const redirectUri = resolveRedirectUri();
+    const authorizationUrl = buildAuthorizationUrl({ clientId, state, redirectUri });
+    console.info(
+      "[mp-oauth] authorization_url gerada:",
+      authorizationUrl.replace(state, "<state>"),
+    );
+    return { authorization_url: authorizationUrl, redirect_uri: redirectUri };
   });
 
 

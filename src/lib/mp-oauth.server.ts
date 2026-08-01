@@ -5,19 +5,35 @@
 import { encryptToken, decryptToken } from "@/lib/payment-crypto";
 
 const MP_API = "https://api.mercadopago.com";
-const AUTH_BASE = "https://auth.mercadopago.com.br/authorization";
+// Host global do fluxo de autorização (faz o roteamento por país automaticamente).
+const AUTH_BASE = "https://auth.mercadopago.com/authorization";
 
 export interface MpOAuthConfig {
   clientId: string;
   clientSecret: string;
 }
 
+/**
+ * O Client ID (Application ID) da aplicação do Mercado Pago é numérico.
+ * Public Key / Access Token começam com APP_USR- ou TEST- e, se forem
+ * usados por engano, o MP responde "O aplicativo não está pronto para
+ * se conectar a Mercado Pago".
+ */
+export function isValidMpClientId(value: string): boolean {
+  return /^\d{6,}$/.test(value.trim());
+}
+
 export function getMpOAuthConfig(): MpOAuthConfig {
-  const clientId = process.env["MP_CLIENT_ID"];
-  const clientSecret = process.env["MP_CLIENT_SECRET"];
+  const clientId = process.env["MP_CLIENT_ID"]?.trim();
+  const clientSecret = process.env["MP_CLIENT_SECRET"]?.trim();
   if (!clientId || !clientSecret) {
     throw new Error(
       "Conexão automática indisponível: MP_CLIENT_ID/MP_CLIENT_SECRET não configurados na plataforma.",
+    );
+  }
+  if (!isValidMpClientId(clientId)) {
+    throw new Error(
+      "Credenciais da plataforma inválidas: informe o Client ID (Application ID) numérico da aplicação Mercado Pago, não a Public Key nem o Access Token.",
     );
   }
   return { clientId, clientSecret };

@@ -82,12 +82,15 @@ export async function connectMercadoPago(_storeId?: string): Promise<MpConnectSt
 }
 
 /** A plataforma habilitou a conexão automática (credenciais da app MP)? */
-export async function isMpOAuthAvailable(): Promise<boolean> {
+export async function isMpOAuthAvailable(): Promise<{
+  available: boolean;
+  redirect_uri: string;
+  reason?: string;
+}> {
   try {
-    const res = await _getMpOAuthAvailability();
-    return res.available;
+    return await _getMpOAuthAvailability();
   } catch {
-    return false;
+    return { available: false, redirect_uri: "", reason: "unavailable" };
   }
 }
 
