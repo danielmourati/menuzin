@@ -23,13 +23,17 @@ export function getMpOAuthConfig(): MpOAuthConfig {
   return { clientId, clientSecret };
 }
 
-/** URL de retorno registrada na aplicação do Mercado Pago. */
-export function resolveRedirectUri(requestUrl?: string): string {
-  const fromEnv = process.env.MP_OAUTH_REDIRECT_URI;
+/**
+ * URL de retorno registrada na aplicação do Mercado Pago.
+ * Precisa bater exatamente com o cadastro da aplicação, por isso usamos
+ * sempre o domínio publicado (e não o origin da requisição atual).
+ */
+export function resolveRedirectUri(_requestUrl?: string): string {
+  const fromEnv = process.env["MP_OAUTH_REDIRECT_URI"];
   if (fromEnv) return fromEnv;
-  const origin = requestUrl ? new URL(requestUrl).origin : "https://menuzin.app";
-  return `${origin}/api/public/mp-oauth-callback`;
+  return "https://menuzin.app/api/public/mp-oauth-callback";
 }
+
 
 export function buildAuthorizationUrl(params: {
   clientId: string;
