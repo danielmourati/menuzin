@@ -30,22 +30,48 @@ export const Route = createFileRoute("/api/public/mp-oauth-callback")({
           return page(false, "Conexão cancelada ou incompleta. Feche esta janela e tente novamente.");
         }
 
-        try {
-          const {
-            consumeOAuthState,
-            exchangeCodeForToken,
-            persistOAuthConnection,
-            resolveRedirectUri,
-          } = await import("@/lib/mp-oauth.server");
+        const {
+          consumeOAuthState,
+          exchangeCodeForToken,
+          persistOAuthConnection,
+          resolveRedirectUri,
+        } = await import("@/lib/mp-oauth.server");
 
-          const tenantId = await consumeOAuthState(state);
-          const token = await exchangeCodeForToken(code, resolveRedirectUri(request.url));
-          await persistOAuthConnection(tenantId, token);
-          return page(true, "Conta Mercado Pago conectada! Você já pode fechar esta janela.");
+        let tenantId: string;
+        try {
+          tenantId = await consumeOAuthState(state);
         } catch (err) {
-          console.error("[mp-oauth-callback]", err);
-          return page(false, "Não foi possível concluir a conexão com o Mercado Pago. Tente novamente.");
+          console.error("[mp-oauth-callback] state:", err);
+          const reason = err instanceof Error ? err.message : "state_invalido";
+          const texto =
+            reason === "state_expirado"
+              ? "A autorização expirou (limite de 10 minutos). Volte ao painel e clique novamente em conectar."
+              : reason === "state_ja_usado"
+                ? "Esta autorização já foi utilizada. Volte ao painel e inicie uma nova conexão."
+                : "Autorização inválida. Volte ao painel e inicie a conexão novamente.";
+          return page(false, texto);
         }
+
+        let token;
+        try {
+          token = await exchangeCodeForToken(code, resolveRedirectUri());
+        } catch (err) {
+          console.error("[mp-oauth-callback] troca de código:", err);
+          return page(
+            false,
+            "O Mercado Pago recusou a troca do código de autorização. Verifique se a URL de retorno cadastrada na aplicação é exatamente a mesma usada pelo Menuzin.",
+          );
+        }
+
+        try {
+          await persistOAuthConnection(tenantId, token);
+        } catch (err) {
+          console.error("[mp-oauth-callback] persistência:", err);
+          return page(false, "Conta autorizada, mas não foi possível salvar a conexão. Tente novamente.");
+        }
+
+        return page(true, "Conta Mercado Pago conectada! Você já pode fechar esta janela.");
+
       },
     },
   },
