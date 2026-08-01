@@ -520,6 +520,48 @@ export type Database = {
           },
         ]
       }
+      mp_oauth_states: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          tenant_id: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          tenant_id: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          tenant_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mp_oauth_states_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "mp_oauth_states_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons: Json
@@ -1384,9 +1426,12 @@ export type Database = {
           mp_access_token_encrypted: string | null
           mp_account_kind: string | null
           mp_connected: boolean
+          mp_connection_method: string
           mp_last_validated_at: string | null
           mp_live_mode: boolean
           mp_public_key: string | null
+          mp_refresh_token_encrypted: string | null
+          mp_token_expires_at: string | null
           mp_user_id: string | null
           pix_enabled: boolean
           pix_manual_enabled: boolean
@@ -1407,9 +1452,12 @@ export type Database = {
           mp_access_token_encrypted?: string | null
           mp_account_kind?: string | null
           mp_connected?: boolean
+          mp_connection_method?: string
           mp_last_validated_at?: string | null
           mp_live_mode?: boolean
           mp_public_key?: string | null
+          mp_refresh_token_encrypted?: string | null
+          mp_token_expires_at?: string | null
           mp_user_id?: string | null
           pix_enabled?: boolean
           pix_manual_enabled?: boolean
@@ -1430,9 +1478,12 @@ export type Database = {
           mp_access_token_encrypted?: string | null
           mp_account_kind?: string | null
           mp_connected?: boolean
+          mp_connection_method?: string
           mp_last_validated_at?: string | null
           mp_live_mode?: boolean
           mp_public_key?: string | null
+          mp_refresh_token_encrypted?: string | null
+          mp_token_expires_at?: string | null
           mp_user_id?: string | null
           pix_enabled?: boolean
           pix_manual_enabled?: boolean
