@@ -11,6 +11,7 @@ import {
   getPaymentStatus as _getPaymentStatus,
   testMpCredentials as _testMpCredentials,
   startMpOAuth as _startMpOAuth,
+  getMpOAuthAvailability as _getMpOAuthAvailability,
 } from "./payments.functions";
 
 import type {
