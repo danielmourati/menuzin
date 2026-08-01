@@ -495,9 +495,10 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
 
     let accessToken: string;
     try {
-      accessToken = await decryptToken(settings.mp_access_token_encrypted);
+      const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+      accessToken = await getFreshAccessToken(tenant.id);
     } catch (e) {
-      console.error("Failed to decrypt MP token:", e);
+      console.error("Failed to load MP token:", e);
       throw new Error("Falha ao descriptografar credenciais da loja");
     }
 
