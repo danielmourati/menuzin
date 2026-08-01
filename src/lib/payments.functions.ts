@@ -747,9 +747,10 @@ export const testMpCredentials = createServerFn({ method: "POST" })
 
     let accessToken: string;
     try {
-      accessToken = await decryptToken(row.mp_access_token_encrypted);
+      const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+      accessToken = await getFreshAccessToken(tenantId);
     } catch (e) {
-      return { success: false as const, message: "Falha ao decifrar o Access Token salvo. Reconecte o Mercado Pago." };
+      return { success: false as const, message: "Falha ao ler o Access Token salvo. Reconecte o Mercado Pago." };
     }
 
     const idempotencyKey = `menuzin-test-${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
