@@ -10,6 +10,7 @@ import {
   createTransparentPayment as _createTransparentPayment,
   getPaymentStatus as _getPaymentStatus,
   testMpCredentials as _testMpCredentials,
+  startMpOAuth as _startMpOAuth,
 } from "./payments.functions";
 
 import type {
