@@ -15,6 +15,7 @@ import {
   updatePaymentSettings,
   testPayment,
   saveMpCredentials,
+  isMpOAuthAvailable,
 } from "@/lib/payment-service";
 import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import type { StorePaymentSettingsSafe, MpConnectionStatus } from "@/lib/payment-types";
