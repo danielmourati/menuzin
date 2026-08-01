@@ -670,7 +670,8 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
     if (!settings?.mp_access_token_encrypted) {
       return { status: "pending" as const };
     }
-    const accessToken = await decryptToken(settings.mp_access_token_encrypted);
+    const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+    const accessToken = await getFreshAccessToken(tenant.id);
 
     const res = await fetch(
       `https://api.mercadopago.com/v1/payments/${encodeURIComponent(data.payment_id)}`,
