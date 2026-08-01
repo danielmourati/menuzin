@@ -43,7 +43,7 @@ type DbRow = {
 // access token, which is REVOKED from anon/authenticated at the column level
 // and may only be read server-side via the service role).
 const SAFE_SETTINGS_COLUMNS =
-  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
+  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, mp_connection_method, mp_token_expires_at, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
 
 function toSafe(row: DbRow): StorePaymentSettingsSafe {
   const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
