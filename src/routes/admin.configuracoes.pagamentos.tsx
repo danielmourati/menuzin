@@ -11,6 +11,7 @@ import { MercadoPagoStatus } from "@/components/payment/MercadoPagoStatus";
 import {
   getStorePaymentSettings,
   disconnectMercadoPago,
+  connectMercadoPago,
   updatePaymentSettings,
   testPayment,
   saveMpCredentials,
@@ -61,7 +62,7 @@ function AdminPaymentSettingsPage() {
         if (data) {
           setSettings(data);
           setMpStatus(data.mp_connected ? "connected" : "disconnected");
-          if (data.mp_connected) setConnectedVia("manual");
+          if (data.mp_connected) setConnectedVia(data.mp_connection_method ?? "manual");
           setPixKey(data.pix_manual_key || "");
           setPixKeyType(data.pix_manual_key_type || "email");
           setPixReceiver(data.pix_manual_receiver || "");
@@ -121,10 +122,50 @@ function AdminPaymentSettingsPage() {
   };
 
   const handleConnectMP = async () => {
-    // Conexão OAuth automática ainda não disponível — instrui o lojista a usar credenciais manuais.
-    toast.info(
-      "Conexão automática (OAuth) em breve. Use a aba 'Credenciais Manuais' para conectar sua conta agora."
-    );
+    const popup = window.open("", "menuzin-mp-oauth", "width=620,height=760");
+    if (!popup) {
+      toast.error("Permita pop-ups neste site para conectar sua conta Mercado Pago.");
+      return;
+    }
+    setMpStatus("connecting");
+    try {
+      const { authorization_url } = await connectMercadoPago(storeId);
+
+      await new Promise<void>((resolve, reject) => {
+        let poll: number | undefined;
+        const cleanup = () => {
+          window.removeEventListener("message", onMessage);
+          if (poll !== undefined) window.clearInterval(poll);
+        };
+        const onMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin || event.source !== popup) return;
+          const type = (event.data as { type?: string })?.type;
+          if (type !== "mpOAuthComplete" && type !== "mpOAuthFailed") return;
+          cleanup();
+          if (type === "mpOAuthComplete") resolve();
+          else reject(new Error((event.data as { message?: string })?.message || "Conexão não concluída."));
+        };
+        window.addEventListener("message", onMessage);
+        poll = window.setInterval(() => {
+          if (!popup.closed) return;
+          cleanup();
+          reject(new Error("Janela fechada antes de concluir a conexão."));
+        }, 500);
+        popup.location.href = authorization_url;
+      });
+
+      const data = await getStorePaymentSettings(storeId);
+      if (data) {
+        setSettings(data);
+        setMpStatus(data.mp_connected ? "connected" : "disconnected");
+        setConnectedVia(data.mp_connection_method);
+      }
+      toast.success("Conta Mercado Pago conectada com sucesso!");
+    } catch (err) {
+      popup.close();
+      setMpStatus(settings?.mp_connected ? "connected" : "disconnected");
+      toast.error(err instanceof Error ? err.message : "Não foi possível conectar sua conta.");
+    }
   };
 
   const handleConnectMPManual = async (

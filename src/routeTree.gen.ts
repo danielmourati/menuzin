@@ -55,6 +55,7 @@ import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slu
 import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
+import { Route as ApiPublicMpOauthCallbackRouteImport } from './routes/api.public.mp-oauth-callback'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
 import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
 import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
@@ -297,6 +298,12 @@ const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
   path: '/api/public/qz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMpOauthCallbackRoute =
+  ApiPublicMpOauthCallbackRouteImport.update({
+    id: '/api/public/mp-oauth-callback',
+    path: '/api/public/mp-oauth-callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMenuzinMpWebhookRoute =
   ApiPublicMenuzinMpWebhookRouteImport.update({
     id: '/api/public/menuzin-mp-webhook',
@@ -393,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
+  '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -448,6 +456,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
+  '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -506,6 +515,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
+  '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -565,6 +575,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/promocao'
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
+    | '/api/public/mp-oauth-callback'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -620,6 +631,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/promocao'
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
+    | '/api/public/mp-oauth-callback'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -677,6 +689,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/promocao'
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
+    | '/api/public/mp-oauth-callback'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -726,6 +739,7 @@ export interface RootRouteChildren {
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
+  ApiPublicMpOauthCallbackRoute: typeof ApiPublicMpOauthCallbackRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
@@ -1056,6 +1070,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicQzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mp-oauth-callback': {
+      id: '/api/public/mp-oauth-callback'
+      path: '/api/public/mp-oauth-callback'
+      fullPath: '/api/public/mp-oauth-callback'
+      preLoaderRoute: typeof ApiPublicMpOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/menuzin-mp-webhook': {
       id: '/api/public/menuzin-mp-webhook'
       path: '/api/public/menuzin-mp-webhook'
@@ -1228,6 +1249,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
+  ApiPublicMpOauthCallbackRoute: ApiPublicMpOauthCallbackRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
@@ -1236,13 +1258,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

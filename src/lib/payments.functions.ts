@@ -7,55 +7,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { StorePaymentSettingsSafe } from "./payment-types";
 
 // ---------- Encryption helpers (AES-GCM via Web Crypto) ----------
+// Implementação compartilhada em payment-crypto.ts (também usada pelo OAuth).
+import { encryptToken, decryptToken } from "@/lib/payment-crypto";
 
-async function getCryptoKey(): Promise<CryptoKey> {
-  const secret = process.env.PAYMENT_ENCRYPTION_KEY;
-  if (!secret || secret.length < 16) {
-    throw new Error("PAYMENT_ENCRYPTION_KEY ausente ou muito curta.");
-  }
-  // Derive 256-bit key from secret via SHA-256
-  const enc = new TextEncoder();
-  const hash = await crypto.subtle.digest("SHA-256", enc.encode(secret));
-  return crypto.subtle.importKey("raw", hash, "AES-GCM", false, ["encrypt", "decrypt"]);
-}
-
-function b64encode(buf: ArrayBuffer | Uint8Array): string {
-  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-function b64decode(str: string): Uint8Array {
-  const bin = atob(str);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-async function encryptToken(plain: string): Promise<string> {
-  const key = await getCryptoKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv as BufferSource },
-    key,
-    new TextEncoder().encode(plain) as BufferSource,
-  );
-  return `${b64encode(iv)}.${b64encode(ct)}`;
-}
-
-// (decrypt kept for future use by checkout server fns)
-export async function decryptToken(encoded: string): Promise<string> {
-  const [ivB64, ctB64] = encoded.split(".");
-  if (!ivB64 || !ctB64) throw new Error("Token criptografado inválido.");
-  const key = await getCryptoKey();
-  const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: b64decode(ivB64) as BufferSource },
-    key,
-    b64decode(ctB64) as BufferSource,
-  );
-  return new TextDecoder().decode(pt);
-}
+export { decryptToken };
 
 // ---------- DTO mapper ----------
 
@@ -69,6 +24,8 @@ type DbRow = {
   mp_connected: boolean;
   mp_last_validated_at: string | null;
   mp_account_kind: string | null;
+  mp_connection_method: string | null;
+  mp_token_expires_at: string | null;
   cash_enabled: boolean;
   pix_manual_enabled: boolean;
   card_on_delivery_enabled: boolean;
@@ -86,7 +43,7 @@ type DbRow = {
 // access token, which is REVOKED from anon/authenticated at the column level
 // and may only be read server-side via the service role).
 const SAFE_SETTINGS_COLUMNS =
-  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
+  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, mp_connection_method, mp_token_expires_at, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
 
 function toSafe(row: DbRow): StorePaymentSettingsSafe {
   const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
@@ -101,7 +58,9 @@ function toSafe(row: DbRow): StorePaymentSettingsSafe {
     mp_connected: row.mp_connected,
     mp_live_mode: row.mp_live_mode,
     mp_account_kind: kind,
-    mp_token_expires_at: row.mp_last_validated_at ?? undefined,
+    mp_connection_method:
+      row.mp_connection_method === "oauth" ? ("oauth" as const) : ("manual" as const),
+    mp_token_expires_at: row.mp_token_expires_at ?? row.mp_last_validated_at ?? undefined,
     cash_enabled: row.cash_enabled,
     pix_manual_enabled: row.pix_manual_enabled,
     card_on_delivery_enabled: row.card_on_delivery_enabled,
@@ -295,6 +254,9 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
           mp_live_mode: data.mp_live_mode,
           mp_account_kind: mpAccountKind,
           mp_connected: true,
+          mp_connection_method: "manual",
+          mp_refresh_token_encrypted: null,
+          mp_token_expires_at: null,
           mp_last_validated_at: new Date().toISOString(),
         },
         { onConflict: "tenant_id" },
@@ -330,6 +292,9 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
         mp_connected: false,
         mp_public_key: null,
         mp_access_token_encrypted: null,
+        mp_refresh_token_encrypted: null,
+        mp_token_expires_at: null,
+        mp_connection_method: "manual",
         mp_user_id: null,
         mp_last_validated_at: null,
         pix_enabled: false,
@@ -340,6 +305,35 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true as const };
   });
+
+// ============================================================
+// OAuth — conexão automática da conta Mercado Pago do lojista
+// ============================================================
+export const startMpOAuth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ authorization_url: string }> => {
+    const { supabase, userId } = context;
+    const tenantId = await resolveTenantId(supabase, userId);
+    const { requireProPlan } = await import("@/lib/plan-server");
+    await requireProPlan(tenantId);
+
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const request = getRequest();
+    const {
+      getMpOAuthConfig,
+      resolveRedirectUri,
+      createOAuthState,
+      buildAuthorizationUrl,
+    } = await import("@/lib/mp-oauth.server");
+
+    const { clientId } = getMpOAuthConfig();
+    const state = await createOAuthState(tenantId, userId);
+    const redirectUri = resolveRedirectUri(request?.url);
+    return {
+      authorization_url: buildAuthorizationUrl({ clientId, state, redirectUri }),
+    };
+  });
+
 
 const updatePatchSchema = z.object({
   cash_enabled: z.boolean().optional(),
@@ -536,9 +530,10 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
 
     let accessToken: string;
     try {
-      accessToken = await decryptToken(settings.mp_access_token_encrypted);
+      const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+      accessToken = await getFreshAccessToken(tenant.id);
     } catch (e) {
-      console.error("Failed to decrypt MP token:", e);
+      console.error("Failed to load MP token:", e);
       throw new Error("Falha ao descriptografar credenciais da loja");
     }
 
@@ -710,7 +705,8 @@ export const getPaymentStatus = createServerFn({ method: "POST" })
     if (!settings?.mp_access_token_encrypted) {
       return { status: "pending" as const };
     }
-    const accessToken = await decryptToken(settings.mp_access_token_encrypted);
+    const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+    const accessToken = await getFreshAccessToken(tenant.id);
 
     const res = await fetch(
       `https://api.mercadopago.com/v1/payments/${encodeURIComponent(data.payment_id)}`,
@@ -786,9 +782,10 @@ export const testMpCredentials = createServerFn({ method: "POST" })
 
     let accessToken: string;
     try {
-      accessToken = await decryptToken(row.mp_access_token_encrypted);
+      const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+      accessToken = await getFreshAccessToken(tenantId);
     } catch (e) {
-      return { success: false as const, message: "Falha ao decifrar o Access Token salvo. Reconecte o Mercado Pago." };
+      return { success: false as const, message: "Falha ao ler o Access Token salvo. Reconecte o Mercado Pago." };
     }
 
     const idempotencyKey = `menuzin-test-${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

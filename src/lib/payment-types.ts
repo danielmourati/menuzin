@@ -86,6 +86,8 @@ export type StorePaymentSettingsSafe = Omit<
   "mp_access_token_encrypted" | "mp_refresh_token_encrypted"
 > & {
   mp_public_key?: string; // Exposed only if needed for SDK init
+  /** Como a conta foi conectada: automática (OAuth) ou credenciais manuais. */
+  mp_connection_method?: "oauth" | "manual";
 };
 
 /** orders */
