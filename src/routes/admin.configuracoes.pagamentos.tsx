@@ -289,6 +289,8 @@ function AdminPaymentSettingsPage() {
                 expiresAt={settings?.mp_token_expires_at}
                 connectedVia={connectedVia}
                 oauthAvailable={oauthAvailable}
+                oauthRedirectUri={oauthRedirectUri}
+                oauthReason={oauthReason}
                 connectedPublicKey={settings?.mp_public_key}
                 accountKind={settings?.mp_account_kind}
                 liveModeSaved={settings?.mp_live_mode}
