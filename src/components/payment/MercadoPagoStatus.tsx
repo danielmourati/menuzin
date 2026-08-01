@@ -29,6 +29,8 @@ interface MercadoPagoStatusProps {
   expiresAt?: string;
   connectedPublicKey?: string; // masked key shown when connected via manual
   connectedVia?: "oauth" | "manual"; // how was it connected
+  /** A plataforma cadastrou as credenciais da aplicação MP (habilita OAuth). */
+  oauthAvailable?: boolean;
   /** Tipo da conta MP conectada — usado para alertar incoerência com mp_live_mode. */
   accountKind?: "test_user" | "production";
   /** Modo configurado no banco — usado em conjunto com accountKind. */
