@@ -58,7 +58,9 @@ function toSafe(row: DbRow): StorePaymentSettingsSafe {
     mp_connected: row.mp_connected,
     mp_live_mode: row.mp_live_mode,
     mp_account_kind: kind,
-    mp_token_expires_at: row.mp_last_validated_at ?? undefined,
+    mp_connection_method:
+      row.mp_connection_method === "oauth" ? ("oauth" as const) : ("manual" as const),
+    mp_token_expires_at: row.mp_token_expires_at ?? row.mp_last_validated_at ?? undefined,
     cash_enabled: row.cash_enabled,
     pix_manual_enabled: row.pix_manual_enabled,
     card_on_delivery_enabled: row.card_on_delivery_enabled,
