@@ -292,6 +292,9 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
         mp_connected: false,
         mp_public_key: null,
         mp_access_token_encrypted: null,
+        mp_refresh_token_encrypted: null,
+        mp_token_expires_at: null,
+        mp_connection_method: "manual",
         mp_user_id: null,
         mp_last_validated_at: null,
         pix_enabled: false,
@@ -302,6 +305,35 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true as const };
   });
+
+// ============================================================
+// OAuth — conexão automática da conta Mercado Pago do lojista
+// ============================================================
+export const startMpOAuth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ authorization_url: string }> => {
+    const { supabase, userId } = context;
+    const tenantId = await resolveTenantId(supabase, userId);
+    const { requireProPlan } = await import("@/lib/plan-server");
+    await requireProPlan(tenantId);
+
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const request = getRequest();
+    const {
+      getMpOAuthConfig,
+      resolveRedirectUri,
+      createOAuthState,
+      buildAuthorizationUrl,
+    } = await import("@/lib/mp-oauth.server");
+
+    const { clientId } = getMpOAuthConfig();
+    const state = await createOAuthState(tenantId, userId);
+    const redirectUri = resolveRedirectUri(request?.url);
+    return {
+      authorization_url: buildAuthorizationUrl({ clientId, state, redirectUri }),
+    };
+  });
+
 
 const updatePatchSchema = z.object({
   cash_enabled: z.boolean().optional(),
