@@ -46,6 +46,7 @@ function AdminPaymentSettingsPage() {
   const [mpStatus, setMpStatus] = useState<MpConnectionStatus>("loading");
   const [loading, setLoading] = useState(true);
   const [connectedVia, setConnectedVia] = useState<"oauth" | "manual" | undefined>(undefined);
+  const [oauthAvailable, setOauthAvailable] = useState(false);
 
   // Chaves Pix manuais
   const [pixKey, setPixKey] = useState("");
