@@ -53,6 +53,8 @@ export function MercadoPagoStatus({
   connectedPublicKey,
   connectedVia,
   oauthAvailable = true,
+  oauthRedirectUri,
+  oauthReason,
   accountKind,
   liveModeSaved,
   mpUserId,
