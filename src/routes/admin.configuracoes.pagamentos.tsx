@@ -11,6 +11,7 @@ import { MercadoPagoStatus } from "@/components/payment/MercadoPagoStatus";
 import {
   getStorePaymentSettings,
   disconnectMercadoPago,
+  connectMercadoPago,
   updatePaymentSettings,
   testPayment,
   saveMpCredentials,
