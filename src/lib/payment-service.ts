@@ -72,10 +72,11 @@ export async function updatePaymentSettings(
   });
 }
 
-// ---------- OAuth / Checkout (still mock — implemented in later phases) ----------
+// ---------- OAuth ----------
 
 export async function connectMercadoPago(_storeId?: string): Promise<MpConnectStartResponse> {
-  throw new Error("Conexão OAuth ainda não implementada. Use credenciais manuais por enquanto.");
+  const res = await _startMpOAuth();
+  return { authorization_url: res.authorization_url } as MpConnectStartResponse;
 }
 
 export async function simulateMpConnectSuccess(_storeId?: string): Promise<void> {
