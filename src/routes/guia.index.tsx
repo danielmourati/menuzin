@@ -278,6 +278,8 @@ function GuiaHome() {
                     })}
                   </div>
                 </Section>
+                )}
+
 
                 <AllStoresSection
                   stores={filteredStores}
