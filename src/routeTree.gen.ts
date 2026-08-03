@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
 import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
@@ -69,6 +70,11 @@ import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$sl
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusPedidosRoute = MeusPedidosRouteImport.update({
+  id: '/meus-pedidos',
+  path: '/meus-pedidos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -418,6 +425,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -475,6 +483,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/meus-pedidos': typeof MeusPedidosRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -535,6 +544,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/meus-pedidos'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -593,6 +603,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/meus-pedidos'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -649,6 +660,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/meus-pedidos'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -708,6 +720,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
   ComeceAgoraRoute: typeof ComeceAgoraRoute
+  MeusPedidosRoute: typeof MeusPedidosRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
@@ -753,6 +766,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-pedidos': {
+      id: '/meus-pedidos'
+      path: '/meus-pedidos'
+      fullPath: '/meus-pedidos'
+      preLoaderRoute: typeof MeusPedidosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comece-agora': {
@@ -1218,6 +1238,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
   ComeceAgoraRoute: ComeceAgoraRoute,
+  MeusPedidosRoute: MeusPedidosRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
@@ -1258,3 +1279,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
