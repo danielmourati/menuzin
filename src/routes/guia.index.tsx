@@ -109,6 +109,25 @@ function GuiaHome() {
   const sectionOrder = home.sectionOrder;
   const sectionActive = home.sectionActive;
 
+  // Consolida: só categorias que realmente têm produtos ativos no Guia.
+  const countOf = (slug: string) =>
+    catsData.categories.find((x) => x.slug === slug)?.count ?? 0;
+  const visibleCategories = (
+    managedCategories.length > 0
+      ? managedCategories
+      : DIRECTORY_CATEGORIES.map((c, i) => ({
+          id: c.slug,
+          slug: c.slug,
+          label: c.label,
+          emoji: c.emoji,
+          imageUrl: undefined as string | undefined,
+          imageFit: "cover" as "cover" | "contain",
+          active: true,
+          sortOrder: i,
+        }))
+  ).filter((c) => countOf(c.slug) > 0);
+
+
 
   const { location, needsLocation } = useGuiaLocation();
   const [cepOpen, setCepOpen] = useState(false);
