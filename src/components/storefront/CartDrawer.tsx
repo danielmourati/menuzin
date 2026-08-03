@@ -272,11 +272,50 @@ export function CartDrawer({
     return lines.join("\n");
   };
 
+  const phoneRaw = () => phone.replace(/\D/g, "");
+
   const openWhatsappPresenca = () => {
     const phone = (tenant?.whatsapp ?? "").replace(/\D/g, "");
     if (!phone) {
       toast.error("Loja sem WhatsApp cadastrado.");
       return;
+    }
+    // Persist the visitor profile even on the WhatsApp-only flow.
+    const digits = (window.document ? "" : "") + (phoneRaw());
+    if (digits.length >= 10) {
+      void (async () => {
+        try {
+          const { saveCustomerProfile } = await import("@/lib/customers.functions");
+          const saved = await saveCustomerProfile({
+            data: {
+              phone: digits,
+              name: name || null,
+              cep: cep.replace(/\D/g, "") || null,
+              neighborhood: neighborhood || null,
+              address:
+                mode === "entrega"
+                  ? { cep, street, number, neighborhood, complement, reference }
+                  : null,
+            },
+          });
+          if (saved.customer) {
+            writeCustomerProfile({
+              id: saved.customer.id,
+              phone: saved.customer.phone,
+              token: saved.customer.token,
+              name: saved.customer.name,
+              cep: saved.customer.cep,
+              neighborhood: saved.customer.neighborhood,
+              address:
+                mode === "entrega"
+                  ? { cep, street, number, neighborhood, complement, reference }
+                  : null,
+            });
+          }
+        } catch {
+          /* never block the WhatsApp handoff */
+        }
+      })();
     }
     const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(buildWhatsappOrderMessage())}`;
     window.open(url, "_blank", "noopener");
@@ -1420,6 +1459,20 @@ export function CartDrawer({
           <>
             <Header title="Insira seus dados" right={<ClearBtn />} />
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              {usingSavedProfile && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">
+                    Usando seus dados salvos neste dispositivo.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={forgetSavedProfile}
+                    className="shrink-0 font-semibold text-primary underline-offset-2 hover:underline"
+                  >
+                    Não sou eu
+                  </button>
+                </div>
+              )}
               <div>
                 <Label>
                   Nome <span className="text-primary">*</span>
