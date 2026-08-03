@@ -160,7 +160,38 @@ export const createOrder = createServerFn({ method: "POST" })
       changed_by_name: "Sistema",
     });
 
-    return { order: order as unknown as DbOrder, whatsappOnly: false, reason: null };
+    // Universal customer profile (no account): store name/phone/last address.
+    let customer: { id: string; phone: string; token: string } | null = null;
+    try {
+      const { upsertCustomer, saveDefaultAddress } = await import("@/lib/customers.server");
+      const addr = (data.address ?? null) as Record<string, string> | null;
+      const row = await upsertCustomer({
+        phone: data.whatsapp,
+        name: data.customer_name,
+        cep: addr?.cep ?? null,
+        neighborhood: data.delivery_neighborhood_snapshot ?? addr?.neighborhood ?? null,
+        address: addr
+          ? {
+              cep: addr.cep ?? null,
+              street: addr.street ?? null,
+              number: addr.number ?? null,
+              neighborhood: addr.neighborhood ?? null,
+              complement: addr.complement ?? null,
+              reference: addr.reference ?? null,
+            }
+          : null,
+        countOrder: true,
+      });
+      if (row) {
+        customer = { id: row.id, phone: row.phone, token: row.device_token };
+        await supabaseAdmin.from("orders").update({ customer_id: row.id } as never).eq("id", order.id);
+        if (addr) await saveDefaultAddress(row.id, addr as never);
+      }
+    } catch {
+      /* profile persistence must never block the order */
+    }
+
+    return { order: order as unknown as DbOrder, whatsappOnly: false, reason: null, customer };
   });
 
 async function loadOrderBundle(orderId: string) {
