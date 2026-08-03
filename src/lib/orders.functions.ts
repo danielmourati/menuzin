@@ -55,6 +55,7 @@ export const createOrder = createServerFn({ method: "POST" })
         order: null,
         whatsappOnly: true,
         reason: "Esta loja recebe pedidos apenas pelo WhatsApp. Finalize por lá.",
+        customer: null as { id: string; phone: string; token: string } | null,
       };
     }
     if (limits.max_orders_per_month != null) {
