@@ -17,7 +17,8 @@ import {
 import { getTenantMetrics, DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
-import { guiaActions, SLOT_KIND_LABELS, SLOT_KIND_PRICES, type GuiaSlotKind } from "@/lib/guia-mock";
+import { createPromoRequest } from "@/lib/guia-admin.functions";
+import { SLOT_KIND_LABELS, SLOT_KIND_PRICES, type GuiaSlotKind } from "@/lib/guia-types";
 
 export const Route = createFileRoute("/admin/diretorio")({
   component: DiretorioPage,
@@ -49,17 +50,24 @@ function RequestFeatureBlock() {
   const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
   const price = SLOT_KIND_PRICES[kind][days];
 
-  const submit = () => {
-    const req = guiaActions.createRequest({
-      tenantName,
-      slotKind: kind,
-      durationDays: days,
-      amount: price,
-      note: note.trim() || undefined,
-    });
-    setPending({ pixCode: req.pixCode, amount: req.amount });
-    toast.success("Solicitação enviada. Confirme o pagamento por PIX.");
-  };
+  const requestMutation = useMutation({
+    mutationFn: () =>
+      createPromoRequest({
+        data: {
+          slotKind: kind,
+          durationDays: days,
+          amount: price,
+          note: note.trim() || undefined,
+        },
+      }),
+    onSuccess: (req) => {
+      setPending({ pixCode: req.pixCode, amount: req.amount });
+      toast.success("Solicitação enviada. Confirme o pagamento por PIX.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const submit = () => requestMutation.mutate();
 
   const close = () => {
     setPending(null);
