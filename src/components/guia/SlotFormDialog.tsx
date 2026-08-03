@@ -21,13 +21,14 @@ import {
 } from "@/components/ui/select";
 import { SlotCard } from "./SlotCard";
 import { ImagePickerField } from "./ImagePickerField";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { adminCreateSlot, adminUpdateSlot } from "@/lib/guia-admin.functions";
 import {
-  guiaActions,
   DEFAULT_GRADIENTS,
   SLOT_KIND_LABELS,
   type GuiaSlot,
   type GuiaSlotKind,
-} from "@/lib/guia-mock";
+} from "@/lib/guia-types";
 import { toast } from "sonner";
 
 
@@ -78,6 +79,7 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
 
 export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props) {
   const [f, setF] = useState<Form>(empty(defaultKind));
+  const qc = useQueryClient();
 
   useEffect(() => {
     if (slot) {
@@ -128,37 +130,44 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
     createdAt: slot?.createdAt ?? new Date().toISOString(),
   };
 
+  const save = useMutation({
+    mutationFn: async (payload: Record<string, unknown>) => {
+      if (slot) {
+        await adminUpdateSlot({ data: { id: slot.id, patch: payload as never } });
+      } else {
+        await adminCreateSlot({ data: payload as never });
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["guia-admin", "slots"] });
+      toast.success(slot ? "Destaque atualizado." : "Destaque criado.");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const submit = () => {
     if (!f.title.trim()) {
-      toast.error("Informe um título.");
+      toast.error("Informe um t\u00edtulo.");
       return;
     }
-    const payload = {
+    save.mutate({
       kind: f.kind,
       title: f.title.trim(),
-      subtitle: f.subtitle.trim() || undefined,
-      emoji: f.emoji.trim() || undefined,
+      subtitle: f.subtitle.trim() || null,
+      emoji: f.emoji.trim() || null,
       gradient: f.gradient,
-      imageUrl: f.imageUrl,
+      imageUrl: f.imageUrl ?? null,
       imageFit: f.imageFit,
-
-      storeName: f.storeName.trim() || undefined,
-      price: num(f.price),
-      promoPrice: num(f.promoPrice),
-      discountPct: num(f.discountPct),
-      rating: num(f.rating),
-      deliveryFee: num(f.deliveryFee),
-      endsAt: f.endsAt ? new Date(f.endsAt).toISOString() : undefined,
+      storeName: f.storeName.trim() || null,
+      price: num(f.price) ?? null,
+      promoPrice: num(f.promoPrice) ?? null,
+      discountPct: num(f.discountPct) ?? null,
+      rating: num(f.rating) ?? null,
+      deliveryFee: num(f.deliveryFee) ?? null,
+      endsAt: f.endsAt ? new Date(f.endsAt).toISOString() : null,
       active: f.active,
-    };
-    if (slot) {
-      guiaActions.updateSlot(slot.id, payload);
-      toast.success("Destaque atualizado.");
-    } else {
-      guiaActions.createSlot(payload);
-      toast.success("Destaque criado.");
-    }
-    onOpenChange(false);
+    });
   };
 
   const showPrice = f.kind === "featured";
@@ -297,7 +306,7 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit}>{slot ? "Salvar alterações" : "Criar destaque"}</Button>
+          <Button onClick={submit} disabled={save.isPending}>{slot ? "Salvar alterações" : "Criar destaque"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

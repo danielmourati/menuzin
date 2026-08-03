@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ArrowUp, ArrowDown, GripVertical, RotateCcw } from "lucide-react";
 import {
-  useGuiaSectionOrder,
-  useGuiaSectionActive,
-  guiaActions,
-  SECTION_LABELS,
-  type GuiaSectionId,
-} from "@/lib/guia-mock";
+  adminListSections,
+  adminSetSectionOrder,
+  adminSetSectionActive,
+  adminResetSections,
+} from "@/lib/guia-admin.functions";
+import { SECTION_LABELS, type GuiaSectionId } from "@/lib/guia-types";
 import {
   DndContext,
   closestCenter,
@@ -33,8 +34,34 @@ export const Route = createFileRoute("/platform/guia/secoes")({
   component: PlatformGuiaSecoes,
 });
 
+const KEY = ["guia-admin", "sections"];
+
 function PlatformGuiaSecoes() {
-  const order = useGuiaSectionOrder();
+  const qc = useQueryClient();
+  const { data: rows = [] } = useQuery({ queryKey: KEY, queryFn: () => adminListSections() });
+  const order = rows.map((r) => r.id);
+  const activeMap: Record<string, boolean> = Object.fromEntries(rows.map((r) => [r.id, r.active]));
+  const invalidate = () => qc.invalidateQueries({ queryKey: KEY });
+
+  const setOrder = useMutation({
+    mutationFn: (o: string[]) => adminSetSectionOrder({ data: { order: o } }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const setActive = useMutation({
+    mutationFn: (v: { id: string; active: boolean }) => adminSetSectionActive({ data: v }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const reset = useMutation({
+    mutationFn: () => adminResetSections(),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Ordem padrão restaurada.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -46,7 +73,14 @@ function PlatformGuiaSecoes() {
     const oldIndex = order.indexOf(active.id as GuiaSectionId);
     const newIndex = order.indexOf(over.id as GuiaSectionId);
     if (oldIndex < 0 || newIndex < 0) return;
-    guiaActions.setSectionOrder(arrayMove(order, oldIndex, newIndex));
+    setOrder.mutate(arrayMove(order, oldIndex, newIndex));
+  };
+
+  const move = (id: GuiaSectionId, dir: number) => {
+    const i = order.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    setOrder.mutate(arrayMove(order, i, j));
   };
 
   return (
@@ -60,13 +94,7 @@ function PlatformGuiaSecoes() {
                 Arraste para reorganizar as seções da home pública do Guia. O Hero fica sempre no topo.
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => {
-                guiaActions.resetSectionOrder();
-                toast.success("Ordem padrão restaurada.");
-              }}
-            >
+            <Button variant="outline" onClick={() => reset.mutate()}>
               <RotateCcw className="mr-2 h-4 w-4" /> Restaurar padrão
             </Button>
           </div>
@@ -91,6 +119,9 @@ function PlatformGuiaSecoes() {
                 id={id}
                 index={i}
                 total={order.length}
+                isActive={activeMap[id] !== false}
+                onMove={move}
+                onToggle={(v) => setActive.mutate({ id, active: v })}
               />
             ))}
           </div>
@@ -109,10 +140,22 @@ function PlatformGuiaSecoes() {
   );
 }
 
-function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; total: number }) {
+function SortableItem({
+  id,
+  index,
+  total,
+  isActive,
+  onMove,
+  onToggle,
+}: {
+  id: GuiaSectionId;
+  index: number;
+  total: number;
+  isActive: boolean;
+  onMove: (id: GuiaSectionId, dir: number) => void;
+  onToggle: (v: boolean) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const active = useGuiaSectionActive();
-  const isActive = active[id] !== false;
   const meta = SECTION_LABELS[id];
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -137,31 +180,19 @@ function SortableItem({ id, index, total }: { id: GuiaSectionId; index: number; 
             {index + 1}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">{meta.title}</p>
-            <p className="truncate text-xs text-muted-foreground">{meta.desc}</p>
+            <p className="truncate text-sm font-bold">{meta?.title ?? id}</p>
+            <p className="truncate text-xs text-muted-foreground">{meta?.desc}</p>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => guiaActions.moveSection(id, -1)}
-              disabled={index === 0}
-              aria-label="Mover para cima"
-            >
+            <Button size="icon" variant="ghost" onClick={() => onMove(id, -1)} disabled={index === 0} aria-label="Mover para cima">
               <ArrowUp className="h-4 w-4" />
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => guiaActions.moveSection(id, 1)}
-              disabled={index === total - 1}
-              aria-label="Mover para baixo"
-            >
+            <Button size="icon" variant="ghost" onClick={() => onMove(id, 1)} disabled={index === total - 1} aria-label="Mover para baixo">
               <ArrowDown className="h-4 w-4" />
             </Button>
             <Switch
               checked={isActive}
-              onCheckedChange={(v) => guiaActions.setSectionActive(id, v)}
+              onCheckedChange={onToggle}
               aria-label={isActive ? "Desativar seção" : "Ativar seção"}
               className="ml-2"
             />

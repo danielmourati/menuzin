@@ -3,12 +3,9 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Smartphone, Tablet, Monitor, RefreshCw } from "lucide-react";
-import {
-  useGuiaState,
-  useGuiaRequests,
-  SLOT_KIND_LABELS,
-  type GuiaSlotKind,
-} from "@/lib/guia-mock";
+import { useQuery } from "@tanstack/react-query";
+import { adminListSlots, adminListCategories, listPromoRequests } from "@/lib/guia-admin.functions";
+import { SLOT_KIND_LABELS, type GuiaSlotKind } from "@/lib/guia-types";
 import { brl } from "@/lib/format";
 
 type PreviewDevice = "mobile" | "tablet" | "desktop";
@@ -26,14 +23,15 @@ function PlatformGuiaOverview() {
   const [device, setDevice] = useState<PreviewDevice>("mobile");
   const [reloadKey, setReloadKey] = useState(0);
   const spec = DEVICE_SPECS[device];
-  const state = useGuiaState();
-  const requests = useGuiaRequests();
+  const { data: slots = [] } = useQuery({ queryKey: ["guia-admin", "slots"], queryFn: () => adminListSlots() });
+  const { data: categories = [] } = useQuery({ queryKey: ["guia-admin", "categories"], queryFn: () => adminListCategories() });
+  const { data: requests = [] } = useQuery({ queryKey: ["guia-admin", "requests"], queryFn: () => listPromoRequests() });
 
   const counts = (Object.keys(SLOT_KIND_LABELS) as GuiaSlotKind[]).map((k) => ({
     kind: k,
     label: SLOT_KIND_LABELS[k],
-    total: state.slots.filter((s) => s.kind === k).length,
-    active: state.slots.filter((s) => s.kind === k && s.active).length,
+    total: slots.filter((s) => s.kind === k).length,
+    active: slots.filter((s) => s.kind === k && s.active).length,
   }));
 
   const pending = requests.filter((r) => r.status === "pending_payment").length;
@@ -47,11 +45,11 @@ function PlatformGuiaOverview() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card><CardContent className="p-5">
           <p className="text-sm text-muted-foreground">Categorias ativas</p>
-          <p className="mt-1 text-2xl font-bold">{state.categories.filter((c) => c.active).length}</p>
+          <p className="mt-1 text-2xl font-bold">{categories.filter((c) => c.active).length}</p>
         </CardContent></Card>
         <Card><CardContent className="p-5">
           <p className="text-sm text-muted-foreground">Slots ativos</p>
-          <p className="mt-1 text-2xl font-bold">{state.slots.filter((s) => s.active).length}</p>
+          <p className="mt-1 text-2xl font-bold">{slots.filter((s) => s.active).length}</p>
         </CardContent></Card>
         <Card><CardContent className="p-5">
           <p className="text-sm text-muted-foreground">Solicitações pendentes</p>
