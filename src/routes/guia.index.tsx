@@ -18,6 +18,7 @@ import {
   type GuiaSectionId,
 } from "@/lib/guia-mock";
 import { SlotCard } from "@/components/guia/SlotCard";
+import { CepGateDialog, useGuiaLocation } from "@/components/guia/CepGateDialog";
 import {
   Bell,
   Bike,
@@ -107,6 +108,12 @@ function GuiaHome() {
   const sectionOrder = useGuiaSectionOrder();
   const sectionActive = useGuiaSectionActive();
 
+  const { location, needsLocation } = useGuiaLocation();
+  const [cepOpen, setCepOpen] = useState(false);
+  useEffect(() => {
+    if (needsLocation) setCepOpen(true);
+  }, [needsLocation]);
+
   const [vertical, setVertical] = useState("restaurantes");
   const [storesView, setStoresView] = useState<"grid" | "list">("list");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -122,22 +129,29 @@ function GuiaHome() {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
+      <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       {/* Header */}
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
         <div className="mx-auto max-w-5xl px-4 pb-2 pt-3">
           <div className="flex items-center gap-3">
-            <div className="flex min-w-0 flex-1 items-start gap-2">
+            <button
+              type="button"
+              onClick={() => setCepOpen(true)}
+              className="flex min-w-0 flex-1 items-start gap-2 text-left"
+            >
               <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold leading-tight">
-                  Rua Armando Burlamaque, 438{" "}
+                  {location?.city ?? "Escolha sua cidade"}{" "}
                   <ChevronRight className="inline h-3.5 w-3.5" />
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  Parnaíba - PI
+                  {location
+                    ? `${location.uf ? location.uf + " · " : ""}CEP ${location.cep.slice(0, 5)}-${location.cep.slice(5)}`
+                    : "Informe seu CEP para ver as lojas perto de você"}
                 </p>
               </div>
-            </div>
+            </button>
             <button type="button" aria-label="Mensagens"
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full border bg-background text-muted-foreground hover:text-foreground">
               <MessageSquare className="h-4 w-4" />
