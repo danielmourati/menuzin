@@ -228,17 +228,17 @@ function GuiaHome() {
           const sectionNodes: Record<GuiaSectionId, React.ReactNode> = {
             categories: (
               <div className="space-y-8">
+                {visibleCategories.length > 0 && (
                 <Section
                   title="categorias"
                   subtitle="explora o que rola no seu bairro"
                 >
                   <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {(managedCategories.length > 0 ? managedCategories : DIRECTORY_CATEGORIES.map((c, i) => ({
-                      id: c.slug, slug: c.slug, label: c.label, emoji: c.emoji, imageUrl: undefined as string | undefined, imageFit: "cover" as "cover" | "contain", active: true, sortOrder: i,
-                    }))).map((c) => {
-                      const isReal = DIRECTORY_CATEGORIES.some((d) => d.slug === c.slug);
-                      const count = catsData.categories.find((x) => x.slug === c.slug)?.count ?? 0;
+                    {visibleCategories.map((c) => {
+                      const isReal = true;
+                      const count = countOf(c.slug);
                       const isSelected = categoryFilter === c.slug;
+
                       const inner = (
                         <>
                           {c.imageUrl ? (
