@@ -386,7 +386,13 @@ function GuiaHome() {
         <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />
           <BottomTab icon={<Search className="h-5 w-5" />} label="busca" />
-          <BottomTab icon={<Receipt className="h-5 w-5" />} label="pedidos" />
+          <Link
+            to="/meus-pedidos"
+            className="flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold text-muted-foreground transition hover:text-foreground"
+          >
+            <Receipt className="h-5 w-5" />
+            pedidos
+          </Link>
           <BottomTab icon={<User className="h-5 w-5" />} label="conta" />
         </div>
       </nav>
