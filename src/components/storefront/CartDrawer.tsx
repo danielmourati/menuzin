@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { readCustomerProfile, writeCustomerProfile, clearCustomerProfile } from "@/lib/customer-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,6 +150,40 @@ export function CartDrawer({
   const [cepError, setCepError] = useState<string | null>(null);
   const [clearOpen, setClearOpen] = useState(false);
 
+  // Prefill from the universal customer profile (no account required)
+  const [usingSavedProfile, setUsingSavedProfile] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const p = readCustomerProfile();
+    if (!p?.phone) return;
+    setUsingSavedProfile(true);
+    setName((v) => v || p.name || "");
+    setPhone((v) => v || maskPhone(p.phone));
+    const a = p.address;
+    if (a) {
+      setCep((v) => v || a.cep || "");
+      setStreet((v) => v || a.street || "");
+      setNumber((v) => v || a.number || "");
+      setNeighborhood((v) => v || a.neighborhood || "");
+      setComplement((v) => v || a.complement || "");
+      setReference((v) => v || a.reference || "");
+    }
+  }, [open]);
+
+  const forgetSavedProfile = () => {
+    clearCustomerProfile();
+    setUsingSavedProfile(false);
+    setName("");
+    setPhone("");
+    setCep("");
+    setStreet("");
+    setNumber("");
+    setNeighborhood("");
+    setComplement("");
+    setReference("");
+    toast.success("Dados salvos removidos deste dispositivo");
+  };
+
   // Fetch settings for tenant
   useEffect(() => {
     if (open && slug) {
@@ -237,11 +272,50 @@ export function CartDrawer({
     return lines.join("\n");
   };
 
+  const phoneRaw = () => phone.replace(/\D/g, "");
+
   const openWhatsappPresenca = () => {
     const phone = (tenant?.whatsapp ?? "").replace(/\D/g, "");
     if (!phone) {
       toast.error("Loja sem WhatsApp cadastrado.");
       return;
+    }
+    // Persist the visitor profile even on the WhatsApp-only flow.
+    const digits = phoneRaw();
+    if (digits.length >= 10) {
+      void (async () => {
+        try {
+          const { saveCustomerProfile } = await import("@/lib/customers.functions");
+          const saved = await saveCustomerProfile({
+            data: {
+              phone: digits,
+              name: name || null,
+              cep: cep.replace(/\D/g, "") || null,
+              neighborhood: neighborhood || null,
+              address:
+                mode === "entrega"
+                  ? { cep, street, number, neighborhood, complement, reference }
+                  : null,
+            },
+          });
+          if (saved.customer) {
+            writeCustomerProfile({
+              id: saved.customer.id,
+              phone: saved.customer.phone,
+              token: saved.customer.token,
+              name: saved.customer.name,
+              cep: saved.customer.cep,
+              neighborhood: saved.customer.neighborhood,
+              address:
+                mode === "entrega"
+                  ? { cep, street, number, neighborhood, complement, reference }
+                  : null,
+            });
+          }
+        } catch {
+          /* never block the WhatsApp handoff */
+        }
+      })();
     }
     const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(buildWhatsappOrderMessage())}`;
     window.open(url, "_blank", "noopener");
@@ -523,6 +597,20 @@ export function CartDrawer({
         }),
       },
     });
+    if (res.customer) {
+      writeCustomerProfile({
+        id: res.customer.id,
+        phone: res.customer.phone,
+        token: res.customer.token,
+        name,
+        cep: cep.replace(/\D/g, "") || null,
+        neighborhood: neighborhood || null,
+        address:
+          mode === "entrega"
+            ? { cep, street, number, neighborhood, complement, reference }
+            : null,
+      });
+    }
     if (!res.order) {
       openWhatsappPresenca();
       return null;
@@ -1371,6 +1459,20 @@ export function CartDrawer({
           <>
             <Header title="Insira seus dados" right={<ClearBtn />} />
             <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              {usingSavedProfile && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">
+                    Usando seus dados salvos neste dispositivo.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={forgetSavedProfile}
+                    className="shrink-0 font-semibold text-primary underline-offset-2 hover:underline"
+                  >
+                    Não sou eu
+                  </button>
+                </div>
+              )}
               <div>
                 <Label>
                   Nome <span className="text-primary">*</span>

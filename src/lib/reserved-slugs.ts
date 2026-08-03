@@ -28,4 +28,5 @@ export const RESERVED_SLUGS = new Set<string>([
   "sitemap.xml",
   "comece-agora",
   "guia",
+  "meus-pedidos",
 ]);

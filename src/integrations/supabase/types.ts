@@ -395,6 +395,113 @@ export type Database = {
           },
         ]
       }
+      customer_addresses: {
+        Row: {
+          cep: string | null
+          city: string | null
+          complement: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          is_default: boolean
+          label: string | null
+          neighborhood: string | null
+          number: string | null
+          reference: string | null
+          street: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          cep?: string | null
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          neighborhood?: string | null
+          number?: string | null
+          reference?: string | null
+          street?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cep?: string | null
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          neighborhood?: string | null
+          number?: string | null
+          reference?: string | null
+          street?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          device_token: string
+          id: string
+          last_address: Json | null
+          last_cep: string | null
+          last_city: string | null
+          last_neighborhood: string | null
+          last_order_at: string | null
+          last_uf: string | null
+          name: string | null
+          orders_count: number
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_token?: string
+          id?: string
+          last_address?: Json | null
+          last_cep?: string | null
+          last_city?: string | null
+          last_neighborhood?: string | null
+          last_order_at?: string | null
+          last_uf?: string | null
+          name?: string | null
+          orders_count?: number
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_token?: string
+          id?: string
+          last_address?: Json | null
+          last_cep?: string | null
+          last_city?: string | null
+          last_neighborhood?: string | null
+          last_order_at?: string | null
+          last_uf?: string | null
+          name?: string | null
+          orders_count?: number
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           active: boolean
@@ -729,6 +836,7 @@ export type Database = {
           completed_at: string | null
           coupon_code: string | null
           created_at: string
+          customer_id: string | null
           customer_name: string
           delivery_fee: number
           delivery_fee_source: string | null
@@ -761,6 +869,7 @@ export type Database = {
           completed_at?: string | null
           coupon_code?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name: string
           delivery_fee?: number
           delivery_fee_source?: string | null
@@ -793,6 +902,7 @@ export type Database = {
           completed_at?: string | null
           coupon_code?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
           delivery_fee?: number
           delivery_fee_source?: string | null
@@ -817,6 +927,13 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_tenant_id_fkey"
             columns: ["tenant_id"]
