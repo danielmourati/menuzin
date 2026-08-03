@@ -281,7 +281,7 @@ export function CartDrawer({
       return;
     }
     // Persist the visitor profile even on the WhatsApp-only flow.
-    const digits = (window.document ? "" : "") + (phoneRaw());
+    const digits = phoneRaw();
     if (digits.length >= 10) {
       void (async () => {
         try {
