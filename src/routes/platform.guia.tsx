@@ -1,6 +1,5 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { PlatformLayout } from "./platform.dashboard";
-import { AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/platform/guia")({
   component: PlatformGuiaLayout,
@@ -20,16 +19,6 @@ function PlatformGuiaLayout() {
   return (
     <PlatformLayout title="Guia Menuzin">
       <div className="space-y-5">
-        <div className="flex items-start gap-3 rounded-2xl border border-dashed border-amber-500/50 bg-amber-500/5 p-4 text-sm">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-          <div>
-            <p className="font-semibold text-amber-900 dark:text-amber-200">Modo demonstração</p>
-            <p className="text-xs text-amber-800/80 dark:text-amber-200/70">
-              Dados do Guia são mockados no navegador (localStorage). Alterações persistem só neste dispositivo enquanto migramos para o banco.
-            </p>
-          </div>
-        </div>
-
         <nav className="flex flex-wrap gap-1 border-b">
           {tabs.map((t) => {
             const active = t.exact

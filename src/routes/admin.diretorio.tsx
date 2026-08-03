@@ -42,7 +42,6 @@ function RequestFeatureBlock() {
     queryKey: ["diretorio", "my-products"],
     queryFn: () => listMyDirectoryProducts(),
   });
-  const tenantName = data?.tenant?.name ?? "Sua loja";
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<GuiaSlotKind>("featured");
   const [days, setDays] = useState<7 | 14 | 30>(7);
