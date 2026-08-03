@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { readCustomerProfile, writeCustomerProfile, clearCustomerProfile } from "@/lib/customer-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -148,6 +149,40 @@ export function CartDrawer({
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [clearOpen, setClearOpen] = useState(false);
+
+  // Prefill from the universal customer profile (no account required)
+  const [usingSavedProfile, setUsingSavedProfile] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const p = readCustomerProfile();
+    if (!p?.phone) return;
+    setUsingSavedProfile(true);
+    setName((v) => v || p.name || "");
+    setPhone((v) => v || maskPhone(p.phone));
+    const a = p.address;
+    if (a) {
+      setCep((v) => v || a.cep || "");
+      setStreet((v) => v || a.street || "");
+      setNumber((v) => v || a.number || "");
+      setNeighborhood((v) => v || a.neighborhood || "");
+      setComplement((v) => v || a.complement || "");
+      setReference((v) => v || a.reference || "");
+    }
+  }, [open]);
+
+  const forgetSavedProfile = () => {
+    clearCustomerProfile();
+    setUsingSavedProfile(false);
+    setName("");
+    setPhone("");
+    setCep("");
+    setStreet("");
+    setNumber("");
+    setNeighborhood("");
+    setComplement("");
+    setReference("");
+    toast.success("Dados salvos removidos deste dispositivo");
+  };
 
   // Fetch settings for tenant
   useEffect(() => {
