@@ -558,6 +558,20 @@ export function CartDrawer({
         }),
       },
     });
+    if (res.customer) {
+      writeCustomerProfile({
+        id: res.customer.id,
+        phone: res.customer.phone,
+        token: res.customer.token,
+        name,
+        cep: cep.replace(/\D/g, "") || null,
+        neighborhood: neighborhood || null,
+        address:
+          mode === "entrega"
+            ? { cep, street, number, neighborhood, complement, reference }
+            : null,
+      });
+    }
     if (!res.order) {
       openWhatsappPresenca();
       return null;
