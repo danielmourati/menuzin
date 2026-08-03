@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { resolveCityByCep } from "@/lib/customers.functions";
 import { useCustomerProfile, writeCustomerProfile } from "@/lib/customer-profile";
-import { maskCep } from "@/lib/masks";
+
+
+const maskCep = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+};
 
 export type GuiaLocation = { cep: string; city: string; uf: string | null };
 
@@ -69,12 +74,11 @@ export function CepGateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => (dismissible || !v === false ? onOpenChange(v) : dismissible && onOpenChange(v))}>
+    <Dialog open={open} onOpenChange={(v) => { if (v || dismissible) onOpenChange(v); }}>
       <DialogContent
         className="max-w-sm rounded-xl"
         onInteractOutside={(e) => !dismissible && e.preventDefault()}
         onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
-        showCloseButton={dismissible}
       >
         <DialogHeader>
           <div className="mx-auto mb-2 grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
