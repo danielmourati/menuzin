@@ -9,14 +9,9 @@ import {
 } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
-import {
-  useGuiaSlots,
-  useGuiaCategories,
-  useGuiaSectionOrder,
-  useGuiaSectionActive,
-  MOCK_STORES,
-  type GuiaSectionId,
-} from "@/lib/guia-mock";
+import { getGuiaHome } from "@/lib/guia.functions";
+import type { GuiaSectionId, GuiaSlot } from "@/lib/guia-types";
+
 import { SlotCard } from "@/components/guia/SlotCard";
 import { CepGateDialog, useGuiaLocation } from "@/components/guia/CepGateDialog";
 import {
@@ -50,12 +45,20 @@ const storesQO = queryOptions({
   queryFn: () => listAllStores(),
 });
 
+const homeQO = queryOptions({
+  queryKey: ["guia", "home"],
+  queryFn: () => getGuiaHome({ data: {} }),
+});
+
+
 export const Route = createFileRoute("/guia/")({
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(categoriesQO),
       context.queryClient.ensureQueryData(featuredQO),
       context.queryClient.ensureQueryData(storesQO),
+      context.queryClient.ensureQueryData(homeQO),
+
     ]);
     return { origin: "https://menuzin.app" };
   },
@@ -91,22 +94,21 @@ function GuiaHome() {
   const { data: catsData } = useSuspenseQuery(categoriesQO);
   const { data: featData } = useSuspenseQuery(featuredQO);
   const { data: storesData } = useSuspenseQuery(storesQO);
+  const { data: home } = useSuspenseQuery(homeQO);
   const featured = featData.items;
-  const realStores = storesData.stores;
-  const allStores = (() => {
-    const seen = new Set(realStores.map((s) => s.tenant_id));
-    return [...realStores, ...MOCK_STORES.filter((s) => !seen.has(s.tenant_id))];
-  })();
+  const allStores = storesData.stores;
 
-  const heroSlots = useGuiaSlots("hero").filter((s) => s.active);
-  const featuredSlots = useGuiaSlots("featured").filter((s) => s.active);
-  const topStoresSlots = useGuiaSlots("top_stores").filter((s) => s.active);
-  const bannerSlots = useGuiaSlots("banner").filter((s) => s.active);
-  const collectionSlots = useGuiaSlots("collection").filter((s) => s.active);
-  const flashSlots = useGuiaSlots("flash_offer").filter((s) => s.active);
-  const managedCategories = useGuiaCategories(true);
-  const sectionOrder = useGuiaSectionOrder();
-  const sectionActive = useGuiaSectionActive();
+  const byKind = (kind: GuiaSlot["kind"]) => home.slots.filter((s) => s.kind === kind && s.active);
+  const heroSlots = byKind("hero");
+  const featuredSlots = byKind("featured");
+  const topStoresSlots = byKind("top_stores");
+  const bannerSlots = byKind("banner");
+  const collectionSlots = byKind("collection");
+  const flashSlots = byKind("flash_offer");
+  const managedCategories = home.categories;
+  const sectionOrder = home.sectionOrder;
+  const sectionActive = home.sectionActive;
+
 
   const { location, needsLocation } = useGuiaLocation();
   const [cepOpen, setCepOpen] = useState(false);
@@ -402,7 +404,7 @@ function GuiaHome() {
 
 // ---------- SUB COMPONENTS ----------
 
-function HeroCarousel({ slots }: { slots: ReturnType<typeof useGuiaSlots> }) {
+function HeroCarousel({ slots }: { slots: GuiaSlot[] }) {
   const [idx, setIdx] = useState(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 

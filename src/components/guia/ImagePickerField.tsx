@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
-import { SLOT_IMAGE_SPECS, type GuiaSlotKind } from "@/lib/guia-mock";
+import { SLOT_IMAGE_SPECS, type GuiaSlotKind } from "@/lib/guia-types";
 
 type SpecKey = GuiaSlotKind | "category";
 

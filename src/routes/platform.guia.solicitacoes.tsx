@@ -1,21 +1,25 @@
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, X, Trash2 } from "lucide-react";
+import { Copy, Check, X, Trash2, Loader2 } from "lucide-react";
 import {
-  useGuiaRequests,
-  guiaActions,
-  SLOT_KIND_LABELS,
-  type GuiaPromoRequest,
-} from "@/lib/guia-mock";
+  listPromoRequests,
+  markRequestPaid,
+  rejectRequest,
+  deletePromoRequest,
+} from "@/lib/guia-admin.functions";
+import { SLOT_KIND_LABELS, type GuiaPromoRequest } from "@/lib/guia-types";
 import { brl } from "@/lib/format";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/platform/guia/solicitacoes")({
   component: PlatformGuiaRequests,
 });
+
+const KEY = ["guia-admin", "requests"];
 
 const statusMap: Record<GuiaPromoRequest["status"], { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   pending_payment: { label: "Aguardando pagamento", variant: "outline" },
@@ -24,7 +28,31 @@ const statusMap: Record<GuiaPromoRequest["status"], { label: string; variant: "d
 };
 
 function PlatformGuiaRequests() {
-  const requests = useGuiaRequests();
+  const qc = useQueryClient();
+  const { data: requests = [], isLoading } = useQuery({
+    queryKey: KEY,
+    queryFn: () => listPromoRequests(),
+  });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: KEY });
+    qc.invalidateQueries({ queryKey: ["guia-admin", "slots"] });
+  };
+
+  const pay = useMutation({
+    mutationFn: (id: string) => markRequestPaid({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Pagamento confirmado. Slot criado no Guia."); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const reject = useMutation({
+    mutationFn: (id: string) => rejectRequest({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Solicitação rejeitada."); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => deletePromoRequest({ data: { id } }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-4">
@@ -37,7 +65,11 @@ function PlatformGuiaRequests() {
         </CardContent>
       </Card>
 
-      {requests.length === 0 ? (
+      {isLoading ? (
+        <Card><CardContent className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+        </CardContent></Card>
+      ) : requests.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-sm text-muted-foreground">
           Nenhuma solicitação ainda.
         </CardContent></Card>
@@ -78,23 +110,17 @@ function PlatformGuiaRequests() {
                     )}
                     {r.status === "pending_payment" && (
                       <>
-                        <Button size="sm" onClick={() => {
-                          guiaActions.markRequestPaid(r.id);
-                          toast.success("Pagamento confirmado. Slot criado no Guia.");
-                        }}>
+                        <Button size="sm" onClick={() => pay.mutate(r.id)}>
                           <Check className="mr-1 h-3 w-3" /> Marcar pago
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => {
-                          guiaActions.rejectRequest(r.id);
-                          toast.success("Solicitação rejeitada.");
-                        }}>
+                        <Button size="sm" variant="outline" onClick={() => reject.mutate(r.id)}>
                           <X className="mr-1 h-3 w-3" /> Rejeitar
                         </Button>
                       </>
                     )}
                     <Button size="icon" variant="ghost" onClick={async () => {
                       if (await confirmDialog({ title: "Excluir esta solicitação?", variant: "destructive", confirmText: "Excluir" })) {
-                        guiaActions.deleteRequest(r.id);
+                        remove.mutate(r.id);
                       }
                     }}>
                       <Trash2 className="h-4 w-4 text-destructive" />

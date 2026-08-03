@@ -627,6 +627,236 @@ export type Database = {
           },
         ]
       }
+      guia_categories: {
+        Row: {
+          active: boolean
+          city: string | null
+          created_at: string
+          emoji: string
+          id: string
+          image_fit: string
+          image_url: string | null
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city?: string | null
+          created_at?: string
+          emoji?: string
+          id?: string
+          image_fit?: string
+          image_url?: string | null
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city?: string | null
+          created_at?: string
+          emoji?: string
+          id?: string
+          image_fit?: string
+          image_url?: string | null
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      guia_promo_requests: {
+        Row: {
+          amount: number
+          created_at: string
+          duration_days: number
+          id: string
+          note: string | null
+          pix_code: string | null
+          slot_kind: string
+          status: string
+          tenant_id: string | null
+          tenant_name: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          duration_days?: number
+          id?: string
+          note?: string | null
+          pix_code?: string | null
+          slot_kind: string
+          status?: string
+          tenant_id?: string | null
+          tenant_name: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          duration_days?: number
+          id?: string
+          note?: string | null
+          pix_code?: string | null
+          slot_kind?: string
+          status?: string
+          tenant_id?: string | null
+          tenant_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guia_promo_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "guia_promo_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guia_sections: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      guia_slots: {
+        Row: {
+          active: boolean
+          city: string | null
+          created_at: string
+          delivery_fee: number | null
+          discount_pct: number | null
+          emoji: string | null
+          ends_at: string | null
+          gradient: string | null
+          href: string | null
+          id: string
+          image_fit: string
+          image_url: string | null
+          kind: string
+          price: number | null
+          product_id: string | null
+          promo_price: number | null
+          rating: number | null
+          sort_order: number
+          store_name: string | null
+          subtitle: string | null
+          tenant_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city?: string | null
+          created_at?: string
+          delivery_fee?: number | null
+          discount_pct?: number | null
+          emoji?: string | null
+          ends_at?: string | null
+          gradient?: string | null
+          href?: string | null
+          id?: string
+          image_fit?: string
+          image_url?: string | null
+          kind: string
+          price?: number | null
+          product_id?: string | null
+          promo_price?: number | null
+          rating?: number | null
+          sort_order?: number
+          store_name?: string | null
+          subtitle?: string | null
+          tenant_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city?: string | null
+          created_at?: string
+          delivery_fee?: number | null
+          discount_pct?: number | null
+          emoji?: string | null
+          ends_at?: string | null
+          gradient?: string | null
+          href?: string | null
+          id?: string
+          image_fit?: string
+          image_url?: string | null
+          kind?: string
+          price?: number | null
+          product_id?: string | null
+          promo_price?: number | null
+          rating?: number | null
+          sort_order?: number
+          store_name?: string | null
+          subtitle?: string | null
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guia_slots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "guia_slots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guia_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "guia_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mp_oauth_states: {
         Row: {
           created_at: string

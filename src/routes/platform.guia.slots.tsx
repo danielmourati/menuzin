@@ -1,5 +1,6 @@
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,14 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, Trash2, Copy, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import {
-  useGuiaSlots,
-  guiaActions,
-  SLOT_KIND_LABELS,
-  type GuiaSlot,
-  type GuiaSlotKind,
-} from "@/lib/guia-mock";
+  adminListSlots,
+  adminUpdateSlot,
+  adminDeleteSlot,
+  adminDuplicateSlot,
+  adminMoveSlot,
+} from "@/lib/guia-admin.functions";
+import { SLOT_KIND_LABELS, type GuiaSlot, type GuiaSlotKind } from "@/lib/guia-types";
 import { SlotCard } from "@/components/guia/SlotCard";
 import { SlotFormDialog } from "@/components/guia/SlotFormDialog";
 import { toast } from "sonner";
@@ -28,11 +30,42 @@ export const Route = createFileRoute("/platform/guia/slots")({
   component: PlatformGuiaSlots,
 });
 
+export const SLOTS_KEY = ["guia-admin", "slots"];
+
 function PlatformGuiaSlots() {
+  const qc = useQueryClient();
   const [kind, setKind] = useState<GuiaSlotKind>("hero");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<GuiaSlot | null>(null);
-  const slots = useGuiaSlots(kind);
+
+  const { data: all = [], isLoading } = useQuery({
+    queryKey: SLOTS_KEY,
+    queryFn: () => adminListSlots(),
+  });
+  const slots = all.filter((s) => s.kind === kind);
+  const invalidate = () => qc.invalidateQueries({ queryKey: SLOTS_KEY });
+
+  const update = useMutation({
+    mutationFn: (v: { id: string; patch: Partial<GuiaSlot> }) =>
+      adminUpdateSlot({ data: { id: v.id, patch: v.patch as never } }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const move = useMutation({
+    mutationFn: (v: { id: string; dir: number }) => adminMoveSlot({ data: v }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const duplicate = useMutation({
+    mutationFn: (id: string) => adminDuplicateSlot({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Duplicado."); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => adminDeleteSlot({ data: { id } }),
+    onSuccess: () => { invalidate(); toast.success("Removido."); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <div className="space-y-5">
@@ -62,7 +95,11 @@ function PlatformGuiaSlots() {
         </CardContent>
       </Card>
 
-      {slots.length === 0 ? (
+      {isLoading ? (
+        <Card><CardContent className="flex items-center justify-center gap-2 p-10 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+        </CardContent></Card>
+      ) : slots.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-sm text-muted-foreground">
           Nenhum item deste tipo. Clique em "Novo" para criar.
         </CardContent></Card>
@@ -86,15 +123,15 @@ function PlatformGuiaSlots() {
                   <div className="flex items-center gap-1">
                     <Switch
                       checked={s.active}
-                      onCheckedChange={(v) => guiaActions.updateSlot(s.id, { active: v })}
+                      onCheckedChange={(v) => update.mutate({ id: s.id, patch: { active: v } })}
                     />
-                    <Button size="icon" variant="ghost" onClick={() => guiaActions.moveSlot(s.id, -1)} disabled={i === 0}>
+                    <Button size="icon" variant="ghost" onClick={() => move.mutate({ id: s.id, dir: -1 })} disabled={i === 0}>
                       <ArrowUp className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => guiaActions.moveSlot(s.id, 1)} disabled={i === slots.length - 1}>
+                    <Button size="icon" variant="ghost" onClick={() => move.mutate({ id: s.id, dir: 1 })} disabled={i === slots.length - 1}>
                       <ArrowDown className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => { guiaActions.duplicateSlot(s.id); toast.success("Duplicado."); }}>
+                    <Button size="icon" variant="ghost" onClick={() => duplicate.mutate(s.id)}>
                       <Copy className="h-4 w-4" />
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => { setEditing(s); setOpen(true); }}>
@@ -102,8 +139,7 @@ function PlatformGuiaSlots() {
                     </Button>
                     <Button size="icon" variant="ghost" onClick={async () => {
                       if (await confirmDialog({ title: `Remover "${s.title}"?`, variant: "destructive", confirmText: "Remover" })) {
-                        guiaActions.deleteSlot(s.id);
-                        toast.success("Removido.");
+                        remove.mutate(s.id);
                       }
                     }}>
                       <Trash2 className="h-4 w-4 text-destructive" />

@@ -1,6 +1,6 @@
 import { Star, Timer } from "lucide-react";
 import { brl } from "@/lib/format";
-import type { GuiaSlot } from "@/lib/guia-mock";
+import type { GuiaSlot } from "@/lib/guia-types";
 
 function formatCountdown(endsAt?: string): string {
   if (!endsAt) return "";

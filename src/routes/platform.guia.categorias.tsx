@@ -1,5 +1,6 @@
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,20 +14,54 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
-import { useGuiaCategories, guiaActions, type GuiaCategory } from "@/lib/guia-mock";
+import { Plus, Pencil, Trash2, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import {
+  adminListCategories,
+  adminCreateCategory,
+  adminUpdateCategory,
+  adminDeleteCategory,
+  adminMoveCategory,
+} from "@/lib/guia-admin.functions";
+import type { GuiaCategory } from "@/lib/guia-types";
 import { ImagePickerField } from "@/components/guia/ImagePickerField";
 import { toast } from "sonner";
-
 
 export const Route = createFileRoute("/platform/guia/categorias")({
   component: PlatformGuiaCategorias,
 });
 
+const KEY = ["guia-admin", "categories"];
+
 function PlatformGuiaCategorias() {
-  const cats = useGuiaCategories();
+  const qc = useQueryClient();
+  const { data: cats = [], isLoading } = useQuery({
+    queryKey: KEY,
+    queryFn: () => adminListCategories(),
+  });
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<GuiaCategory | null>(null);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: KEY });
+
+  const update = useMutation({
+    mutationFn: (v: { id: string; patch: Partial<GuiaCategory> }) =>
+      adminUpdateCategory({ data: { id: v.id, patch: v.patch as never } }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const move = useMutation({
+    mutationFn: (v: { id: string; dir: number }) => adminMoveCategory({ data: v }),
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => adminDeleteCategory({ data: { id } }),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Categoria removida.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   return (
     <Card>
@@ -56,7 +91,6 @@ function PlatformGuiaCategorias() {
                 )}
               </span>
 
-
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{c.label}</p>
                 <p className="text-xs text-muted-foreground">/{c.slug}</p>
@@ -64,15 +98,15 @@ function PlatformGuiaCategorias() {
               <div className="flex items-center gap-1">
                 <Switch
                   checked={c.active}
-                  onCheckedChange={(v) => guiaActions.updateCategory(c.id, { active: v })}
+                  onCheckedChange={(v) => update.mutate({ id: c.id, patch: { active: v } })}
                 />
                 <span className="text-xs">{c.active ? "Ativa" : "Oculta"}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Button size="icon" variant="ghost" onClick={() => guiaActions.moveCategory(c.id, -1)} disabled={i === 0}>
+                <Button size="icon" variant="ghost" onClick={() => move.mutate({ id: c.id, dir: -1 })} disabled={i === 0}>
                   <ArrowUp className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => guiaActions.moveCategory(c.id, 1)} disabled={i === cats.length - 1}>
+                <Button size="icon" variant="ghost" onClick={() => move.mutate({ id: c.id, dir: 1 })} disabled={i === cats.length - 1}>
                   <ArrowDown className="h-4 w-4" />
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => { setEditing(c); setOpen(true); }}>
@@ -80,8 +114,7 @@ function PlatformGuiaCategorias() {
                 </Button>
                 <Button size="icon" variant="ghost" onClick={async () => {
                   if (await confirmDialog({ title: `Remover categoria "${c.label}"?`, variant: "destructive", confirmText: "Remover" })) {
-                    guiaActions.deleteCategory(c.id);
-                    toast.success("Categoria removida.");
+                    remove.mutate(c.id);
                   }
                 }}>
                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -89,7 +122,12 @@ function PlatformGuiaCategorias() {
               </div>
             </div>
           ))}
-          {cats.length === 0 && (
+          {isLoading && (
+            <p className="flex items-center justify-center gap-2 p-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+            </p>
+          )}
+          {!isLoading && cats.length === 0 && (
             <p className="p-6 text-center text-sm text-muted-foreground">
               Nenhuma categoria cadastrada.
             </p>
@@ -101,6 +139,7 @@ function PlatformGuiaCategorias() {
           onOpenChange={setOpen}
           editing={editing}
           existingSlugs={cats.map((c) => c.slug)}
+          onSaved={invalidate}
         />
       </CardContent>
     </Card>
@@ -122,11 +161,13 @@ function CategoryDialog({
   onOpenChange,
   editing,
   existingSlugs,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   editing: GuiaCategory | null;
   existingSlugs: string[];
+  onSaved: () => void;
 }) {
   const [label, setLabel] = useState(editing?.label ?? "");
   const [slug, setSlug] = useState(editing?.slug ?? "");
@@ -135,7 +176,6 @@ function CategoryDialog({
   const [imageFit, setImageFit] = useState<"cover" | "contain">(editing?.imageFit ?? "cover");
   const [active, setActive] = useState(editing?.active ?? true);
 
-  // reset when opening for a different item
   useEffect(() => {
     setLabel(editing?.label ?? "");
     setSlug(editing?.slug ?? "");
@@ -145,8 +185,26 @@ function CategoryDialog({
     setActive(editing?.active ?? true);
   }, [editing, open]);
 
+  const save = useMutation({
+    mutationFn: async (payload: {
+      label: string; slug: string; emoji: string; imageUrl?: string; imageFit: "cover" | "contain"; active: boolean;
+    }) => {
+      if (editing) {
+        await adminUpdateCategory({ data: { id: editing.id, patch: payload } });
+      } else {
+        await adminCreateCategory({ data: payload });
+      }
+    },
+    onSuccess: () => {
+      onSaved();
+      toast.success(editing ? "Categoria atualizada." : "Categoria criada.");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const submit = () => {
-    const finalSlug = (slug.trim() || slugify(label));
+    const finalSlug = slug.trim() || slugify(label);
     if (!label.trim() || !finalSlug) {
       toast.error("Nome e slug obrigatórios.");
       return;
@@ -156,17 +214,8 @@ function CategoryDialog({
       toast.error("Já existe uma categoria com esse slug.");
       return;
     }
-    const base = { label: label.trim(), slug: finalSlug, emoji: emoji.trim(), imageUrl, imageFit, active };
-    if (editing) {
-      guiaActions.updateCategory(editing.id, base);
-      toast.success("Categoria atualizada.");
-    } else {
-      guiaActions.createCategory(base);
-      toast.success("Categoria criada.");
-    }
-    onOpenChange(false);
+    save.mutate({ label: label.trim(), slug: finalSlug, emoji: emoji.trim(), imageUrl, imageFit, active });
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -187,7 +236,6 @@ function CategoryDialog({
             <Label>Emoji <span className="text-muted-foreground font-normal">(opcional)</span></Label>
             <Input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={4} placeholder="deixe em branco pra ocultar" />
             <p className="mt-1 text-[11px] text-muted-foreground">Fallback quando não há imagem. Deixe em branco pra mostrar apenas o texto.</p>
-
           </div>
           <ImagePickerField
             specKey="category"
@@ -203,7 +251,10 @@ function CategoryDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={submit}>{editing ? "Salvar" : "Criar"}</Button>
+          <Button onClick={submit} disabled={save.isPending}>
+            {save.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {editing ? "Salvar" : "Criar"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
