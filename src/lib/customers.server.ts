@@ -14,6 +14,8 @@ export type CustomerRow = {
   id: string;
   phone: string;
   name: string | null;
+  email: string | null;
+  birthdate: string | null;
   device_token: string;
   last_cep: string | null;
   last_city: string | null;
@@ -30,6 +32,8 @@ export const cepDigits = (v: string | null | undefined) => (v || "").replace(/\D
 export type UpsertCustomerInput = {
   phone: string;
   name?: string | null;
+  email?: string | null;
+  birthdate?: string | null;
   cep?: string | null;
   city?: string | null;
   uf?: string | null;
@@ -53,6 +57,8 @@ export async function upsertCustomer(input: UpsertCustomerInput): Promise<Custom
   const patch: Record<string, unknown> = {
     phone,
     name: input.name?.trim() || existing?.name || null,
+    email: input.email?.trim() || existing?.email || null,
+    birthdate: input.birthdate || existing?.birthdate || null,
     last_cep: cepDigits(input.cep) || existing?.last_cep || null,
     last_city: input.city || existing?.last_city || null,
     last_uf: input.uf || existing?.last_uf || null,
@@ -137,6 +143,7 @@ export type CustomerOrderSummary = {
   tenant_slug: string;
   tenant_name: string;
   tenant_logo_url: string | null;
+  tenant_whatsapp: string | null;
 };
 
 export async function listOrdersForCustomer(customerId: string, phone: string): Promise<CustomerOrderSummary[]> {
@@ -153,7 +160,7 @@ export async function listOrdersForCustomer(customerId: string, phone: string): 
   const tenantIds = [...new Set(rows.map((o) => o.tenant_id as string))];
   const { data: tenants } = await supabaseAdmin
     .from("tenants")
-    .select("id, slug, name, logo_url")
+    .select("id, slug, name, logo_url, whatsapp")
     .in("id", tenantIds);
   const byId = new Map((tenants ?? []).map((t) => [t.id as string, t]));
 
@@ -168,6 +175,7 @@ export async function listOrdersForCustomer(customerId: string, phone: string): 
       tenant_slug: (t?.slug as string) ?? "",
       tenant_name: (t?.name as string) ?? "Loja",
       tenant_logo_url: (t?.logo_url as string) ?? null,
+      tenant_whatsapp: (t?.whatsapp as string) ?? null,
     };
   });
 }

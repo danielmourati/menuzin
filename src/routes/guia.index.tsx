@@ -13,16 +13,15 @@ import { getGuiaHome } from "@/lib/guia.functions";
 import type { GuiaSectionId, GuiaSlot } from "@/lib/guia-types";
 
 import { SlotCard } from "@/components/guia/SlotCard";
+import { GuiaSearchOverlay } from "@/components/guia/GuiaSearch";
+import { MessagesButton, NotificationsButton } from "@/components/guia/GuiaInbox";
 import { CepGateDialog, useGuiaLocation } from "@/components/guia/CepGateDialog";
 import {
-  Bell,
-  Bike,
   ChevronRight,
   Home,
   LayoutGrid,
   List,
   MapPin,
-  MessageSquare,
   Receipt,
   Rocket,
   Search,
@@ -84,7 +83,7 @@ export const Route = createFileRoute("/guia/")({
   component: GuiaHome,
 });
 
-const VERTICALS = [
+const VERTICALS: { id: "restaurantes" | "mercados" | "conveniencias"; label: string; emoji: string }[] = [
   { id: "restaurantes", label: "restaurantes", emoji: "🍔" },
   { id: "mercados", label: "mercados", emoji: "🛒" },
   { id: "conveniencias", label: "conveniências", emoji: "🍺" },
@@ -135,13 +134,23 @@ function GuiaHome() {
     if (needsLocation) setCepOpen(true);
   }, [needsLocation]);
 
-  const [vertical, setVertical] = useState("restaurantes");
+  const [vertical, setVertical] = useState<"restaurantes" | "mercados" | "conveniencias">("restaurantes");
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Só mostra os chips de vertical que realmente existem no banco.
+  const availableVerticals = VERTICALS.filter((v) =>
+    v.id === "restaurantes" ? true : allStores.some((s) => s.vertical === v.id),
+  );
+  useEffect(() => {
+    if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
+  }, [availableVerticals, vertical]);
   const [storesView, setStoresView] = useState<"grid" | "list">("list");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
+  const verticalStores = allStores.filter((s) => s.vertical === vertical);
   const filteredStores = categoryFilter
-    ? allStores.filter((s) => s.categories.includes(categoryFilter))
-    : allStores;
+    ? verticalStores.filter((s) => s.categories.includes(categoryFilter))
+    : verticalStores;
   const activeCategoryLabel = categoryFilter
     ? (managedCategories.find((c) => c.slug === categoryFilter)?.label
         ?? DIRECTORY_CATEGORIES.find((c) => c.slug === categoryFilter)?.label
@@ -151,6 +160,7 @@ function GuiaHome() {
   return (
     <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
+      <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
         <div className="mx-auto max-w-5xl px-4 pb-2 pt-3">
@@ -173,32 +183,25 @@ function GuiaHome() {
                 </p>
               </div>
             </button>
-            <button type="button" aria-label="Mensagens"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border bg-background text-muted-foreground hover:text-foreground">
-              <MessageSquare className="h-4 w-4" />
-            </button>
-            <button type="button" aria-label="Notificações"
-              className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full border bg-background text-muted-foreground hover:text-foreground">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                6
-              </span>
-            </button>
+            <MessagesButton />
+            <NotificationsButton offers={[...flashSlots, ...featuredSlots]} />
           </div>
 
           {/* Search */}
-          <label className="mt-3 flex items-center gap-2 rounded-2xl border bg-background px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="mt-3 flex w-full items-center gap-2 rounded-2xl border bg-background px-3 py-2 text-left"
+          >
             <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Busque por lojas, pratos ou promoções…"
-              className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            />
-          </label>
+            <span className="text-sm text-muted-foreground">
+              Busque por lojas, pratos ou promoções…
+            </span>
+          </button>
 
           {/* Verticals */}
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {VERTICALS.map((v) => {
+            {availableVerticals.map((v) => {
               const active = v.id === vertical;
               return (
                 <button
@@ -236,7 +239,6 @@ function GuiaHome() {
                   <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {visibleCategories.map((c) => {
                       const isReal = true;
-                      const count = countOf(c.slug);
                       const isSelected = categoryFilter === c.slug;
 
                       const inner = (
@@ -254,11 +256,6 @@ function GuiaHome() {
                           )}
 
                           <span className={`text-xs font-semibold leading-tight lowercase ${isSelected ? "text-primary" : ""}`}>{c.label}</span>
-                          {count > 0 && (
-                            <span className="text-[10px] text-muted-foreground">
-                              {count} {count === 1 ? "opção" : "opções"}
-                            </span>
-                          )}
                         </>
                       );
                       const cls = `group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center ${isSelected ? "" : ""}`;
@@ -408,7 +405,11 @@ function GuiaHome() {
       >
         <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />
-          <BottomTab icon={<Search className="h-5 w-5" />} label="busca" />
+          <BottomTab
+            icon={<Search className="h-5 w-5" />}
+            label="busca"
+            onClick={() => setSearchOpen(true)}
+          />
           <Link
             to="/meus-pedidos"
             className="flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold text-muted-foreground transition hover:text-foreground"
@@ -416,7 +417,13 @@ function GuiaHome() {
             <Receipt className="h-5 w-5" />
             pedidos
           </Link>
-          <BottomTab icon={<User className="h-5 w-5" />} label="conta" />
+          <Link
+            to="/minha-conta"
+            className="flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold text-muted-foreground transition hover:text-foreground"
+          >
+            <User className="h-5 w-5" />
+            conta
+          </Link>
         </div>
       </nav>
     </div>
@@ -551,14 +558,17 @@ function BottomTab({
   icon,
   label,
   active,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className={`flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold transition ${
         active
           ? "bg-primary/10 text-primary"
@@ -676,10 +686,6 @@ function AllStoresSection({
                 <p className="line-clamp-1 text-[11px] text-muted-foreground">
                   {s.neighborhood ?? s.city ?? "no bairro"}
                 </p>
-                <p className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                  <Bike className="h-3 w-3" />
-                  {s.product_count} {s.product_count === 1 ? "item" : "itens"}
-                </p>
               </div>
             </Link>
           ))}
@@ -719,13 +725,7 @@ function AllStoresSection({
                   {s.categories.length > 0 ? ` · ${s.categories.slice(0, 3).join(", ")}` : ""}
                 </p>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                  <Bike className="h-3 w-3" />
-                  {s.product_count}
-                </p>
-                <ChevronRight className="ml-auto mt-0.5 h-4 w-4 text-muted-foreground" />
-              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </Link>
           ))}
         </div>

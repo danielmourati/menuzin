@@ -16,6 +16,9 @@ export type CustomerProfile = {
   phone: string;
   token?: string | null;
   name?: string | null;
+  email?: string | null;
+  birthdate?: string | null;
+  cepAsked?: boolean;
   cep?: string | null;
   city?: string | null;
   uf?: string | null;
@@ -89,5 +92,7 @@ function subscribe(cb: () => void) {
 export function useCustomerProfile(): CustomerProfile | null {
   return useSyncExternalStore(subscribe, readCustomerProfile, () => null);
 }
+
+export const markCepAsked = () => writeCustomerProfile({ cepAsked: true });
 
 export const hasSavedProfile = (p: CustomerProfile | null) => !!p?.phone && !!p?.name;

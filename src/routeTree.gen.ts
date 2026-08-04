@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
 import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
 import { Route as SlugRouteImport } from './routes/$slug'
@@ -70,6 +71,11 @@ import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$sl
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaContaRoute = MinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MeusPedidosRoute = MeusPedidosRouteImport.update({
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
   '/meus-pedidos': typeof MeusPedidosRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -426,6 +433,7 @@ export interface FileRoutesByTo {
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
   '/meus-pedidos': typeof MeusPedidosRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -484,6 +492,7 @@ export interface FileRoutesById {
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
   '/meus-pedidos': typeof MeusPedidosRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -545,6 +554,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/comece-agora'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -604,6 +614,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/comece-agora'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -661,6 +672,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/comece-agora'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/sitemap.xml'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -721,6 +733,7 @@ export interface RootRouteChildren {
   SlugRoute: typeof SlugRouteWithChildren
   ComeceAgoraRoute: typeof ComeceAgoraRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
+  MinhaContaRoute: typeof MinhaContaRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
@@ -766,6 +779,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-conta': {
+      id: '/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof MinhaContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meus-pedidos': {
@@ -1239,6 +1259,7 @@ const rootRouteChildren: RootRouteChildren = {
   SlugRoute: SlugRouteWithChildren,
   ComeceAgoraRoute: ComeceAgoraRoute,
   MeusPedidosRoute: MeusPedidosRoute,
+  MinhaContaRoute: MinhaContaRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
@@ -1279,13 +1300,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
