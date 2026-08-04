@@ -26,7 +26,8 @@ export function useGuiaLocation() {
       ? { cep: profile.cep, city: profile.city, uf: profile.uf ?? null }
       : null;
 
-  return { location, needsLocation: hydrated && !location, hydrated };
+  // O CEP é pedido uma única vez por dispositivo; depois fica guardado.
+  return { location, needsLocation: hydrated && !location && !profile?.cepAsked, hydrated };
 }
 
 export function CepGateDialog({
@@ -55,6 +56,7 @@ export function CepGateDialog({
     try {
       const res = await resolveCityByCep({ data: { cep: digits } });
       if (!res.city) {
+        writeCustomerProfile({ cep: digits, cepAsked: true });
         setError("Não encontramos esse CEP. Confira e tente novamente.");
         return;
       }
@@ -63,6 +65,7 @@ export function CepGateDialog({
         city: res.city,
         uf: res.uf,
         neighborhood: res.neighborhood,
+        cepAsked: true,
       });
       onResolved?.({ cep: res.cep, city: res.city, uf: res.uf });
       onOpenChange(false);

@@ -73,7 +73,18 @@ export type DirectoryStore = {
   categories: string[];
   product_count: number;
   has_featured: boolean;
+  vertical: GuiaVertical;
 };
+
+export type GuiaVertical = "restaurantes" | "mercados" | "conveniencias";
+
+/** Maps the tenant business types into one of the Guia top-level verticals. */
+export function verticalOf(types: string[] | null | undefined): GuiaVertical {
+  const t = (types ?? []).map((x) => String(x).toLowerCase());
+  if (t.some((x) => /mercado|mercearia|hortifruti|supermerc/.test(x))) return "mercados";
+  if (t.some((x) => /conveniencia|adega|tabacaria|bebida/.test(x))) return "conveniencias";
+  return "restaurantes";
+}
 
 export const listAllStores = createServerFn({ method: "GET" }).handler(async () => {
   const { data, error } = await supabaseAdmin
@@ -112,9 +123,22 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
         categories: raw.category ? [raw.category] : [],
         product_count: 1,
         has_featured: isFeat,
+        vertical: "restaurantes",
       });
     }
   }
+  const ids = Array.from(map.keys());
+  if (ids.length) {
+    const { data: tRows } = await supabaseAdmin
+      .from("tenants")
+      .select("id, business_types")
+      .in("id", ids);
+    for (const t of (tRows ?? []) as { id: string; business_types: string[] | null }[]) {
+      const store = map.get(t.id);
+      if (store) store.vertical = verticalOf(t.business_types);
+    }
+  }
+
   const stores = Array.from(map.values()).sort((a, b) => {
     if (a.has_featured !== b.has_featured) return a.has_featured ? -1 : 1;
     if (a.product_count !== b.product_count) return b.product_count - a.product_count;
@@ -243,4 +267,68 @@ export const getTenantMetrics = createServerFn({ method: "POST" })
       days,
       top,
     };
+  });
+
+const SearchInput = z.object({ term: z.string().min(1).max(60) });
+
+export type GuiaSearchResult = {
+  stores: { tenant_id: string; tenant_slug: string; tenant_name: string; tenant_logo: string | null; neighborhood: string | null }[];
+  products: { product_id: string; name: string; price: number; promo_price: number | null; image_url: string | null; tenant_name: string }[];
+};
+
+/** Free-text search across stores and dishes published in the Guia. */
+export const searchGuia = createServerFn({ method: "POST" })
+  .inputValidator((d) => SearchInput.parse(d))
+  .handler(async ({ data }): Promise<GuiaSearchResult> => {
+    const term = data.term.trim().replace(/[%,]/g, " ");
+    if (term.length < 2) return { stores: [], products: [] };
+    const like = `%${term}%`;
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("directory_public")
+      .select("product_id, name, price, promo_price, image_url, tenant_id, tenant_slug, tenant_name, tenant_logo, neighborhood")
+      .or(`name.ilike.${like},tenant_name.ilike.${like}`)
+      .limit(60);
+    if (error) throw new Error(error.message);
+
+    const list = (rows ?? []) as unknown as Array<{
+      product_id: string; name: string; price: number; promo_price: number | null;
+      image_url: string | null; tenant_id: string; tenant_slug: string; tenant_name: string;
+      tenant_logo: string | null; neighborhood: string | null;
+    }>;
+
+    const storeMap = new Map<string, GuiaSearchResult["stores"][number]>();
+    const products: GuiaSearchResult["products"] = [];
+    const lowered = term.toLowerCase();
+    for (const r of list) {
+      if (!storeMap.has(r.tenant_id)) {
+        storeMap.set(r.tenant_id, {
+          tenant_id: r.tenant_id,
+          tenant_slug: r.tenant_slug,
+          tenant_name: r.tenant_name,
+          tenant_logo: r.tenant_logo,
+          neighborhood: r.neighborhood,
+        });
+      }
+      if (r.name.toLowerCase().includes(lowered) && products.length < 20) {
+        products.push({
+          product_id: r.product_id,
+          name: r.name,
+          price: Number(r.price),
+          promo_price: r.promo_price == null ? null : Number(r.promo_price),
+          image_url: r.image_url,
+          tenant_name: r.tenant_name,
+        });
+      }
+    }
+
+    const stores = Array.from(storeMap.values())
+      .sort((a, b) => {
+        const am = a.tenant_name.toLowerCase().includes(lowered) ? 0 : 1;
+        const bm = b.tenant_name.toLowerCase().includes(lowered) ? 0 : 1;
+        return am - bm || a.tenant_name.localeCompare(b.tenant_name);
+      })
+      .slice(0, 12);
+
+    return { stores, products };
   });

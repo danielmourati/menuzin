@@ -456,8 +456,10 @@ export type Database = {
       }
       customers: {
         Row: {
+          birthdate: string | null
           created_at: string
           device_token: string
+          email: string | null
           id: string
           last_address: Json | null
           last_cep: string | null
@@ -471,8 +473,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          birthdate?: string | null
           created_at?: string
           device_token?: string
+          email?: string | null
           id?: string
           last_address?: Json | null
           last_cep?: string | null
@@ -486,8 +490,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          birthdate?: string | null
           created_at?: string
           device_token?: string
+          email?: string | null
           id?: string
           last_address?: Json | null
           last_cep?: string | null
