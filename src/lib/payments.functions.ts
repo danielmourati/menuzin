@@ -242,7 +242,10 @@ export const saveMpCredentials = createServerFn({ method: "POST" })
     const tenantId = tenantIdEarly;
     const encrypted = await encryptToken(data.mp_access_token);
 
-    const { error } = await supabase
+    // Tokens are service_role-only columns: write them with the admin client
+    // after the tenant has already been verified for this user.
+    const { supabaseAdmin: adminSave } = await import("@/integrations/supabase/client.server");
+    const { error } = await adminSave
       .from("store_payment_settings")
       .upsert(
         {
@@ -286,7 +289,8 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const tenantId = await resolveTenantId(supabase, userId);
-    const { error } = await supabase
+    const { supabaseAdmin: adminDisc } = await import("@/integrations/supabase/client.server");
+    const { error } = await adminDisc
       .from("store_payment_settings")
       .update({
         mp_connected: false,
