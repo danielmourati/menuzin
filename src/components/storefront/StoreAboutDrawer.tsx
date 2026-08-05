@@ -66,20 +66,36 @@ export function StoreAboutDrawer({
       >
         {/* Hero */}
         <div
-          className="relative flex flex-col items-center gap-3 px-6 pb-8 pt-10 text-center"
+          className="relative flex flex-col items-center gap-3 px-6 pb-10 pt-14 text-center"
           style={bannerStyle}
         >
-          <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md">
+          {tenant.coverUrl && (
+            <button
+              type="button"
+              onClick={() => setCoverOpen(true)}
+              aria-label="Ver imagem de capa"
+              className="absolute inset-0 z-0"
+            />
+          )}
+          <div className="pointer-events-none relative z-10 grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md">
             {tenant.logoUrl ? (
               <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
             ) : (
               <span className="text-3xl font-bold text-foreground">{tenant.logoLetter}</span>
             )}
           </div>
-          <h2 className="max-w-[80%] text-xl font-bold text-white drop-shadow">
+          <h2 className="pointer-events-none relative z-10 max-w-[80%] text-xl font-bold text-white drop-shadow">
             {tenant.name}
           </h2>
         </div>
+
+        <ImageLightbox
+          open={coverOpen}
+          onOpenChange={setCoverOpen}
+          src={tenant.coverUrl}
+          alt={`Capa de ${tenant.name}`}
+        />
+
 
         {/* Chips */}
         <div className="mx-4 mt-4 mb-4 flex flex-wrap items-center justify-center gap-2 rounded-2xl border bg-card p-3 shadow-[var(--shadow-soft)]">
