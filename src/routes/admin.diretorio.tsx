@@ -335,6 +335,8 @@ function ProductsBlock() {
         <div className="mt-4 divide-y rounded-xl border">
           {data!.products.map((p) => {
             const isFeatured = p.directory_featured_until && new Date(p.directory_featured_until).getTime() > now;
+            const effectiveCategory = p.directory_category ?? p.suggested_category ?? "";
+            const isSuggestion = !p.directory_category && !!p.suggested_category;
             return (
               <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
                 <img src={productImage(p.image_url)} alt={p.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
@@ -346,10 +348,13 @@ function ProductsBlock() {
                       Categoria removida — escolha outra
                     </p>
                   )}
+                  {isSuggestion && (
+                    <p className="mt-1 text-[10px] text-muted-foreground">sugerido pelo cardápio</p>
+                  )}
                 </div>
                 <div className="w-44">
                   <Select
-                    value={p.directory_category ?? ""}
+                    value={effectiveCategory}
                     onValueChange={(v) => updateMut.mutate({ product_id: p.id, directory_category: v || null })}
                   >
                     <SelectTrigger className="h-9">
@@ -370,6 +375,7 @@ function ProductsBlock() {
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div className="flex items-center gap-2">
                   <Switch
                     checked={p.directory_visible}
