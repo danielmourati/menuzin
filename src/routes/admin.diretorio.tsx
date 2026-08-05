@@ -341,6 +341,11 @@ function ProductsBlock() {
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-semibold">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{brl(p.promo_price ?? p.price)}</p>
+                  {p.directory_category && !(data?.guiaCategories.some((c) => c.slug === p.directory_category) ?? false) && (
+                    <p className="mt-1 text-[10px] text-destructive">
+                      Categoria removida — escolha outra
+                    </p>
+                  )}
                 </div>
                 <div className="w-44">
                   <Select
