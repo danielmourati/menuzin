@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,6 +65,7 @@ export function ProductModal({
   const [doughId, setDoughId] = useState<string | null>(null);
   const [crustId, setCrustId] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [imageOpen, setImageOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -307,15 +309,27 @@ export function ProductModal({
             ref={imgRef}
             src={productImage(product.image)}
             alt={product.name}
-            className={`h-full w-full will-change-transform ${isDefaultImg ? "object-contain p-8" : "object-cover"}`}
+            onClick={isDefaultImg ? undefined : () => setImageOpen(true)}
+            className={`h-full w-full will-change-transform ${isDefaultImg ? "object-contain p-8" : "pointer-events-auto cursor-zoom-in object-cover"}`}
             style={{ transform: "translate3d(0,0,0) scale(1)" }}
             loading="eager"
             fetchPriority="high"
             decoding="async"
           />
+
           <div ref={overlayRef} className="absolute inset-0 bg-black" style={{ opacity: 0 }} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/20" />
         </div>
+
+        {!isDefaultImg && (
+          <ImageLightbox
+            open={imageOpen}
+            onOpenChange={setImageOpen}
+            src={productImage(product.image)}
+            alt={product.name}
+          />
+        )}
+
 
         {/* Camada 3: chrome (recolher/voltar) + badge da loja — envolvido em div
             para não cair no seletor [&>button]:hidden do DialogContent. */}
