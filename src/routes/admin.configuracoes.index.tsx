@@ -92,6 +92,7 @@ function SettingsPage() {
       whatsapp: tenant.whatsapp ?? "",
       description: tenant.description ?? "",
       address: tenant.address ?? "",
+      neighborhood: tenant.neighborhood ?? "",
       city: tenant.city ?? "",
       state: tenant.state ?? "",
       delivery_fee: Number(tenant.delivery_fee ?? 0),
