@@ -194,17 +194,30 @@ export const saveProduct = createServerFn({ method: "POST" })
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
 
     let categoryKind: string | null = null;
+    let categoryName: string | null = null;
     if (data.category_id) {
       const { data: cat, error: cErr } = await sb
-        .from("categories").select("id, kind").eq("id", data.category_id)
+        .from("categories").select("id, kind, name").eq("id", data.category_id)
         .eq("tenant_id", tenantId).maybeSingle();
       if (cErr) throw new Error(cErr.message);
       if (!cat) throw new Error("Categoria inválida para este tenant.");
       categoryKind = (cat as { kind?: string | null }).kind ?? null;
+      categoryName = (cat as { name?: string | null }).name ?? null;
     }
     if (categoryKind === "pizza" && (data.listed_as_flavor === null || data.listed_as_flavor === undefined)) {
       throw new Error("Defina se este sabor entra na montagem de pizzas (listar como sabor).");
     }
+
+    // Categoria padrão do Guia herdada do cardápio / tipo de negócio.
+    const { inferGuiaCategory } = await import("@/lib/guia-category-infer");
+    const { data: tenantRow } = await sb
+      .from("tenants").select("business_types").eq("id", tenantId).maybeSingle();
+    const suggestedGuiaCategory = inferGuiaCategory({
+      menuCategoryName: categoryName,
+      productName: data.name,
+      businessTypes: ((tenantRow as { business_types?: string[] | null } | null)?.business_types) ?? [],
+    });
+
 
     const payload = {
       name: data.name,
