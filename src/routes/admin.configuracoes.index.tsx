@@ -36,6 +36,7 @@ type FormState = {
   whatsapp: string;
   description: string;
   address: string;
+  neighborhood: string;
   city: string;
   state: string;
   delivery_fee: number;
@@ -68,7 +69,7 @@ function SettingsPage() {
 
 
   const [form, setForm] = useState<FormState>({
-    name: "", whatsapp: "", description: "", address: "", city: "", state: "",
+    name: "", whatsapp: "", description: "", address: "", neighborhood: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
@@ -91,6 +92,7 @@ function SettingsPage() {
       whatsapp: tenant.whatsapp ?? "",
       description: tenant.description ?? "",
       address: tenant.address ?? "",
+      neighborhood: tenant.neighborhood ?? "",
       city: tenant.city ?? "",
       state: tenant.state ?? "",
       delivery_fee: Number(tenant.delivery_fee ?? 0),
@@ -186,6 +188,7 @@ function SettingsPage() {
               </div>
               <div className="md:col-span-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
+              <div><Label>Bairro</Label><Input value={form.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
               <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>
               <div className="md:col-span-2">

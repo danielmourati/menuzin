@@ -26,6 +26,10 @@ const SignupInput = z.object({
   slug: SlugSchema,
   whatsapp: z.string().trim().min(8).max(20),
   city: z.string().trim().max(80).optional().default(""),
+  state: z.string().trim().max(40).optional().default(""),
+  address: z.string().trim().max(240).optional().default(""),
+  neighborhood: z.string().trim().max(80).optional().default(""),
+  cep: z.string().trim().max(9).optional().default(""),
   email: z.string().trim().email().max(160),
   password: z.string().min(8).max(72),
   full_name: z.string().trim().max(120).optional().default(""),
@@ -67,6 +71,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
 
     // Cria tenant Presença
     const whatsappDigits = data.whatsapp.replace(/\D/g, "");
+    const cepDigits = data.cep.replace(/\D/g, "");
     const { data: tenant, error: tErr } = await supabaseAdmin
       .from("tenants")
       .insert({
@@ -74,6 +79,10 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         name: data.name,
         whatsapp: whatsappDigits,
         city: data.city || "",
+        state: data.state || "",
+        address: data.address || "",
+        neighborhood: data.neighborhood || "",
+        cep: cepDigits ? `${cepDigits.slice(0, 5)}-${cepDigits.slice(5)}` : "",
         logo_letter: data.name.charAt(0).toUpperCase(),
         plan: "presenca",
         status: "ativa",

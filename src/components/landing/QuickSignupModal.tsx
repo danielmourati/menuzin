@@ -9,6 +9,7 @@ import { Loader2, CheckCircle2, XCircle, Store, ChevronLeft, Utensils } from "lu
 import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
 import { maskPhone } from "@/lib/masks";
+import { lookupByCep } from "@/lib/viacep";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +33,12 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
+  const [cep, setCep] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
 
   // Step 3
   const [email, setEmail] = useState("");
@@ -48,7 +54,12 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       setSlug("");
       setSlugTouched(false);
       setWhatsapp("");
+      setCep("");
+      setStreet("");
+      setNumber("");
+      setNeighborhood("");
       setCity("");
+      setState("");
       setEmail("");
       setPw("");
       setPw2("");
@@ -57,6 +68,21 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
   }, [open]);
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
+
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let cancelled = false;
+    lookupByCep(digits).then((res) => {
+      if (cancelled || res.status !== "ok" || res.results.length === 0) return;
+      const r = res.results[0];
+      if (!street) setStreet(r.logradouro);
+      if (!neighborhood) setNeighborhood(r.bairro);
+      if (!city) setCity(r.localidade);
+      if (!state) setState(r.uf);
+    });
+    return () => { cancelled = true; };
+  }, [cep]);
 
   const { data: slugCheck, isFetching: slugChecking } = useQuery({
     queryKey: ["public-slug-check", computedSlug],
@@ -72,7 +98,14 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
   const step1Valid = businessType !== null;
   const step2Valid =
-    name.trim().length >= 2 && slugOk && whatsapp.replace(/\D/g, "").length >= 10;
+    name.trim().length >= 2 &&
+    slugOk &&
+    whatsapp.replace(/\D/g, "").length >= 10 &&
+    street.trim().length >= 3 &&
+    number.trim().length > 0 &&
+    neighborhood.trim().length >= 2 &&
+    city.trim().length >= 2 &&
+    state.trim().length === 2;
   const step3Valid = emailValid && pwStrong && pwMatch && accept;
 
   const canSubmit = step1Valid && step2Valid && step3Valid;
@@ -102,6 +135,10 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
           slug: computedSlug,
           whatsapp: whatsapp.replace(/\D/g, ""),
           city: city.trim(),
+          state: state.trim().toUpperCase(),
+          address: `${street.trim()}, ${number.trim()}`,
+          neighborhood: neighborhood.trim(),
+          cep,
           email: email.trim().toLowerCase(),
           password: pw,
           full_name: name.trim(),
@@ -263,8 +300,50 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                   />
                 </div>
                 <div>
-                  <Label>Cidade (opcional)</Label>
+                  <Label>CEP</Label>
+                  <Input
+                    value={cep}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      setCep(digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits);
+                    }}
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    maxLength={9}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-[1fr_100px]">
+                <div>
+                  <Label>Rua / Avenida</Label>
+                  <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Ex.: Rua das Flores" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label>Nº</Label>
+                  <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="123" className="mt-1.5" />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <Label>Bairro</Label>
+                  <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Centro" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label>Cidade</Label>
                   <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Sua cidade" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input
+                    value={state}
+                    onChange={(e) => setState(e.target.value.toUpperCase())}
+                    placeholder="PI"
+                    maxLength={2}
+                    className="mt-1.5"
+                  />
                 </div>
               </div>
             </div>

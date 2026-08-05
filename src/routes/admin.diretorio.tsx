@@ -14,7 +14,7 @@ import {
   setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct,
   featureDirectoryProduct, clearDirectoryFeature,
 } from "@/lib/directory-admin.functions";
-import { getTenantMetrics, DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
+import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
 import { createPromoRequest } from "@/lib/guia-admin.functions";
@@ -341,17 +341,32 @@ function ProductsBlock() {
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-semibold">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{brl(p.promo_price ?? p.price)}</p>
+                  {p.directory_category && !(data?.guiaCategories.some((c) => c.slug === p.directory_category) ?? false) && (
+                    <p className="mt-1 text-[10px] text-destructive">
+                      Categoria removida — escolha outra
+                    </p>
+                  )}
                 </div>
-                <div className="w-40">
+                <div className="w-44">
                   <Select
                     value={p.directory_category ?? ""}
                     onValueChange={(v) => updateMut.mutate({ product_id: p.id, directory_category: v || null })}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Categoria" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {DIRECTORY_CATEGORIES.map((c) => (
-                        <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.label}</SelectItem>
-                      ))}
+                      {(data?.guiaCategories.length ?? 0) === 0 ? (
+                        <SelectItem value="__empty__" disabled>
+                          Nenhuma categoria ativa no Guia
+                        </SelectItem>
+                      ) : (
+                        data!.guiaCategories.map((c) => (
+                          <SelectItem key={c.slug} value={c.slug}>
+                            {c.emoji} {c.label}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
