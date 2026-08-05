@@ -9,6 +9,7 @@ import { Loader2, CheckCircle2, XCircle, Store, ChevronLeft, Utensils } from "lu
 import { toast } from "sonner";
 import { slugify } from "@/lib/utils";
 import { maskPhone } from "@/lib/masks";
+import { lookupByCep } from "@/lib/viacep";
 import { isSlugAvailable } from "@/lib/tenants.functions";
 import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
