@@ -98,7 +98,14 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
   const step1Valid = businessType !== null;
   const step2Valid =
-    name.trim().length >= 2 && slugOk && whatsapp.replace(/\D/g, "").length >= 10;
+    name.trim().length >= 2 &&
+    slugOk &&
+    whatsapp.replace(/\D/g, "").length >= 10 &&
+    street.trim().length >= 3 &&
+    number.trim().length > 0 &&
+    neighborhood.trim().length >= 2 &&
+    city.trim().length >= 2 &&
+    state.trim().length === 2;
   const step3Valid = emailValid && pwStrong && pwMatch && accept;
 
   const canSubmit = step1Valid && step2Valid && step3Valid;
