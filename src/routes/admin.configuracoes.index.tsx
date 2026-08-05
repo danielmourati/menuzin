@@ -36,6 +36,7 @@ type FormState = {
   whatsapp: string;
   description: string;
   address: string;
+  neighborhood: string;
   city: string;
   state: string;
   delivery_fee: number;
