@@ -320,6 +320,16 @@ export function ProductModal({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/20" />
         </div>
 
+        {!isDefaultImg && (
+          <ImageLightbox
+            open={imageOpen}
+            onOpenChange={setImageOpen}
+            src={productImage(product.image)}
+            alt={product.name}
+          />
+        )}
+
+
         {/* Camada 3: chrome (recolher/voltar) + badge da loja — envolvido em div
             para não cair no seletor [&>button]:hidden do DialogContent. */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
