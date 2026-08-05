@@ -1,11 +1,9 @@
+// Admin do lojista para o Guia Menuzin.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { resolveEffectiveTenantId } from "@/lib/active-tenant.server";
-import { DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
 
-const VALID_CATEGORIES = new Set(DIRECTORY_CATEGORIES.map((c) => c.slug));
 const CepRe = /^\d{5}-?\d{3}$/;
 
 const OptInInput = z.object({
@@ -20,6 +18,7 @@ export const setDirectoryOptIn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const payload: Record<string, unknown> = { directory_opt_in: data.opt_in };
     if (data.neighborhood !== undefined) payload.neighborhood = data.neighborhood;
@@ -43,16 +42,27 @@ export const listMyDirectoryProducts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
-    const { data: t } = await supabaseAdmin
-      .from("tenants")
-      .select("id, name, neighborhood, cep, directory_opt_in, plan")
-      .eq("id", tenantId).maybeSingle();
-    const { data: prods, error } = await supabaseAdmin
-      .from("products")
-      .select("id, name, image_url, price, promo_price, available, directory_visible, directory_category, directory_featured_until")
-      .eq("tenant_id", tenantId)
-      .order("name");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ data: t }, { data: prods, error }, { data: cats, error: catsErr }] = await Promise.all([
+      supabaseAdmin
+        .from("tenants")
+        .select("id, name, neighborhood, cep, directory_opt_in, plan")
+        .eq("id", tenantId).maybeSingle(),
+      supabaseAdmin
+        .from("products")
+        .select("id, name, image_url, price, promo_price, available, directory_visible, directory_category, directory_featured_until")
+        .eq("tenant_id", tenantId)
+        .order("name"),
+      supabaseAdmin
+        .from("guia_categories")
+        .select("slug, label, emoji")
+        .eq("active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
     if (error) throw new Error(error.message);
+    if (catsErr) throw new Error(catsErr.message);
+
     return {
       tenant: (t ?? null) as {
         id: string; name: string; neighborhood: string | null; cep: string | null;
@@ -63,6 +73,7 @@ export const listMyDirectoryProducts = createServerFn({ method: "GET" })
         available: boolean; directory_visible: boolean;
         directory_category: string | null; directory_featured_until: string | null;
       }[],
+      guiaCategories: (cats ?? []) as { slug: string; label: string; emoji: string }[],
     };
   });
 
@@ -77,15 +88,22 @@ export const updateDirectoryProduct = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    if (data.directory_category && !VALID_CATEGORIES.has(data.directory_category)) {
-      throw new Error("Categoria inválida.");
+    const { data: activeCats } = await supabaseAdmin
+      .from("guia_categories")
+      .select("slug")
+      .eq("active", true);
+    const validSlugs = new Set((activeCats ?? []).map((c) => (c as { slug: string }).slug));
+
+    if (data.directory_category && !validSlugs.has(data.directory_category)) {
+      throw new Error("Categoria inválida ou desativada.");
     }
     if (data.directory_visible === true) {
       const { data: p } = await supabaseAdmin
         .from("products").select("directory_category").eq("id", data.product_id).maybeSingle();
       const cat = data.directory_category ?? (p as { directory_category: string | null } | null)?.directory_category;
-      if (!cat) throw new Error("Escolha uma categoria antes de publicar.");
+      if (!cat || !validSlugs.has(cat)) throw new Error("Escolha uma categoria ativa antes de publicar.");
     }
 
     const payload: Record<string, unknown> = {};
@@ -105,6 +123,8 @@ export const featureDirectoryProduct = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const { data: t } = await supabaseAdmin
       .from("tenants").select("plan").eq("id", tenantId).maybeSingle();
     const plan = (t as { plan: string } | null)?.plan ?? "start";
@@ -126,6 +146,8 @@ export const clearDirectoryFeature = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const { error } = await supabaseAdmin
       .from("products")
       .update({ directory_featured_until: null })
