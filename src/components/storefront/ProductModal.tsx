@@ -307,12 +307,14 @@ export function ProductModal({
             ref={imgRef}
             src={productImage(product.image)}
             alt={product.name}
-            className={`h-full w-full will-change-transform ${isDefaultImg ? "object-contain p-8" : "object-cover"}`}
+            onClick={isDefaultImg ? undefined : () => setImageOpen(true)}
+            className={`h-full w-full will-change-transform ${isDefaultImg ? "object-contain p-8" : "pointer-events-auto cursor-zoom-in object-cover"}`}
             style={{ transform: "translate3d(0,0,0) scale(1)" }}
             loading="eager"
             fetchPriority="high"
             decoding="async"
           />
+
           <div ref={overlayRef} className="absolute inset-0 bg-black" style={{ opacity: 0 }} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-black/20" />
         </div>
