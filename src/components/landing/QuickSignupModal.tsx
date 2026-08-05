@@ -69,6 +69,21 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
   const computedSlug = slugTouched ? slugify(slug) : slugify(name);
 
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    let cancelled = false;
+    lookupByCep(digits).then((res) => {
+      if (cancelled || res.status !== "ok" || res.results.length === 0) return;
+      const r = res.results[0];
+      if (!street) setStreet(r.logradouro);
+      if (!neighborhood) setNeighborhood(r.bairro);
+      if (!city) setCity(r.localidade);
+      if (!state) setState(r.uf);
+    });
+    return () => { cancelled = true; };
+  }, [cep]);
+
   const { data: slugCheck, isFetching: slugChecking } = useQuery({
     queryKey: ["public-slug-check", computedSlug],
     queryFn: () => isSlugAvailable({ data: { slug: computedSlug } }),
