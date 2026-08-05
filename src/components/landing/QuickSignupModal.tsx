@@ -33,7 +33,12 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [whatsapp, setWhatsapp] = useState("");
+  const [cep, setCep] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
 
   // Step 3
   const [email, setEmail] = useState("");
