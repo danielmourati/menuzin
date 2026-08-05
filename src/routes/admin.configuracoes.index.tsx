@@ -69,7 +69,7 @@ function SettingsPage() {
 
 
   const [form, setForm] = useState<FormState>({
-    name: "", whatsapp: "", description: "", address: "", city: "", state: "",
+    name: "", whatsapp: "", description: "", address: "", neighborhood: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
