@@ -54,7 +54,12 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       setSlug("");
       setSlugTouched(false);
       setWhatsapp("");
+      setCep("");
+      setStreet("");
+      setNumber("");
+      setNeighborhood("");
       setCity("");
+      setState("");
       setEmail("");
       setPw("");
       setPw2("");
