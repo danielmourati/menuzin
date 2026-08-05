@@ -25,7 +25,6 @@ O que muda no formulário de cadastro:
 - `src/lib/directory-admin.functions.ts`: `listMyDirectoryProducts` passa a retornar também as categorias ativas de `guia_categories`; `updateDirectoryProduct` valida contra esse conjunto em vez de `DIRECTORY_CATEGORIES`.
 - `src/routes/admin.diretorio.tsx`: `Select` de categoria alimentado pela lista retornada do servidor.
 - `src/lib/directory.functions.ts`: `listCategories` continua igual (já lê do banco para o Guia público); a constante fixa deixa de ser usada como fonte de verdade no painel do lojista.
-- `src/routes/$slug.tsx` (+ `StoreAboutDrawer.tsx`): renderiza `tenant.business_types` com `BUSINESS_TYPE_LABELS`; requer expor `business_types` no retorno público da loja em `src/lib/catalog.functions.ts` caso ainda não venha.
 - `src/lib/signup.functions.ts`: schema ganha `cep`, `address`, `neighborhood`, `state` (opcionais) e grava em `tenants`.
 - `src/components/landing/QuickSignupModal.tsx`: novos campos com autopreenchimento via `src/lib/viacep.ts`.
 - Sem alterações de schema no banco (colunas `address`, `state`, `neighborhood`, `cep` já existem em `tenants`).
