@@ -247,8 +247,15 @@ export const saveProduct = createServerFn({ method: "POST" })
       offer_max_flavors: data.offer_max_flavors ?? null,
     };
     if (data.id) {
+      const { data: existing } = await sb
+        .from("products").select("directory_category").eq("id", data.id)
+        .eq("tenant_id", tenantId).maybeSingle();
+      const keepManual = (existing as { directory_category?: string | null } | null)?.directory_category ?? null;
+      const updatePayload = keepManual
+        ? payload
+        : { ...payload, directory_category: suggestedGuiaCategory };
       const { error } = await sb.from("products")
-        .update(payload as never).eq("id", data.id).eq("tenant_id", tenantId);
+        .update(updatePayload as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
@@ -266,7 +273,9 @@ export const saveProduct = createServerFn({ method: "POST" })
       }
     }
     const { data: row, error } = await sb.from("products")
-      .insert({ ...payload, tenant_id: tenantId } as never).select("id").single();
+      .insert({ ...payload, directory_category: suggestedGuiaCategory, tenant_id: tenantId } as never)
+      .select("id").single();
+
 
     if (error) throw new Error(error.message);
     return { id: row.id as string };
