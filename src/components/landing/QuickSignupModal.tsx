@@ -300,8 +300,50 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                   />
                 </div>
                 <div>
-                  <Label>Cidade (opcional)</Label>
+                  <Label>CEP</Label>
+                  <Input
+                    value={cep}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      setCep(digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits);
+                    }}
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    maxLength={9}
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-[1fr_100px]">
+                <div>
+                  <Label>Rua / Avenida</Label>
+                  <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Ex.: Rua das Flores" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label>Nº</Label>
+                  <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="123" className="mt-1.5" />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <Label>Bairro</Label>
+                  <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Centro" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label>Cidade</Label>
                   <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Sua cidade" className="mt-1.5" />
+                </div>
+                <div>
+                  <Label>UF</Label>
+                  <Input
+                    value={state}
+                    onChange={(e) => setState(e.target.value.toUpperCase())}
+                    placeholder="PI"
+                    maxLength={2}
+                    className="mt-1.5"
+                  />
                 </div>
               </div>
             </div>
