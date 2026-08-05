@@ -126,14 +126,35 @@ export const updateDirectoryProduct = createServerFn({ method: "POST" })
     }
     if (data.directory_visible === true) {
       const { data: p } = await supabaseAdmin
-        .from("products").select("directory_category").eq("id", data.product_id).maybeSingle();
-      const cat = data.directory_category ?? (p as { directory_category: string | null } | null)?.directory_category;
+        .from("products").select("directory_category, name, category_id").eq("id", data.product_id).maybeSingle();
+      const row = p as { directory_category: string | null; name: string; category_id: string | null } | null;
+      let cat = data.directory_category ?? row?.directory_category ?? null;
+      if (!cat && row) {
+        // Herda a categoria sugerida pelo cardápio quando o lojista não escolheu nenhuma.
+        const { inferGuiaCategory } = await import("@/lib/guia-category-infer");
+        const [{ data: mc }, { data: tn }] = await Promise.all([
+          row.category_id
+            ? supabaseAdmin.from("categories").select("name").eq("id", row.category_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabaseAdmin.from("tenants").select("business_types").eq("id", tenantId).maybeSingle(),
+        ]);
+        const suggested = inferGuiaCategory({
+          menuCategoryName: (mc as { name?: string } | null)?.name ?? null,
+          productName: row.name,
+          businessTypes: (tn as { business_types?: string[] | null } | null)?.business_types ?? [],
+        });
+        if (suggested && validSlugs.has(suggested)) {
+          cat = suggested;
+          data.directory_category = suggested;
+        }
+      }
       if (!cat || !validSlugs.has(cat)) throw new Error("Escolha uma categoria ativa antes de publicar.");
     }
 
     const payload: Record<string, unknown> = {};
     if (data.directory_visible !== undefined) payload.directory_visible = data.directory_visible;
     if (data.directory_category !== undefined) payload.directory_category = data.directory_category;
+
 
     const { error } = await supabaseAdmin
       .from("products").update(payload as never).eq("id", data.product_id).eq("tenant_id", tenantId);
