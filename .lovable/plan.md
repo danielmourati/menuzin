@@ -10,7 +10,7 @@ O que muda:
 - Se um produto estiver com uma categoria que não existe mais, o campo aparece vazio com aviso "categoria removida — escolha outra".
 - Se ainda não houver nenhuma categoria cadastrada, o bloco mostra uma mensagem orientando que a plataforma ainda não publicou categorias.
 
-## 3. Endereço completo no auto-cadastro (anexo 3)
+## 2. Endereço completo no auto-cadastro (anexo 3)
 
 O cadastro rápido (/comece-agora) coleta hoje apenas cidade, por isso Endereço e UF chegam vazios em Configurações.
 
