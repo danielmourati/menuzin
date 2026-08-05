@@ -71,6 +71,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
 
     // Cria tenant Presença
     const whatsappDigits = data.whatsapp.replace(/\D/g, "");
+    const cepDigits = data.cep.replace(/\D/g, "");
     const { data: tenant, error: tErr } = await supabaseAdmin
       .from("tenants")
       .insert({
@@ -78,6 +79,10 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         name: data.name,
         whatsapp: whatsappDigits,
         city: data.city || "",
+        state: data.state || "",
+        address: data.address || "",
+        neighborhood: data.neighborhood || "",
+        cep: cepDigits ? `${cepDigits.slice(0, 5)}-${cepDigits.slice(5)}` : "",
         logo_letter: data.name.charAt(0).toUpperCase(),
         plan: "presenca",
         status: "ativa",
