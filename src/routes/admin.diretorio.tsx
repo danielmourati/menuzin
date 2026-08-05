@@ -14,7 +14,7 @@ import {
   setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct,
   featureDirectoryProduct, clearDirectoryFeature,
 } from "@/lib/directory-admin.functions";
-import { getTenantMetrics, DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
+import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
 import { createPromoRequest } from "@/lib/guia-admin.functions";
