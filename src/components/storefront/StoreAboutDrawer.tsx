@@ -22,6 +22,7 @@ export function StoreAboutDrawer({
   tenant: Tenant;
   storeOpen: boolean;
 }) {
+  const [coverOpen, setCoverOpen] = useState(false);
   const paymentsQ = useQuery({
     queryKey: ["public-payment-settings", tenant.slug],
     queryFn: () => getPublicPaymentSettingsBySlug({ data: { slug: tenant.slug } }),
