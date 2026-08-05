@@ -342,16 +342,26 @@ function ProductsBlock() {
                   <p className="line-clamp-1 text-sm font-semibold">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{brl(p.promo_price ?? p.price)}</p>
                 </div>
-                <div className="w-40">
+                <div className="w-44">
                   <Select
                     value={p.directory_category ?? ""}
                     onValueChange={(v) => updateMut.mutate({ product_id: p.id, directory_category: v || null })}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Categoria" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {DIRECTORY_CATEGORIES.map((c) => (
-                        <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.label}</SelectItem>
-                      ))}
+                      {(data?.guiaCategories.length ?? 0) === 0 ? (
+                        <SelectItem value="__empty__" disabled>
+                          Nenhuma categoria ativa no Guia
+                        </SelectItem>
+                      ) : (
+                        data!.guiaCategories.map((c) => (
+                          <SelectItem key={c.slug} value={c.slug}>
+                            {c.emoji} {c.label}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
