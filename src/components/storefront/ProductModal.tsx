@@ -64,6 +64,7 @@ export function ProductModal({
   const [doughId, setDoughId] = useState<string | null>(null);
   const [crustId, setCrustId] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [imageOpen, setImageOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
