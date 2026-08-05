@@ -194,17 +194,30 @@ export const saveProduct = createServerFn({ method: "POST" })
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
 
     let categoryKind: string | null = null;
+    let categoryName: string | null = null;
     if (data.category_id) {
       const { data: cat, error: cErr } = await sb
-        .from("categories").select("id, kind").eq("id", data.category_id)
+        .from("categories").select("id, kind, name").eq("id", data.category_id)
         .eq("tenant_id", tenantId).maybeSingle();
       if (cErr) throw new Error(cErr.message);
       if (!cat) throw new Error("Categoria inválida para este tenant.");
       categoryKind = (cat as { kind?: string | null }).kind ?? null;
+      categoryName = (cat as { name?: string | null }).name ?? null;
     }
     if (categoryKind === "pizza" && (data.listed_as_flavor === null || data.listed_as_flavor === undefined)) {
       throw new Error("Defina se este sabor entra na montagem de pizzas (listar como sabor).");
     }
+
+    // Categoria padrão do Guia herdada do cardápio / tipo de negócio.
+    const { inferGuiaCategory } = await import("@/lib/guia-category-infer");
+    const { data: tenantRow } = await sb
+      .from("tenants").select("business_types").eq("id", tenantId).maybeSingle();
+    const suggestedGuiaCategory = inferGuiaCategory({
+      menuCategoryName: categoryName,
+      productName: data.name,
+      businessTypes: ((tenantRow as { business_types?: string[] | null } | null)?.business_types) ?? [],
+    });
+
 
     const payload = {
       name: data.name,
@@ -234,8 +247,15 @@ export const saveProduct = createServerFn({ method: "POST" })
       offer_max_flavors: data.offer_max_flavors ?? null,
     };
     if (data.id) {
+      const { data: existing } = await sb
+        .from("products").select("directory_category").eq("id", data.id)
+        .eq("tenant_id", tenantId).maybeSingle();
+      const keepManual = (existing as { directory_category?: string | null } | null)?.directory_category ?? null;
+      const updatePayload = keepManual
+        ? payload
+        : { ...payload, directory_category: suggestedGuiaCategory };
       const { error } = await sb.from("products")
-        .update(payload as never).eq("id", data.id).eq("tenant_id", tenantId);
+        .update(updatePayload as never).eq("id", data.id).eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
@@ -253,7 +273,9 @@ export const saveProduct = createServerFn({ method: "POST" })
       }
     }
     const { data: row, error } = await sb.from("products")
-      .insert({ ...payload, tenant_id: tenantId } as never).select("id").single();
+      .insert({ ...payload, directory_category: suggestedGuiaCategory, tenant_id: tenantId } as never)
+      .select("id").single();
+
 
     if (error) throw new Error(error.message);
     return { id: row.id as string };

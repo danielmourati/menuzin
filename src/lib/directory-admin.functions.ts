@@ -43,15 +43,16 @@ export const listMyDirectoryProducts = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { inferGuiaCategory } = await import("@/lib/guia-category-infer");
 
-    const [{ data: t }, { data: prods, error }, { data: cats, error: catsErr }] = await Promise.all([
+    const [{ data: t }, { data: prods, error }, { data: cats, error: catsErr }, { data: menuCats }] = await Promise.all([
       supabaseAdmin
         .from("tenants")
-        .select("id, name, neighborhood, cep, directory_opt_in, plan")
+        .select("id, name, neighborhood, cep, directory_opt_in, plan, business_types")
         .eq("id", tenantId).maybeSingle(),
       supabaseAdmin
         .from("products")
-        .select("id, name, image_url, price, promo_price, available, directory_visible, directory_category, directory_featured_until")
+        .select("id, name, image_url, price, promo_price, available, directory_visible, directory_category, directory_featured_until, category_id")
         .eq("tenant_id", tenantId)
         .order("name"),
       supabaseAdmin
@@ -59,23 +60,47 @@ export const listMyDirectoryProducts = createServerFn({ method: "GET" })
         .select("slug, label, emoji")
         .eq("active", true)
         .order("sort_order", { ascending: true }),
+      supabaseAdmin
+        .from("categories")
+        .select("id, name")
+        .eq("tenant_id", tenantId),
     ]);
     if (error) throw new Error(error.message);
     if (catsErr) throw new Error(catsErr.message);
 
+    const tenant = (t ?? null) as {
+      id: string; name: string; neighborhood: string | null; cep: string | null;
+      directory_opt_in: boolean; plan: string; business_types: string[] | null;
+    } | null;
+    const catName = new Map(
+      ((menuCats ?? []) as { id: string; name: string }[]).map((c) => [c.id, c.name]),
+    );
+    const activeSlugs = new Set(((cats ?? []) as { slug: string }[]).map((c) => c.slug));
+
+    const products = ((prods ?? []) as {
+      id: string; name: string; image_url: string | null; price: number; promo_price: number | null;
+      available: boolean; directory_visible: boolean;
+      directory_category: string | null; directory_featured_until: string | null; category_id: string | null;
+    }[]).map((p) => {
+      const suggested = inferGuiaCategory({
+        menuCategoryName: p.category_id ? (catName.get(p.category_id) ?? null) : null,
+        productName: p.name,
+        businessTypes: tenant?.business_types ?? [],
+      });
+      return {
+        ...p,
+        menu_category_name: p.category_id ? (catName.get(p.category_id) ?? null) : null,
+        suggested_category: suggested && activeSlugs.has(suggested) ? suggested : null,
+      };
+    });
+
     return {
-      tenant: (t ?? null) as {
-        id: string; name: string; neighborhood: string | null; cep: string | null;
-        directory_opt_in: boolean; plan: string;
-      } | null,
-      products: (prods ?? []) as {
-        id: string; name: string; image_url: string | null; price: number; promo_price: number | null;
-        available: boolean; directory_visible: boolean;
-        directory_category: string | null; directory_featured_until: string | null;
-      }[],
+      tenant,
+      products,
       guiaCategories: (cats ?? []) as { slug: string; label: string; emoji: string }[],
     };
   });
+
 
 const UpdateProductInput = z.object({
   product_id: z.string().uuid(),
@@ -101,14 +126,35 @@ export const updateDirectoryProduct = createServerFn({ method: "POST" })
     }
     if (data.directory_visible === true) {
       const { data: p } = await supabaseAdmin
-        .from("products").select("directory_category").eq("id", data.product_id).maybeSingle();
-      const cat = data.directory_category ?? (p as { directory_category: string | null } | null)?.directory_category;
+        .from("products").select("directory_category, name, category_id").eq("id", data.product_id).maybeSingle();
+      const row = p as { directory_category: string | null; name: string; category_id: string | null } | null;
+      let cat = data.directory_category ?? row?.directory_category ?? null;
+      if (!cat && row) {
+        // Herda a categoria sugerida pelo cardápio quando o lojista não escolheu nenhuma.
+        const { inferGuiaCategory } = await import("@/lib/guia-category-infer");
+        const [{ data: mc }, { data: tn }] = await Promise.all([
+          row.category_id
+            ? supabaseAdmin.from("categories").select("name").eq("id", row.category_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          supabaseAdmin.from("tenants").select("business_types").eq("id", tenantId).maybeSingle(),
+        ]);
+        const suggested = inferGuiaCategory({
+          menuCategoryName: (mc as { name?: string } | null)?.name ?? null,
+          productName: row.name,
+          businessTypes: (tn as { business_types?: string[] | null } | null)?.business_types ?? [],
+        });
+        if (suggested && validSlugs.has(suggested)) {
+          cat = suggested;
+          data.directory_category = suggested;
+        }
+      }
       if (!cat || !validSlugs.has(cat)) throw new Error("Escolha uma categoria ativa antes de publicar.");
     }
 
     const payload: Record<string, unknown> = {};
     if (data.directory_visible !== undefined) payload.directory_visible = data.directory_visible;
     if (data.directory_category !== undefined) payload.directory_category = data.directory_category;
+
 
     const { error } = await supabaseAdmin
       .from("products").update(payload as never).eq("id", data.product_id).eq("tenant_id", tenantId);
