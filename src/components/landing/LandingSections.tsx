@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, MessageCircle, Smartphone, ShoppingBag, Printer, BarChart3, Rocket, Instagram, Youtube } from "lucide-react";
+import { ArrowRight, MessageCircle, Smartphone, ShoppingBag, Printer, Rocket, Instagram, Youtube } from "lucide-react";
 import {
   WHATSAPP_CONTACT_URL,
   WHATSAPP_PHONE_DISPLAY,
@@ -435,9 +435,14 @@ export function LandingFooter() {
       <div className="border-t">
         <div className="container mx-auto flex flex-col items-center justify-between gap-2 px-4 py-5 text-xs text-muted-foreground md:flex-row">
           <p>© {new Date().getFullYear()} Menuzin. Todos os direitos reservados.</p>
-          <p className="flex items-center gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Vitrine digital para negócios food.
-          </p>
+          <div className="flex items-center gap-4">
+            <a href="/privacidade" className="hover:text-primary hover:underline">
+              Privacidade
+            </a>
+            <a href="/termos" className="hover:text-primary hover:underline">
+              Termos de uso
+            </a>
+          </div>
         </div>
       </div>
     </footer>

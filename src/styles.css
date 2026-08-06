@@ -270,3 +270,13 @@
 }
 
 
+
+/* Ajustes quando o app roda instalado (TWA / PWA em tela cheia) */
+@media all and (display-mode: standalone) {
+  .hide-in-app {
+    display: none !important;
+  }
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

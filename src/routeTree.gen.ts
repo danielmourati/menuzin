@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
 import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
@@ -68,9 +70,19 @@ import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.n
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MinhaContaRoute = MinhaContaRouteImport.update({
@@ -374,7 +386,9 @@ export interface FileRoutesByFullPath {
   '/comece-agora': typeof ComeceAgoraRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/termos': typeof TermosRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
@@ -434,7 +448,9 @@ export interface FileRoutesByTo {
   '/comece-agora': typeof ComeceAgoraRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/termos': typeof TermosRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
@@ -493,7 +509,9 @@ export interface FileRoutesById {
   '/comece-agora': typeof ComeceAgoraRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/termos': typeof TermosRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
@@ -555,7 +573,9 @@ export interface FileRouteTypes {
     | '/comece-agora'
     | '/meus-pedidos'
     | '/minha-conta'
+    | '/privacidade'
     | '/sitemap.xml'
+    | '/termos'
     | '/$slug/cupons'
     | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
@@ -615,7 +635,9 @@ export interface FileRouteTypes {
     | '/comece-agora'
     | '/meus-pedidos'
     | '/minha-conta'
+    | '/privacidade'
     | '/sitemap.xml'
+    | '/termos'
     | '/$slug/cupons'
     | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
@@ -673,7 +695,9 @@ export interface FileRouteTypes {
     | '/comece-agora'
     | '/meus-pedidos'
     | '/minha-conta'
+    | '/privacidade'
     | '/sitemap.xml'
+    | '/termos'
     | '/$slug/cupons'
     | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
@@ -734,7 +758,9 @@ export interface RootRouteChildren {
   ComeceAgoraRoute: typeof ComeceAgoraRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
   MinhaContaRoute: typeof MinhaContaRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermosRoute: typeof TermosRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminAssinaturaRoute: typeof AdminAssinaturaRoute
@@ -774,11 +800,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/minha-conta': {
@@ -1260,7 +1300,9 @@ const rootRouteChildren: RootRouteChildren = {
   ComeceAgoraRoute: ComeceAgoraRoute,
   MeusPedidosRoute: MeusPedidosRoute,
   MinhaContaRoute: MinhaContaRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermosRoute: TermosRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminAssinaturaRoute: AdminAssinaturaRoute,
@@ -1300,13 +1342,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
