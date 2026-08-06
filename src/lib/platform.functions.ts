@@ -137,7 +137,7 @@ const CreateTenantInput = z.object({
   theme_from: z.string().max(40).optional().default("#FF6A1F"),
   theme_to: z.string().max(40).optional().default("#FF9A3C"),
   active: z.boolean().default(true),
-  plan: z.enum(["presenca", "start", "pro"]).default("presenca"),
+  plan: z.enum(["presenca", "pro"]).default("presenca"),
   business_types: z.array(z.enum(BUSINESS_TYPES)).optional().default([]),
   owner_user_id: z.string().uuid().nullable().optional(),
   owner_email: z.string().email().max(160).optional().nullable(),
@@ -249,7 +249,7 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       const { syncSubscriptionFromTenantPlan } = await import("@/lib/plan-server");
       const synced = await syncSubscriptionFromTenantPlan(
         tenant.id as string,
-        data.plan as "presenca" | "start" | "pro",
+        data.plan as "presenca" | "pro",
       );
       if (!synced) {
         throw new Error(
@@ -481,7 +481,7 @@ const UpdateTenantInput = z.object({
   city: z.string().max(80).optional(),
   state: z.string().max(40).optional(),
   address: z.string().max(240).optional(),
-  plan: z.enum(["presenca", "start", "pro"]).optional(),
+  plan: z.enum(["presenca", "pro"]).optional(),
   status: z.enum(["ativa", "teste", "suspensa"]).optional(),
   active: z.boolean().optional(),
   theme_from: z.string().max(40).optional(),
