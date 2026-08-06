@@ -1668,7 +1668,7 @@ export function CartDrawer({
               )}
 
               {/* PIX manual — enviar comprovante via WhatsApp (Start) */}
-              {isStartPlan && selectedMethod === "pix_manual" && (tenant?.whatsapp ?? "") && (
+              {isPaidPlan && selectedMethod === "pix_manual" && (tenant?.whatsapp ?? "") && (
                 <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
                   <div className="flex items-center gap-2 font-semibold">
                     <Smartphone className="h-5 w-5 text-primary" /> Envie o comprovante
