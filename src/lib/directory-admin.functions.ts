@@ -94,9 +94,13 @@ export const listMyDirectoryProducts = createServerFn({ method: "GET" })
       };
     });
 
+    const { paidProductIds } = await import("@/lib/directory-spotlight.server");
+    const paidIds = await paidProductIds(supabaseAdmin, tenantId);
+
     return {
       tenant,
       products,
+      paidFeaturedIds: paidIds,
       guiaCategories: (cats ?? []) as { slug: string; label: string; emoji: string }[],
     };
   });
@@ -162,8 +166,6 @@ export const updateDirectoryProduct = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const FAR_FUTURE = "2999-12-31T00:00:00.000Z";
-
 /**
  * Destaque gratuito: cada loja pode manter 1 produto na seção "Em destaque agora".
  * Destaques adicionais são solicitados via PIX (guia_promo_requests).
@@ -176,6 +178,7 @@ export const setFreeSpotlight = createServerFn({ method: "POST" })
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const { paidProductIds, FAR_FUTURE_ISO } = await import("@/lib/directory-spotlight.server");
     const paidIds = await paidProductIds(supabaseAdmin, tenantId);
 
     // limpa o destaque gratuito anterior (mantém os pagos)
@@ -198,7 +201,7 @@ export const setFreeSpotlight = createServerFn({ method: "POST" })
     if (data.product_id) {
       const { error } = await supabaseAdmin
         .from("products")
-        .update({ directory_featured_until: FAR_FUTURE, directory_visible: true })
+        .update({ directory_featured_until: FAR_FUTURE_ISO, directory_visible: true })
         .eq("id", data.product_id)
         .eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
