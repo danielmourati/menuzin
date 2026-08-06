@@ -9,10 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Compass, Star, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct,
-  featureDirectoryProduct, clearDirectoryFeature,
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown, Compass, Sparkles, Star, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import {
+  setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct, setFreeSpotlight,
 } from "@/lib/directory-admin.functions";
 import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
@@ -29,6 +33,7 @@ function DiretorioPage() {
     <AdminLayout title="Guia Menuzin">
       <div className="mx-auto max-w-5xl space-y-6">
         <OptInBlock />
+        <SpotlightBlock />
         <RequestFeatureBlock />
         <ProductsBlock />
         <MetricsBlock />
