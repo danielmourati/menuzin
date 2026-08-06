@@ -128,6 +128,8 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
         product_count: 1,
         has_featured: isFeat,
         vertical: "restaurantes",
+        open: true,
+        accepts_delivery: true,
       });
     }
   }
@@ -135,11 +137,15 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
   if (ids.length) {
     const { data: tRows } = await supabaseAdmin
       .from("tenants")
-      .select("id, business_types")
+      .select("id, business_types, open, accepts_delivery")
       .in("id", ids);
-    for (const t of (tRows ?? []) as { id: string; business_types: string[] | null }[]) {
+    for (const t of (tRows ?? []) as { id: string; business_types: string[] | null; open: boolean; accepts_delivery: boolean }[]) {
       const store = map.get(t.id);
-      if (store) store.vertical = verticalOf(t.business_types);
+      if (store) {
+        store.vertical = verticalOf(t.business_types);
+        store.open = !!t.open;
+        store.accepts_delivery = t.accepts_delivery !== false;
+      }
     }
   }
 
