@@ -226,3 +226,56 @@ export const clearDirectoryFeature = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/**
+ * Troca o produto de um destaque já existente (grátis ou pago), preservando a
+ * validade contratada. Para os pagos, o vínculo em guia_promo_requests também
+ * é atualizado para o novo produto.
+ */
+export const replaceSpotlightProduct = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      from_product_id: z.string().uuid(),
+      to_product_id: z.string().uuid(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.from_product_id === data.to_product_id) return { ok: true };
+
+    const { data: from } = await supabaseAdmin
+      .from("products")
+      .select("id, directory_featured_until")
+      .eq("id", data.from_product_id)
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    const until = (from as { directory_featured_until: string | null } | null)?.directory_featured_until ?? null;
+    if (!until) throw new Error("Destaque não encontrado.");
+
+    const { error: clearErr } = await supabaseAdmin
+      .from("products")
+      .update({ directory_featured_until: null })
+      .eq("id", data.from_product_id)
+      .eq("tenant_id", tenantId);
+    if (clearErr) throw new Error(clearErr.message);
+
+    const { error } = await supabaseAdmin
+      .from("products")
+      .update({ directory_featured_until: until, directory_visible: true })
+      .eq("id", data.to_product_id)
+      .eq("tenant_id", tenantId);
+    if (error) throw new Error(error.message);
+
+    await supabaseAdmin
+      .from("guia_promo_requests")
+      .update({ product_id: data.to_product_id })
+      .eq("tenant_id", tenantId)
+      .eq("status", "paid")
+      .eq("product_id", data.from_product_id);
+
+    return { ok: true };
+  });
