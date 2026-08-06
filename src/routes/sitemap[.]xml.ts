@@ -26,6 +26,8 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/guia/marmitex", changefreq: "daily", priority: "0.7" },
           { path: "/guia/acai", changefreq: "daily", priority: "0.7" },
           { path: "/guia/doces", changefreq: "daily", priority: "0.7" },
+          { path: "/privacidade", changefreq: "yearly", priority: "0.2" },
+          { path: "/termos", changefreq: "yearly", priority: "0.2" },
         ];
 
         try {
