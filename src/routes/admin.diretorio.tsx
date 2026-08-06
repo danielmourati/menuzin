@@ -51,6 +51,7 @@ function RequestFeatureBlock() {
   const [kind, setKind] = useState<GuiaSlotKind>("featured");
   const [days, setDays] = useState<7 | 14 | 30>(7);
   const [note, setNote] = useState("");
+  const [productId, setProductId] = useState<string | null>(null);
   const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
   const price = SLOT_KIND_PRICES[kind][days];
 
@@ -62,6 +63,7 @@ function RequestFeatureBlock() {
           durationDays: days,
           amount: price,
           note: note.trim() || undefined,
+          productId: kind === "featured" && productId ? productId : undefined,
         },
       }),
     onSuccess: (req) => {
@@ -76,6 +78,7 @@ function RequestFeatureBlock() {
   const close = () => {
     setPending(null);
     setNote("");
+    setProductId(null);
     setOpen(false);
   };
 
@@ -150,6 +153,17 @@ function RequestFeatureBlock() {
                   </SelectContent>
                 </Select>
               </div>
+              {kind === "featured" && (
+                <div>
+                  <Label>Produto a destacar</Label>
+                  <ProductSearchSelect
+                    products={(data?.products ?? []) as MyProduct[]}
+                    value={productId}
+                    onChange={setProductId}
+                    placeholder="Escolha um produto do cardápio"
+                  />
+                </div>
+              )}
               <div>
                 <Label>Observação (opcional)</Label>
                 <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: destacar a pizza calabresa" />
