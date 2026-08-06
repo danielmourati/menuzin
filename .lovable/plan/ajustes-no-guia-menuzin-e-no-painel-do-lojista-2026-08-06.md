@@ -5,6 +5,7 @@
 Verificado no banco: a categoria `espetinhos` existe e está ativa, mas **nenhum produto** está classificado nela — os itens das lojas com tipo de negócio "espetaria" (ex.: Churrascaria Vila Boêmia, Restaurante O Lorim) ficaram todos em `churrasco`. Como o Guia só mostra categorias com produtos, o chip some.
 
 Correção:
+
 - Na inferência de categoria, o tipo de negócio "espetaria" passa a ter prioridade sobre a regra genérica de churrasco quando o produto é um item de espeto (carne/frango/queijo coalho/linguiça/coração/medalhão/camarão em porção individual).
 - Reclassificação dos produtos existentes dessas lojas para `espetinhos`, mantendo em `churrasco` o que é porção/prato (picanha 300g/500g, filé com fritas, carne de sol) e em `bebidas` o que já é bebida.
 
@@ -15,6 +16,7 @@ Na aba `/admin/diretorio`, a lista "Produtos publicados no Guia" perde o toggle 
 ## 3. Lista de destaques com edição
 
 O bloco "Em destaque agora" vira uma lista de destaques ativos com gestão:
+
 - Cada linha mostra imagem, nome do produto, tipo (Grátis ou PIX) e validade.
 - Ações por linha: **Trocar produto** (abre o seletor com busca) e **Remover**.
 - O destaque grátis continua limitado a 1; ao trocar, o anterior sai.
@@ -41,4 +43,7 @@ Hoje o botão "Abrir item na loja" leva à página da loja. Passa a abrir o **mo
 - `src/routes/admin.diretorio.tsx`: `ProductsBlock` sem `Switch`; `SpotlightBlock` reescrito como lista com ações.
 - `src/routes/guia.index.tsx`: novo `TopRatedSection` no mapa de seções.
 - `src/routes/$slug.tsx`: `validateSearch` com `produto?: string`; efeito que seleciona o produto e abre o `ProductModal` quando o parâmetro está presente.
-- `src/routes/guia.produto.$id.tsx`: destino passa a ser `/{slug}?produto={product_id}`.
+
+`src/routes/guia.produto.$id.tsx`: destino passa a ser `/{slug}?produto={product_id}`.  
+  
+Usar o plano do item 4. Seção "Lojas mais bem avaliadas" no Guia para aplicar na seção famozin na cidade e não implementar "Lojas mais bem avaliadas"  
