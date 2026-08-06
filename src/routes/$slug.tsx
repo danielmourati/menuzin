@@ -72,8 +72,8 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
 });
 
 export const Route = createFileRoute("/$slug")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    produto: typeof search.produto === "string" ? search.produto : undefined,
+  validateSearch: z.object({
+    produto: z.string().optional(),
   }),
   loader: ({ context, params }) => {
     if (!isCatalogSlug(params.slug)) return null;
