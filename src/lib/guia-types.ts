@@ -57,6 +57,7 @@ export type GuiaPromoRequest = {
   durationDays: number;
   amount: number;
   status: GuiaPromoRequestStatus;
+  productId?: string | null;
   pixCode?: string;
   note?: string;
   createdAt: string;
@@ -71,6 +72,7 @@ export type GuiaSectionId =
   | "collection"
   | "banner_2"
   | "featured_real"
+  | "famozin"
   | "publish_cta";
 
 export const DEFAULT_SECTION_ORDER: GuiaSectionId[] = [
@@ -82,6 +84,7 @@ export const DEFAULT_SECTION_ORDER: GuiaSectionId[] = [
   "collection",
   "banner_2",
   "featured_real",
+  "famozin",
   "publish_cta",
 ];
 
@@ -94,6 +97,7 @@ export const SECTION_LABELS: Record<GuiaSectionId, { title: string; desc: string
   collection: { title: "Coleções", desc: "carrossel de coleções de lojas/promos" },
   banner_2: { title: "Banner full-width (2)", desc: "segundo banner grande" },
   featured_real: { title: "Em destaque agora", desc: "produtos reais do banco em destaque" },
+  famozin: { title: "Famozin na cidade", desc: "grid das lojas mais conhecidas da cidade" },
   publish_cta: { title: "CTA publique seu cardápio", desc: "chamada para lojistas" },
 };
 
