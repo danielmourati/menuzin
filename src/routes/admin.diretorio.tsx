@@ -379,18 +379,37 @@ function SpotlightBlock() {
     (p) => p.directory_featured_until && new Date(p.directory_featured_until).getTime() > now,
   );
   const freeCurrent = featuredNow.find((p) => !paidIds.includes(p.id)) ?? null;
-  const paidCurrent = featuredNow.filter((p) => paidIds.includes(p.id));
-  const [selected, setSelected] = useState<string | null>(null);
-  const value = selected ?? freeCurrent?.id ?? null;
+  const [newFree, setNewFree] = useState<string | null>(null);
+  const [editing, setEditing] = useState<MyProduct | null>(null);
+  const [editTarget, setEditTarget] = useState<string | null>(null);
 
-  const saveMut = useMutation({
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["diretorio"] });
+
+  const saveFree = useMutation({
     mutationFn: (product_id: string | null) => setFreeSpotlight({ data: { product_id } }),
-    onSuccess: () => {
-      toast.success("Destaque gratuito atualizado.");
-      qc.invalidateQueries({ queryKey: ["diretorio"] });
-    },
+    onSuccess: () => { toast.success("Destaque atualizado."); setNewFree(null); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar."),
   });
+
+  const removeMut = useMutation({
+    mutationFn: (product_id: string) => clearDirectoryFeature({ data: { product_id } }),
+    onSuccess: () => { toast.success("Destaque removido."); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao remover."),
+  });
+
+  const replaceMut = useMutation({
+    mutationFn: (v: { from: string; to: string }) =>
+      replaceSpotlightProduct({ data: { from_product_id: v.from, to_product_id: v.to } }),
+    onSuccess: () => {
+      toast.success("Produto do destaque trocado.");
+      setEditing(null);
+      setEditTarget(null);
+      invalidate();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao trocar."),
+  });
+
+  const isFar = (iso: string) => new Date(iso).getFullYear() > 2900;
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -399,10 +418,11 @@ function SpotlightBlock() {
           <Sparkles className="h-6 w-6 text-primary" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-lg font-bold">Em destaque agora</h2>
+          <h2 className="text-lg font-bold">Destaques no Guia</h2>
           <p className="text-sm text-muted-foreground">
-            Escolha <strong>1 produto grátis</strong> para aparecer na seção “em destaque agora” do Guia.
-            Destaques adicionais são contratados via PIX.
+            Você tem <strong>1 destaque grátis</strong> na seção “em destaque agora”.
+            Destaques adicionais são contratados via PIX e podem ser trocados de produto
+            dentro do período contratado.
           </p>
         </div>
       </div>
@@ -411,44 +431,94 @@ function SpotlightBlock() {
         <div className="py-6 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="min-w-[240px] flex-1">
-              <ProductSearchSelect products={products} value={value} onChange={setSelected} />
+          {featuredNow.length > 0 ? (
+            <div className="divide-y rounded-xl border">
+              {featuredNow.map((p) => {
+                const paid = paidIds.includes(p.id);
+                return (
+                  <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
+                    <img src={productImage(p.image_url)} alt={p.name} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-1 text-sm font-semibold">{p.name}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge variant={paid ? "default" : "secondary"} className="text-[10px]">
+                          {paid ? "PIX" : "Grátis"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {isFar(p.directory_featured_until!)
+                            ? "sem prazo"
+                            : `até ${new Date(p.directory_featured_until!).toLocaleDateString("pt-BR")}`}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setEditing(p); setEditTarget(p.id); }}
+                      >
+                        <Pencil className="mr-1 h-3.5 w-3.5" /> Trocar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeMut.mutate(p.id)}
+                        disabled={removeMut.isPending}
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            <Button onClick={() => saveMut.mutate(value)} disabled={saveMut.isPending || !value || value === freeCurrent?.id}>
-              {saveMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Salvar destaque
-            </Button>
-            {freeCurrent && (
-              <Button variant="ghost" onClick={() => { setSelected(null); saveMut.mutate(null); }}>
-                Remover
-              </Button>
-            )}
-          </div>
+          ) : (
+            <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+              Nenhum destaque ativo no momento.
+            </div>
+          )}
 
-          {paidCurrent.length > 0 && (
-            <div className="rounded-xl border bg-muted/40 p-3">
-              <p className="text-xs font-semibold text-muted-foreground">Destaques pagos ativos</p>
-              <ul className="mt-1 space-y-1">
-                {paidCurrent.map((p) => (
-                  <li key={p.id} className="text-sm">
-                    ⭐ {p.name}
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      até {new Date(p.directory_featured_until!).toLocaleDateString("pt-BR")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+          {!freeCurrent && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/30 p-3">
+              <p className="w-full text-xs font-semibold text-muted-foreground">Adicionar destaque grátis</p>
+              <div className="min-w-[240px] flex-1">
+                <ProductSearchSelect products={products} value={newFree} onChange={setNewFree} />
+              </div>
+              <Button onClick={() => saveFree.mutate(newFree)} disabled={saveFree.isPending || !newFree}>
+                {saveFree.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar destaque
+              </Button>
             </div>
           )}
         </div>
       )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) { setEditing(null); setEditTarget(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trocar produto do destaque</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            O novo produto assume o destaque de <strong>{editing?.name}</strong>, mantendo a mesma validade.
+          </p>
+          <ProductSearchSelect products={products} value={editTarget} onChange={setEditTarget} />
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setEditing(null); setEditTarget(null); }}>Cancelar</Button>
+            <Button
+              onClick={() => editing && editTarget && replaceMut.mutate({ from: editing.id, to: editTarget })}
+              disabled={!editTarget || editTarget === editing?.id || replaceMut.isPending}
+            >
+              {replaceMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
 
 function ProductsBlock() {
-  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["diretorio", "my-products"],
     queryFn: () => listMyDirectoryProducts(),
@@ -456,13 +526,6 @@ function ProductsBlock() {
   const now = Date.now();
   const catLabel = (slug: string | null) =>
     data?.guiaCategories.find((c) => c.slug === slug)?.label ?? slug ?? "";
-
-  const updateMut = useMutation({
-    mutationFn: (p: { product_id: string; directory_visible?: boolean; directory_category?: string | null }) =>
-      updateDirectoryProduct({ data: p }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["diretorio"] }),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao atualizar."),
-  });
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-sm">
@@ -473,7 +536,7 @@ function ProductsBlock() {
         <div>
           <h2 className="text-lg font-bold">Produtos publicados no Guia</h2>
           <p className="text-sm text-muted-foreground">
-            A categoria vem do seu cardápio. Ative ou oculte cada item no Guia.
+            Lista somente para consulta. A publicação é automática e a categoria vem do seu cardápio.
           </p>
         </div>
       </div>
@@ -511,13 +574,9 @@ function ProductsBlock() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={p.directory_visible}
-                    onCheckedChange={(v) => updateMut.mutate({ product_id: p.id, directory_visible: v })}
-                  />
-                  <span className="text-xs">{p.directory_visible ? "Publicado" : "Oculto"}</span>
-                </div>
+                <Badge variant={p.directory_visible ? "secondary" : "outline"} className="text-[10px]">
+                  {p.directory_visible ? "Publicado" : "Oculto"}
+                </Badge>
               </div>
             );
           })}
@@ -526,6 +585,7 @@ function ProductsBlock() {
     </section>
   );
 }
+
 
 
 function MetricsBlock() {
