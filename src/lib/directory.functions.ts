@@ -20,12 +20,14 @@ export type DirectoryItem = {
   neighborhood: string | null;
   city: string | null;
   whatsapp: string | null;
+  plan?: string | null;
 };
 
 export const DIRECTORY_CATEGORIES: { slug: string; label: string; emoji: string }[] = [
   { slug: "quentinha", label: "Quentinhas", emoji: "🍱" },
   { slug: "pizza", label: "Pizza", emoji: "🍕" },
   { slug: "churrasco", label: "Churrasco", emoji: "🥩" },
+  { slug: "espetinhos", label: "Espetinhos", emoji: "🍢" },
   { slug: "hamburguer", label: "Hambúrguer", emoji: "🍔" },
   { slug: "lanches", label: "Lanches", emoji: "🥪" },
   { slug: "marmitex", label: "Marmitex", emoji: "🍛" },
