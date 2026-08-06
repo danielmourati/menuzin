@@ -71,6 +71,9 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
 });
 
 export const Route = createFileRoute("/$slug")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    produto: typeof search.produto === "string" ? search.produto : undefined,
+  }),
   loader: ({ context, params }) => {
     if (!isCatalogSlug(params.slug)) return null;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
