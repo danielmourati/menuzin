@@ -1,9 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { getDirectoryProduct } from "@/lib/directory.functions";
-import { productImage } from "@/lib/product-image";
+import { productImage, isDefaultProductImage } from "@/lib/product-image";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { useState } from "react";
 import { brl } from "@/lib/format";
-import { ChevronLeft, MapPin, MessageCircle, ExternalLink } from "lucide-react";
+import { ChevronLeft, MapPin, ExternalLink } from "lucide-react";
 
 const productQO = (id: string) => queryOptions({
   queryKey: ["guia", "product", id],
@@ -70,16 +72,14 @@ function ProductPage() {
   const { id } = Route.useParams();
   const { data } = useSuspenseQuery(productQO(id));
   const it = data.item!;
+  const [imageOpen, setImageOpen] = useState(false);
+  const hasImage = !isDefaultProductImage(it.image_url);
 
-  // Plano Presença: pedido apenas via WhatsApp. Demais planos abrem o item na loja.
-  const presenca = (it.plan ?? "presenca") === "presenca";
-  const useWhatsapp = presenca && !!it.whatsapp;
-
+  // Todos os planos abrem o item direto na loja; a loja decide o fluxo do pedido.
   const handleOrder = () => {
     // fire-and-forget click ping
     try {
-      const dest = useWhatsapp ? "whatsapp" : "storefront";
-      const body = JSON.stringify({ product_id: it.product_id, destination: dest });
+      const body = JSON.stringify({ product_id: it.product_id, destination: "storefront" });
       if (navigator.sendBeacon) {
         navigator.sendBeacon("/api/public/guia-click", new Blob([body], { type: "application/json" }));
       } else {
@@ -87,13 +87,7 @@ function ProductPage() {
       }
     } catch { /* ignore */ }
 
-    if (useWhatsapp) {
-      const clean = it.whatsapp!.replace(/\D/g, "");
-      const msg = encodeURIComponent(`Olá! Vi "${it.name}" no Guia Menuzin e quero pedir.`);
-      window.location.href = `https://wa.me/${clean}?text=${msg}`;
-    } else {
-      window.location.href = `/${it.tenant_slug}?produto=${it.product_id}`;
-    }
+    window.location.href = `/${it.tenant_slug}?produto=${it.product_id}`;
   };
 
   return (
@@ -109,8 +103,16 @@ function ProductPage() {
       <main className="mx-auto max-w-3xl px-4 py-6">
         <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div className="aspect-[4/3] w-full overflow-hidden bg-muted sm:aspect-[16/9]">
-            <img src={productImage(it.image_url)} alt={it.name} className="h-full w-full object-cover" />
+            <img
+              src={productImage(it.image_url)}
+              alt={it.name}
+              onClick={hasImage ? () => setImageOpen(true) : undefined}
+              className={`h-full w-full object-cover ${hasImage ? "cursor-zoom-in" : ""}`}
+            />
           </div>
+          {hasImage && (
+            <ImageLightbox open={imageOpen} onOpenChange={setImageOpen} src={productImage(it.image_url)} alt={it.name} />
+          )}
           <div className="p-5">
             <h1 className="text-2xl font-bold">{it.name}</h1>
             <div className="mt-2 flex items-baseline gap-2">
@@ -155,8 +157,8 @@ function ProductPage() {
             onClick={handleOrder}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-lg transition hover:brightness-110"
           >
-            {useWhatsapp ? <MessageCircle className="h-5 w-5" /> : <ExternalLink className="h-5 w-5" />}
-            {useWhatsapp ? "Pedir agora no WhatsApp" : "Abrir item na loja"}
+            <ExternalLink className="h-5 w-5" />
+            Abrir item na loja
           </button>
         </div>
       </div>
