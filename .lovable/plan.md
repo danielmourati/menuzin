@@ -55,7 +55,7 @@ A lista atual vira dois blocos:
 - A solicitação entra em `/platform/guia/solicitacoes` para o superadmin confirmar o pagamento; ao confirmar, o destaque do produto é ativado automaticamente.
 
 **c) Lista de publicação**
-- A tabela de produtos continua existindo, mais enxuta: imagem, nome, categoria (select) e toggle publicado/oculto. Os botões "Destacar 7 dias / Destaque no Pro" saem daqui, pois o destaque passa a ser controlado nos blocos acima.
+- A lista de produtos vira apenas visual: imagem, nome, preço e badges (categoria do Guia e "Publicado"/"Oculto"). Sem select de categoria e sem toggle — nada de edição por aqui; o destaque é controlado nos blocos acima.
 
 ## Detalhes técnicos
 
