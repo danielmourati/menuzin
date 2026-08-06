@@ -151,6 +151,12 @@ export function ProductCard({
           </span>
         )}
       </div>
+      <ImageLightbox
+        open={lightboxOpen}
+        onOpenChange={setLightboxOpen}
+        src={productImage(product.image)}
+        alt={product.name}
+      />
     </button>
   );
 }
