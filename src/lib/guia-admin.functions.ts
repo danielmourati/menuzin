@@ -333,6 +333,7 @@ const mapRequest = (r: any): GuiaPromoRequest => ({
   amount: Number(r.amount),
   status: r.status,
   pixCode: r.pix_code ?? undefined,
+  productId: r.product_id ?? null,
   note: r.note ?? undefined,
   createdAt: r.created_at,
 });
@@ -357,6 +358,7 @@ export const createPromoRequest = createServerFn({ method: "POST" })
         durationDays: z.number(),
         amount: z.number(),
         note: z.string().optional(),
+        productId: z.string().uuid().optional(),
       })
       .parse(d),
   )
@@ -378,6 +380,7 @@ export const createPromoRequest = createServerFn({ method: "POST" })
         amount: data.amount,
         status: "pending_payment",
         pix_code: pixCode,
+        product_id: data.productId ?? null,
         note: data.note ?? null,
       } as any)
       .select("*")
@@ -399,6 +402,15 @@ export const markRequestPaid = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const r = req as any;
     const endsAt = new Date(Date.now() + r.duration_days * 86400000).toISOString();
+    if (r.product_id) {
+      // Destaque de produto pago: publica o item na seção "Em destaque agora".
+      const { error: prodErr } = await context.supabase
+        .from("products")
+        .update({ directory_featured_until: endsAt, directory_visible: true } as any)
+        .eq("id", r.product_id);
+      if (prodErr) throw new Error(prodErr.message);
+      return { ok: true };
+    }
     const { error: slotErr } = await context.supabase.from("guia_slots").insert({
       kind: r.slot_kind,
       title: r.tenant_name,
