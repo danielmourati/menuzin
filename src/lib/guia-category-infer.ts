@@ -2,7 +2,7 @@
 
 export type GuiaCategorySlug =
   | "quentinha" | "pizza" | "churrasco" | "hamburguer"
-  | "lanches" | "marmitex" | "acai" | "doces" | "bebidas";
+  | "lanches" | "marmitex" | "acai" | "doces" | "bebidas" | "espetinhos";
 
 function norm(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -17,7 +17,8 @@ const KEYWORD_RULES: { slug: GuiaCategorySlug; words: string[] }[] = [
   { slug: "marmitex", words: ["marmitex", "marmita"] },
   { slug: "quentinha", words: ["quentinha", "prato feito", "pf "] },
   { slug: "hamburguer", words: ["hamburguer", "hamburgueres", "burger", "burguer", "x-", "xis"] },
-  { slug: "churrasco", words: ["churrasco", "espeto", "espetinho", "porcao", "porcoes", "grelhado", "frango assado", "costela", "picanha"] },
+  { slug: "espetinhos", words: ["espetinho", "espeto", "churrasquinho", "espetos"] },
+  { slug: "churrasco", words: ["churrasco", "porcao", "porcoes", "grelhado", "frango assado", "costela", "picanha"] },
   { slug: "lanches", words: ["lanche", "combo", "sanduiche", "salgado", "pastel", "hot dog", "cachorro quente", "esfiha", "tapioca"] },
 ];
 
@@ -25,7 +26,7 @@ const BUSINESS_TYPE_MAP: Record<string, GuiaCategorySlug> = {
   pizzaria: "pizza",
   hamburgueria: "hamburguer",
   churrascaria: "churrasco",
-  espetaria: "churrasco",
+  espetaria: "espetinhos",
   marmitaria: "quentinha",
   acaiteria: "acai",
   sorveteria: "acai",

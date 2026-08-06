@@ -94,9 +94,13 @@ export const listMyDirectoryProducts = createServerFn({ method: "GET" })
       };
     });
 
+    const { paidProductIds } = await import("@/lib/directory-spotlight.server");
+    const paidIds = await paidProductIds(supabaseAdmin, tenantId);
+
     return {
       tenant,
       products,
+      paidFeaturedIds: paidIds,
       guiaCategories: (cats ?? []) as { slug: string; label: string; emoji: string }[],
     };
   });
@@ -162,29 +166,49 @@ export const updateDirectoryProduct = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-const FeatureInput = z.object({ product_id: z.string().uuid(), days: z.number().int().min(1).max(30).default(7) });
-export const featureDirectoryProduct = createServerFn({ method: "POST" })
+/**
+ * Destaque gratuito: cada loja pode manter 1 produto na seção "Em destaque agora".
+ * Destaques adicionais são solicitados via PIX (guia_promo_requests).
+ */
+export const setFreeSpotlight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => FeatureInput.parse(d))
+  .inputValidator((d) => z.object({ product_id: z.string().uuid().nullable() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { tenantId } = await resolveEffectiveTenantId(supabase, userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: t } = await supabaseAdmin
-      .from("tenants").select("plan").eq("id", tenantId).maybeSingle();
-    const plan = (t as { plan: string } | null)?.plan ?? "start";
-    if (plan !== "pro") throw new Error("Destaque disponível no plano Pro.");
+    const { paidProductIds, FAR_FUTURE_ISO } = await import("@/lib/directory-spotlight.server");
+    const paidIds = await paidProductIds(supabaseAdmin, tenantId);
 
-    const until = new Date(Date.now() + data.days * 24 * 3600 * 1000).toISOString();
-    const { error } = await supabaseAdmin
+    // limpa o destaque gratuito anterior (mantém os pagos)
+    const { data: current } = await supabaseAdmin
       .from("products")
-      .update({ directory_featured_until: until })
-      .eq("id", data.product_id)
-      .eq("tenant_id", tenantId);
-    if (error) throw new Error(error.message);
-    return { until };
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .not("directory_featured_until", "is", null);
+    const toClear = ((current ?? []) as { id: string }[])
+      .map((p) => p.id)
+      .filter((id) => !paidIds.includes(id) && id !== data.product_id);
+    if (toClear.length) {
+      await supabaseAdmin
+        .from("products")
+        .update({ directory_featured_until: null })
+        .in("id", toClear)
+        .eq("tenant_id", tenantId);
+    }
+
+    if (data.product_id) {
+      const { error } = await supabaseAdmin
+        .from("products")
+        .update({ directory_featured_until: FAR_FUTURE_ISO, directory_visible: true })
+        .eq("id", data.product_id)
+        .eq("tenant_id", tenantId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });
+
 
 export const clearDirectoryFeature = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -6,6 +6,7 @@ import {
   listFeatured,
   listAllStores,
   DIRECTORY_CATEGORIES,
+  type DirectoryStore,
 } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
@@ -145,6 +146,8 @@ function GuiaHome() {
     if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
   }, [availableVerticals, vertical]);
   const [storesView, setStoresView] = useState<"grid" | "list">("list");
+  const [topStoresAll, setTopStoresAll] = useState(false);
+  const [featuredAll, setFeaturedAll] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   const verticalStores = allStores.filter((s) => s.vertical === vertical);
@@ -289,28 +292,22 @@ function GuiaHome() {
             ),
 
             featured: featuredSlots.length > 0 ? (
-              <Section
+              <SlotRowSection
                 title={<>destaques da semana <span>🔥</span></>}
                 subtitle="pra driblar a fome com até 40% OFF"
-                action="ver tudo"
-              >
-                <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {featuredSlots.map((s) => (
-                    <button key={s.id} type="button" className="shrink-0 snap-start text-left">
-                      <SlotCard slot={s} />
-                    </button>
-                  ))}
-                </div>
-              </Section>
+                slots={featuredSlots}
+              />
             ) : null,
 
             top_stores: topStoresSlots.length > 0 ? (
               <Section
                 title={<>lojas em alta por aqui <span>✨</span></>}
                 subtitle="só rango top pro seu jantar 🍔🍕🥩"
+                action={topStoresSlots.length > 6 ? "ver mais" : undefined}
+                onAction={() => setTopStoresAll((v) => !v)}
               >
                 <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-3 shadow-sm sm:grid-cols-2">
-                  {topStoresSlots.slice(0, 6).map((s) => (
+                  {(topStoresAll ? topStoresSlots : topStoresSlots.slice(0, 6)).map((s) => (
                     <button key={s.id} type="button" className="rounded-lg text-left transition hover:bg-muted/60">
                       <SlotCard slot={s} />
                     </button>
@@ -320,43 +317,30 @@ function GuiaHome() {
             ) : null,
 
             flash_offer: flashSlots.length > 0 ? (
-              <Section
+              <SlotRowSection
                 title={<>ofertas relâmpago <span>⚡</span></>}
                 subtitle="rápido antes que acabe"
-              >
-                <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {flashSlots.map((s) => (
-                    <button key={s.id} type="button" className="shrink-0 snap-start text-left">
-                      <SlotCard slot={s} />
-                    </button>
-                  ))}
-                </div>
-              </Section>
+                slots={flashSlots}
+              />
             ) : null,
 
             banner_1: bannerSlots[0] ? <SlotCard slot={bannerSlots[0]} /> : null,
 
             collection: collectionSlots.length > 0 ? (
-              <Section title="coleções de lojas e promos" action="ver tudo">
-                <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {collectionSlots.map((s) => (
-                    <button key={s.id} type="button" className="shrink-0 snap-start text-left">
-                      <SlotCard slot={s} />
-                    </button>
-                  ))}
-                </div>
-              </Section>
+              <SlotRowSection title="coleções de lojas e promos" slots={collectionSlots} />
             ) : null,
 
             banner_2: bannerSlots[1] ? <SlotCard slot={bannerSlots[1]} /> : null,
 
             featured_real: featured.length > 0 ? (
               <Section
-                title={<>em destaque agora <span>🌟</span></>}
+                title="em destaque agora"
                 subtitle="lançamentos do bairro, direto do WhatsApp da loja"
+                action={featured.length > 6 ? (featuredAll ? "ver menos" : "ver mais") : undefined}
+                onAction={() => setFeaturedAll((v) => !v)}
               >
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {featured.map((it) => (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {(featuredAll ? featured : featured.slice(0, 6)).map((it) => (
                     <Link
                       key={it.product_id}
                       to="/guia/produto/$id"
@@ -369,9 +353,6 @@ function GuiaHome() {
                           alt={it.name}
                           className="h-full w-full object-cover transition group-hover:scale-105"
                         />
-                        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-primary-foreground shadow">
-                          <Star className="h-3 w-3 fill-current" /> destaque
-                        </span>
                       </div>
                       <div className="p-3">
                         <p className="line-clamp-1 text-sm font-bold">{it.name}</p>
@@ -388,6 +369,8 @@ function GuiaHome() {
                 </div>
               </Section>
             ) : null,
+
+            famozin: <FamozinSection stores={verticalStores} />,
 
             publish_cta: <PublishCta />,
           };
@@ -481,11 +464,13 @@ function Section({
   title,
   subtitle,
   action,
+  onAction,
   children,
 }: {
   title: React.ReactNode;
   subtitle?: string;
   action?: string;
+  onAction?: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -502,6 +487,7 @@ function Section({
         {action && (
           <button
             type="button"
+            onClick={onAction}
             className="shrink-0 text-xs font-bold text-primary hover:underline"
           >
             {action} <ChevronRight className="inline h-3 w-3" />
@@ -551,6 +537,83 @@ function PublishCta() {
         </div>
       </div>
     </section>
+  );
+}
+
+function SlotRowSection({
+  title,
+  subtitle,
+  slots,
+}: {
+  title: React.ReactNode;
+  subtitle?: string;
+  slots: GuiaSlot[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Section
+      title={title}
+      subtitle={subtitle}
+      action={slots.length > 1 ? (expanded ? "ver menos" : "ver mais") : undefined}
+      onAction={() => setExpanded((v) => !v)}
+    >
+      {expanded ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {slots.map((s) => (
+            <SlotCard key={s.id} slot={s} />
+          ))}
+        </div>
+      ) : (
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {slots.map((s) => (
+            <div key={s.id} className="shrink-0 snap-start text-left">
+              <SlotCard slot={s} />
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function FamozinSection({ stores }: { stores: DirectoryStore[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const list = expanded ? stores : stores.slice(0, 8);
+  if (!stores.length) return null;
+  return (
+    <Section
+      title={<>famozin na cidade <span>😎</span></>}
+      subtitle="as lojas que todo mundo conhece por aqui"
+      action={stores.length > 8 ? (expanded ? "ver menos" : "ver mais") : undefined}
+      onAction={() => setExpanded((v) => !v)}
+    >
+      <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
+        {list.map((s) => (
+          <Link
+            key={s.tenant_id}
+            to="/$slug"
+            params={{ slug: s.tenant_slug }}
+            className="group flex flex-col items-center gap-1.5 text-center"
+          >
+            <div className="relative h-16 w-16 overflow-hidden rounded-full border bg-muted shadow-sm transition group-hover:scale-105">
+              {s.tenant_logo ? (
+                <img src={s.tenant_logo} alt={s.tenant_name} className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-lg font-black text-muted-foreground">
+                  {s.tenant_name.slice(0, 1)}
+                </span>
+              )}
+              {!s.open && (
+                <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-[9px] font-black uppercase text-muted-foreground">
+                  fechada
+                </span>
+              )}
+            </div>
+            <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{s.tenant_name}</span>
+          </Link>
+        ))}
+      </div>
+    </Section>
   );
 }
 

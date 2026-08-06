@@ -9,10 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Compass, Star, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct,
-  featureDirectoryProduct, clearDirectoryFeature,
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown, Compass, Sparkles, Star, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import {
+  setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct, setFreeSpotlight,
 } from "@/lib/directory-admin.functions";
 import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
@@ -29,6 +33,7 @@ function DiretorioPage() {
     <AdminLayout title="Guia Menuzin">
       <div className="mx-auto max-w-5xl space-y-6">
         <OptInBlock />
+        <SpotlightBlock />
         <RequestFeatureBlock />
         <ProductsBlock />
         <MetricsBlock />
@@ -46,6 +51,7 @@ function RequestFeatureBlock() {
   const [kind, setKind] = useState<GuiaSlotKind>("featured");
   const [days, setDays] = useState<7 | 14 | 30>(7);
   const [note, setNote] = useState("");
+  const [productId, setProductId] = useState<string | null>(null);
   const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
   const price = SLOT_KIND_PRICES[kind][days];
 
@@ -57,6 +63,7 @@ function RequestFeatureBlock() {
           durationDays: days,
           amount: price,
           note: note.trim() || undefined,
+          productId: kind === "featured" && productId ? productId : undefined,
         },
       }),
     onSuccess: (req) => {
@@ -71,6 +78,7 @@ function RequestFeatureBlock() {
   const close = () => {
     setPending(null);
     setNote("");
+    setProductId(null);
     setOpen(false);
   };
 
@@ -145,6 +153,17 @@ function RequestFeatureBlock() {
                   </SelectContent>
                 </Select>
               </div>
+              {kind === "featured" && (
+                <div>
+                  <Label>Produto a destacar</Label>
+                  <ProductSearchSelect
+                    products={(data?.products ?? []) as MyProduct[]}
+                    value={productId}
+                    onChange={setProductId}
+                    placeholder="Escolha um produto do cardápio"
+                  />
+                </div>
+              )}
               <div>
                 <Label>Observação (opcional)</Label>
                 <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex.: destacar a pizza calabresa" />
@@ -285,30 +304,164 @@ function OptInBlock() {
   );
 }
 
+type MyProduct = {
+  id: string;
+  name: string;
+  image_url: string | null;
+  price: number;
+  promo_price: number | null;
+  directory_visible: boolean;
+  directory_category: string | null;
+  directory_featured_until: string | null;
+  suggested_category: string | null;
+};
+
+function ProductSearchSelect({
+  products,
+  value,
+  onChange,
+  placeholder = "Buscar produto…",
+}: {
+  products: MyProduct[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = products.find((p) => p.id === value) ?? null;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+          <span className="truncate">{selected ? selected.name : placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar produto…" />
+          <CommandList>
+            <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+            <CommandGroup>
+              {products.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={p.name}
+                  onSelect={() => {
+                    onChange(p.id === value ? null : p.id);
+                    setOpen(false);
+                  }}
+                >
+                  <img src={productImage(p.image_url)} alt="" className="mr-2 h-7 w-7 rounded object-cover" />
+                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">{brl(p.promo_price ?? p.price)}</span>
+                  {p.id === value && <Check className="ml-2 h-4 w-4 text-primary" />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function SpotlightBlock() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["diretorio", "my-products"],
+    queryFn: () => listMyDirectoryProducts(),
+  });
+  const now = Date.now();
+  const products = (data?.products ?? []) as MyProduct[];
+  const paidIds = data?.paidFeaturedIds ?? [];
+  const featuredNow = products.filter(
+    (p) => p.directory_featured_until && new Date(p.directory_featured_until).getTime() > now,
+  );
+  const freeCurrent = featuredNow.find((p) => !paidIds.includes(p.id)) ?? null;
+  const paidCurrent = featuredNow.filter((p) => paidIds.includes(p.id));
+  const [selected, setSelected] = useState<string | null>(null);
+  const value = selected ?? freeCurrent?.id ?? null;
+
+  const saveMut = useMutation({
+    mutationFn: (product_id: string | null) => setFreeSpotlight({ data: { product_id } }),
+    onSuccess: () => {
+      toast.success("Destaque gratuito atualizado.");
+      qc.invalidateQueries({ queryKey: ["diretorio"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao salvar."),
+  });
+
+  return (
+    <section className="rounded-2xl border bg-card p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="rounded-xl bg-primary/10 p-3">
+          <Sparkles className="h-6 w-6 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold">Em destaque agora</h2>
+          <p className="text-sm text-muted-foreground">
+            Escolha <strong>1 produto grátis</strong> para aparecer na seção “em destaque agora” do Guia.
+            Destaques adicionais são contratados via PIX.
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-6 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" /></div>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-[240px] flex-1">
+              <ProductSearchSelect products={products} value={value} onChange={setSelected} />
+            </div>
+            <Button onClick={() => saveMut.mutate(value)} disabled={saveMut.isPending || !value || value === freeCurrent?.id}>
+              {saveMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar destaque
+            </Button>
+            {freeCurrent && (
+              <Button variant="ghost" onClick={() => { setSelected(null); saveMut.mutate(null); }}>
+                Remover
+              </Button>
+            )}
+          </div>
+
+          {paidCurrent.length > 0 && (
+            <div className="rounded-xl border bg-muted/40 p-3">
+              <p className="text-xs font-semibold text-muted-foreground">Destaques pagos ativos</p>
+              <ul className="mt-1 space-y-1">
+                {paidCurrent.map((p) => (
+                  <li key={p.id} className="text-sm">
+                    ⭐ {p.name}
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      até {new Date(p.directory_featured_until!).toLocaleDateString("pt-BR")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ProductsBlock() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["diretorio", "my-products"],
     queryFn: () => listMyDirectoryProducts(),
   });
-  const tenant = data?.tenant;
-  const isPro = tenant?.plan === "pro";
   const now = Date.now();
+  const catLabel = (slug: string | null) =>
+    data?.guiaCategories.find((c) => c.slug === slug)?.label ?? slug ?? "";
 
   const updateMut = useMutation({
     mutationFn: (p: { product_id: string; directory_visible?: boolean; directory_category?: string | null }) =>
       updateDirectoryProduct({ data: p }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["diretorio"] }),
     onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao atualizar."),
-  });
-  const featureMut = useMutation({
-    mutationFn: (product_id: string) => featureDirectoryProduct({ data: { product_id, days: 7 } }),
-    onSuccess: () => { toast.success("Produto em destaque por 7 dias 🎉"); qc.invalidateQueries({ queryKey: ["diretorio"] }); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Falha ao destacar."),
-  });
-  const clearMut = useMutation({
-    mutationFn: (product_id: string) => clearDirectoryFeature({ data: { product_id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["diretorio"] }),
   });
 
   return (
@@ -320,7 +473,7 @@ function ProductsBlock() {
         <div>
           <h2 className="text-lg font-bold">Produtos publicados no Guia</h2>
           <p className="text-sm text-muted-foreground">
-            Escolha uma categoria para cada produto e ative o Guia. {isPro ? "Destaque incluso no plano Pro." : "Destaque disponível no plano Pro."}
+            A categoria vem do seu cardápio. Ative ou oculte cada item no Guia.
           </p>
         </div>
       </div>
@@ -333,47 +486,29 @@ function ProductsBlock() {
         </div>
       ) : (
         <div className="mt-4 divide-y rounded-xl border">
-          {data!.products.map((p) => {
-            const isFeatured = p.directory_featured_until && new Date(p.directory_featured_until).getTime() > now;
-            const effectiveCategory = p.directory_category ?? p.suggested_category ?? "";
-            const isSuggestion = !p.directory_category && !!p.suggested_category;
+          {(data!.products as MyProduct[]).map((p) => {
+            const isFeatured = !!p.directory_featured_until && new Date(p.directory_featured_until).getTime() > now;
+            const effectiveCategory = p.directory_category ?? p.suggested_category ?? null;
+            const invalidCat =
+              !!p.directory_category &&
+              !(data?.guiaCategories.some((c) => c.slug === p.directory_category) ?? false);
             return (
               <div key={p.id} className="flex flex-wrap items-center gap-3 p-3">
                 <img src={productImage(p.image_url)} alt={p.name} className="h-14 w-14 shrink-0 rounded-lg object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-semibold">{p.name}</p>
                   <p className="text-xs text-muted-foreground">{brl(p.promo_price ?? p.price)}</p>
-                  {p.directory_category && !(data?.guiaCategories.some((c) => c.slug === p.directory_category) ?? false) && (
-                    <p className="mt-1 text-[10px] text-destructive">
-                      Categoria removida — escolha outra
-                    </p>
-                  )}
-                  {isSuggestion && (
-                    <p className="mt-1 text-[10px] text-muted-foreground">sugerido pelo cardápio</p>
-                  )}
-                </div>
-                <div className="w-44">
-                  <Select
-                    value={effectiveCategory}
-                    onValueChange={(v) => updateMut.mutate({ product_id: p.id, directory_category: v || null })}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(data?.guiaCategories.length ?? 0) === 0 ? (
-                        <SelectItem value="__empty__" disabled>
-                          Nenhuma categoria ativa no Guia
-                        </SelectItem>
-                      ) : (
-                        data!.guiaCategories.map((c) => (
-                          <SelectItem key={c.slug} value={c.slug}>
-                            {c.emoji} {c.label}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {effectiveCategory && !invalidCat && (
+                      <Badge variant="secondary" className="text-[10px]">{catLabel(effectiveCategory)}</Badge>
+                    )}
+                    {invalidCat && (
+                      <Badge variant="destructive" className="text-[10px]">categoria removida</Badge>
+                    )}
+                    {isFeatured && (
+                      <Badge className="text-[10px]"><Star className="mr-1 h-2.5 w-2.5 fill-current" /> em destaque</Badge>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -383,21 +518,6 @@ function ProductsBlock() {
                   />
                   <span className="text-xs">{p.directory_visible ? "Publicado" : "Oculto"}</span>
                 </div>
-                {isPro ? (
-                  isFeatured ? (
-                    <Button size="sm" variant="outline" onClick={() => clearMut.mutate(p.id)}>
-                      Remover destaque
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={() => featureMut.mutate(p.id)} disabled={!p.directory_visible}>
-                      <Star className="mr-1 h-3 w-3" /> Destacar 7 dias
-                    </Button>
-                  )
-                ) : (
-                  <Button asChild size="sm" variant="outline">
-                    <Link to="/admin/assinatura">Destaque no Pro</Link>
-                  </Button>
-                )}
               </div>
             );
           })}
@@ -406,6 +526,7 @@ function ProductsBlock() {
     </section>
   );
 }
+
 
 function MetricsBlock() {
   const { data, isLoading } = useQuery({

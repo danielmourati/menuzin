@@ -71,10 +71,14 @@ function ProductPage() {
   const { data } = useSuspenseQuery(productQO(id));
   const it = data.item!;
 
+  // Plano Presença: pedido apenas via WhatsApp. Demais planos abrem o item na loja.
+  const presenca = (it.plan ?? "presenca") === "presenca";
+  const useWhatsapp = presenca && !!it.whatsapp;
+
   const handleOrder = () => {
     // fire-and-forget click ping
     try {
-      const dest = it.whatsapp ? "whatsapp" : "storefront";
+      const dest = useWhatsapp ? "whatsapp" : "storefront";
       const body = JSON.stringify({ product_id: it.product_id, destination: dest });
       if (navigator.sendBeacon) {
         navigator.sendBeacon("/api/public/guia-click", new Blob([body], { type: "application/json" }));
@@ -83,8 +87,8 @@ function ProductPage() {
       }
     } catch { /* ignore */ }
 
-    if (it.whatsapp) {
-      const clean = it.whatsapp.replace(/\D/g, "");
+    if (useWhatsapp) {
+      const clean = it.whatsapp!.replace(/\D/g, "");
       const msg = encodeURIComponent(`Olá! Vi "${it.name}" no Guia Menuzin e quero pedir.`);
       window.location.href = `https://wa.me/${clean}?text=${msg}`;
     } else {
@@ -151,8 +155,8 @@ function ProductPage() {
             onClick={handleOrder}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground shadow-lg transition hover:brightness-110"
           >
-            <MessageCircle className="h-5 w-5" />
-            {it.whatsapp ? "Pedir agora no WhatsApp" : "Ir para a loja"}
+            {useWhatsapp ? <MessageCircle className="h-5 w-5" /> : <ExternalLink className="h-5 w-5" />}
+            {useWhatsapp ? "Pedir agora no WhatsApp" : "Abrir item na loja"}
           </button>
         </div>
       </div>
