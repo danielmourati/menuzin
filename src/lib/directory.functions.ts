@@ -78,6 +78,9 @@ export type DirectoryStore = {
   vertical: GuiaVertical;
   open: boolean;
   accepts_delivery: boolean;
+  rating_avg: number | null;
+  rating_count: number;
+
 };
 
 export type GuiaVertical = "restaurantes" | "mercados" | "conveniencias";
