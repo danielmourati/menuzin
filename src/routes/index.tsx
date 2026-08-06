@@ -52,7 +52,6 @@ const fallbackPricingPlans = [
 
 const PLAN_CTA: Record<string, string> = {
   presenca: "Cadastrar grátis",
-  start: "Começar a vender",
   pro: "Profissionalizar meu delivery",
 };
 

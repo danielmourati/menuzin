@@ -71,7 +71,7 @@ export const upsertDeliveryZone = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Loja não encontrada");
     const { requirePlanAtLeast } = await import("@/lib/plan-server");
-    await requirePlanAtLeast(resolved.tenantId, "start");
+    await requirePlanAtLeast(resolved.tenantId, "pro");
     const payload = {
       tenant_id: resolved.tenantId,
       neighborhood: data.neighborhood.trim(),
