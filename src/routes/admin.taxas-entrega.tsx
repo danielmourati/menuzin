@@ -30,7 +30,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/taxas-entrega")({
   component: () => (
-    <PlanGate min="start" title="Taxas de entrega" featureLabel="Taxas de entrega por bairro">
+    <PlanGate min="pro" title="Taxas de entrega" featureLabel="Taxas de entrega por bairro">
       <DeliveryZonesPage />
     </PlanGate>
   ),

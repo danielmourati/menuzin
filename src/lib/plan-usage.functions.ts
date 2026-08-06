@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 
 export interface PlanUsage {
-  plan: "presenca" | "start" | "pro";
+  plan: "presenca" | "pro";
   monthly_orders_used: number;
   monthly_orders_limit: number | null; // null = ilimitado, 0 = não aceita pedidos
   products_used: number;

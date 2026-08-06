@@ -26,7 +26,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/cupons")({
   component: () => (
-    <PlanGate min="start" title="Cupons" featureLabel="Cupons de desconto">
+    <PlanGate min="pro" title="Cupons" featureLabel="Cupons de desconto">
       <CouponsPage />
     </PlanGate>
   ),
