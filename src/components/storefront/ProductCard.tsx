@@ -3,6 +3,8 @@ import { Plus } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { useState } from "react";
 
 export function ProductCard({
   product,
