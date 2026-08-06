@@ -133,15 +133,24 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
         vertical: "restaurantes",
         open: true,
         accepts_delivery: true,
+        rating_avg: null,
+        rating_count: 0,
       });
     }
   }
   const ids = Array.from(map.keys());
   if (ids.length) {
-    const { data: tRows } = await supabaseAdmin
-      .from("tenants")
-      .select("id, business_types, open, accepts_delivery")
-      .in("id", ids);
+    const [{ data: tRows }, { data: rRows }] = await Promise.all([
+      supabaseAdmin
+        .from("tenants")
+        .select("id, business_types, open, accepts_delivery")
+        .in("id", ids),
+      supabaseAdmin
+        .from("order_ratings")
+        .select("tenant_id, stars")
+        .in("tenant_id", ids)
+        .limit(5000),
+    ]);
     for (const t of (tRows ?? []) as { id: string; business_types: string[] | null; open: boolean; accepts_delivery: boolean }[]) {
       const store = map.get(t.id);
       if (store) {
@@ -150,7 +159,22 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
         store.accepts_delivery = t.accepts_delivery !== false;
       }
     }
+    const agg = new Map<string, { sum: number; n: number }>();
+    for (const r of (rRows ?? []) as { tenant_id: string; stars: number }[]) {
+      const cur = agg.get(r.tenant_id) ?? { sum: 0, n: 0 };
+      cur.sum += Number(r.stars) || 0;
+      cur.n += 1;
+      agg.set(r.tenant_id, cur);
+    }
+    for (const [tid, a] of agg) {
+      const store = map.get(tid);
+      if (store && a.n > 0) {
+        store.rating_avg = Math.round((a.sum / a.n) * 10) / 10;
+        store.rating_count = a.n;
+      }
+    }
   }
+
 
   const stores = Array.from(map.values()).sort((a, b) => {
     if (a.has_featured !== b.has_featured) return a.has_featured ? -1 : 1;
