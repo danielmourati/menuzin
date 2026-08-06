@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { computeStoreOpen } from "@/lib/store-hours";
+import { z } from "zod";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
@@ -71,8 +72,8 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
 });
 
 export const Route = createFileRoute("/$slug")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    produto: typeof search.produto === "string" ? search.produto : undefined,
+  validateSearch: z.object({
+    produto: z.string().optional(),
   }),
   loader: ({ context, params }) => {
     if (!isCatalogSlug(params.slug)) return null;
