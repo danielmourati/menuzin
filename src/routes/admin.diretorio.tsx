@@ -14,9 +14,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Compass, Sparkles, Star, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Compass, Sparkles, Star, TrendingUp, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
 import {
-  setDirectoryOptIn, listMyDirectoryProducts, updateDirectoryProduct, setFreeSpotlight,
+  setDirectoryOptIn, listMyDirectoryProducts, setFreeSpotlight,
+  clearDirectoryFeature, replaceSpotlightProduct,
 } from "@/lib/directory-admin.functions";
 import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
