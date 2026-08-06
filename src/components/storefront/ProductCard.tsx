@@ -93,13 +93,21 @@ export function ProductCard({
       disabled={unavailable}
       className="group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+      <div
+        className="relative aspect-[4/3] w-full overflow-hidden bg-muted"
+        onClick={(e) => {
+          if (!isDefaultProductImage(product.image)) {
+            e.stopPropagation();
+            setLightboxOpen(true);
+          }
+        }}
+      >
         <img
           src={productImage(product.image)}
           alt={product.name}
           className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
             isDefaultProductImage(product.image) ? "object-contain p-6" : "object-cover"
-          }`}
+          } ${!isDefaultProductImage(product.image) ? "cursor-zoom-in" : ""}`}
           loading="lazy"
           decoding="async"
         />
