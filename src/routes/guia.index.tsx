@@ -26,6 +26,7 @@ import {
   Receipt,
   Rocket,
   Search,
+  Star,
   User,
   X,
 } from "lucide-react";
