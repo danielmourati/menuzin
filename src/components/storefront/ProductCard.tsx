@@ -15,6 +15,7 @@ export function ProductCard({
   onClick: () => void;
   view?: "grid" | "list";
 }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const unavailable = !product.available;
   const isPizza = product.categoryKind === "pizza";
   const positiveSizePrices = (product.sizes ?? []).map((s) => s.price).filter((n) => n > 0);
