@@ -468,10 +468,10 @@ function OwnerEditor({ tenantId }: { tenantId: string }) {
 function PlanSelect({ value, onChange }: { value: TenantPlan; onChange: (v: TenantPlan) => void }) {
   const { data } = useQuery({ queryKey: ["plans"], queryFn: () => listPlans() });
   const active = (data?.plans ?? []).filter(
-    (p) => (p as { active?: boolean }).active !== false && ["presenca", "start", "pro"].includes(p.slug),
+    (p) => (p as { active?: boolean }).active !== false && ["presenca", "pro"].includes(p.slug),
   );
   const fallback: { slug: TenantPlan; name: string }[] = [
-    { slug: "presenca", name: "Presença" }, { slug: "start", name: "Start" }, { slug: "pro", name: "Pro" },
+    { slug: "presenca", name: "Presença" }, { slug: "pro", name: "Pro" },
   ];
   const items = active.length > 0 ? active.map((p) => ({ slug: p.slug as TenantPlan, name: p.name })) : fallback;
   const includesCurrent = items.some((p) => p.slug === value);

@@ -190,7 +190,6 @@ export function useTenantPlan() {
   return {
     plan,
     isPro: plan === "pro",
-    isStart: plan === "start",
     isPresenca: plan === "presenca",
     can: (feature: PlanFeature) => canUse(plan, feature),
     atLeast: (min: TenantPlan) => planAtLeast(plan, min),
