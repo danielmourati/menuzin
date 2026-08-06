@@ -683,6 +683,7 @@ export type Database = {
           id: string
           note: string | null
           pix_code: string | null
+          product_id: string | null
           slot_kind: string
           status: string
           tenant_id: string | null
@@ -696,6 +697,7 @@ export type Database = {
           id?: string
           note?: string | null
           pix_code?: string | null
+          product_id?: string | null
           slot_kind: string
           status?: string
           tenant_id?: string | null
@@ -709,6 +711,7 @@ export type Database = {
           id?: string
           note?: string | null
           pix_code?: string | null
+          product_id?: string | null
           slot_kind?: string
           status?: string
           tenant_id?: string | null
@@ -716,6 +719,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "guia_promo_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "guia_promo_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "guia_promo_requests_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -2299,6 +2316,7 @@ export type Database = {
           image_url: string | null
           name: string | null
           neighborhood: string | null
+          plan: string | null
           price: number | null
           product_id: string | null
           promo_price: number | null
