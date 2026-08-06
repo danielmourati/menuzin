@@ -211,9 +211,9 @@ export function CartDrawer({
   const tenantAddress = tenant?.address ?? "";
   const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
   const rawTenantPlan = (tenant as { plan?: string } | null | undefined)?.plan;
-  const tenantPlan = rawTenantPlan === "pro" ? "pro" : rawTenantPlan === "start" ? "start" : "presenca";
+  const tenantPlan = rawTenantPlan === "pro" ? "pro" : "presenca";
   const isPresencaOnly = tenantPlan === "presenca";
-  const isStartPlan = tenantPlan === "start";
+  const isPaidPlan = tenantPlan === "pro";
   // Presença ignora flags (loja não configura modalidades) — sempre mostra as 3 opções.
   const acceptsDelivery = isPresencaOnly ? true : (tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true);
   const acceptsTakeout = isPresencaOnly ? true : (tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true);
