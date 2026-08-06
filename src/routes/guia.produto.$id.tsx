@@ -76,13 +76,10 @@ function ProductPage() {
   const hasImage = !isDefaultProductImage(it.image_url);
 
   // Todos os planos abrem o item direto na loja; a loja decide o fluxo do pedido.
-  const useWhatsapp = false;
-
   const handleOrder = () => {
     // fire-and-forget click ping
     try {
-      const dest = useWhatsapp ? "whatsapp" : "storefront";
-      const body = JSON.stringify({ product_id: it.product_id, destination: dest });
+      const body = JSON.stringify({ product_id: it.product_id, destination: "storefront" });
       if (navigator.sendBeacon) {
         navigator.sendBeacon("/api/public/guia-click", new Blob([body], { type: "application/json" }));
       } else {
@@ -90,13 +87,7 @@ function ProductPage() {
       }
     } catch { /* ignore */ }
 
-    if (useWhatsapp) {
-      const clean = it.whatsapp!.replace(/\D/g, "");
-      const msg = encodeURIComponent(`Olá! Vi "${it.name}" no Guia Menuzin e quero pedir.`);
-      window.location.href = `https://wa.me/${clean}?text=${msg}`;
-    } else {
-      window.location.href = `/${it.tenant_slug}?produto=${it.product_id}`;
-    }
+    window.location.href = `/${it.tenant_slug}?produto=${it.product_id}`;
   };
 
   return (
