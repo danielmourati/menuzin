@@ -71,6 +71,9 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
 });
 
 export const Route = createFileRoute("/$slug")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    produto: typeof search.produto === "string" ? search.produto : undefined,
+  }),
   loader: ({ context, params }) => {
     if (!isCatalogSlug(params.slug)) return null;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
@@ -213,6 +216,20 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal } = useCart();
+
+  // Deep link vindo do Guia: /:slug?produto=<id> abre o produto direto.
+  const { produto: deepLinkProductId } = Route.useSearch();
+  const deepLinkDone = useRef(false);
+  useEffect(() => {
+    if (!deepLinkProductId || deepLinkDone.current) return;
+    const p = products.find((x) => x.id === deepLinkProductId);
+    if (!p) return;
+    deepLinkDone.current = true;
+    setSelectedProduct(p);
+    setModalOpen(true);
+  }, [deepLinkProductId, products]);
+
+
 
 
   // Modal promocional — carrega na abertura da loja, 1x por sessão

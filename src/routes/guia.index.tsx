@@ -578,13 +578,21 @@ function SlotRowSection({
 
 function FamozinSection({ stores }: { stores: DirectoryStore[] }) {
   const [expanded, setExpanded] = useState(false);
-  const list = expanded ? stores : stores.slice(0, 8);
-  if (!stores.length) return null;
+  // Ordena pelas lojas mais bem avaliadas; sem avaliação vem depois.
+  const ranked = [...stores].sort((a, b) => {
+    const ar = a.rating_avg ?? -1;
+    const br = b.rating_avg ?? -1;
+    if (ar !== br) return br - ar;
+    if (a.rating_count !== b.rating_count) return b.rating_count - a.rating_count;
+    return a.tenant_name.localeCompare(b.tenant_name);
+  });
+  const list = expanded ? ranked : ranked.slice(0, 8);
+  if (!ranked.length) return null;
   return (
     <Section
       title={<>famozin na cidade <span>😎</span></>}
-      subtitle="as lojas que todo mundo conhece por aqui"
-      action={stores.length > 8 ? (expanded ? "ver menos" : "ver mais") : undefined}
+      subtitle="as lojas mais bem avaliadas por aqui"
+      action={ranked.length > 8 ? (expanded ? "ver menos" : "ver mais") : undefined}
       onAction={() => setExpanded((v) => !v)}
     >
       <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
@@ -610,12 +618,22 @@ function FamozinSection({ stores }: { stores: DirectoryStore[] }) {
               )}
             </div>
             <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{s.tenant_name}</span>
+            {s.rating_avg != null ? (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600">
+                <Star className="h-2.5 w-2.5 fill-current" />
+                {s.rating_avg.toFixed(1).replace(".", ",")}
+                <span className="font-normal text-muted-foreground">({s.rating_count})</span>
+              </span>
+            ) : (
+              <span className="text-[10px] font-semibold text-muted-foreground">nova</span>
+            )}
           </Link>
         ))}
       </div>
     </Section>
   );
 }
+
 
 function BottomTab({
   icon,

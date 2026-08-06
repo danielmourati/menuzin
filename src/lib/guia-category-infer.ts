@@ -48,16 +48,39 @@ function matchKeywords(text: string | null | undefined): GuiaCategorySlug | null
   return null;
 }
 
+/** Itens típicos de espeto — usados quando a loja é uma espetaria. */
+const SKEWER_WORDS = [
+  "espeto", "espetinho", "churrasquinho", "coracao", "queijo coalho", "medalhao",
+  "linguica", "camarao", "frango", "carne bovina", "porco", "pao de alho",
+  "romeu e julieta", "asa", "kafta", "cupim", "panceta",
+];
+
+function isSkewerItem(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const t = ` ${norm(text)} `;
+  // porções/pratos maiores não são espetinhos
+  if (/\d{3}\s?g|fritas|carne de sol|prato|combo/.test(t)) return false;
+  return SKEWER_WORDS.some((w) => t.includes(w));
+}
+
 /** Sugere a categoria do Guia com base na categoria do cardápio, no nome do produto e no tipo de negócio. */
 export function inferGuiaCategory(input: {
   menuCategoryName?: string | null;
   productName?: string | null;
   businessTypes?: string[] | null;
 }): GuiaCategorySlug | null {
-  return (
+  const base =
     matchKeywords(input.menuCategoryName) ??
     matchKeywords(input.productName) ??
     (input.businessTypes ?? []).map((b) => BUSINESS_TYPE_MAP[norm(b)]).find(Boolean) ??
-    null
-  );
+    null;
+
+  // Espetaria: itens de espeto têm prioridade sobre a regra genérica de churrasco.
+  const isEspetaria = (input.businessTypes ?? []).some((b) => norm(b) === "espetaria");
+  if (isEspetaria && (base === "churrasco" || base === null)) {
+    if (isSkewerItem(input.productName) || isSkewerItem(input.menuCategoryName)) return "espetinhos";
+  }
+
+  return base;
 }
+
