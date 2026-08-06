@@ -6,7 +6,7 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useActiveTenantId } from "@/lib/active-tenant";
 
-export type TenantPlan = "presenca" | "start" | "pro";
+export type TenantPlan = "presenca" | "pro";
 
 export type PlanFeature =
   | "ordersPanel"
