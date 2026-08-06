@@ -76,6 +76,8 @@ export type DirectoryStore = {
   product_count: number;
   has_featured: boolean;
   vertical: GuiaVertical;
+  open: boolean;
+  accepts_delivery: boolean;
 };
 
 export type GuiaVertical = "restaurantes" | "mercados" | "conveniencias";
