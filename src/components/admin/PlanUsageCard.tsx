@@ -53,9 +53,8 @@ export function PlanUsageCard({ variant = "full" }: Props) {
     queryFn: () => getMyPlanUsage(),
     staleTime: 60_000,
   });
-  // Sugestão de upgrade sempre para o menor plano ATIVO acima do atual.
-  const nextFromPresenca = useRequiredPlan("start");
-  const nextFromStart = useRequiredPlan("pro");
+  // Sugestão de upgrade sempre para o Pro (único plano pago).
+  const nextFromPresenca = useRequiredPlan("pro");
   if (!data) return null;
 
   const {
@@ -79,7 +78,7 @@ export function PlanUsageCard({ variant = "full" }: Props) {
     !ordersOver;
 
   const showUpgrade = plan !== "pro";
-  const nextPlan = plan === "presenca" ? nextFromPresenca.plan : nextFromStart.plan;
+  const nextPlan = nextFromPresenca.plan;
 
   return (
     <Card>

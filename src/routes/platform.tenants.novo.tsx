@@ -39,7 +39,7 @@ function NewTenantPage() {
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
   // Plano padrão dos novos tenants = plano configurado pelo superadmin; fallback Presença.
-  const [plan, setPlan] = useState<"presenca" | "start" | "pro">("presenca");
+  const [plan, setPlan] = useState<"presenca" | "pro">("presenca");
   const [showPwd, setShowPwd] = useState(false);
   const [startEmpty, setStartEmpty] = useState(true);
   const [seedBusinessCategories, setSeedBusinessCategories] = useState(false);
@@ -63,7 +63,7 @@ function NewTenantPage() {
 
   const { data: plansData } = useQuery({ queryKey: ["plans"], queryFn: () => listPlans() });
   const availablePlans = (plansData?.plans ?? []).filter((p) =>
-    ["presenca", "start", "pro"].includes(p.slug),
+    ["presenca", "pro"].includes(p.slug),
   );
 
   const pwdChecks = {
@@ -193,7 +193,7 @@ function NewTenantPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label>Plano</Label>
-              <Select value={plan} onValueChange={(v) => setPlan(v as "presenca" | "start" | "pro")}>
+              <Select value={plan} onValueChange={(v) => setPlan(v as "presenca" | "pro")}>
                 <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(availablePlans.length

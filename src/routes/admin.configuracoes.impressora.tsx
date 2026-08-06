@@ -1187,7 +1187,7 @@ function ExtraPrintersManagerGated() {
     return (
       <UpgradeNotice
         title="Múltiplas impressoras no Plano Pro"
-        description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. No Plano Start a impressora principal de recibo continua disponível normalmente."
+        description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. A impressora principal de recibo continua disponível normalmente."
       />
     );
   }

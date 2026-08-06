@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 
-export type EffectivePlan = "presenca" | "start" | "pro";
+export type EffectivePlan = "presenca" | "pro";
 
 export const getMyEffectivePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

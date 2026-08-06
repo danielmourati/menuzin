@@ -211,9 +211,9 @@ export function CartDrawer({
   const tenantAddress = tenant?.address ?? "";
   const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
   const rawTenantPlan = (tenant as { plan?: string } | null | undefined)?.plan;
-  const tenantPlan = rawTenantPlan === "pro" ? "pro" : rawTenantPlan === "start" ? "start" : "presenca";
+  const tenantPlan = rawTenantPlan === "pro" ? "pro" : "presenca";
   const isPresencaOnly = tenantPlan === "presenca";
-  const isStartPlan = tenantPlan === "start";
+  const isPaidPlan = tenantPlan === "pro";
   // Presença ignora flags (loja não configura modalidades) — sempre mostra as 3 opções.
   const acceptsDelivery = isPresencaOnly ? true : (tenant?.acceptsDelivery ?? tenant?.accepts_delivery ?? true);
   const acceptsTakeout = isPresencaOnly ? true : (tenant?.acceptsTakeout ?? tenant?.accepts_takeout ?? true);
@@ -1668,7 +1668,7 @@ export function CartDrawer({
               )}
 
               {/* PIX manual — enviar comprovante via WhatsApp (Start) */}
-              {isStartPlan && selectedMethod === "pix_manual" && (tenant?.whatsapp ?? "") && (
+              {isPaidPlan && selectedMethod === "pix_manual" && (tenant?.whatsapp ?? "") && (
                 <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
                   <div className="flex items-center gap-2 font-semibold">
                     <Smartphone className="h-5 w-5 text-primary" /> Envie o comprovante

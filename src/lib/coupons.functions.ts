@@ -61,7 +61,7 @@ export const upsertCoupon = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Loja não encontrada");
     const { requirePlanAtLeast } = await import("@/lib/plan-server");
-    await requirePlanAtLeast(resolved.tenantId, "start");
+    await requirePlanAtLeast(resolved.tenantId, "pro");
     if (data.discount_type === "percent" && data.discount_value > 100) {
       throw new Error("Percentual não pode passar de 100%");
     }

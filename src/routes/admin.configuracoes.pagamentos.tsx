@@ -30,7 +30,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/pagamentos")({
   component: () => (
-    <PlanGate min="start" title="Pagamentos" featureLabel="Configurações de pagamento" backTo="/admin/configuracoes">
+    <PlanGate min="pro" title="Pagamentos" featureLabel="Configurações de pagamento" backTo="/admin/configuracoes">
       <AdminPaymentSettingsPage />
     </PlanGate>
   ),

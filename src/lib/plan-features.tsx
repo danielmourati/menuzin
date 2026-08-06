@@ -6,7 +6,7 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useActiveTenantId } from "@/lib/active-tenant";
 
-export type TenantPlan = "presenca" | "start" | "pro";
+export type TenantPlan = "presenca" | "pro";
 
 export type PlanFeature =
   | "ordersPanel"
@@ -73,34 +73,6 @@ const PRESENCA: Record<PlanFeature, boolean> = {
   prioritySupport: false,
 };
 
-const START: Record<PlanFeature, boolean> = {
-  ordersPanel: true,
-  onlinePayment: false,
-  autoPrint: false,
-  kitchenPrinter: false,
-  pizzaFractional: false,
-  advancedAddons: false,
-  combos: false,
-  distanceDeliveryFee: false,
-  advancedCoupons: false,
-  basicCoupons: true,
-  upsell: false,
-  customerCrm: true,
-  customerRecovery: false,
-  fullReports: false,
-  basicReports: true,
-  orderStatus: true,
-  manualPrint: true,
-  directoryFeatured: false,
-  hideMenuzinBrand: false,
-  multipleUsers: true,
-  dashboard: true,
-  whatsappOrders: true,
-  reports: true,
-  mercadoPago: false,
-  multiplePrinters: false,
-  prioritySupport: false,
-};
 
 const PRO: Record<PlanFeature, boolean> = {
   ordersPanel: true,
@@ -133,19 +105,18 @@ const PRO: Record<PlanFeature, boolean> = {
 
 export const PLAN_FEATURES: Record<TenantPlan, Record<PlanFeature, boolean>> = {
   presenca: PRESENCA,
-  start: START,
   pro: PRO,
 };
 
 export const PLAN_LIMITS: Record<TenantPlan, PlanLimits> = {
   presenca: { maxProducts: 20, maxCategories: 4, maxOrdersPerMonth: 0, maxUsers: 1 },
-  start: { maxProducts: null, maxCategories: null, maxOrdersPerMonth: 400, maxUsers: 2 },
   pro: { maxProducts: null, maxCategories: null, maxOrdersPerMonth: null, maxUsers: null },
 };
 
 export function normalizePlan(raw: string | null | undefined): TenantPlan {
   if (raw === "pro") return "pro";
-  if (raw === "start") return "start";
+  // Start foi descontinuado: tenants antigos herdam as permissões do Pro.
+  if (raw === "start") return "pro";
   return "presenca";
 }
 
@@ -159,11 +130,10 @@ export function getPlanLimits(plan: TenantPlan | null | undefined): PlanLimits {
 
 export const PLAN_LABEL: Record<TenantPlan, string> = {
   presenca: "Presença",
-  start: "Start",
   pro: "Pro",
 };
 
-const PLAN_RANK: Record<TenantPlan, number> = { presenca: 0, start: 1, pro: 2 };
+const PLAN_RANK: Record<TenantPlan, number> = { presenca: 0, pro: 1 };
 
 export function planAtLeast(plan: TenantPlan | null | undefined, min: TenantPlan): boolean {
   return PLAN_RANK[normalizePlan(plan)] >= PLAN_RANK[min];
@@ -171,7 +141,7 @@ export function planAtLeast(plan: TenantPlan | null | undefined, min: TenantPlan
 
 /**
  * Resolve o menor plano ATIVO capaz de liberar um recurso que exige `min`.
- * Evita mostrar ao lojista o nome de um plano desativado (ex.: "Plano Start").
+ * Evita mostrar ao lojista o nome de um plano desativado.
  */
 export function useRequiredPlan(min: TenantPlan): { plan: TenantPlan; label: string } {
   const { data } = useQuery({
@@ -220,7 +190,6 @@ export function useTenantPlan() {
   return {
     plan,
     isPro: plan === "pro",
-    isStart: plan === "start",
     isPresenca: plan === "presenca",
     can: (feature: PlanFeature) => canUse(plan, feature),
     atLeast: (min: TenantPlan) => planAtLeast(plan, min),

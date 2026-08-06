@@ -25,7 +25,7 @@ export const Route = createFileRoute("/admin/dashboard")({
     ],
   }),
   component: () => (
-    <PlanGate min="start" title="Dashboard" featureLabel="Painel administrativo">
+    <PlanGate min="pro" title="Dashboard" featureLabel="Painel administrativo">
       <DashboardPage />
     </PlanGate>
   ),

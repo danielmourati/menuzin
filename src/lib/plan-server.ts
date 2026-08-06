@@ -2,13 +2,14 @@
 // resolved the effective tenantId.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-export type ServerTenantPlan = "presenca" | "start" | "pro";
+export type ServerTenantPlan = "presenca" | "pro";
 
-const RANK: Record<ServerTenantPlan, number> = { presenca: 0, start: 1, pro: 2 };
+const RANK: Record<ServerTenantPlan, number> = { presenca: 0, pro: 1 };
 
 function normalize(raw: string | null | undefined): ServerTenantPlan {
   if (raw === "pro") return "pro";
-  if (raw === "start") return "start";
+  // Start descontinuado: herda permissões do Pro.
+  if (raw === "start") return "pro";
   return "presenca";
 }
 
@@ -135,7 +136,7 @@ export async function requirePlanAtLeast(
   const plan = await getTenantPlan(tenantId);
   if (RANK[plan] < RANK[min]) {
     throw new Error(
-      `Este recurso está disponível a partir do Plano ${min === "start" ? "Start" : "Pro"}.`,
+      `Este recurso está disponível a partir do Plano Pro.`,
     );
   }
 }
@@ -154,13 +155,6 @@ const DEFAULT_LIMITS: Record<ServerTenantPlan, ServerPlanLimits> = {
     max_categories: 4,
     max_orders_per_month: 0,
     max_users: 1,
-    features: {},
-  },
-  start: {
-    max_products: null,
-    max_categories: null,
-    max_orders_per_month: 400,
-    max_users: 2,
     features: {},
   },
   pro: {

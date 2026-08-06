@@ -93,7 +93,7 @@ function SubscriptionPage() {
     currentAmount > 0 &&
     (computed.expiringSoon ||
       ["pendente", "vencida", "tolerancia", "bloqueada"].includes(computed.effective));
-  const orderedSlugs: TenantPlan[] = ["presenca", "start", "pro"];
+  const orderedSlugs: TenantPlan[] = ["presenca", "pro"];
   const allPlans = (plansData?.plans ?? [])
     .filter((p) => (p as { active?: boolean }).active !== false)
     .filter((p) => orderedSlugs.includes(p.slug as TenantPlan))
@@ -181,7 +181,7 @@ function SubscriptionPage() {
             const isCurrent = slug === currentPlan;
             const isPro = slug === "pro";
             const isPresenca = slug === "presenca";
-            const rank = { presenca: 0, start: 1, pro: 2 } as const;
+            const rank = { presenca: 0, pro: 1 } as const;
             const isUpgrade = rank[slug] > rank[currentPlan];
             const upgradeLabel = isPro ? "Upgrade PRO" : "Fazer upgrade";
             return (

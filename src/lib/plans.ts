@@ -1,5 +1,5 @@
 // Planos estáticos exibidos na landing page. Conteúdo institucional —
-// não pertence ao banco (a fonte de verdade em runtime é public.plans).
+// não pertence ao banco (a fonte da verdade em runtime é public.plans).
 export const plans = [
   {
     id: "presenca",
@@ -18,39 +18,30 @@ export const plans = [
     ],
   },
   {
-    id: "start",
-    name: "Start",
-    price: 57.9,
+    id: "pro",
+    name: "Pro",
+    price: 79.9,
     highlight: true,
-    tagline: "Pedidos organizados no painel, prontos para vender.",
-    cta: "Começar a vender",
+    tagline: "Automação completa, pagamento online e destaque no Guia.",
+    cta: "Profissionalizar meu delivery",
     features: [
       "Tudo do Presença",
       "Produtos e categorias ilimitados",
       "Painel de pedidos (entrega e retirada)",
       "Status do pedido em tempo real",
       "Cadastro de clientes",
-      "Taxa fixa por bairro",
+      "Adicionais simples e taxa fixa por bairro",
       "Cupons básicos e impressão manual",
-      "Relatórios básicos • até 2 usuários",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: 127.9,
-    highlight: false,
-    tagline: "Automação completa e pagamento online.",
-    cta: "Profissionalizar meu delivery",
-    features: [
-      "Tudo do Start",
       "Pagamento online (Mercado Pago)",
       "Impressão automática (cozinha + entrega)",
       "Adicionais avançados, combos e pizza multi-sabor",
       "Cupons avançados, upsell e recuperação",
       "Taxa de entrega por distância",
-      "Relatórios completos e múltiplos usuários",
-      "Destaque no Guia Menuzin • suporte prioritário",
+      "Relatórios completos",
+      "Múltiplos usuários",
+      "Destaque no Guia Menuzin",
+      "Suporte prioritário",
+      "Sem marca Menuzin",
     ],
   },
 ] as const;

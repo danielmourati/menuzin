@@ -10,7 +10,7 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/avaliacoes")({
   component: () => (
-    <PlanGate min="start" title="Avaliações" featureLabel="Avaliações de clientes">
+    <PlanGate min="pro" title="Avaliações" featureLabel="Avaliações de clientes">
       <RatingsPage />
     </PlanGate>
   ),

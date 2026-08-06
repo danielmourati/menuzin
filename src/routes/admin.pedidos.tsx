@@ -22,7 +22,7 @@ import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitche
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: () => (
-    <PlanGate min="start" title="Pedidos" featureLabel="Painel de pedidos">
+    <PlanGate min="pro" title="Pedidos" featureLabel="Painel de pedidos">
       <OrdersPage />
     </PlanGate>
   ),

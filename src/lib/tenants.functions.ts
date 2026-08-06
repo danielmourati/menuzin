@@ -51,7 +51,7 @@ export const claimNewTenant = createServerFn({ method: "POST" })
         whatsapp: data.whatsapp,
         city: data.city,
         logo_letter: data.name.charAt(0).toUpperCase(),
-        plan: "start",
+        plan: "presenca",
         status: "teste",
       })
       .select("id").single();

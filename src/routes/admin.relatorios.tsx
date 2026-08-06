@@ -16,7 +16,7 @@ import { exportReportToPdf, exportReportToExcel } from "@/lib/reports-export";
 
 export const Route = createFileRoute("/admin/relatorios")({
   component: () => (
-    <PlanGate min="start" title="Relatórios" featureLabel="Relatórios">
+    <PlanGate min="pro" title="Relatórios" featureLabel="Relatórios">
       <ReportsPage />
     </PlanGate>
   ),
