@@ -23,6 +23,8 @@ import {
   faqs,
 } from "@/components/landing/LandingSections";
 
+const DEMO_SLUG = "burguerprime";
+
 const demoProducts = [
   { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
   { name: "Combo Smash", desc: "Smash + batata + refri", price: 38.9, img: landingComboSmash },
