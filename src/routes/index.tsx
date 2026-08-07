@@ -23,6 +23,8 @@ import {
   faqs,
 } from "@/components/landing/LandingSections";
 
+const DEMO_SLUG = "burguerprime";
+
 const demoProducts = [
   { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
   { name: "Combo Smash", desc: "Smash + batata + refri", price: 38.9, img: landingComboSmash },
@@ -130,7 +132,9 @@ function Landing() {
         cta: PLAN_CTA[p.slug] ?? "Falar com a gente",
       }));
   }, [plansData]);
-  const demoSlug = tenantsData?.tenants?.[0]?.slug;
+  // Loja demo oficial da plataforma; fallback para a primeira loja ativa.
+  const demoSlug =
+    tenantsData?.tenants?.find((t) => t.slug === DEMO_SLUG)?.slug ?? tenantsData?.tenants?.[0]?.slug;
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [signupOpen, setSignupOpen] = useState(false);
 
