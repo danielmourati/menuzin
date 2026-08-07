@@ -130,7 +130,9 @@ function Landing() {
         cta: PLAN_CTA[p.slug] ?? "Falar com a gente",
       }));
   }, [plansData]);
-  const demoSlug = tenantsData?.tenants?.[0]?.slug;
+  // Loja demo oficial da plataforma; fallback para a primeira loja ativa.
+  const demoSlug =
+    tenantsData?.tenants?.find((t) => t.slug === DEMO_SLUG)?.slug ?? tenantsData?.tenants?.[0]?.slug;
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [signupOpen, setSignupOpen] = useState(false);
 
