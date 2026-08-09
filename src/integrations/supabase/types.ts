@@ -1601,7 +1601,7 @@ export type Database = {
           prep_time?: string | null
           price: number
           promo_price?: number | null
-          slug: string
+          slug?: string
           sort_order?: number
           tenant_id: string
           type?: string
