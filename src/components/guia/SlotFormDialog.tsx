@@ -22,14 +22,15 @@ import {
 import { SlotCard } from "./SlotCard";
 import { ImagePickerField } from "./ImagePickerField";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminCreateSlot, adminUpdateSlot } from "@/lib/guia-admin.functions";
 import {
-  DEFAULT_GRADIENTS,
-  SLOT_KIND_LABELS,
-  type GuiaSlot,
-  type GuiaSlotKind,
-} from "@/lib/guia-types";
+  adminCreateSlot,
+  adminUpdateSlot,
+  adminResolveProductRef,
+  type ResolvedProductRef,
+} from "@/lib/guia-admin.functions";
+import { SLOT_KIND_LABELS, type GuiaSlot, type GuiaSlotKind } from "@/lib/guia-types";
 import { toast } from "sonner";
+import { Loader2, Link2 } from "lucide-react";
 
 
 type Props = {
@@ -43,11 +44,13 @@ type Form = {
   kind: GuiaSlotKind;
   title: string;
   subtitle: string;
-  emoji: string;
-  gradient: string;
   imageUrl: string | undefined;
   imageFit: "cover" | "contain";
   storeName: string;
+  productRef: string;
+  tenantId: string | null;
+  productId: string | null;
+  href: string | null;
   price: string;
   promoPrice: string;
   discountPct: string;
@@ -62,11 +65,13 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
   kind: defaultKind,
   title: "",
   subtitle: "",
-  emoji: "",
-  gradient: DEFAULT_GRADIENTS[0],
   imageUrl: undefined,
   imageFit: "cover",
   storeName: "",
+  productRef: "",
+  tenantId: null,
+  productId: null,
+  href: null,
   price: "",
   promoPrice: "",
   discountPct: "",
@@ -79,20 +84,24 @@ const empty = (defaultKind: GuiaSlotKind = "featured"): Form => ({
 
 export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props) {
   const [f, setF] = useState<Form>(empty(defaultKind));
+  const [resolved, setResolved] = useState<ResolvedProductRef | null>(null);
   const qc = useQueryClient();
 
   useEffect(() => {
+    setResolved(null);
     if (slot) {
       setF({
         kind: slot.kind,
         title: slot.title,
         subtitle: slot.subtitle ?? "",
-        emoji: slot.emoji ?? "",
-        gradient: slot.gradient ?? DEFAULT_GRADIENTS[0],
         imageUrl: slot.imageUrl,
         imageFit: slot.imageFit ?? "cover",
 
         storeName: slot.storeName ?? "",
+        productRef: slot.href ?? (slot.productId ? `/guia/produto/${slot.productId}` : ""),
+        tenantId: slot.tenantId ?? null,
+        productId: slot.productId ?? null,
+        href: slot.href ?? null,
         price: slot.price?.toString() ?? "",
         promoPrice: slot.promoPrice?.toString() ?? "",
         discountPct: slot.discountPct?.toString() ?? "",
@@ -113,8 +122,6 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
     kind: f.kind,
     title: f.title || "Título do destaque",
     subtitle: f.subtitle || undefined,
-    emoji: f.emoji.trim() || undefined,
-    gradient: f.gradient,
     imageUrl: f.imageUrl,
     imageFit: f.imageFit,
 
@@ -128,6 +135,38 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
     active: f.active,
     sortOrder: slot?.sortOrder ?? 999,
     createdAt: slot?.createdAt ?? new Date().toISOString(),
+  };
+
+  const resolve = useMutation({
+    mutationFn: (ref: string) => adminResolveProductRef({ data: { ref } }),
+    onSuccess: (r) => {
+      setResolved(r);
+      setF((prev) => ({
+        ...prev,
+        tenantId: r.tenantId,
+        productId: r.productId,
+        href: r.href,
+        storeName: prev.storeName || r.tenantName,
+      }));
+      toast.success(r.productName ? `Produto: ${r.productName}` : `Loja: ${r.tenantName}`);
+    },
+    onError: (e: Error) => {
+      setResolved(null);
+      setF((prev) => ({ ...prev, tenantId: null, productId: null, href: null }));
+      toast.error(e.message);
+    },
+  });
+
+  const fillFromProduct = () => {
+    if (!resolved) return;
+    setF((prev) => ({
+      ...prev,
+      title: resolved.productName ?? prev.title,
+      storeName: resolved.tenantName,
+      imageUrl: resolved.imageUrl ?? prev.imageUrl,
+      price: resolved.price != null ? String(resolved.price) : prev.price,
+      promoPrice: resolved.promoPrice != null ? String(resolved.promoPrice) : prev.promoPrice,
+    }));
   };
 
   const save = useMutation({
@@ -155,10 +194,11 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
       kind: f.kind,
       title: f.title.trim(),
       subtitle: f.subtitle.trim() || null,
-      emoji: f.emoji.trim() || null,
-      gradient: f.gradient,
       imageUrl: f.imageUrl ?? null,
       imageFit: f.imageFit,
+      tenantId: f.tenantId,
+      productId: f.productId,
+      href: f.href,
       storeName: f.storeName.trim() || null,
       price: num(f.price) ?? null,
       promoPrice: num(f.promoPrice) ?? null,
@@ -178,15 +218,15 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[85vh] max-w-3xl flex-col overflow-hidden p-0">
+        <DialogHeader className="border-b px-6 pb-4 pt-6">
           <DialogTitle>{slot ? "Editar destaque" : "Novo destaque"}</DialogTitle>
           <DialogDescription>
             Configure o card exibido no Guia Menuzin. O preview atualiza em tempo real.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid flex-1 gap-4 overflow-y-auto px-6 py-4 md:grid-cols-2">
           <div className="space-y-3">
             <div>
               <Label>Tipo</Label>
@@ -214,26 +254,44 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
               <Textarea rows={2} value={f.subtitle} onChange={(e) => setF({ ...f, subtitle: e.target.value })} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Emoji <span className="text-muted-foreground font-normal">(opcional)</span></Label>
-                <Input value={f.emoji} onChange={(e) => setF({ ...f, emoji: e.target.value })} maxLength={4} placeholder="deixe em branco pra ocultar" />
-
+            <div className="rounded-lg border p-3">
+              <Label>Link ou slug do produto</Label>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Cole a URL do produto (ex.: /guia/produto/&lt;id&gt; ou loja?produto=&lt;id&gt;) ou o slug da loja.
+              </p>
+              <div className="flex gap-2">
+                <Input
+                  value={f.productRef}
+                  placeholder="burguer-prime ou https://menuzin.app/guia/produto/…"
+                  onChange={(e) => setF({ ...f, productRef: e.target.value })}
+                  onBlur={() => {
+                    const ref = f.productRef.trim();
+                    if (ref) resolve.mutate(ref);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!f.productRef.trim() || resolve.isPending}
+                  onClick={() => resolve.mutate(f.productRef.trim())}
+                >
+                  {resolve.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                </Button>
               </div>
-              <div>
-                <Label>Gradiente</Label>
-                <Select value={f.gradient} onValueChange={(v) => setF({ ...f, gradient: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DEFAULT_GRADIENTS.map((g) => (
-                      <SelectItem key={g} value={g}>
-                        <span className={`inline-block h-3 w-8 rounded bg-gradient-to-r ${g} mr-2`} />
-                        {g.split(" ")[0].replace("from-", "")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {resolved && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="text-emerald-600">
+                    {resolved.productName
+                      ? `${resolved.productName} — ${resolved.tenantName}`
+                      : `Loja: ${resolved.tenantName}`}
+                  </span>
+                  {resolved.productId && (
+                    <Button type="button" size="sm" variant="outline" onClick={fillFromProduct}>
+                      Preencher do produto
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             <ImagePickerField
@@ -298,13 +356,13 @@ export function SlotFormDialog({ open, onOpenChange, slot, defaultKind }: Props)
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-muted/40 p-4">
+          <div className="rounded-2xl border bg-muted/40 p-4 md:sticky md:top-0 md:self-start">
             <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Preview</p>
             <SlotCard slot={previewSlot} />
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t px-6 pb-6 pt-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={save.isPending}>{slot ? "Salvar alterações" : "Criar destaque"}</Button>
         </DialogFooter>
