@@ -58,6 +58,8 @@ export type GuiaPromoRequest = {
   amount: number;
   status: GuiaPromoRequestStatus;
   productId?: string | null;
+  productSlug?: string | null;
+  productHref?: string | null;
   pixCode?: string;
   note?: string;
   createdAt: string;
