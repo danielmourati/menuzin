@@ -498,9 +498,28 @@ export const createPromoRequest = createServerFn({ method: "POST" })
     const { tenantId } = await resolveEffectiveTenantId(context.supabase, context.userId);
     const { data: tenant } = await context.supabase
       .from("tenants")
-      .select("name")
+      .select("name, slug")
       .eq("id", tenantId)
       .maybeSingle();
+
+    // A solicitação já viaja com o endereço (slug) do produto escolhido.
+    let productSlug: string | null = null;
+    let productHref: string | null = null;
+    if (data.productId) {
+      const { data: prod } = await context.supabase
+        .from("products")
+        .select("slug")
+        .eq("id", data.productId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      productSlug = (prod as { slug: string | null } | null)?.slug ?? null;
+      const tSlug = (tenant as any)?.slug ?? null;
+      productHref = productSlug
+        ? `/guia/produto/${productSlug}`
+        : `/guia/produto/${data.productId}`;
+      if (productSlug && tSlug) productHref = `/${tSlug}/${productSlug}`;
+    }
+
     const pixCode = `00020126MENUZIN-GUIA-${Math.random().toString(36).slice(2, 10).toUpperCase()}5204000053039865802BR`;
     const { data: row, error } = await context.supabase
       .from("guia_promo_requests")
@@ -513,6 +532,8 @@ export const createPromoRequest = createServerFn({ method: "POST" })
         status: "pending_payment",
         pix_code: pixCode,
         product_id: data.productId ?? null,
+        product_slug: productSlug,
+        product_href: productHref,
         note: data.note ?? null,
       } as any)
       .select("*")
