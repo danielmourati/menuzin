@@ -225,7 +225,7 @@ export const listByCategory = createServerFn({ method: "POST" })
     return { items };
   });
 
-const ProductInput = z.object({ productId: z.string().uuid() });
+const ProductInput = z.object({ productId: z.string().min(1) });
 export const getDirectoryProduct = createServerFn({ method: "POST" })
   .inputValidator((d) => ProductInput.parse(d))
   .handler(async ({ data }) => {
