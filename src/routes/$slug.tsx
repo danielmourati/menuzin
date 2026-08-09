@@ -218,12 +218,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal } = useCart();
 
-  // Deep link vindo do Guia: /:slug?produto=<id> abre o produto direto.
+  // Deep link vindo do Guia: /:slug?produto=<id|slug> abre o produto direto.
   const { produto: deepLinkProductId } = Route.useSearch();
   const deepLinkDone = useRef(false);
   useEffect(() => {
     if (!deepLinkProductId || deepLinkDone.current) return;
-    const p = products.find((x) => x.id === deepLinkProductId);
+    const ref = deepLinkProductId.toLowerCase();
+    const p = products.find((x) => x.id === deepLinkProductId || (x.slug ?? "").toLowerCase() === ref);
     if (!p) return;
     deepLinkDone.current = true;
     setSelectedProduct(p);
