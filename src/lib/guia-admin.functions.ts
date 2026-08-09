@@ -50,6 +50,8 @@ const toSlotRow = (p: z.infer<typeof slotInput> | Partial<z.infer<typeof slotInp
   set("gradient", p.gradient ?? null);
   set("image_url", p.imageUrl ?? null);
   set("image_fit", p.imageFit);
+  set("tenant_id", p.tenantId ?? null);
+  set("product_id", p.productId ?? null);
   set("href", p.href ?? null);
   set("price", p.price ?? null);
   set("promo_price", p.promoPrice ?? null);
