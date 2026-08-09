@@ -9,6 +9,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
   return {
     id: p.id,
     name: p.name,
+    slug: p.slug ?? null,
     category: categoryName,
     categoryId: p.category_id,
     categoryKind,

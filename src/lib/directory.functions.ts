@@ -225,14 +225,27 @@ export const listByCategory = createServerFn({ method: "POST" })
     return { items };
   });
 
-const ProductInput = z.object({ productId: z.string().uuid() });
+const ProductInput = z.object({ productId: z.string().min(1) });
 export const getDirectoryProduct = createServerFn({ method: "POST" })
   .inputValidator((d) => ProductInput.parse(d))
   .handler(async ({ data }) => {
+    // Aceita uuid do produto ou o slug (`slug-do-produto` ou `loja/slug`).
+    let productId = data.productId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+    if (!isUuid) {
+      const parts = productId.split("/").filter(Boolean);
+      const prodSlug = parts[parts.length - 1]!.toLowerCase();
+      const tenantSlug = parts.length > 1 ? parts[parts.length - 2]! : null;
+      let q = supabaseAdmin.from("products").select("id, tenants!inner(slug)").eq("slug", prodSlug);
+      if (tenantSlug) q = q.eq("tenants.slug", tenantSlug);
+      const { data: found } = await q.limit(1).maybeSingle();
+      if (!found) return { item: null as DirectoryItem | null };
+      productId = (found as { id: string }).id;
+    }
     const { data: row, error } = await supabaseAdmin
       .from("directory_public")
       .select("*")
-      .eq("product_id", data.productId)
+      .eq("product_id", productId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return { item: (row as unknown as DirectoryItem | null) };

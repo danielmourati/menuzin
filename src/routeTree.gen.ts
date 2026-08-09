@@ -48,6 +48,7 @@ import { Route as SlugPromocoesRouteImport } from './routes/$slug.promocoes'
 import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
 import { Route as SlugDestaquesRouteImport } from './routes/$slug.destaques'
 import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
+import { Route as SlugProdutoSlugRouteImport } from './routes/$slug.$produtoSlug'
 import { Route as PlatformGuiaIndexRouteImport } from './routes/platform.guia.index'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
@@ -265,6 +266,11 @@ const SlugCuponsRoute = SlugCuponsRouteImport.update({
   path: '/cupons',
   getParentRoute: () => SlugRoute,
 } as any)
+const SlugProdutoSlugRoute = SlugProdutoSlugRouteImport.update({
+  id: '/$produtoSlug',
+  path: '/$produtoSlug',
+  getParentRoute: () => SlugRoute,
+} as any)
 const PlatformGuiaIndexRoute = PlatformGuiaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
@@ -451,6 +458,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
@@ -512,6 +520,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
   '/$slug/pedido-confirmado': typeof SlugPedidoConfirmadoRoute
@@ -576,6 +585,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
@@ -638,6 +648,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
@@ -698,6 +709,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
     | '/$slug/pedido-confirmado'
@@ -1073,6 +1085,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugCuponsRouteImport
       parentRoute: typeof SlugRoute
     }
+    '/$slug/$produtoSlug': {
+      id: '/$slug/$produtoSlug'
+      path: '/$produtoSlug'
+      fullPath: '/$slug/$produtoSlug'
+      preLoaderRoute: typeof SlugProdutoSlugRouteImport
+      parentRoute: typeof SlugRoute
+    }
     '/platform/guia/': {
       id: '/platform/guia/'
       path: '/'
@@ -1224,6 +1243,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface SlugRouteChildren {
+  SlugProdutoSlugRoute: typeof SlugProdutoSlugRoute
   SlugCuponsRoute: typeof SlugCuponsRoute
   SlugDestaquesRoute: typeof SlugDestaquesRoute
   SlugPedidoConfirmadoRoute: typeof SlugPedidoConfirmadoRoute
@@ -1232,6 +1252,7 @@ interface SlugRouteChildren {
 }
 
 const SlugRouteChildren: SlugRouteChildren = {
+  SlugProdutoSlugRoute: SlugProdutoSlugRoute,
   SlugCuponsRoute: SlugCuponsRoute,
   SlugDestaquesRoute: SlugDestaquesRoute,
   SlugPedidoConfirmadoRoute: SlugPedidoConfirmadoRoute,
@@ -1342,13 +1363,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
