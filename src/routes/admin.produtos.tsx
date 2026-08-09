@@ -270,6 +270,20 @@ function ProductsPage() {
                   <p className="mt-1 font-bold text-primary">{brl(Number(p.promo_price ?? p.price))}</p>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    title="Copiar link do produto"
+                    onClick={() => {
+                      const tSlug = tenantQ.data?.tenant?.slug;
+                      const pSlug = (p as { slug?: string | null }).slug;
+                      const path = tSlug && pSlug ? `/${tSlug}/${pSlug}` : `/guia/produto/${pSlug ?? p.id}`;
+                      navigator.clipboard.writeText(`https://menuzin.app${path}`);
+                      toast.success("Link do produto copiado.");
+                    }}
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => {
                     setEditing({
                       id: p.id, name: p.name, description: p.description ?? "",
