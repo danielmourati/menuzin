@@ -142,6 +142,7 @@ export type DbProduct = {
   tenant_id: string;
   category_id: string | null;
   name: string;
+  slug?: string | null;
   description: string;
   price: number;
   promo_price: number | null;
