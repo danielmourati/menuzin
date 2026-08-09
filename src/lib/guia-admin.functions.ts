@@ -22,6 +22,8 @@ const slotInput = z.object({
   subtitle: z.string().nullable().optional(),
   emoji: z.string().nullable().optional(),
   gradient: z.string().nullable().optional(),
+  tenantId: z.string().uuid().nullable().optional(),
+  productId: z.string().uuid().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   imageFit: z.enum(["cover", "contain"]).optional(),
   href: z.string().nullable().optional(),
