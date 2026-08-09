@@ -32,6 +32,7 @@ export type AddonGroup = {
 export type Product = {
   id: string;
   name: string;
+  slug?: string | null;
   category: string;
   categoryId?: string | null;
   categoryKind?: "standard" | "pizza" | "oferta";
