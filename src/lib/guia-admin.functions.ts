@@ -464,6 +464,8 @@ const mapRequest = (r: any): GuiaPromoRequest => ({
   status: r.status,
   pixCode: r.pix_code ?? undefined,
   productId: r.product_id ?? null,
+  productSlug: r.product_slug ?? null,
+  productHref: r.product_href ?? null,
   note: r.note ?? undefined,
   createdAt: r.created_at,
 });
