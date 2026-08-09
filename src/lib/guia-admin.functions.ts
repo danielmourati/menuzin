@@ -72,6 +72,7 @@ export type ResolvedProductRef = {
   tenantSlug: string;
   tenantName: string;
   productId: string | null;
+  productSlug: string | null;
   productName: string | null;
   imageUrl: string | null;
   price: number | null;
@@ -88,53 +89,100 @@ export const adminResolveProductRef = createServerFn({ method: "POST" })
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
     )?.[0];
 
+    const productSelect =
+      "id, name, slug, image_url, price, promo_price, tenant_id, tenants(slug, name)";
+    const toResolved = (prod: any): ResolvedProductRef => {
+      const t = Array.isArray(prod.tenants) ? prod.tenants[0] : prod.tenants;
+      if (!t) throw new Error("Loja do produto não encontrada.");
+      return {
+        tenantId: prod.tenant_id,
+        tenantSlug: t.slug,
+        tenantName: t.name,
+        productId: prod.id,
+        productSlug: prod.slug ?? null,
+        productName: prod.name,
+        imageUrl: prod.image_url ?? null,
+        price: prod.price == null ? null : Number(prod.price),
+        promoPrice: prod.promo_price == null ? null : Number(prod.promo_price),
+        href: `/guia/produto/${prod.slug ?? prod.id}`,
+      };
+    };
+
     if (uuid) {
       const { data: prod, error } = await context.supabase
         .from("products")
-        .select("id, name, image_url, price, promo_price, tenant_id, tenants(slug, name)")
+        .select(productSelect)
         .eq("id", uuid)
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!prod) throw new Error("Produto não encontrado.");
-      const p = prod as any;
-      const t = Array.isArray(p.tenants) ? p.tenants[0] : p.tenants;
-      if (!t) throw new Error("Loja do produto não encontrada.");
-      return {
-        tenantId: p.tenant_id,
-        tenantSlug: t.slug,
-        tenantName: t.name,
-        productId: p.id,
-        productName: p.name,
-        imageUrl: p.image_url ?? null,
-        price: p.price == null ? null : Number(p.price),
-        promoPrice: p.promo_price == null ? null : Number(p.promo_price),
-        href: `/guia/produto/${p.id}`,
-      };
+      return toResolved(prod);
     }
 
-    // No product id: treat the reference as a store slug (URL or plain slug).
-    let slug = raw;
+    // Sem uuid: aceita URL, `loja/slug-do-produto`, `?produto=<slug>` ou slug da loja.
+    let path = raw;
+    let query = "";
     try {
-      if (/^https?:\/\//i.test(raw)) slug = new URL(raw).pathname;
+      if (/^https?:\/\//i.test(raw)) {
+        const u = new URL(raw);
+        path = u.pathname;
+        query = u.searchParams.get("produto") ?? "";
+      }
     } catch {
       /* keep raw */
     }
-    slug = slug.split("?")[0]!.split("#")[0]!.replace(/^\/+|\/+$/g, "").split("/").pop() ?? "";
-    if (!slug) throw new Error("Informe o link ou slug do produto/loja.");
+    if (!query) {
+      const m = path.match(/[?&]produto=([^&#]+)/);
+      if (m) query = decodeURIComponent(m[1]!);
+    }
+    const parts = path
+      .split("?")[0]!
+      .split("#")[0]!
+      .replace(/^\/+|\/+$/g, "")
+      .split("/")
+      .filter(Boolean);
+
+    // /guia/produto/<slug|id>
+    if (parts[0] === "guia" && parts[1] === "produto" && parts[2]) {
+      const { data: prod } = await context.supabase
+        .from("products")
+        .select(productSelect)
+        .eq("slug", parts[2].toLowerCase())
+        .limit(1)
+        .maybeSingle();
+      if (prod) return toResolved(prod);
+    }
+
+    const tenantSlug = parts[0] ?? "";
+    const productSlug = (query || (parts.length > 1 ? parts[1]! : "")).toLowerCase();
+    if (!tenantSlug) throw new Error("Informe o link ou slug do produto/loja.");
 
     const { data: tenant, error: tErr } = await context.supabase
       .from("tenants")
       .select("id, slug, name")
-      .eq("slug", slug)
+      .eq("slug", tenantSlug)
       .maybeSingle();
     if (tErr) throw new Error(tErr.message);
     if (!tenant) throw new Error("Loja não encontrada para este link.");
     const t = tenant as any;
+
+    if (productSlug) {
+      const { data: prod } = await context.supabase
+        .from("products")
+        .select(productSelect)
+        .eq("tenant_id", t.id)
+        .eq("slug", productSlug)
+        .maybeSingle();
+      if (!prod) throw new Error("Produto não encontrado nesta loja.");
+      return toResolved(prod);
+    }
+
     return {
       tenantId: t.id,
       tenantSlug: t.slug,
       tenantName: t.name,
       productId: null,
+      productSlug: null,
       productName: null,
       imageUrl: null,
       price: null,
