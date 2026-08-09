@@ -65,6 +65,84 @@ const toSlotRow = (p: z.infer<typeof slotInput> | Partial<z.infer<typeof slotInp
   return row;
 };
 
+/* ----------------------------- product resolver ---------------------------- */
+
+export type ResolvedProductRef = {
+  tenantId: string;
+  tenantSlug: string;
+  tenantName: string;
+  productId: string | null;
+  productName: string | null;
+  imageUrl: string | null;
+  price: number | null;
+  promoPrice: number | null;
+  href: string;
+};
+
+export const adminResolveProductRef = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ ref: z.string().min(1) }).parse(d))
+  .handler(async ({ data, context }): Promise<ResolvedProductRef> => {
+    const raw = data.ref.trim();
+    const uuid = raw.match(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    )?.[0];
+
+    if (uuid) {
+      const { data: prod, error } = await context.supabase
+        .from("products")
+        .select("id, name, image_url, price, promo_price, tenant_id, tenants(slug, name)")
+        .eq("id", uuid)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!prod) throw new Error("Produto não encontrado.");
+      const p = prod as any;
+      const t = Array.isArray(p.tenants) ? p.tenants[0] : p.tenants;
+      if (!t) throw new Error("Loja do produto não encontrada.");
+      return {
+        tenantId: p.tenant_id,
+        tenantSlug: t.slug,
+        tenantName: t.name,
+        productId: p.id,
+        productName: p.name,
+        imageUrl: p.image_url ?? null,
+        price: p.price == null ? null : Number(p.price),
+        promoPrice: p.promo_price == null ? null : Number(p.promo_price),
+        href: `/guia/produto/${p.id}`,
+      };
+    }
+
+    // No product id: treat the reference as a store slug (URL or plain slug).
+    let slug = raw;
+    try {
+      if (/^https?:\/\//i.test(raw)) slug = new URL(raw).pathname;
+    } catch {
+      /* keep raw */
+    }
+    slug = slug.split("?")[0]!.split("#")[0]!.replace(/^\/+|\/+$/g, "").split("/").pop() ?? "";
+    if (!slug) throw new Error("Informe o link ou slug do produto/loja.");
+
+    const { data: tenant, error: tErr } = await context.supabase
+      .from("tenants")
+      .select("id, slug, name")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (tErr) throw new Error(tErr.message);
+    if (!tenant) throw new Error("Loja não encontrada para este link.");
+    const t = tenant as any;
+    return {
+      tenantId: t.id,
+      tenantSlug: t.slug,
+      tenantName: t.name,
+      productId: null,
+      productName: null,
+      imageUrl: null,
+      price: null,
+      promoPrice: null,
+      href: `/${t.slug}`,
+    };
+  });
+
 /* ---------------------------------- slots --------------------------------- */
 
 export const adminListSlots = createServerFn({ method: "GET" })
