@@ -88,6 +88,25 @@ function PlatformGuiaRequests() {
                       <Badge variant="secondary">{r.durationDays} dias</Badge>
                     </div>
                     {r.note && <p className="mt-1 text-sm text-muted-foreground">{r.note}</p>}
+                    {(r.productHref || r.productSlug || r.productId) && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <code className="max-w-full truncate rounded bg-muted px-2 py-0.5 text-xs">
+                          {r.productHref ?? `/guia/produto/${r.productSlug ?? r.productId}`}
+                        </code>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            const path = r.productHref ?? `/guia/produto/${r.productSlug ?? r.productId}`;
+                            navigator.clipboard.writeText(`https://menuzin.app${path}`);
+                            toast.success("Link do produto copiado.");
+                          }}
+                        >
+                          <Copy className="mr-1 h-3 w-3" /> Copiar link
+                        </Button>
+                      </div>
+                    )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       Criado em {new Date(r.createdAt).toLocaleString("pt-BR")}
                     </p>
