@@ -683,7 +683,9 @@ export type Database = {
           id: string
           note: string | null
           pix_code: string | null
+          product_href: string | null
           product_id: string | null
+          product_slug: string | null
           slot_kind: string
           status: string
           tenant_id: string | null
@@ -697,7 +699,9 @@ export type Database = {
           id?: string
           note?: string | null
           pix_code?: string | null
+          product_href?: string | null
           product_id?: string | null
+          product_slug?: string | null
           slot_kind: string
           status?: string
           tenant_id?: string | null
@@ -711,7 +715,9 @@ export type Database = {
           id?: string
           note?: string | null
           pix_code?: string | null
+          product_href?: string | null
           product_id?: string | null
+          product_slug?: string | null
           slot_kind?: string
           status?: string
           tenant_id?: string | null
@@ -1560,6 +1566,7 @@ export type Database = {
           prep_time: string | null
           price: number
           promo_price: number | null
+          slug: string
           sort_order: number
           tenant_id: string
           type: string
@@ -1594,6 +1601,7 @@ export type Database = {
           prep_time?: string | null
           price: number
           promo_price?: number | null
+          slug: string
           sort_order?: number
           tenant_id: string
           type?: string
@@ -1628,6 +1636,7 @@ export type Database = {
           prep_time?: string | null
           price?: number
           promo_price?: number | null
+          slug?: string
           sort_order?: number
           tenant_id?: string
           type?: string
@@ -2347,6 +2356,8 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      slugify: { Args: { _txt: string }; Returns: string }
+      unaccent_fallback: { Args: { _txt: string }; Returns: string }
     }
     Enums: {
       app_role: "owner" | "admin" | "staff" | "platform_admin"
