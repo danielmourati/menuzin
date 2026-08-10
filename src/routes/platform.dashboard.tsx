@@ -21,6 +21,7 @@ const navItems = [
   { to: "/platform/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/platform/planos", label: "Planos", icon: Package },
   { to: "/platform/guia", label: "Guia Menuzin", icon: Compass },
+  { to: "/platform/suporte", label: "Suporte", icon: LifeBuoy },
 ] as const;
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {
