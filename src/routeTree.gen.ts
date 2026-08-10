@@ -71,6 +71,7 @@ import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin
 import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
 import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
 const TermosRoute = TermosRouteImport.update({
@@ -391,6 +392,12 @@ const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
   path: '/acompanhar/$orderId',
   getParentRoute: () => SlugRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LojaSlugAcompanharOrderIdRoute =
   LojaSlugAcompanharOrderIdRouteImport.update({
     id: '/acompanhar/$orderId',
@@ -462,6 +469,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -525,6 +533,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/platform/guia': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -591,6 +600,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/platform/guia/'
     | '/loja/$slug/acompanhar/$orderId'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -721,6 +732,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/platform/guia'
     | '/loja/$slug/acompanhar/$orderId'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -786,6 +798,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/platform/guia/'
     | '/loja/$slug/acompanhar/$orderId'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -834,6 +847,7 @@ export interface RootRouteChildren {
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1272,6 +1286,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugAcompanharOrderIdRouteImport
       parentRoute: typeof SlugRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/$slug/acompanhar/$orderId': {
       id: '/loja/$slug/acompanhar/$orderId'
       path: '/acompanhar/$orderId'
@@ -1401,7 +1422,18 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
