@@ -118,5 +118,6 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
       tenant_id: tenant.id,
       slug: tenant.slug,
       email: data.email.toLowerCase(),
+      requires_email_confirmation: true,
     };
   });
