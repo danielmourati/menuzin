@@ -20,6 +20,7 @@ import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuiaIndexRouteImport } from './routes/guia.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PlatformSuporteRouteImport } from './routes/platform.suporte'
 import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
 import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
 import { Route as PlatformGuiaRouteImport } from './routes/platform.guia'
@@ -125,6 +126,11 @@ const GuiaIndexRoute = GuiaIndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformSuporteRoute = PlatformSuporteRouteImport.update({
+  id: '/platform/suporte',
+  path: '/platform/suporte',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
@@ -432,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/platform/guia': typeof PlatformGuiaRouteWithChildren
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
+  '/platform/suporte': typeof PlatformSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
@@ -494,6 +501,7 @@ export interface FileRoutesByTo {
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
+  '/platform/suporte': typeof PlatformSuporteRoute
   '/admin': typeof AdminIndexRoute
   '/guia': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/platform/guia': typeof PlatformGuiaRouteWithChildren
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
+  '/platform/suporte': typeof PlatformSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
@@ -625,6 +634,7 @@ export interface FileRouteTypes {
     | '/platform/guia'
     | '/platform/lojas'
     | '/platform/planos'
+    | '/platform/suporte'
     | '/admin/'
     | '/guia/'
     | '/$slug/acompanhar/$orderId'
@@ -687,6 +697,7 @@ export interface FileRouteTypes {
     | '/platform/dashboard'
     | '/platform/lojas'
     | '/platform/planos'
+    | '/platform/suporte'
     | '/admin'
     | '/guia'
     | '/$slug/acompanhar/$orderId'
@@ -751,6 +762,7 @@ export interface FileRouteTypes {
     | '/platform/guia'
     | '/platform/lojas'
     | '/platform/planos'
+    | '/platform/suporte'
     | '/admin/'
     | '/guia/'
     | '/$slug/acompanhar/$orderId'
@@ -811,6 +823,7 @@ export interface RootRouteChildren {
   PlatformGuiaRoute: typeof PlatformGuiaRouteWithChildren
   PlatformLojasRoute: typeof PlatformLojasRoute
   PlatformPlanosRoute: typeof PlatformPlanosRoute
+  PlatformSuporteRoute: typeof PlatformSuporteRoute
   AdminIndexRoute: typeof AdminIndexRoute
   GuiaIndexRoute: typeof GuiaIndexRoute
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
@@ -900,6 +913,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/suporte': {
+      id: '/platform/suporte'
+      path: '/platform/suporte'
+      fullPath: '/platform/suporte'
+      preLoaderRoute: typeof PlatformSuporteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/platform/planos': {
@@ -1370,6 +1390,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformGuiaRoute: PlatformGuiaRouteWithChildren,
   PlatformLojasRoute: PlatformLojasRoute,
   PlatformPlanosRoute: PlatformPlanosRoute,
+  PlatformSuporteRoute: PlatformSuporteRoute,
   AdminIndexRoute: AdminIndexRoute,
   GuiaIndexRoute: GuiaIndexRoute,
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
