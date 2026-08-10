@@ -145,19 +145,34 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
           business_type: businessType,
         },
       });
-      // Auto-login
-      const { error } = await supabase.auth.signInWithPassword({
+      // Dispara o e-mail de confirmação de cadastro.
+      const { error } = await supabase.auth.resend({
+        type: "signup",
         email: result.email,
-        password: pw,
+        options: { emailRedirectTo: `${window.location.origin}/admin/login` },
       });
-      if (error) throw new Error(`Loja criada, mas falhou o login automático: ${error.message}`);
+      if (error) {
+        console.error("signup: falha ao enviar e-mail de confirmação", error);
+      }
       return result;
     },
-    onSuccess: () => {
-      toast.success("Loja criada! Vamos completar seu perfil.");
-      onOpenChange(false);
-      window.location.href = "/admin/configuracoes?onboarding=1";
+    onSuccess: (result) => {
+      setPendingEmail(result.email);
+      toast.success("Loja criada! Confirme seu e-mail para acessar o painel.");
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const resendMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingEmail,
+        options: { emailRedirectTo: `${window.location.origin}/admin/login` },
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => toast.success("E-mail de confirmação reenviado."),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -168,6 +183,43 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
     }
     signupMut.mutate();
   };
+
+  if (pendingEmail) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Mail className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-2xl">Confirme seu e-mail</DialogTitle>
+            <DialogDescription className="text-center">
+              Enviamos um link de confirmação para <strong>{pendingEmail}</strong>. Clique no link
+              para ativar sua conta e acessar o painel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+              Não recebeu? Verifique a caixa de spam ou reenvie o e-mail abaixo.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => resendMut.mutate()}
+              disabled={resendMut.isPending}
+            >
+              {resendMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Reenviar e-mail de confirmação
+            </Button>
+            <Button className="w-full" onClick={() => { onOpenChange(false); window.location.href = "/admin/login"; }}>
+              Ir para o login
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
