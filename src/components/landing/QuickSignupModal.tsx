@@ -24,6 +24,7 @@ const STEPS = [
 
 export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const [step, setStep] = useState(1);
+  const [pendingEmail, setPendingEmail] = useState("");
 
   // Step 1
   const [businessType, setBusinessType] = useState<BusinessType | null>(null);
