@@ -2025,6 +2025,51 @@ export type Database = {
           },
         ]
       }
+      support_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          internal_note: string | null
+          ip: string | null
+          message: string
+          name: string
+          source: string
+          status: string
+          subject: string
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          internal_note?: string | null
+          ip?: string | null
+          message: string
+          name: string
+          source?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          internal_note?: string | null
+          ip?: string | null
+          message?: string
+          name?: string
+          source?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       tenant_printers: {
         Row: {
           created_at: string

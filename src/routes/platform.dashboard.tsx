@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Store, Menu, Loader2, LogOut, CreditCard, Package, Compass } from "lucide-react";
+import { LayoutDashboard, Store, Menu, Loader2, LogOut, CreditCard, Package, Compass, LifeBuoy } from "lucide-react";
 import { toast } from "sonner";
 import { clearActiveTenant } from "@/lib/active-tenant";
 import { useEffect, useState, type ReactNode } from "react";
@@ -21,6 +21,7 @@ const navItems = [
   { to: "/platform/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/platform/planos", label: "Planos", icon: Package },
   { to: "/platform/guia", label: "Guia Menuzin", icon: Compass },
+  { to: "/platform/suporte", label: "Suporte", icon: LifeBuoy },
 ] as const;
 
 export function PlatformLayout({ children, title }: { children: ReactNode; title: string }) {

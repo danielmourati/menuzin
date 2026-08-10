@@ -427,7 +427,7 @@ export function LandingFooter() {
             { label: "WhatsApp", href: WHATSAPP_CONTACT_URL, external: true },
             { label: "Instagram", href: INSTAGRAM_URL, external: true },
             { label: "YouTube", href: YOUTUBE_URL, external: true },
-
+            { label: "Contato e suporte", href: "/contato" },
             { label: "Entrar", href: "/admin/login" },
           ]}
         />

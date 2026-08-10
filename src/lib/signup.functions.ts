@@ -53,11 +53,12 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
       .maybeSingle();
     if (taken) throw new Error("Esse endereço de loja já está em uso. Escolha outro.");
 
-    // Cria usuário
+    // Cria usuário — e-mail NÃO confirmado: o acesso ao painel só é liberado
+    // depois que o lojista clicar no link de confirmação enviado por e-mail.
     const { data: created, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email: data.email.toLowerCase(),
       password: data.password,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: { full_name: data.full_name || data.name },
     });
     if (authErr || !created?.user) {
@@ -117,5 +118,6 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
       tenant_id: tenant.id,
       slug: tenant.slug,
       email: data.email.toLowerCase(),
+      requires_email_confirmation: true,
     };
   });

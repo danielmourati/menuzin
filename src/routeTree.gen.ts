@@ -14,11 +14,13 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
+import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuiaIndexRouteImport } from './routes/guia.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as PlatformSuporteRouteImport } from './routes/platform.suporte'
 import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
 import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
 import { Route as PlatformGuiaRouteImport } from './routes/platform.guia'
@@ -96,6 +98,11 @@ const MeusPedidosRoute = MeusPedidosRouteImport.update({
   path: '/meus-pedidos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
   id: '/comece-agora',
   path: '/comece-agora',
@@ -119,6 +126,11 @@ const GuiaIndexRoute = GuiaIndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformSuporteRoute = PlatformSuporteRouteImport.update({
+  id: '/platform/suporte',
+  path: '/platform/suporte',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
@@ -390,6 +402,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -425,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/platform/guia': typeof PlatformGuiaRouteWithChildren
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
+  '/platform/suporte': typeof PlatformSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
@@ -453,6 +467,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -486,6 +501,7 @@ export interface FileRoutesByTo {
   '/platform/dashboard': typeof PlatformDashboardRoute
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
+  '/platform/suporte': typeof PlatformSuporteRoute
   '/admin': typeof AdminIndexRoute
   '/guia': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
@@ -515,6 +531,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -550,6 +567,7 @@ export interface FileRoutesById {
   '/platform/guia': typeof PlatformGuiaRouteWithChildren
   '/platform/lojas': typeof PlatformLojasRoute
   '/platform/planos': typeof PlatformPlanosRoute
+  '/platform/suporte': typeof PlatformSuporteRoute
   '/admin/': typeof AdminIndexRoute
   '/guia/': typeof GuiaIndexRoute
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
@@ -580,6 +598,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/contato'
     | '/meus-pedidos'
     | '/minha-conta'
     | '/privacidade'
@@ -615,6 +634,7 @@ export interface FileRouteTypes {
     | '/platform/guia'
     | '/platform/lojas'
     | '/platform/planos'
+    | '/platform/suporte'
     | '/admin/'
     | '/guia/'
     | '/$slug/acompanhar/$orderId'
@@ -643,6 +663,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/contato'
     | '/meus-pedidos'
     | '/minha-conta'
     | '/privacidade'
@@ -676,6 +697,7 @@ export interface FileRouteTypes {
     | '/platform/dashboard'
     | '/platform/lojas'
     | '/platform/planos'
+    | '/platform/suporte'
     | '/admin'
     | '/guia'
     | '/$slug/acompanhar/$orderId'
@@ -704,6 +726,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/contato'
     | '/meus-pedidos'
     | '/minha-conta'
     | '/privacidade'
@@ -739,6 +762,7 @@ export interface FileRouteTypes {
     | '/platform/guia'
     | '/platform/lojas'
     | '/platform/planos'
+    | '/platform/suporte'
     | '/admin/'
     | '/guia/'
     | '/$slug/acompanhar/$orderId'
@@ -768,6 +792,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
   ComeceAgoraRoute: typeof ComeceAgoraRoute
+  ContatoRoute: typeof ContatoRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
   MinhaContaRoute: typeof MinhaContaRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -798,6 +823,7 @@ export interface RootRouteChildren {
   PlatformGuiaRoute: typeof PlatformGuiaRouteWithChildren
   PlatformLojasRoute: typeof PlatformLojasRoute
   PlatformPlanosRoute: typeof PlatformPlanosRoute
+  PlatformSuporteRoute: typeof PlatformSuporteRoute
   AdminIndexRoute: typeof AdminIndexRoute
   GuiaIndexRoute: typeof GuiaIndexRoute
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
@@ -847,6 +873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MeusPedidosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/comece-agora': {
       id: '/comece-agora'
       path: '/comece-agora'
@@ -880,6 +913,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/suporte': {
+      id: '/platform/suporte'
+      path: '/platform/suporte'
+      fullPath: '/platform/suporte'
+      preLoaderRoute: typeof PlatformSuporteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/platform/planos': {
@@ -1319,6 +1359,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
   ComeceAgoraRoute: ComeceAgoraRoute,
+  ContatoRoute: ContatoRoute,
   MeusPedidosRoute: MeusPedidosRoute,
   MinhaContaRoute: MinhaContaRoute,
   PrivacidadeRoute: PrivacidadeRoute,
@@ -1349,6 +1390,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformGuiaRoute: PlatformGuiaRouteWithChildren,
   PlatformLojasRoute: PlatformLojasRoute,
   PlatformPlanosRoute: PlatformPlanosRoute,
+  PlatformSuporteRoute: PlatformSuporteRoute,
   AdminIndexRoute: AdminIndexRoute,
   GuiaIndexRoute: GuiaIndexRoute,
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
@@ -1363,13 +1405,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
