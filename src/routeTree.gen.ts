@@ -14,6 +14,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
+import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
@@ -94,6 +95,11 @@ const MinhaContaRoute = MinhaContaRouteImport.update({
 const MeusPedidosRoute = MeusPedidosRouteImport.update({
   id: '/meus-pedidos',
   path: '/meus-pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -453,6 +460,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -515,6 +523,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
+  '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
   '/minha-conta': typeof MinhaContaRoute
   '/privacidade': typeof PrivacidadeRoute
@@ -580,6 +589,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/contato'
     | '/meus-pedidos'
     | '/minha-conta'
     | '/privacidade'
@@ -643,6 +653,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/contato'
     | '/meus-pedidos'
     | '/minha-conta'
     | '/privacidade'
@@ -704,6 +715,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/comece-agora'
+    | '/contato'
     | '/meus-pedidos'
     | '/minha-conta'
     | '/privacidade'
@@ -768,6 +780,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
   ComeceAgoraRoute: typeof ComeceAgoraRoute
+  ContatoRoute: typeof ContatoRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
   MinhaContaRoute: typeof MinhaContaRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
@@ -845,6 +858,13 @@ declare module '@tanstack/react-router' {
       path: '/meus-pedidos'
       fullPath: '/meus-pedidos'
       preLoaderRoute: typeof MeusPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/comece-agora': {
@@ -1319,6 +1339,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
   ComeceAgoraRoute: ComeceAgoraRoute,
+  ContatoRoute: ContatoRoute,
   MeusPedidosRoute: MeusPedidosRoute,
   MinhaContaRoute: MinhaContaRoute,
   PrivacidadeRoute: PrivacidadeRoute,
@@ -1363,13 +1384,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
