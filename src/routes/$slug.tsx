@@ -467,7 +467,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               </div>
 
               {/* Badges de informações à direita */}
-              <div className="flex shrink-0 flex-col items-end justify-center gap-1.5 border-l pl-3">
+              <div className="flex shrink-0 flex-col items-start justify-center gap-1.5 border-l pl-3">
                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
                   <Bike className="h-3 w-3 text-primary" /> {deliveryLabel}
                 </span>
