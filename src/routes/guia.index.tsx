@@ -161,7 +161,7 @@ function GuiaHome() {
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
+    <div className="min-h-screen bg-muted/30 pb-28">
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
@@ -394,7 +394,7 @@ function GuiaHome() {
       {/* Bottom nav mobile */}
       <nav
         aria-label="Navegação"
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur"
       >
         <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />
