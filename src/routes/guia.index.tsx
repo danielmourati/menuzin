@@ -417,22 +417,72 @@ function GuiaHome() {
 
 function HeroCarousel({ slots }: { slots: GuiaSlot[] }) {
   const [idx, setIdx] = useState(0);
+  const [drag, setDrag] = useState(0);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const moved = useRef(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (slots.length <= 1) return;
+    if (slots.length <= 1 || paused) return;
     timer.current = setInterval(() => setIdx((i) => (i + 1) % slots.length), 5000);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [slots.length]);
+  }, [slots.length, paused]);
+
+  const width = () => wrapRef.current?.clientWidth || 1;
+
+  const onDown = (x: number) => {
+    if (slots.length <= 1) return;
+    dragging.current = true;
+    moved.current = false;
+    startX.current = x;
+    setPaused(true);
+  };
+  const onMove = (x: number) => {
+    if (!dragging.current) return;
+    const dx = x - startX.current;
+    if (Math.abs(dx) > 6) moved.current = true;
+    setDrag(dx);
+  };
+  const onUp = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const threshold = width() * 0.2;
+    if (drag <= -threshold) setIdx((i) => (i + 1) % slots.length);
+    else if (drag >= threshold) setIdx((i) => (i - 1 + slots.length) % slots.length);
+    setDrag(0);
+    setPaused(false);
+  };
+
+  const offsetPct = (drag / width()) * 100;
 
   return (
     <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-xl">
+      <div
+        ref={wrapRef}
+        className="relative touch-pan-y select-none overflow-hidden rounded-xl"
+        onTouchStart={(e) => onDown(e.touches[0].clientX)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX)}
+        onTouchEnd={onUp}
+        onPointerDown={(e) => e.pointerType === "mouse" && onDown(e.clientX)}
+        onPointerMove={(e) => e.pointerType === "mouse" && onMove(e.clientX)}
+        onPointerUp={(e) => e.pointerType === "mouse" && onUp()}
+        onPointerLeave={(e) => e.pointerType === "mouse" && onUp()}
+        onClickCapture={(e) => {
+          if (moved.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            moved.current = false;
+          }
+        }}
+      >
         <div
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${idx * 100}%)` }}
+          className={`flex ${dragging.current ? "" : "transition-transform duration-500 ease-out"}`}
+          style={{ transform: `translateX(calc(-${idx * 100}% + ${offsetPct}%))` }}
         >
           {slots.map((s) => (
             <div key={s.id} className="w-full shrink-0">
