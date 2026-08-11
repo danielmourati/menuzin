@@ -392,6 +392,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   }, [visibleCat, activeCat]);
 
 
+  const hasCover = !!tenant.coverUrl;
   const bannerStyle = tenant.coverUrl
     ? {
         backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
