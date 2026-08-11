@@ -446,22 +446,40 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             onClick={() => setAboutOpen(true)}
             className="group flex w-full flex-col rounded-2xl border bg-card p-3 text-left shadow-[var(--shadow-soft)] active:bg-muted/40 md:p-4"
           >
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted md:h-14 md:w-14">
+            {/* Linha principal: logo + nome/status + badges à direita */}
+            <div className="flex items-stretch gap-3 min-h-[80px] md:min-h-[96px]">
+              {/* Logo */}
+              <div className="grid h-14 w-14 shrink-0 self-center place-items-center overflow-hidden rounded-full border bg-muted md:h-16 md:w-16">
                 {tenant.logoUrl ? (
                   <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-sm font-bold md:text-base">{tenant.logoLetter}</span>
+                  <span className="text-base font-bold md:text-lg">{tenant.logoLetter}</span>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
+
+              {/* Nome + status */}
+              <div className="min-w-0 flex-1 self-center">
                 <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
                 <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${storeOpen ? "text-success" : "text-destructive"}`}>
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
                   {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+
+              {/* Badges de informações à direita */}
+              <div className="flex shrink-0 flex-col items-end justify-center gap-1.5 border-l pl-3">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                  <Bike className="h-3 w-3 text-primary" /> {deliveryLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                  <Clock className="h-3 w-3 text-primary" /> {tenant.prepTime || "—"}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                  <Wallet className="h-3 w-3 text-primary" /> Mín. {brl(tenant.minOrder)}
+                </span>
+              </div>
+
+              <ChevronRight className="h-4 w-4 shrink-0 self-center text-muted-foreground" />
             </div>
 
             {/* Descrição */}
@@ -470,18 +488,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 {tenant.description}
               </p>
             )}
-
-            <div className="mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground md:text-xs">
-              <span className="inline-flex shrink-0 items-center gap-1.5">
-                <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-full">
-                <Clock className="h-3.5 w-3.5 text-primary" /> {tenant.prepTime || "—"}
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-full">
-                <Wallet className="h-3.5 w-3.5 text-primary" /> Mín. {brl(tenant.minOrder)}
-              </span>
-            </div>
 
           </button>
         </div>
