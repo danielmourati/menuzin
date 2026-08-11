@@ -42,7 +42,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
       return (
         <div className={`relative overflow-hidden rounded-xl ${surface} p-5 text-white shadow-md ${size === "sm" ? "h-32" : "h-40"}`}>
           {img && (
-            <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
+            <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} draggable={false} />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
           <div className="relative z-10 max-w-[70%]">
@@ -52,6 +52,24 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
               <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
             )}
           </div>
+          {slot.storeName && (
+            <div className="absolute bottom-3 left-5 z-10 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-black/45 py-1 pl-1 pr-3 backdrop-blur">
+              <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-white/40 bg-white/15">
+                {slot.storeLogo ? (
+                  <img src={slot.storeLogo} alt="" className="h-full w-full object-cover" draggable={false} />
+                ) : (
+                  <span className="text-[11px] font-black">{slot.storeName.slice(0, 1)}</span>
+                )}
+              </span>
+              <span className="min-w-0 truncate text-xs font-bold">{slot.storeName}</span>
+              {typeof slot.storeRating === "number" && (
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold">
+                  <Star className="h-3 w-3 fill-current" />
+                  {slot.storeRating.toFixed(1).replace(".", ",")}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       );
     }
