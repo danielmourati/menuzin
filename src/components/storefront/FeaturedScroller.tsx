@@ -42,7 +42,7 @@ export function FeaturedScroller({
                 disabled={unavailable}
                 className="group relative w-[180px] shrink-0 snap-start overflow-hidden rounded-2xl border bg-card text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
               >
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+                <div className="relative aspect-[10/9] w-full overflow-hidden bg-muted">
                   <img
                     src={productImage(p.image)}
                     alt={p.name}

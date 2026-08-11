@@ -53,7 +53,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
             )}
           </div>
           {slot.storeName && (
-            <div className="absolute bottom-3 left-5 z-10 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-black/45 py-1 pl-1 pr-3 backdrop-blur">
+            <div className="absolute bottom-3 right-3 z-10 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-black/45 py-1 pl-1 pr-3 backdrop-blur">
               <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-white/40 bg-white/15">
                 {slot.storeLogo ? (
                   <img src={slot.storeLogo} alt="" className="h-full w-full object-cover" draggable={false} />
