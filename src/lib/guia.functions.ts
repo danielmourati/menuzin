@@ -90,6 +90,42 @@ export const getGuiaHome = createServerFn({ method: "GET" })
       !rowCity || !city || normalizeCity(rowCity) === city;
 
     const slots = (slotsRes.data ?? []).map(mapSlot).filter((s) => cityMatch(s.city));
+
+    // Badge da loja (logo + nome + avaliação) para os destaques vinculados a um tenant.
+    const tenantIds = Array.from(
+      new Set(slots.map((s) => s.tenantId).filter((v): v is string => !!v)),
+    );
+    if (tenantIds.length) {
+      const [tRes, rRes] = await Promise.all([
+        supabaseAdmin.from("tenants").select("id, name, slug, logo_url").in("id", tenantIds),
+        supabaseAdmin.from("order_ratings").select("tenant_id, stars").in("tenant_id", tenantIds).limit(5000),
+      ]);
+      const info = new Map<string, { name: string; slug: string; logo: string | null }>();
+      for (const t of (tRes.data ?? []) as any[]) {
+        info.set(t.id, { name: t.name, slug: t.slug, logo: t.logo_url ?? null });
+      }
+      const agg = new Map<string, { sum: number; n: number }>();
+      for (const r of (rRes.data ?? []) as any[]) {
+        const cur = agg.get(r.tenant_id) ?? { sum: 0, n: 0 };
+        cur.sum += Number(r.stars) || 0;
+        cur.n += 1;
+        agg.set(r.tenant_id, cur);
+      }
+      for (const s of slots) {
+        if (!s.tenantId) continue;
+        const t = info.get(s.tenantId);
+        if (t) {
+          s.storeName = s.storeName ?? t.name;
+          s.storeSlug = t.slug;
+          if (t.logo) s.storeLogo = t.logo;
+        }
+        const a = agg.get(s.tenantId);
+        if (a && a.n > 0) {
+          s.storeRating = Math.round((a.sum / a.n) * 10) / 10;
+          s.storeRatingCount = a.n;
+        }
+      }
+    }
     const categories = (catsRes.data ?? []).map(mapCategory).filter((c) => cityMatch(c.city));
 
     const rows = secRes.data ?? [];
