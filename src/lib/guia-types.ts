@@ -26,6 +26,10 @@ export type GuiaSlot = {
   rating?: number;
   deliveryFee?: number;
   storeName?: string;
+  storeLogo?: string;
+  storeSlug?: string;
+  storeRating?: number;
+  storeRatingCount?: number;
   endsAt?: string;
   tenantId?: string;
   productId?: string;

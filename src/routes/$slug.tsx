@@ -392,6 +392,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   }, [visibleCat, activeCat]);
 
 
+  const hasCover = !!tenant.coverUrl;
   const bannerStyle = tenant.coverUrl
     ? {
         backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
@@ -431,33 +432,37 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
-            className="group flex w-full flex-col rounded-2xl border bg-card p-3 text-left shadow-[var(--shadow-soft)] active:bg-muted/40 md:p-4"
+            style={hasCover ? bannerStyle : undefined}
+            className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border p-3 text-left shadow-[var(--shadow-soft)] md:p-4 ${
+              hasCover ? "text-white" : "bg-card active:bg-muted/40"
+            }`}
           >
-            <div className="flex items-center gap-3">
+            {hasCover && <div className="absolute inset-0 bg-black/45" aria-hidden="true" />}
+            <div className="relative flex items-center gap-3">
               <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted md:h-14 md:w-14">
                 {tenant.logoUrl ? (
                   <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-sm font-bold md:text-base">{tenant.logoLetter}</span>
+                  <span className="text-sm font-bold text-foreground md:text-base">{tenant.logoLetter}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
-                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${storeOpen ? "text-success" : "text-destructive"}`}>
+                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${hasCover ? "text-white/90" : storeOpen ? "text-success" : "text-destructive"}`}>
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
                   {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <ChevronRight className={`h-4 w-4 shrink-0 ${hasCover ? "text-white/80" : "text-muted-foreground"}`} />
             </div>
 
             {tenant.description && (
-              <p className="mt-3 line-clamp-2 border-t pt-2.5 text-[11px] text-muted-foreground md:text-xs">
+              <p className={`relative mt-3 line-clamp-2 border-t pt-2.5 text-[11px] md:text-xs ${hasCover ? "border-white/25 text-white/90" : "text-muted-foreground"}`}>
                 {tenant.description}
               </p>
             )}
 
-            <div className="mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground md:text-xs">
+            <div className={`relative mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium md:text-xs ${hasCover ? "border-white/25 text-white/90" : "text-muted-foreground"}`}>
               <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
               </span>
@@ -468,6 +473,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 <Wallet className="h-3.5 w-3.5" /> Mín. {brl(tenant.minOrder)}
               </span>
             </div>
+
           </button>
 
           {/* Search input (colapsável) */}

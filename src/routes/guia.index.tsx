@@ -161,7 +161,7 @@ function GuiaHome() {
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-28 md:pb-16">
+    <div className="min-h-screen bg-muted/30 pb-28">
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
@@ -336,16 +336,26 @@ function GuiaHome() {
               <Section
                 title="em destaque agora"
                 subtitle="lançamentos do bairro, direto do WhatsApp da loja"
-                action={featured.length > 6 ? (featuredAll ? "ver menos" : "ver mais") : undefined}
+                action={featured.length > 3 ? (featuredAll ? "ver menos" : "ver mais") : undefined}
                 onAction={() => setFeaturedAll((v) => !v)}
               >
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                  {(featuredAll ? featured : featured.slice(0, 6)).map((it) => (
+                <div
+                  className={
+                    featuredAll || featured.length <= 3
+                      ? "grid grid-cols-3 gap-3"
+                      : "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  }
+                >
+                  {(featuredAll ? featured : featured).map((it) => (
                     <Link
                       key={it.product_id}
                       to="/guia/produto/$id"
                       params={{ id: it.product_id }}
-                      className="group overflow-hidden rounded-lg bg-card shadow-sm transition hover:shadow-md"
+                      className={`group overflow-hidden rounded-lg bg-card shadow-sm transition hover:shadow-md ${
+                        featuredAll || featured.length <= 3
+                          ? ""
+                          : "w-[calc((100%-1.5rem)/3)] shrink-0 snap-start"
+                      }`}
                     >
                       <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                         <img
@@ -384,7 +394,7 @@ function GuiaHome() {
       {/* Bottom nav mobile */}
       <nav
         aria-label="Navegação"
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur"
       >
         <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />
@@ -417,22 +427,72 @@ function GuiaHome() {
 
 function HeroCarousel({ slots }: { slots: GuiaSlot[] }) {
   const [idx, setIdx] = useState(0);
+  const [drag, setDrag] = useState(0);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const moved = useRef(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (slots.length <= 1) return;
+    if (slots.length <= 1 || paused) return;
     timer.current = setInterval(() => setIdx((i) => (i + 1) % slots.length), 5000);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
-  }, [slots.length]);
+  }, [slots.length, paused]);
+
+  const width = () => wrapRef.current?.clientWidth || 1;
+
+  const onDown = (x: number) => {
+    if (slots.length <= 1) return;
+    dragging.current = true;
+    moved.current = false;
+    startX.current = x;
+    setPaused(true);
+  };
+  const onMove = (x: number) => {
+    if (!dragging.current) return;
+    const dx = x - startX.current;
+    if (Math.abs(dx) > 6) moved.current = true;
+    setDrag(dx);
+  };
+  const onUp = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const threshold = width() * 0.2;
+    if (drag <= -threshold) setIdx((i) => (i + 1) % slots.length);
+    else if (drag >= threshold) setIdx((i) => (i - 1 + slots.length) % slots.length);
+    setDrag(0);
+    setPaused(false);
+  };
+
+  const offsetPct = (drag / width()) * 100;
 
   return (
     <div className="space-y-2">
-      <div className="relative overflow-hidden rounded-xl">
+      <div
+        ref={wrapRef}
+        className="relative touch-pan-y select-none overflow-hidden rounded-xl"
+        onTouchStart={(e) => onDown(e.touches[0].clientX)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX)}
+        onTouchEnd={onUp}
+        onPointerDown={(e) => e.pointerType === "mouse" && onDown(e.clientX)}
+        onPointerMove={(e) => e.pointerType === "mouse" && onMove(e.clientX)}
+        onPointerUp={(e) => e.pointerType === "mouse" && onUp()}
+        onPointerLeave={(e) => e.pointerType === "mouse" && onUp()}
+        onClickCapture={(e) => {
+          if (moved.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            moved.current = false;
+          }
+        }}
+      >
         <div
-          className="flex transition-transform duration-500 ease-out"
-          style={{ transform: `translateX(-${idx * 100}%)` }}
+          className={`flex ${dragging.current ? "" : "transition-transform duration-500 ease-out"}`}
+          style={{ transform: `translateX(calc(-${idx * 100}% + ${offsetPct}%))` }}
         >
           {slots.map((s) => (
             <div key={s.id} className="w-full shrink-0">
@@ -756,11 +816,6 @@ function AllStoresSection({
                     🍽️
                   </div>
                 )}
-                {s.has_featured && (
-                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-amber-950 shadow">
-                    <Star className="h-3 w-3 fill-current" /> destaque
-                  </span>
-                )}
               </div>
               <div className="p-2.5">
                 <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
@@ -793,14 +848,7 @@ function AllStoresSection({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
-                  {s.has_featured && (
-                    <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-amber-950">
-                      <Star className="h-2.5 w-2.5 fill-current" /> destaque
-                    </span>
-                  )}
-                </div>
+                <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
                 <p className="line-clamp-1 text-xs text-muted-foreground">
                   {s.neighborhood ?? s.city ?? "no bairro"}
                   {s.categories.length > 0 ? ` · ${s.categories.slice(0, 3).join(", ")}` : ""}
