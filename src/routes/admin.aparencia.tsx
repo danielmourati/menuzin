@@ -91,31 +91,54 @@ function AppearancePage() {
           <Card><CardContent className="p-0 overflow-hidden">
             <div className="border-b bg-muted/40 px-4 py-2 text-xs text-muted-foreground">Preview da loja</div>
             <div className="bg-background">
-              <div
-                className="flex flex-col items-center gap-2 px-4 py-6 text-center"
-                style={previewHeaderStyle}
-              >
-                {logoUrl ? (
-                  <img src={logoUrl} alt="" className="h-16 w-16 rounded-full border-4 border-white bg-white object-cover shadow" />
-                ) : (
-                  <div className="grid h-16 w-16 place-items-center rounded-full border-4 border-white bg-white text-2xl font-bold shadow">
-                    {tenant?.logo_letter || tenant?.name?.[0]?.toUpperCase() || "L"}
-                  </div>
-                )}
-                <p className="text-sm font-bold text-white drop-shadow">{tenant?.name ?? "Sua loja"}</p>
-                <p className="text-[11px] font-semibold text-white/90 drop-shadow">
-                  ● {computeStoreOpen({ openMode: (tenant as { open_mode?: "auto"|"open"|"closed" })?.open_mode, hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule, legacyOpen: tenant?.open }).open ? "Aberta" : "Fechada"}
-                </p>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-2">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="rounded-xl border p-2">
-                      <div className="aspect-square rounded-lg bg-muted" />
-                      <p className="mt-1 text-xs font-semibold">Produto {i}</p>
-                      <p className="text-xs text-muted-foreground">R$ 24,90</p>
+              {/* Novo Preview da Loja similar ao novo layout do storefront */}
+              <div className="relative w-full h-32 bg-muted bg-cover bg-center overflow-visible" style={previewHeaderStyle}>
+                <div className="absolute inset-0 bg-black/20" />
+                {/* Logo centralizada na borda inferior */}
+                <div className="absolute left-1/2 bottom-0 z-20 h-16 w-16 -translate-x-1/2 translate-y-1/2 overflow-hidden rounded-full border-4 border-card bg-card shadow">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-primary text-primary-foreground font-bold text-lg">
+                      {tenant?.logo_letter || tenant?.name?.[0]?.toUpperCase() || "L"}
                     </div>
-                  ))}
+                  )}
+                </div>
+              </div>
+              
+              <div className="p-4 pt-10 text-center">
+                <h3 className="text-sm font-bold text-foreground truncate">{tenant?.name ?? "Sua loja"}</h3>
+                <p className={`mt-0.5 flex items-center justify-center gap-1.5 text-[11px] font-semibold ${
+                  computeStoreOpen({
+                    openMode: (tenant as { open_mode?: "auto"|"open"|"closed" })?.open_mode,
+                    hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule,
+                    legacyOpen: tenant?.open
+                  }).open ? "text-success" : "text-destructive"
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${
+                    computeStoreOpen({
+                      openMode: (tenant as { open_mode?: "auto"|"open"|"closed" })?.open_mode,
+                      hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule,
+                      legacyOpen: tenant?.open
+                    }).open ? "bg-success" : "bg-destructive"
+                  }`} />
+                  {computeStoreOpen({
+                    openMode: (tenant as { open_mode?: "auto"|"open"|"closed" })?.open_mode,
+                    hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule,
+                    legacyOpen: tenant?.open
+                  }).open ? "Aberta" : "Fechada"}
+                </p>
+                
+                <div className="mt-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="rounded-xl border p-2 text-left">
+                        <div className="aspect-square rounded-lg bg-muted" />
+                        <p className="mt-1 text-xs font-semibold">Produto {i}</p>
+                        <p className="text-xs text-muted-foreground">R$ 24,90</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

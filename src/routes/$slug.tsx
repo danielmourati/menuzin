@@ -395,104 +395,122 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const hasCover = !!tenant.coverUrl;
   const bannerStyle = tenant.coverUrl
     ? {
-        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
+      backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url(${tenant.coverUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    }
     : {
-        backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
-      };
+      backgroundImage: `linear-gradient(135deg, ${tenant.themeFrom}, ${tenant.themeTo})`,
+    };
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      <div className="container mx-auto max-w-3xl px-4 pt-4">
-        {/* Header unificado (mobile + desktop) */}
-        <div>
-          {/* Linha 1: menu + lupa */}
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Abrir menu"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border bg-card text-foreground shadow-sm active:bg-muted md:h-10 md:w-10"
-            >
-              <Menu className="h-4 w-4 md:h-5 md:w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSearchOpen((v) => !v)}
-              aria-label="Buscar produtos"
-              className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md active:opacity-80 md:h-10 md:w-10 ${searchOpen ? "bg-muted-foreground" : "bg-primary"}`}
-            >
-              {searchOpen ? <XIcon className="h-4 w-4 md:h-5 md:w-5" /> : <Search className="h-4 w-4 md:h-5 md:w-5" />}
-            </button>
-          </div>
+      {/* Imagem de Capa (Cover Photo) atrás / acima */}
+      <div
+        className="relative w-full h-40 md:h-56 bg-muted bg-cover bg-center overflow-visible"
+        style={bannerStyle}
+      >
+        {/* Camada de escurecimento sutil */}
+        <div className="absolute inset-0 bg-black/25" />
 
-          {/* Card da loja com informações internas */}
+        {/* Container para os botões do cabeçalho sobre a capa */}
+        <div className="container mx-auto max-w-3xl px-4 pt-4 flex items-center justify-between relative z-10">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menu"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60 active:scale-95"
+          >
+            <Menu className="h-4 w-4 md:h-5 md:w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSearchOpen((v) => !v)}
+            aria-label="Buscar produtos"
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-white backdrop-blur-sm transition active:scale-95 ${searchOpen ? "bg-black/60" : "bg-black/40 hover:bg-black/60"
+              }`}
+          >
+            {searchOpen ? <XIcon className="h-4 w-4 md:h-5 md:w-5" /> : <Search className="h-4 w-4 md:h-5 md:w-5" />}
+          </button>
+        </div>
+
+        {/* Logo centralizada na borda inferior da capa */}
+        <div className="absolute left-1/2 bottom-0 z-20 h-20 w-20 -translate-x-1/2 translate-y-1/2 overflow-hidden rounded-full border-4 border-card bg-card shadow-md md:h-24 md:w-24">
+          {tenant.logoUrl ? (
+            <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full w-full place-items-center bg-primary text-primary-foreground font-bold text-xl md:text-2xl">
+              {tenant.logoLetter}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="container mx-auto max-w-3xl px-4">
+        {/* Card de informações da loja */}
+        <div className="relative z-10 -mt-6 md:-mt-8 mb-4">
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
-            style={hasCover ? bannerStyle : undefined}
-            className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border p-3 text-left shadow-[var(--shadow-soft)] md:p-4 ${
-              hasCover ? "text-white" : "bg-card active:bg-muted/40"
-            }`}
+            className="group flex w-full flex-col rounded-2xl border bg-card p-3 text-left shadow-[var(--shadow-soft)] active:bg-muted/40 md:p-4"
           >
-            {hasCover && <div className="absolute inset-0 bg-black/45" aria-hidden="true" />}
-            <div className="relative flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted md:h-14 md:w-14">
                 {tenant.logoUrl ? (
                   <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
                 ) : (
-                  <span className="text-sm font-bold text-foreground md:text-base">{tenant.logoLetter}</span>
+                  <span className="text-sm font-bold md:text-base">{tenant.logoLetter}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
-                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${hasCover ? "text-white/90" : storeOpen ? "text-success" : "text-destructive"}`}>
+                <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${storeOpen ? "text-success" : "text-destructive"}`}>
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
                   {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}
                 </p>
               </div>
-              <ChevronRight className={`h-4 w-4 shrink-0 ${hasCover ? "text-white/80" : "text-muted-foreground"}`} />
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
 
+            {/* Descrição */}
             {tenant.description && (
-              <p className={`relative mt-3 line-clamp-2 border-t pt-2.5 text-[11px] md:text-xs ${hasCover ? "border-white/25 text-white/90" : "text-muted-foreground"}`}>
+              <p className="mt-3 line-clamp-2 border-t pt-2.5 text-[11px] text-muted-foreground md:text-xs">
                 {tenant.description}
               </p>
             )}
 
-            <div className={`relative mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium md:text-xs ${hasCover ? "border-white/25 text-white/90" : "text-muted-foreground"}`}>
+            <div className="mt-2 flex flex-nowrap items-center gap-x-3 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground md:text-xs">
               <span className="inline-flex shrink-0 items-center gap-1.5">
                 <Bike className="h-3.5 w-3.5" /> {deliveryLabel}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" /> {tenant.prepTime || "—"}
+              <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-full">
+                <Clock className="h-3.5 w-3.5 text-primary" /> {tenant.prepTime || "—"}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1.5">
-                <Wallet className="h-3.5 w-3.5" /> Mín. {brl(tenant.minOrder)}
+              <span className="inline-flex items-center gap-1.5 bg-muted/40 px-2.5 py-1 rounded-full">
+                <Wallet className="h-3.5 w-3.5 text-primary" /> Mín. {brl(tenant.minOrder)}
               </span>
             </div>
 
           </button>
-
-          {/* Search input (colapsável) */}
-          {searchOpen && (
-            <div className="relative mt-3">
-              <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-              <Input
-                id="storefront-search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar produtos..."
-                aria-label="Buscar produtos no cardápio"
-                autoFocus
-                className="h-11 rounded-2xl border-input bg-white pl-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
-              />
-            </div>
-          )}
         </div>
+
+        {/* Search input (colapsável) */}
+        {searchOpen && (
+          <div className="relative mt-2 mb-4">
+            <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="storefront-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar produtos no cardápio..."
+              aria-label="Buscar produtos no cardápio"
+              autoFocus
+              className="h-11 rounded-2xl border-input bg-card pl-10.5 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
+            />
+          </div>
+        )}
 
 
 
@@ -548,61 +566,60 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
         {/* Barra sticky: categorias + toggle grid/lista (só quando há produtos) */}
         {products.length > 0 && (
-        <div className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-2">
-                {chips.map((c) => {
-                  const Icon = getCategoryIcon(c.label);
-                  const highlightKey = activeCat === "Todos" ? visibleCat : activeCat;
-                  const active = highlightKey === c.key;
-                  return (
-                    <button
-                      key={c.key}
-                      ref={(el) => {
-                        if (el) chipRefs.current.set(c.key, el);
-                        else chipRefs.current.delete(c.key);
-                      }}
-                      onClick={() => {
-                        if (c.key === "Todos") {
-                          setActiveCat("Todos");
-                          setVisibleCat("Todos");
-                          if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-                          return;
-                        }
-                        if (activeCat === "Todos") {
-                          const target = sectionRefs.current.get(c.key);
-                          if (target) {
-                            setVisibleCat(c.key);
-                            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          <div className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
+                <div className="flex gap-2">
+                  {chips.map((c) => {
+                    const Icon = getCategoryIcon(c.label);
+                    const highlightKey = activeCat === "Todos" ? visibleCat : activeCat;
+                    const active = highlightKey === c.key;
+                    return (
+                      <button
+                        key={c.key}
+                        ref={(el) => {
+                          if (el) chipRefs.current.set(c.key, el);
+                          else chipRefs.current.delete(c.key);
+                        }}
+                        onClick={() => {
+                          if (c.key === "Todos") {
+                            setActiveCat("Todos");
+                            setVisibleCat("Todos");
+                            if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
                             return;
                           }
-                        }
-                        setActiveCat(c.key);
-                      }}
-                      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
-                        active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
-                      {c.label}
-                    </button>
-                  );
-                })}
+                          if (activeCat === "Todos") {
+                            const target = sectionRefs.current.get(c.key);
+                            if (target) {
+                              setVisibleCat(c.key);
+                              target.scrollIntoView({ behavior: "smooth", block: "start" });
+                              return;
+                            }
+                          }
+                          setActiveCat(c.key);
+                        }}
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
+                          }`}
+                      >
+                        <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+              {grouped.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
+                  aria-label={viewMode === "grid" ? "Visualizar em lista" : "Visualizar em grade"}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
+                >
+                  {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                </button>
+              )}
             </div>
-            {grouped.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setViewMode((m) => (m === "grid" ? "list" : "grid"))}
-                aria-label={viewMode === "grid" ? "Visualizar em lista" : "Visualizar em grade"}
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-primary text-primary-foreground shadow-sm transition hover:opacity-90"
-              >
-                {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-              </button>
-            )}
           </div>
-        </div>
         )}
 
         <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
@@ -615,70 +632,70 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             grouped.map((g) => {
               const catKey = g.isPizzaParent ? PIZZAS_KEY : g.name;
               return (
-              <section
-                key={g.name}
-                data-cat-key={catKey}
-                ref={(el) => {
-                  if (el) sectionRefs.current.set(catKey, el);
-                  else sectionRefs.current.delete(catKey);
-                }}
-                className="scroll-mt-24"
-              >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h2 className="text-lg font-bold">{g.name}</h2>
-                </div>
+                <section
+                  key={g.name}
+                  data-cat-key={catKey}
+                  ref={(el) => {
+                    if (el) sectionRefs.current.set(catKey, el);
+                    else sectionRefs.current.delete(catKey);
+                  }}
+                  className="scroll-mt-24"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <h2 className="text-lg font-bold">{g.name}</h2>
+                  </div>
 
-                {g.isPizzaParent && g.children ? (
-                  <div className="space-y-6">
-                    {g.children.map((sub) => (
-                      <div key={sub.name}>
-                        <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{sub.name}</h3>
-                        <div
-                          className={
-                            viewMode === "grid"
-                              ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                              : "flex flex-col gap-3"
-                          }
-                        >
-                          {sub.items.map((p) => (
-                            <ProductCard
-                              key={p.id}
-                              product={p}
-                              view={viewMode}
-                              onClick={() => {
-                                if (!storeOpen) return;
-                                setSelectedProduct(p);
-                                setModalOpen(true);
-                              }}
-                            />
-                          ))}
+                  {g.isPizzaParent && g.children ? (
+                    <div className="space-y-6">
+                      {g.children.map((sub) => (
+                        <div key={sub.name}>
+                          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{sub.name}</h3>
+                          <div
+                            className={
+                              viewMode === "grid"
+                                ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                                : "flex flex-col gap-3"
+                            }
+                          >
+                            {sub.items.map((p) => (
+                              <ProductCard
+                                key={p.id}
+                                product={p}
+                                view={viewMode}
+                                onClick={() => {
+                                  if (!storeOpen) return;
+                                  setSelectedProduct(p);
+                                  setModalOpen(true);
+                                }}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                        : "flex flex-col gap-3"
-                    }
-                  >
-                    {g.items.map((p) => (
-                      <ProductCard
-                        key={p.id}
-                        product={p}
-                        view={viewMode}
-                        onClick={() => {
-                          if (!storeOpen) return;
-                          setSelectedProduct(p);
-                          setModalOpen(true);
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        viewMode === "grid"
+                          ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                          : "flex flex-col gap-3"
+                      }
+                    >
+                      {g.items.map((p) => (
+                        <ProductCard
+                          key={p.id}
+                          product={p}
+                          view={viewMode}
+                          onClick={() => {
+                            if (!storeOpen) return;
+                            setSelectedProduct(p);
+                            setModalOpen(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
               );
             })
           )}
@@ -717,16 +734,16 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed" })) : []}
         pizzaFlavors={selectedProduct?.categoryId && selectedProduct.categoryKind === "pizza"
           ? products.filter((p) => p.categoryId === selectedProduct.categoryId && p.available && p.listedAsFlavor === true).map((p) => ({
-              id: p.id,
-              name: p.name,
-              description: p.description,
-              image: p.image,
-              pricesByCategorySizeId: Object.fromEntries((p.sizes ?? []).filter((s) => s.categorySizeId).map((s) => [s.categorySizeId as string, s.price])),
-              fractionPricesByCategorySizeId: Object.fromEntries(
-                (p.sizes ?? []).filter((s) => s.categorySizeId && s.fractionPrices).map((s) => [s.categorySizeId as string, s.fractionPrices as Record<string, number>])
-              ),
-              fallbackPrice: p.promoPrice ?? p.price,
-            }))
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            image: p.image,
+            pricesByCategorySizeId: Object.fromEntries((p.sizes ?? []).filter((s) => s.categorySizeId).map((s) => [s.categorySizeId as string, s.price])),
+            fractionPricesByCategorySizeId: Object.fromEntries(
+              (p.sizes ?? []).filter((s) => s.categorySizeId && s.fractionPrices).map((s) => [s.categorySizeId as string, s.fractionPrices as Record<string, number>])
+            ),
+            fallbackPrice: p.promoPrice ?? p.price,
+          }))
           : []}
 
         pizzaDoughs={selectedProduct?.categoryId ? pizzaDoughs.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
