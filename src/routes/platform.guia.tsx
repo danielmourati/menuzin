@@ -11,6 +11,7 @@ const tabs: { to: string; label: string; exact?: boolean }[] = [
   { to: "/platform/guia/slots", label: "Destaques & Banners" },
   { to: "/platform/guia/categorias", label: "Categorias" },
   { to: "/platform/guia/solicitacoes", label: "Solicitações" },
+  { to: "/platform/guia/planos", label: "Planos de Destaque" },
 ];
 
 function PlatformGuiaLayout() {

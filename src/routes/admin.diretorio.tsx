@@ -22,8 +22,8 @@ import {
 import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
-import { createPromoRequest } from "@/lib/guia-admin.functions";
-import { SLOT_KIND_LABELS, SLOT_KIND_PRICES, type GuiaSlotKind } from "@/lib/guia-types";
+import { createPromoRequest, listPublicHighlightPlans } from "@/lib/guia-admin.functions";
+import { SLOT_KIND_LABELS, SLOT_KIND_PRICES, type GuiaSlotKind, type GuiaHighlightPlan } from "@/lib/guia-types";
 
 export const Route = createFileRoute("/admin/diretorio")({
   component: DiretorioPage,
@@ -48,20 +48,39 @@ function RequestFeatureBlock() {
     queryKey: ["diretorio", "my-products"],
     queryFn: () => listMyDirectoryProducts(),
   });
+  const { data: highlightPlans = [] } = useQuery({
+    queryKey: ["public-highlight-plans"],
+    queryFn: () => listPublicHighlightPlans(),
+  });
+
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<GuiaSlotKind>("featured");
-  const [days, setDays] = useState<7 | 14 | 30>(7);
+  const [days, setDays] = useState<number>(7);
   const [note, setNote] = useState("");
   const [productId, setProductId] = useState<string | null>(null);
   const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
-  const price = SLOT_KIND_PRICES[kind][days];
+
+  const availablePlans = useMemo(() => {
+    const matching = highlightPlans.filter((p) => p.slot_kind === kind && p.active);
+    if (matching.length > 0) return matching;
+    const fallbackPrices = SLOT_KIND_PRICES[kind] ?? { 7: 49.9, 14: 89.9, 30: 149.9 };
+    return [
+      { id: `${kind}-7`, name: "7 dias", duration_days: 7, price: fallbackPrices[7] ?? 49.9, slot_kind: kind, active: true, sort_order: 1 },
+      { id: `${kind}-14`, name: "14 dias", duration_days: 14, price: fallbackPrices[14] ?? 89.9, slot_kind: kind, active: true, sort_order: 2 },
+      { id: `${kind}-30`, name: "30 dias", duration_days: 30, price: fallbackPrices[30] ?? 149.9, slot_kind: kind, active: true, sort_order: 3 },
+    ];
+  }, [highlightPlans, kind]);
+
+  const selectedPlan = availablePlans.find((p) => p.duration_days === days) ?? availablePlans[0];
+  const price = selectedPlan ? selectedPlan.price : 49.9;
+  const currentDays = selectedPlan ? selectedPlan.duration_days : days;
 
   const requestMutation = useMutation({
     mutationFn: () =>
       createPromoRequest({
         data: {
           slotKind: kind,
-          durationDays: days,
+          durationDays: currentDays,
           amount: price,
           note: note.trim() || undefined,
           productId: kind === "featured" && productId ? productId : undefined,
@@ -92,7 +111,7 @@ function RequestFeatureBlock() {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold">Turbinar sua loja no Guia</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Listagem no Guia é sempre <strong>grátis</strong>. Este destaque é opcional e cobrado via PIX — aparece em posições privilegiadas (hero, banner, carrossel).
+            Listagem no Guia é sempre <strong>grátis</strong>. Este destaque é opcional e cobrado via PIX — aparece em posições privilegedadas (hero, banner, carrossel).
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -145,12 +164,14 @@ function RequestFeatureBlock() {
               </div>
               <div>
                 <Label>Duração</Label>
-                <Select value={String(days)} onValueChange={(v) => setDays(Number(v) as 7 | 14 | 30)}>
+                <Select value={String(currentDays)} onValueChange={(v) => setDays(Number(v))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 dias — {brl(SLOT_KIND_PRICES[kind][7])}</SelectItem>
-                    <SelectItem value="14">14 dias — {brl(SLOT_KIND_PRICES[kind][14])}</SelectItem>
-                    <SelectItem value="30">30 dias — {brl(SLOT_KIND_PRICES[kind][30])}</SelectItem>
+                    {availablePlans.map((p) => (
+                      <SelectItem key={p.id} value={String(p.duration_days)}>
+                        {p.duration_days} dias — {brl(p.price)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

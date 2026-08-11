@@ -18,7 +18,9 @@ export function OrdersRealtimeListener() {
     if (!newOrderAlert) return;
 
     const orderId = newOrderAlert.id;
-    if (notifiedIdsRef.current.has(orderId)) {
+
+    // Se o pedido não estiver com status "novo" (já foi aceito/em produção) ou já tiver sido notificado:
+    if (newOrderAlert.status !== "novo" || notifiedIdsRef.current.has(orderId)) {
       dismissAlert();
       return;
     }
@@ -38,7 +40,7 @@ export function OrdersRealtimeListener() {
             );
           }, 100);
         },
-        // Ao clicar em "Aceitar" — dispara impressão automática quando configurada
+        // Ao clicar em "Aceitar" — transita para preparo e dispara impressão se configurado
         () => {
           acceptOrder(orderId);
         }
