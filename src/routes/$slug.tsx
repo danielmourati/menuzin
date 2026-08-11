@@ -440,7 +440,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
       <div className="container mx-auto max-w-3xl px-4">
         {/* Card de informações da loja */}
-        <div className="mb-4">
+        <div className="relative z-10 -mt-6 mb-4">
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
