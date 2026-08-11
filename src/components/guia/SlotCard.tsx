@@ -111,11 +111,6 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
       return (
         <div className="w-40 shrink-0 text-left">
           <div className={`relative aspect-square overflow-hidden rounded-lg border ${surface} shadow-md`}>
-            {typeof slot.rating === "number" && (
-              <div className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-lg bg-yellow-400 px-1.5 py-0.5 text-[10px] font-black text-stone-900 shadow">
-                <Star className="h-3 w-3 fill-current" /> {slot.rating.toFixed(1)}
-              </div>
-            )}
             {img && <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />}
 
             {typeof slot.discountPct === "number" && (
