@@ -435,21 +435,12 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </button>
         </div>
 
-        {/* Logo centralizada na borda inferior da capa */}
-        <div className="absolute left-1/2 bottom-0 z-20 h-20 w-20 -translate-x-1/2 translate-y-1/2 overflow-hidden rounded-full border-4 border-card bg-card shadow-md md:h-24 md:w-24">
-          {tenant.logoUrl ? (
-            <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
-          ) : (
-            <div className="grid h-full w-full place-items-center bg-primary text-primary-foreground font-bold text-xl md:text-2xl">
-              {tenant.logoLetter}
-            </div>
-          )}
-        </div>
+
       </div>
 
       <div className="container mx-auto max-w-3xl px-4">
         {/* Card de informações da loja */}
-        <div className="relative z-10 -mt-6 md:-mt-8 mb-4">
+        <div className="mb-4">
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
