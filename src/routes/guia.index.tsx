@@ -816,11 +816,6 @@ function AllStoresSection({
                     🍽️
                   </div>
                 )}
-                {s.has_featured && (
-                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-amber-950 shadow">
-                    <Star className="h-3 w-3 fill-current" /> destaque
-                  </span>
-                )}
               </div>
               <div className="p-2.5">
                 <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
@@ -853,14 +848,7 @@ function AllStoresSection({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
-                  {s.has_featured && (
-                    <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-amber-950">
-                      <Star className="h-2.5 w-2.5 fill-current" /> destaque
-                    </span>
-                  )}
-                </div>
+                <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
                 <p className="line-clamp-1 text-xs text-muted-foreground">
                   {s.neighborhood ?? s.city ?? "no bairro"}
                   {s.categories.length > 0 ? ` · ${s.categories.slice(0, 3).join(", ")}` : ""}
