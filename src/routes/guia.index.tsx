@@ -336,16 +336,26 @@ function GuiaHome() {
               <Section
                 title="em destaque agora"
                 subtitle="lançamentos do bairro, direto do WhatsApp da loja"
-                action={featured.length > 6 ? (featuredAll ? "ver menos" : "ver mais") : undefined}
+                action={featured.length > 3 ? (featuredAll ? "ver menos" : "ver mais") : undefined}
                 onAction={() => setFeaturedAll((v) => !v)}
               >
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                  {(featuredAll ? featured : featured.slice(0, 6)).map((it) => (
+                <div
+                  className={
+                    featuredAll || featured.length <= 3
+                      ? "grid grid-cols-3 gap-3"
+                      : "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  }
+                >
+                  {(featuredAll ? featured : featured).map((it) => (
                     <Link
                       key={it.product_id}
                       to="/guia/produto/$id"
                       params={{ id: it.product_id }}
-                      className="group overflow-hidden rounded-lg bg-card shadow-sm transition hover:shadow-md"
+                      className={`group overflow-hidden rounded-lg bg-card shadow-sm transition hover:shadow-md ${
+                        featuredAll || featured.length <= 3
+                          ? ""
+                          : "w-[calc((100%-1.5rem)/3)] shrink-0 snap-start"
+                      }`}
                     >
                       <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                         <img
