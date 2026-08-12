@@ -110,9 +110,8 @@ function UnsubscribePage() {
 }
 
 export const Route = createFileRoute("/unsubscribe")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    token: typeof search["token"] === "string" ? (search["token"] as string) : "",
-  }),
+  validateSearch: (search: Record<string, unknown>): { token?: string } =>
+    typeof search["token"] === "string" ? { token: search["token"] as string } : {},
   head: () => ({
     meta: [
       { title: "Cancelar e-mails | Menuzin" },
