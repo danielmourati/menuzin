@@ -458,9 +458,18 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 )}
               </div>
 
-              {/* Nome + status */}
+              {/* Nome + status + rating */}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
+                  {tenant.ratingAvg != null && tenant.ratingCount > 0 && (
+                    <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold text-amber-500 md:text-xs">
+                      <Star className="h-3 w-3 fill-current" />
+                      {tenant.ratingAvg.toFixed(1).replace(".", ",")}
+                      <span className="font-normal text-muted-foreground">({tenant.ratingCount})</span>
+                    </span>
+                  )}
+                </div>
                 <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${storeOpen ? "text-success" : "text-destructive"}`}>
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
                   {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}

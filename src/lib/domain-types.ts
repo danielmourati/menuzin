@@ -181,5 +181,7 @@ export type Tenant = {
   plan: string;
   active: boolean;
   social?: { instagram?: string; facebook?: string };
+  ratingAvg?: number | null;
+  ratingCount?: number;
 };
 

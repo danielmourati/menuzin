@@ -89,6 +89,8 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     plan: t.plan,
     active: t.active,
     social: (t.social as { instagram?: string; facebook?: string }) ?? {},
+    ratingAvg: t.rating_avg ?? null,
+    ratingCount: t.rating_count ?? 0,
   };
 }
 

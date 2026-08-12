@@ -31,6 +31,8 @@ export type DbTenant = {
   status: "ativa" | "teste" | "suspensa";
   social: Record<string, string>;
   active: boolean;
+  rating_avg: number | null;
+  rating_count: number;
 };
 
 
