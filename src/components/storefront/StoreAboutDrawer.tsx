@@ -82,7 +82,7 @@ export function StoreAboutDrawer({
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label="Fechar informações da loja"
-            className="absolute left-4 top-4 z-20 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60 active:scale-95"
+            className="absolute left-4 top-4 z-20 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/90 active:scale-95"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
