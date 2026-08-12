@@ -53,11 +53,20 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
 
         const token = authHeader.slice('Bearer '.length).trim()
         const supabase = createClient(supabaseUrl, supabaseServiceKey)
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
-        if (authError || !user) {
-          return Response.json({ error: 'Unauthorized' }, { status: 401 })
+        // Internal trusted caller (server-side only): public flows such as the
+        // contact form run on the server with the service role key and cannot
+        // present a user JWT. The key never reaches the browser.
+        const isInternalCaller = token === supabaseServiceKey
+
+        if (!isInternalCaller) {
+          const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+
+          if (authError || !user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 })
+          }
         }
+
 
         // Parse request body
         let templateName: string
