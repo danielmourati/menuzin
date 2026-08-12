@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -28,6 +29,7 @@ import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboa
 import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as GuiaCategoriaRouteImport } from './routes/guia.$categoria'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
 import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
 import { Route as AdminRelatoriosRouteImport } from './routes/admin.relatorios'
@@ -59,6 +61,7 @@ import { Route as PlatformGuiaSlotsRouteImport } from './routes/platform.guia.sl
 import { Route as PlatformGuiaSecoesRouteImport } from './routes/platform.guia.secoes'
 import { Route as PlatformGuiaPlanosRouteImport } from './routes/platform.guia.planos'
 import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
@@ -72,9 +75,18 @@ import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin
 import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
 import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
@@ -168,6 +180,11 @@ const LojaSlugRoute = LojaSlugRouteImport.update({
 const GuiaCategoriaRoute = GuiaCategoriaRouteImport.update({
   id: '/guia/$categoria',
   path: '/guia/$categoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTrocarSenhaRoute = AdminTrocarSenhaRouteImport.update({
@@ -326,6 +343,11 @@ const PlatformGuiaCategoriasRoute = PlatformGuiaCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => PlatformGuiaRoute,
 } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaSlugPedidoConfirmadoRoute =
   LojaSlugPedidoConfirmadoRouteImport.update({
     id: '/pedido-confirmado',
@@ -398,12 +420,34 @@ const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
   path: '/acompanhar/$orderId',
   getParentRoute: () => SlugRoute,
 } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaSlugAcompanharOrderIdRoute =
   LojaSlugAcompanharOrderIdRouteImport.update({
     id: '/acompanhar/$orderId',
@@ -421,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -444,6 +489,7 @@ export interface FileRoutesByFullPath {
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/guia/$categoria': typeof GuiaCategoriaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
@@ -467,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/planos': typeof PlatformGuiaPlanosRoute
   '/platform/guia/secoes': typeof PlatformGuiaSecoesRoute
@@ -476,7 +523,11 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -488,6 +539,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -510,6 +562,7 @@ export interface FileRoutesByTo {
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/guia/$categoria': typeof GuiaCategoriaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
@@ -532,6 +585,7 @@ export interface FileRoutesByTo {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/planos': typeof PlatformGuiaPlanosRoute
   '/platform/guia/secoes': typeof PlatformGuiaSecoesRoute
@@ -541,7 +595,11 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/platform/guia': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -554,6 +612,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -577,6 +636,7 @@ export interface FileRoutesById {
   '/admin/relatorios': typeof AdminRelatoriosRoute
   '/admin/taxas-entrega': typeof AdminTaxasEntregaRoute
   '/admin/trocar-senha': typeof AdminTrocarSenhaRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/guia/$categoria': typeof GuiaCategoriaRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/platform/assinaturas': typeof PlatformAssinaturasRoute
@@ -600,6 +660,7 @@ export interface FileRoutesById {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/planos': typeof PlatformGuiaPlanosRoute
   '/platform/guia/secoes': typeof PlatformGuiaSecoesRoute
@@ -609,7 +670,11 @@ export interface FileRoutesById {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -623,6 +688,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/unsubscribe'
     | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -646,6 +712,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
+    | '/email/unsubscribe'
     | '/guia/$categoria'
     | '/loja/$slug'
     | '/platform/assinaturas'
@@ -669,6 +736,7 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/lovable/email/suppression'
     | '/platform/guia/categorias'
     | '/platform/guia/planos'
     | '/platform/guia/secoes'
@@ -678,7 +746,11 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/platform/guia/'
     | '/loja/$slug/acompanhar/$orderId'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -690,6 +762,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/unsubscribe'
     | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -712,6 +785,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
+    | '/email/unsubscribe'
     | '/guia/$categoria'
     | '/loja/$slug'
     | '/platform/assinaturas'
@@ -734,6 +808,7 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/lovable/email/suppression'
     | '/platform/guia/categorias'
     | '/platform/guia/planos'
     | '/platform/guia/secoes'
@@ -743,7 +818,11 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/platform/guia'
     | '/loja/$slug/acompanhar/$orderId'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -755,6 +834,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/unsubscribe'
     | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -778,6 +858,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios'
     | '/admin/taxas-entrega'
     | '/admin/trocar-senha'
+    | '/email/unsubscribe'
     | '/guia/$categoria'
     | '/loja/$slug'
     | '/platform/assinaturas'
@@ -801,6 +882,7 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/lovable/email/suppression'
     | '/platform/guia/categorias'
     | '/platform/guia/planos'
     | '/platform/guia/secoes'
@@ -810,7 +892,11 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/platform/guia/'
     | '/loja/$slug/acompanhar/$orderId'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -823,6 +909,7 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminAssinaturaRoute: typeof AdminAssinaturaRoute
@@ -841,6 +928,7 @@ export interface RootRouteChildren {
   AdminRelatoriosRoute: typeof AdminRelatoriosRoute
   AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
   AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   GuiaCategoriaRoute: typeof GuiaCategoriaRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
   PlatformAssinaturasRoute: typeof PlatformAssinaturasRoute
@@ -858,12 +946,24 @@ export interface RootRouteChildren {
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/termos': {
       id: '/termos'
       path: '/termos'
@@ -995,6 +1095,13 @@ declare module '@tanstack/react-router' {
       path: '/guia/$categoria'
       fullPath: '/guia/$categoria'
       preLoaderRoute: typeof GuiaCategoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/trocar-senha': {
@@ -1214,6 +1321,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformGuiaCategoriasRouteImport
       parentRoute: typeof PlatformGuiaRoute
     }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/$slug/pedido-confirmado': {
       id: '/loja/$slug/pedido-confirmado'
       path: '/pedido-confirmado'
@@ -1305,11 +1419,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SlugAcompanharOrderIdRouteImport
       parentRoute: typeof SlugRoute
     }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
       fullPath: '/lovable/email/queue/process'
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja/$slug/acompanhar/$orderId': {
@@ -1407,6 +1549,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminAssinaturaRoute: AdminAssinaturaRoute,
@@ -1425,6 +1568,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRelatoriosRoute: AdminRelatoriosRoute,
   AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
   AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   GuiaCategoriaRoute: GuiaCategoriaRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
   PlatformAssinaturasRoute: PlatformAssinaturasRoute,
@@ -1442,8 +1586,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

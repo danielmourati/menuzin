@@ -69,8 +69,36 @@ export const submitSupportMessage = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    return { ok: true, id: (row as { id: string }).id };
+    const id = (row as { id: string }).id;
+
+    // Confirmação para o cliente + notificação para o suporte (fila interna).
+    const { sendAppEmail } = await import("@/lib/email/send.server");
+    const supportInbox = process.env["SUPPORT_NOTIFICATION_EMAIL"] || "contato@menuzin.app";
+    await Promise.all([
+      sendAppEmail({
+        templateName: "contact-confirmation",
+        recipientEmail: data.email.toLowerCase(),
+        idempotencyKey: `contact-confirm-${id}`,
+        templateData: { name: data.name, subject: data.subject, message: data.message },
+      }),
+      sendAppEmail({
+        templateName: "support-notification",
+        recipientEmail: supportInbox,
+        idempotencyKey: `support-notify-${id}`,
+        templateData: {
+          name: data.name,
+          email: data.email.toLowerCase(),
+          whatsapp: data.whatsapp,
+          subject: data.subject,
+          message: data.message,
+          panelUrl: "https://menuzin.app/platform/suporte",
+        },
+      }),
+    ]);
+
+    return { ok: true, id };
   });
+
 
 export const listSupportMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
