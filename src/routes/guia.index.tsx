@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
   listCategories,
   listFeatured,
@@ -139,9 +139,9 @@ function GuiaHome() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Só mostra os chips de vertical que realmente existem no banco.
-  const availableVerticals = VERTICALS.filter((v) =>
+  const availableVerticals = useMemo(() => VERTICALS.filter((v) =>
     v.id === "restaurantes" ? true : allStores.some((s) => s.vertical === v.id),
-  );
+  ), [allStores]);
   useEffect(() => {
     if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
   }, [availableVerticals, vertical]);
