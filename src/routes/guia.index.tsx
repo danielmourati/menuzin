@@ -161,7 +161,7 @@ function GuiaHome() {
     : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-muted/30">
+    <div className="flex h-dvh flex-col bg-muted/30">
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
