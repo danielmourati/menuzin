@@ -161,7 +161,7 @@ function GuiaHome() {
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/30 pb-28">
+    <div className="flex min-h-dvh flex-col bg-muted/30">
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
@@ -226,7 +226,7 @@ function GuiaHome() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-8 px-4 py-5">
+      <main className="flex-1 overflow-y-auto"><div className="mx-auto max-w-5xl space-y-8 px-4 py-5">
         {/* Hero carousel (fixo, sempre no topo) */}
         {heroSlots.length > 0 && <HeroCarousel slots={heroSlots} />}
 
@@ -389,12 +389,12 @@ function GuiaHome() {
             .filter((id) => sectionActive[id] !== false)
             .map((id) => <div key={id}>{sectionNodes[id]}</div>);
         })()}
-      </main>
+      </div></main>
 
       {/* Bottom nav mobile */}
       <nav
         aria-label="Navegação"
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 backdrop-blur"
+        className="shrink-0 border-t bg-card/95 backdrop-blur"
       >
         <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />

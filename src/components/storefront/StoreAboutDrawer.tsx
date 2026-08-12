@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getPublicPaymentSettingsBySlug } from "@/lib/payments.functions";
 import type { Tenant } from "@/lib/domain-types";
 import { brl } from "@/lib/format";
-import { Clock, MapPin, Truck, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { Clock, MapPin, Truck, ShoppingBag, UtensilsCrossed, ArrowLeft } from "lucide-react";
 
 const WEEKDAY_LABELS = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
@@ -77,6 +77,15 @@ export function StoreAboutDrawer({
               className="absolute inset-0 z-0"
             />
           )}
+          {/* Botão Voltar */}
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="Fechar informações da loja"
+            className="absolute left-4 top-4 z-20 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60 active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
           <div className="pointer-events-none relative z-10 grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md">
             {tenant.logoUrl ? (
               <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
