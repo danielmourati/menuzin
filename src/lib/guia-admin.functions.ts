@@ -613,7 +613,7 @@ export const adminListHighlightPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GuiaHighlightPlan[]> => {
     try {
-      const { data, error } = await context.supabase
+      const { data, error } = await (context.supabase as any)
         .from("guia_highlight_plans")
         .select("*")
         .order("sort_order", { ascending: true });
@@ -668,7 +668,7 @@ export const adminUpsertHighlightPlan = createServerFn({ method: "POST" })
     };
 
     try {
-      const { data: inserted, error } = await context.supabase
+      const { data: insertedRaw, error } = await (context.supabase as any)
         .from("guia_highlight_plans")
         .upsert({
           id: plan.id,
@@ -693,8 +693,9 @@ export const adminUpsertHighlightPlan = createServerFn({ method: "POST" })
         }
         return plan;
       }
+      const inserted = insertedRaw as any;
       return {
-        id: inserted.id,
+        id: String(inserted?.id ?? plan.id),
         name: inserted.name,
         slot_kind: inserted.slot_kind as any,
         duration_days: Number(inserted.duration_days),
@@ -719,7 +720,7 @@ export const adminDeleteHighlightPlan = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
     try {
-      await context.supabase
+      await (context.supabase as any)
         .from("guia_highlight_plans")
         .delete()
         .eq("id", data.id);
@@ -734,7 +735,7 @@ export const listPublicHighlightPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GuiaHighlightPlan[]> => {
     try {
-      const { data } = await context.supabase
+      const { data } = await (context.supabase as any)
         .from("guia_highlight_plans")
         .select("*")
         .eq("active", true)
