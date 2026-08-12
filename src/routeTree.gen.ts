@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
@@ -81,6 +82,11 @@ import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/em
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
@@ -459,6 +465,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -532,6 +539,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -604,6 +612,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/$slug/$produtoSlug': typeof SlugProdutoSlugRoute
   '/$slug/cupons': typeof SlugCuponsRoute
   '/$slug/destaques': typeof SlugDestaquesRoute
@@ -679,6 +688,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/unsubscribe'
     | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -752,6 +762,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/unsubscribe'
     | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -823,6 +834,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/sitemap.xml'
     | '/termos'
+    | '/unsubscribe'
     | '/$slug/$produtoSlug'
     | '/$slug/cupons'
     | '/$slug/destaques'
@@ -897,6 +909,7 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminAssinaturaRoute: typeof AdminAssinaturaRoute
@@ -944,6 +957,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/termos': {
       id: '/termos'
       path: '/termos'
@@ -1529,6 +1549,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminAssinaturaRoute: AdminAssinaturaRoute,
