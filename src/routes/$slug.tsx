@@ -369,13 +369,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       (entries) => {
         const visible = entries
           .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+          .sort((a, b) => b.intersectionRect.height - a.intersectionRect.height)[0];
         if (visible) {
           const key = (visible.target as HTMLElement).dataset.catKey;
           if (key) setVisibleCat(key);
         }
       },
-      { rootMargin: "-120px 0px -55% 0px", threshold: 0 },
+      { rootMargin: "-120px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
     );
     sectionRefs.current.forEach((el) => observer.observe(el));
     return () => {
