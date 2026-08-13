@@ -669,9 +669,8 @@ const highlightPlanInput = z.object({
 
 export const adminUpsertHighlightPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ data: highlightPlanInput }).parse(d))
-  .handler(async ({ data, context }): Promise<GuiaHighlightPlan> => {
-    const input = data.data;
+  .inputValidator((d: unknown) => highlightPlanInput.parse(d))
+  .handler(async ({ data: input, context }): Promise<GuiaHighlightPlan> => {
     const planId = input.id || `plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const { data: row, error } = await context.supabase
       .from("guia_highlight_plans")
