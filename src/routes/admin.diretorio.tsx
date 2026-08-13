@@ -55,7 +55,7 @@ function RequestFeatureBlock() {
 
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<GuiaSlotKind>("featured");
-  const [days, setDays] = useState<number>(7);
+  const [planId, setPlanId] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [productId, setProductId] = useState<string | null>(null);
   const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
@@ -76,13 +76,19 @@ function RequestFeatureBlock() {
     [highlightPlans, kind],
   );
 
-  const selectedPlan = availablePlans.find((p) => p.duration_days === days) ?? availablePlans[0];
+  const selectedPlan = availablePlans.find((p) => p.id === planId) ?? availablePlans[0];
   const price = selectedPlan?.price ?? 0;
-  const currentDays = selectedPlan?.duration_days ?? days;
+  const currentDays = selectedPlan?.duration_days ?? 7;
 
   useEffect(() => {
     if (availableKinds.length && !availableKinds.includes(kind)) setKind(availableKinds[0]);
   }, [availableKinds, kind]);
+
+  useEffect(() => {
+    if (selectedPlan && selectedPlan.id !== planId) {
+      setPlanId(selectedPlan.id);
+    }
+  }, [selectedPlan, planId]);
 
   const requestMutation = useMutation({
     mutationFn: () =>
@@ -173,11 +179,11 @@ function RequestFeatureBlock() {
               </div>
               <div>
                 <Label>Duração</Label>
-                <Select value={String(currentDays)} onValueChange={(v) => setDays(Number(v))}>
+                <Select value={selectedPlan?.id ?? ""} onValueChange={(v) => setPlanId(v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {availablePlans.map((p) => (
-                      <SelectItem key={p.id} value={String(p.duration_days)}>
+                      <SelectItem key={p.id} value={p.id}>
                         {p.duration_days} dias — {brl(p.price)}
                       </SelectItem>
                     ))}
