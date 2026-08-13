@@ -687,7 +687,6 @@ function FamozinSection({ stores }: { stores: DirectoryStore[] }) {
               <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600">
                 <Star className="h-2.5 w-2.5 fill-current" />
                 {s.rating_avg.toFixed(1).replace(".", ",")}
-                <span className="font-normal text-muted-foreground">({s.rating_count})</span>
               </span>
             ) : (
               <span className="text-[10px] font-semibold text-muted-foreground">nova</span>
