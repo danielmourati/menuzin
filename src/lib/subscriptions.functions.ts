@@ -56,8 +56,8 @@ export interface PaymentRow {
 
 export const listPlans = createServerFn({ method: "POST" })
   .handler(async () => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data } = await supabaseAdmin
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase
       .from("plans").select("*").eq("active", true).order("sort_order");
     return { plans: (data ?? []) as unknown as PlanRow[] };
   });
