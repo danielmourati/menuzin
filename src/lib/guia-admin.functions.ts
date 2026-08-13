@@ -498,6 +498,19 @@ export const createPromoRequest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<GuiaPromoRequest> => {
     const { tenantId } = await resolveEffectiveTenantId(context.supabase, context.userId);
+
+    // O valor cobrado vem sempre do plano configurado pelo superadmin.
+    const { data: planRow, error: planErr } = await context.supabase
+      .from("guia_highlight_plans")
+      .select("price, duration_days")
+      .eq("slot_kind", data.slotKind)
+      .eq("duration_days", data.durationDays)
+      .eq("active", true)
+      .maybeSingle();
+    if (planErr) throw new Error(planErr.message);
+    if (!planRow) throw new Error("Plano de destaque indisponível.");
+    const amount = Number((planRow as { price: number | string }).price);
+
     const { data: tenant } = await context.supabase
       .from("tenants")
       .select("name, slug")
@@ -530,7 +543,7 @@ export const createPromoRequest = createServerFn({ method: "POST" })
         tenant_name: (tenant as any)?.name ?? "Loja",
         slot_kind: data.slotKind,
         duration_days: data.durationDays,
-        amount: data.amount,
+        amount,
         status: "pending_payment",
         pix_code: pixCode,
         product_id: data.productId ?? null,
