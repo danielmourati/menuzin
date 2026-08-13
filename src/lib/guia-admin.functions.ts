@@ -6,7 +6,6 @@ import { resolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import { mapCategory, mapSlot } from "@/lib/guia.functions";
 import {
   DEFAULT_SECTION_ORDER,
-  DEFAULT_HIGHLIGHT_PLANS,
   type GuiaCategory,
   type GuiaHighlightPlan,
   type GuiaPromoRequest,
