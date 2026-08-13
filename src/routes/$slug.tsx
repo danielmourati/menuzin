@@ -623,7 +623,9 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                             const target = sectionRefs.current.get(c.key);
                             if (target) {
                               setVisibleCat(c.key);
-                              target.scrollIntoView({ behavior: "smooth", block: "start" });
+                              // Usa o mesmo offset de 140px da lógica do scroll spy
+                              const y = target.getBoundingClientRect().top + window.scrollY - 140;
+                              window.scrollTo({ top: y, behavior: "smooth" });
                               return;
                             }
                           }
