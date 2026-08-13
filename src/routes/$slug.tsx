@@ -359,27 +359,35 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     if (typeof window === "undefined") return;
 
     const onScroll = () => {
-      if (window.scrollY < 200) {
-        setVisibleCat("Todos");
+      if (window.scrollY < 250) {
+        setVisibleCat((prev) => (prev !== "Todos" ? "Todos" : prev));
+        return;
+      }
+
+      // Altura do cabeçalho sticky + um pequeno respiro
+      const TRIGGER_OFFSET = 140;
+      let foundKey: string | null = null;
+
+      // Itera pelas seções para achar qual está cruzando a linha de gatilho
+      for (const [key, el] of sectionRefs.current.entries()) {
+        const rect = el.getBoundingClientRect();
+        // A seção se torna ativa quando o topo dela cruza o gatilho,
+        // e continua ativa até que o fundo dela (último item) passe da linha.
+        if (rect.top <= TRIGGER_OFFSET + 20 && rect.bottom > TRIGGER_OFFSET) {
+          foundKey = key;
+          break;
+        }
+      }
+
+      if (foundKey) {
+        setVisibleCat((prev) => (prev !== foundKey ? foundKey! : prev));
       }
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRect.height - a.intersectionRect.height)[0];
-        if (visible) {
-          const key = (visible.target as HTMLElement).dataset.catKey;
-          if (key) setVisibleCat(key);
-        }
-      },
-      { rootMargin: "-120px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
-    );
-    sectionRefs.current.forEach((el) => observer.observe(el));
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll(); // Verifica no primeiro render
+
     return () => {
-      observer.disconnect();
       window.removeEventListener("scroll", onScroll);
     };
   }, [activeCat, grouped]);
