@@ -762,6 +762,45 @@ export type Database = {
         }
         Relationships: []
       }
+      guia_highlight_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          duration_days: number
+          id: string
+          name: string
+          price: number
+          slot_kind: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          duration_days: number
+          id: string
+          name: string
+          price?: number
+          slot_kind: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          name?: string
+          price?: number
+          slot_kind?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guia_promo_requests: {
         Row: {
           amount: number
