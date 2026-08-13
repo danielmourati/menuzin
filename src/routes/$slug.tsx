@@ -364,6 +364,22 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         return;
       }
 
+      // Se o usuário rolou até o limite inferior da página (fim do scroll)
+      // garantimos que a última seção seja ativada, pois ela nunca alcançaria
+      // a linha de gatilho superior se não houver conteúdo suficiente abaixo dela.
+      const isAtBottom =
+        window.innerHeight + Math.round(window.scrollY) >=
+        document.documentElement.scrollHeight - 10;
+        
+      if (isAtBottom) {
+        const keys = Array.from(sectionRefs.current.keys());
+        if (keys.length > 0) {
+          const lastKey = keys[keys.length - 1];
+          setVisibleCat((prev) => (prev !== lastKey ? lastKey : prev));
+          return;
+        }
+      }
+
       // Altura do cabeçalho sticky + um pequeno respiro
       const TRIGGER_OFFSET = 140;
       let foundKey: string | null = null;
