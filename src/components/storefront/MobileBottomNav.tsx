@@ -2,6 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { Home, ShoppingBag, ClipboardList, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-context";
+import { useCustomerProfile } from "@/lib/customer-profile";
+import { useQuery } from "@tanstack/react-query";
+import { listCustomerOrders } from "@/lib/customers.functions";
+import { StorefrontOrdersDrawer } from "./StorefrontOrdersDrawer";
 
 type Props = {
   slug: string;
@@ -40,14 +44,35 @@ function readLastOrder(slug: string): { id: string; number: number } | null {
 
 export function MobileBottomNav({ slug, onOpenCart, hidden = false }: Props) {
   const { count } = useCart();
-  const [lastOrder, setLastOrder] = useState<{ id: string; number: number } | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const profile = useCustomerProfile();
+
+  const canQuery = !!profile?.phone && !!profile?.token;
+  const { data } = useQuery({
+    queryKey: ["customer-orders", profile?.phone],
+    queryFn: () =>
+      listCustomerOrders({ data: { phone: profile!.phone, token: profile!.token } }),
+    enabled: canQuery,
+    refetchInterval: 15_000,
+  });
+
+  const storeOrders = (data?.orders ?? []).filter((o) => o.tenant_slug === slug);
+  const activeOrder = storeOrders.find((o) => !["finalizado", "cancelado", "mal_sucedido"].includes(o.status));
+
+  // Fallback to local storage if API hasn't loaded yet and we have a recent local order
+  // Note: we can't reliably know its status without the API, so we prioritize the API.
+  const [localLastOrder, setLocalLastOrder] = useState<{ id: string; number: number } | null>(null);
 
   useEffect(() => {
-    setLastOrder(readLastOrder(slug));
-    const onStorage = () => setLastOrder(readLastOrder(slug));
+    setLocalLastOrder(readLastOrder(slug));
+    const onStorage = () => setLocalLastOrder(readLastOrder(slug));
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, [slug]);
+
+  const displayedActiveOrder = activeOrder 
+    ? { id: activeOrder.id, number: activeOrder.number } 
+    : (canQuery && storeOrders.length > 0 ? null : localLastOrder); // only fallback if not queried yet or no API access
 
   if (hidden) return null;
 
@@ -95,23 +120,33 @@ export function MobileBottomNav({ slug, onOpenCart, hidden = false }: Props) {
           Carrinho
         </button>
 
-        {lastOrder ? (
+        {displayedActiveOrder ? (
           <Link
             to="/$slug/acompanhar/$orderId"
-            params={{ slug, orderId: lastOrder.id }}
+            params={{ slug, orderId: displayedActiveOrder.id }}
             className="flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium text-muted-foreground active:bg-muted/40"
             activeProps={{ className: "text-primary" }}
           >
             <ClipboardList className="h-5 w-5" />
-            Pedido #{lastOrder.number}
+            Pedido #{displayedActiveOrder.number}
           </Link>
         ) : (
-          <div className="flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium text-muted-foreground/40">
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium text-muted-foreground active:bg-muted/40"
+          >
             <ClipboardList className="h-5 w-5" />
-            Pedidos
-          </div>
+            Ver Pedidos
+          </button>
         )}
       </div>
+
+      <StorefrontOrdersDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        slug={slug}
+      />
     </nav>
   );
 }
