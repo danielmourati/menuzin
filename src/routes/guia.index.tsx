@@ -52,16 +52,21 @@ const homeQO = queryOptions({
 
 
 export const Route = createFileRoute("/guia/")({
-  loader: async ({ context }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(categoriesQO),
-      context.queryClient.ensureQueryData(featuredQO),
-      context.queryClient.ensureQueryData(storesQO),
-      context.queryClient.ensureQueryData(homeQO),
-
-    ]);
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery(categoriesQO);
+    context.queryClient.prefetchQuery(featuredQO);
+    context.queryClient.prefetchQuery(storesQO);
+    context.queryClient.prefetchQuery(homeQO);
     return { origin: "https://menuzin.app" };
   },
+  pendingComponent: () => (
+    <div className="flex h-dvh items-center justify-center bg-muted/30">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm font-medium text-muted-foreground">Carregando lojas...</p>
+      </div>
+    </div>
+  ),
   head: () => ({
     meta: [
       { title: "Guia Menuzin — comida do seu bairro em Parnaíba" },
