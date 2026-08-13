@@ -6,7 +6,6 @@ import { resolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import { mapCategory, mapSlot } from "@/lib/guia.functions";
 import {
   DEFAULT_SECTION_ORDER,
-  DEFAULT_HIGHLIGHT_PLANS,
   type GuiaCategory,
   type GuiaHighlightPlan,
   type GuiaPromoRequest,
@@ -499,6 +498,19 @@ export const createPromoRequest = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }): Promise<GuiaPromoRequest> => {
     const { tenantId } = await resolveEffectiveTenantId(context.supabase, context.userId);
+
+    // O valor cobrado vem sempre do plano configurado pelo superadmin.
+    const { data: planRow, error: planErr } = await context.supabase
+      .from("guia_highlight_plans")
+      .select("price, duration_days")
+      .eq("slot_kind", data.slotKind)
+      .eq("duration_days", data.durationDays)
+      .eq("active", true)
+      .maybeSingle();
+    if (planErr) throw new Error(planErr.message);
+    if (!planRow) throw new Error("Plano de destaque indisponível.");
+    const amount = Number((planRow as { price: number | string }).price);
+
     const { data: tenant } = await context.supabase
       .from("tenants")
       .select("name, slug")
@@ -531,7 +543,7 @@ export const createPromoRequest = createServerFn({ method: "POST" })
         tenant_name: (tenant as any)?.name ?? "Loja",
         slot_kind: data.slotKind,
         duration_days: data.durationDays,
-        amount: data.amount,
+        amount,
         status: "pending_payment",
         pix_code: pixCode,
         product_id: data.productId ?? null,
@@ -607,35 +619,41 @@ export const deletePromoRequest = createServerFn({ method: "POST" })
 
 /* ----------------------------- highlight plans ----------------------------- */
 
-let inMemoryHighlightPlans: GuiaHighlightPlan[] = [...DEFAULT_HIGHLIGHT_PLANS];
+type PlanRow = {
+  id: string;
+  name: string;
+  slot_kind: string;
+  duration_days: number;
+  price: number | string;
+  description: string | null;
+  active: boolean;
+  sort_order: number | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+const mapPlan = (r: PlanRow): GuiaHighlightPlan => ({
+  id: r.id,
+  name: r.name,
+  slot_kind: r.slot_kind as GuiaSlotKind,
+  duration_days: Number(r.duration_days),
+  price: Number(r.price),
+  description: r.description ?? null,
+  active: Boolean(r.active),
+  sort_order: Number(r.sort_order ?? 0),
+  created_at: r.created_at,
+  updated_at: r.updated_at,
+});
 
 export const adminListHighlightPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GuiaHighlightPlan[]> => {
-    try {
-      const { data, error } = await (context.supabase as any)
-        .from("guia_highlight_plans")
-        .select("*")
-        .order("sort_order", { ascending: true });
-
-      if (error || !data || data.length === 0) {
-        return inMemoryHighlightPlans;
-      }
-      return data.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        slot_kind: r.slot_kind as GuiaSlotKind,
-        duration_days: Number(r.duration_days),
-        price: Number(r.price),
-        description: r.description ?? null,
-        active: Boolean(r.active),
-        sort_order: Number(r.sort_order ?? 0),
-        created_at: r.created_at,
-        updated_at: r.updated_at,
-      }));
-    } catch {
-      return inMemoryHighlightPlans;
-    }
+    const { data, error } = await context.supabase
+      .from("guia_highlight_plans")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as PlanRow[]).map(mapPlan);
   });
 
 const highlightPlanInput = z.object({
@@ -655,107 +673,44 @@ export const adminUpsertHighlightPlan = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<GuiaHighlightPlan> => {
     const input = data.data;
     const planId = input.id || `plan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const plan: GuiaHighlightPlan = {
-      id: planId,
-      name: input.name,
-      slot_kind: input.slot_kind as any,
-      duration_days: input.duration_days,
-      price: input.price,
-      description: input.description ?? null,
-      active: input.active,
-      sort_order: input.sort_order,
-      updated_at: new Date().toISOString(),
-    };
-
-    try {
-      const { data: insertedRaw, error } = await (context.supabase as any)
-        .from("guia_highlight_plans")
-        .upsert({
-          id: plan.id,
-          name: plan.name,
-          slot_kind: plan.slot_kind,
-          duration_days: plan.duration_days,
-          price: plan.price,
-          description: plan.description,
-          active: plan.active,
-          sort_order: plan.sort_order,
-          updated_at: plan.updated_at,
-        } as any)
-        .select("*")
-        .maybeSingle();
-
-      if (error) {
-        const idx = inMemoryHighlightPlans.findIndex((p) => p.id === planId);
-        if (idx >= 0) {
-          inMemoryHighlightPlans[idx] = plan;
-        } else {
-          inMemoryHighlightPlans.push(plan);
-        }
-        return plan;
-      }
-      const inserted = insertedRaw as any;
-      return {
-        id: String(inserted?.id ?? plan.id),
-        name: inserted.name,
-        slot_kind: inserted.slot_kind as any,
-        duration_days: Number(inserted.duration_days),
-        price: Number(inserted.price),
-        description: inserted.description ?? null,
-        active: Boolean(inserted.active),
-        sort_order: Number(inserted.sort_order ?? 0),
-      };
-    } catch {
-      const idx = inMemoryHighlightPlans.findIndex((p) => p.id === planId);
-      if (idx >= 0) {
-        inMemoryHighlightPlans[idx] = plan;
-      } else {
-        inMemoryHighlightPlans.push(plan);
-      }
-      return plan;
-    }
+    const { data: row, error } = await context.supabase
+      .from("guia_highlight_plans")
+      .upsert({
+        id: planId,
+        name: input.name,
+        slot_kind: input.slot_kind,
+        duration_days: input.duration_days,
+        price: input.price,
+        description: input.description ?? null,
+        active: input.active,
+        sort_order: input.sort_order,
+      })
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return mapPlan(row as PlanRow);
   });
 
 export const adminDeleteHighlightPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string() }).parse(d))
   .handler(async ({ data, context }) => {
-    try {
-      await (context.supabase as any)
-        .from("guia_highlight_plans")
-        .delete()
-        .eq("id", data.id);
-    } catch {
-      /* ignore */
-    }
-    inMemoryHighlightPlans = inMemoryHighlightPlans.filter((p) => p.id !== data.id);
+    const { error } = await context.supabase
+      .from("guia_highlight_plans")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const listPublicHighlightPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GuiaHighlightPlan[]> => {
-    try {
-      const { data } = await (context.supabase as any)
-        .from("guia_highlight_plans")
-        .select("*")
-        .eq("active", true)
-        .order("sort_order", { ascending: true });
-
-      if (data && data.length > 0) {
-        return data.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          slot_kind: r.slot_kind as GuiaSlotKind,
-          duration_days: Number(r.duration_days),
-          price: Number(r.price),
-          description: r.description ?? null,
-          active: true,
-          sort_order: Number(r.sort_order ?? 0),
-        }));
-      }
-    } catch {
-      /* ignore */
-    }
-    return inMemoryHighlightPlans.filter((p) => p.active);
+    const { data, error } = await context.supabase
+      .from("guia_highlight_plans")
+      .select("*")
+      .eq("active", true)
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as PlanRow[]).map(mapPlan);
   });
-

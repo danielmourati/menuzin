@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -23,7 +23,7 @@ import { getTenantMetrics } from "@/lib/directory.functions";
 import { productImage } from "@/lib/product-image";
 import { brl } from "@/lib/format";
 import { createPromoRequest, listPublicHighlightPlans } from "@/lib/guia-admin.functions";
-import { SLOT_KIND_LABELS, SLOT_KIND_PRICES, type GuiaSlotKind, type GuiaHighlightPlan } from "@/lib/guia-types";
+import { SLOT_KIND_LABELS, type GuiaSlotKind, type GuiaHighlightPlan } from "@/lib/guia-types";
 
 export const Route = createFileRoute("/admin/diretorio")({
   component: DiretorioPage,
@@ -60,20 +60,29 @@ function RequestFeatureBlock() {
   const [productId, setProductId] = useState<string | null>(null);
   const [pending, setPending] = useState<{ pixCode?: string; amount: number } | null>(null);
 
-  const availablePlans = useMemo(() => {
-    const matching = highlightPlans.filter((p) => p.slot_kind === kind && p.active);
-    if (matching.length > 0) return matching;
-    const fallbackPrices = SLOT_KIND_PRICES[kind] ?? { 7: 49.9, 14: 89.9, 30: 149.9 };
-    return [
-      { id: `${kind}-7`, name: "7 dias", duration_days: 7, price: fallbackPrices[7] ?? 49.9, slot_kind: kind, active: true, sort_order: 1 },
-      { id: `${kind}-14`, name: "14 dias", duration_days: 14, price: fallbackPrices[14] ?? 89.9, slot_kind: kind, active: true, sort_order: 2 },
-      { id: `${kind}-30`, name: "30 dias", duration_days: 30, price: fallbackPrices[30] ?? 149.9, slot_kind: kind, active: true, sort_order: 3 },
-    ];
-  }, [highlightPlans, kind]);
+  const availableKinds = useMemo(
+    () =>
+      (Object.keys(SLOT_KIND_LABELS) as GuiaSlotKind[]).filter((k) =>
+        highlightPlans.some((p) => p.slot_kind === k && p.active),
+      ),
+    [highlightPlans],
+  );
+
+  const availablePlans = useMemo(
+    () =>
+      highlightPlans
+        .filter((p) => p.slot_kind === kind && p.active)
+        .sort((a, b) => a.duration_days - b.duration_days),
+    [highlightPlans, kind],
+  );
 
   const selectedPlan = availablePlans.find((p) => p.duration_days === days) ?? availablePlans[0];
-  const price = selectedPlan ? selectedPlan.price : 49.9;
-  const currentDays = selectedPlan ? selectedPlan.duration_days : days;
+  const price = selectedPlan?.price ?? 0;
+  const currentDays = selectedPlan?.duration_days ?? days;
+
+  useEffect(() => {
+    if (availableKinds.length && !availableKinds.includes(kind)) setKind(availableKinds[0]);
+  }, [availableKinds, kind]);
 
   const requestMutation = useMutation({
     mutationFn: () =>
@@ -156,7 +165,7 @@ function RequestFeatureBlock() {
                 <Select value={kind} onValueChange={(v) => setKind(v as GuiaSlotKind)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(SLOT_KIND_LABELS) as GuiaSlotKind[]).map((k) => (
+                    {availableKinds.map((k) => (
                       <SelectItem key={k} value={k}>{SLOT_KIND_LABELS[k]}</SelectItem>
                     ))}
                   </SelectContent>
