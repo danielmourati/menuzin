@@ -462,7 +462,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <p className="truncate text-sm font-bold leading-tight md:text-base">{tenant.name}</p>
-                  {tenant.ratingAvg != null && tenant.ratingCount > 0 && (
+                  {tenant.ratingAvg != null && (tenant.ratingCount ?? 0) > 0 && (
                     <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold text-amber-500 md:text-xs">
                       <Star className="h-3 w-3 fill-current" />
                       {tenant.ratingAvg.toFixed(1).replace(".", ",")}

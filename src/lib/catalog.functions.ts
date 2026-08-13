@@ -186,5 +186,5 @@ export const listActiveTenants = createServerFn({ method: "GET" })
     const { data, error } = await supabaseAdmin
       .from("tenants").select("*").eq("active", true).order("name");
     if (error) throw new Error(error.message);
-    return { tenants: (data ?? []) as DbTenant[] };
+    return { tenants: (data ?? []) as unknown as DbTenant[] };
   });
