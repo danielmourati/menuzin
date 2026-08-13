@@ -9,31 +9,50 @@ import type {
 
 const SlugInput = z.object({ slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/) });
 
+async function attachRatingToTenant(tenant: any) {
+  if (!tenant) return tenant;
+  const { data: rRows } = await supabaseAdmin
+    .from("order_ratings")
+    .select("stars")
+    .eq("tenant_id", tenant.id);
+  
+  let rating_avg = null;
+  let rating_count = 0;
+  if (rRows && rRows.length > 0) {
+    const sum = rRows.reduce((acc, r) => acc + (Number(r.stars) || 0), 0);
+    rating_count = rRows.length;
+    rating_avg = Math.round((sum / rating_count) * 10) / 10;
+  }
+  return { ...tenant, rating_avg, rating_count };
+}
+
 export const getTenantBySlug = createServerFn({ method: "POST" })
   .inputValidator((d) => SlugInput.parse(d))
   .handler(async ({ data }) => {
-    const { data: tenant, error } = await supabaseAdmin
+    const { data: tenantRow, error } = await supabaseAdmin
       .from("tenants")
       .select("*")
       .eq("slug", data.slug)
       .eq("active", true)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!tenant) return { tenant: null as DbTenant | null };
+    if (!tenantRow) return { tenant: null as DbTenant | null };
     const { getTenantPlan } = await import("@/lib/plan-server");
+    const tenant = await attachRatingToTenant(tenantRow);
     return { tenant: { ...tenant, plan: await getTenantPlan(tenant.id as string) } as DbTenant };
   });
 
 export const getCatalog = createServerFn({ method: "POST" })
   .inputValidator((d) => SlugInput.parse(d))
   .handler(async ({ data }) => {
-    const { data: tenant, error: tErr } = await supabaseAdmin
+    const { data: tenantRow, error: tErr } = await supabaseAdmin
       .from("tenants").select("*").eq("slug", data.slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
-    if (!tenant) return { tenant: null, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: false };
+    if (!tenantRow) return { tenant: null, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: false };
 
-    const tenantId = tenant.id as string;
+    const tenantId = tenantRow.id as string;
     const { getTenantPlan } = await import("@/lib/plan-server");
+    const tenant = await attachRatingToTenant(tenantRow);
     const tenantWithEffectivePlan = { ...tenant, plan: await getTenantPlan(tenantId) } as DbTenant;
 
     const { isTenantBlocked } = await import("@/lib/tenant-access.server");
