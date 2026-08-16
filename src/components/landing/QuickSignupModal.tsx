@@ -47,8 +47,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
   const [password, setPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(true);
 
-  // Step 2: Tipo de negócio
-  const [businessType, setBusinessType] = useState<BusinessType | null>(null);
+  // Step 2: Tipo de negócio (1 a 3 selecionados)
+  const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
 
   // Step 3: Dados Complementares da Loja
   const [slug, setSlug] = useState("");
@@ -74,7 +74,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       setEmail("");
       setPassword("");
       setAcceptTerms(true);
-      setBusinessType(null);
+      setBusinessTypes([]);
       setSlug("");
       setSlugTouched(false);
       setCep("");
@@ -85,6 +85,21 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       setState("");
     }
   }, [open]);
+
+  // Alterna seleção de tipo de negócio (mínimo 1, máximo 3)
+  const toggleBusinessType = (t: BusinessType) => {
+    setBusinessTypes((prev) => {
+      if (prev.includes(t)) {
+        return prev.filter((item) => item !== t);
+      } else {
+        if (prev.length >= 3) {
+          toast.error("Você pode selecionar no máximo 3 tipos de negócio.");
+          return prev;
+        }
+        return [...prev, t];
+      }
+    });
+  };
 
   // Busca automática por CEP
   useEffect(() => {
@@ -124,7 +139,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
     password.length >= 8 &&
     acceptTerms;
 
-  const step2Valid = businessType !== null;
+  const step2Valid = businessTypes.length >= 1 && businessTypes.length <= 3;
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +154,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
   };
 
   const handleStep2Next = () => {
-    if (!businessType) return toast.error("Selecione o tipo do seu negócio.");
+    if (businessTypes.length < 1) return toast.error("Selecione pelo menos 1 tipo de negócio.");
+    if (businessTypes.length > 3) return toast.error("Selecione no máximo 3 tipos de negócio.");
     setStep(3);
   };
 
@@ -158,7 +174,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
           email: email.trim().toLowerCase(),
           password: password,
           full_name: fullName.trim() || businessName.trim(),
-          business_type: businessType || "restaurante",
+          business_type: businessTypes[0] || "restaurante",
+          business_types: businessTypes,
         },
       });
 
@@ -452,7 +469,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
           </div>
         )}
 
-        {/* ETAPA 2: Tipo de Negócio (Anexo 2 com Paleta Menuzin) */}
+        {/* ETAPA 2: Tipo de Negócio (Anexo 2 com Seleção Múltipla 1 a 3) */}
         {step === 2 && (
           <div className="p-6 sm:p-8 flex flex-col justify-between max-h-[85vh] overflow-y-auto">
             <div>
@@ -491,23 +508,28 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                 </div>
               </div>
 
-              {/* Título da Seção */}
-              <div className="mb-4">
-                <h4 className="text-base font-bold text-foreground">Tipo de negócio</h4>
-                <p className="text-xs text-muted-foreground">
-                  Selecione um tipo. Por padrão, o novo tenant é criado vazio — você monta o cardápio depois.
-                </p>
+              {/* Título da Seção + Contador de Seleções */}
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <div>
+                  <h4 className="text-base font-bold text-foreground">Tipo de negócio</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Selecione de 1 a 3 tipos de negócio que melhor descrevem seu estabelecimento.
+                  </p>
+                </div>
+                <span className="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary self-start sm:self-auto">
+                  {businessTypes.length}/3 selecionados
+                </span>
               </div>
 
-              {/* Grid de Opções (2 colunas como Anexo 2) */}
+              {/* Grid de Opções (2 colunas) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1">
                 {BUSINESS_TYPES.map((t) => {
-                  const isSelected = businessType === t;
+                  const isSelected = businessTypes.includes(t);
                   return (
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setBusinessType(t)}
+                      onClick={() => toggleBusinessType(t)}
                       className={`flex items-center gap-3 p-3.5 rounded-xl border text-left text-sm font-medium transition-all ${
                         isSelected
                           ? "border-primary bg-primary/5 text-primary ring-1 ring-primary font-semibold"
@@ -515,11 +537,11 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                       }`}
                     >
                       <div
-                        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${
-                          isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
+                        className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border transition-all ${
+                          isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30 bg-background"
                         }`}
                       >
-                        {isSelected && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
+                        {isSelected && <Check className="h-3.5 w-3.5" />}
                       </div>
                       <span>{BUSINESS_TYPE_LABELS[t]}</span>
                     </button>

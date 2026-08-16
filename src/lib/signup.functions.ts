@@ -34,6 +34,7 @@ const SignupInput = z.object({
   password: z.string().min(8).max(72),
   full_name: z.string().trim().max(120).optional().default(""),
   business_type: z.enum(BUSINESS_TYPES).optional().default("restaurante"),
+  business_types: z.array(z.enum(BUSINESS_TYPES)).min(1).max(3).optional(),
 });
 
 export const signupPresencaTenant = createServerFn({ method: "POST" })
@@ -71,6 +72,11 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
     }
     const userId = created.user.id;
 
+    // Resolve lista de tipos de negócio (1 a 3)
+    const resolvedTypes = data.business_types && data.business_types.length > 0
+      ? data.business_types.slice(0, 3)
+      : [data.business_type];
+
     // Cria tenant Presença
     const whatsappDigits = data.whatsapp.replace(/\D/g, "");
     const cepDigits = data.cep.replace(/\D/g, "");
@@ -91,7 +97,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         active: true,
         theme_from: "#FF6A1F",
         theme_to: "#FF9A3C",
-        business_types: [data.business_type],
+        business_types: resolvedTypes,
       } as never)
       .select("id, slug")
       .single();
