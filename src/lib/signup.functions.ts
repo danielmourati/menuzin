@@ -23,7 +23,7 @@ const SlugSchema = z
 
 const SignupInput = z.object({
   name: z.string().trim().min(2).max(120),
-  slug: SlugSchema,
+  slug: z.string().trim().optional().default(""),
   whatsapp: z.string().trim().min(8).max(20),
   city: z.string().trim().max(80).optional().default(""),
   state: z.string().trim().max(40).optional().default(""),
@@ -33,7 +33,7 @@ const SignupInput = z.object({
   email: z.string().trim().email().max(160),
   password: z.string().min(8).max(72),
   full_name: z.string().trim().max(120).optional().default(""),
-  business_type: z.enum(BUSINESS_TYPES),
+  business_type: z.enum(BUSINESS_TYPES).optional().default("restaurante"),
 });
 
 export const signupPresencaTenant = createServerFn({ method: "POST" })
@@ -41,7 +41,8 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const slug = slugify(data.slug);
+    const rawSlug = data.slug || data.name;
+    const slug = slugify(rawSlug);
     if (slug.length < 3) throw new Error("Endereço da loja inválido.");
     if (RESERVED_SLUGS.has(slug)) throw new Error("Esse endereço é reservado.");
 

@@ -1,175 +1,120 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, CheckCircle2, XCircle, Store, ChevronLeft, Utensils, Mail } from "lucide-react";
+import {
+  User,
+  Phone,
+  Utensils,
+  Mail,
+  Lock,
+  TrendingUp,
+  Shield,
+  Cloud,
+  Loader2,
+  Award,
+  X,
+  LockKeyhole,
+} from "lucide-react";
 import { toast } from "sonner";
-import { slugify } from "@/lib/utils";
 import { maskPhone } from "@/lib/masks";
-import { lookupByCep } from "@/lib/viacep";
-import { isSlugAvailable } from "@/lib/tenants.functions";
 import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/ui/password-input";
-import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
-
-const STEPS = [
-  { id: 1, label: "Tipo de negócio" },
-  { id: 2, label: "Dados da loja" },
-  { id: 3, label: "Sua conta" },
-];
+import { useNavigate } from "@tanstack/react-router";
 
 export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const [step, setStep] = useState(1);
+  const navigate = useNavigate();
   const [pendingEmail, setPendingEmail] = useState("");
 
-  // Step 1
-  const [businessType, setBusinessType] = useState<BusinessType | null>(null);
-
-  // Step 2
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
+  // Form State
+  const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [cep, setCep] = useState("");
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [neighborhood, setNeighborhood] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-
-  // Step 3
+  const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [accept, setAccept] = useState(false);
+  const [password, setPassword] = useState("");
 
+  // Customer Status: "nao" (default) or "sim" (redirects to login)
+  const [customerStatus, setCustomerStatus] = useState<"sim" | "nao">("nao");
+
+  // Accept Terms Checkbox
+  const [acceptTerms, setAcceptTerms] = useState(true);
+
+  // Reset form when modal closes
   useEffect(() => {
     if (!open) {
-      setStep(1);
-      setBusinessType(null);
-      setName("");
-      setSlug("");
-      setSlugTouched(false);
+      setPendingEmail("");
+      setFullName("");
       setWhatsapp("");
-      setCep("");
-      setStreet("");
-      setNumber("");
-      setNeighborhood("");
-      setCity("");
-      setState("");
+      setBusinessName("");
       setEmail("");
-      setPw("");
-      setPw2("");
-      setAccept(false);
+      setPassword("");
+      setCustomerStatus("nao");
+      setAcceptTerms(true);
     }
   }, [open]);
 
-  const computedSlug = slugTouched ? slugify(slug) : slugify(name);
-
-  useEffect(() => {
-    const digits = cep.replace(/\D/g, "");
-    if (digits.length !== 8) return;
-    let cancelled = false;
-    lookupByCep(digits).then((res) => {
-      if (cancelled || res.status !== "ok" || res.results.length === 0) return;
-      const r = res.results[0];
-      if (!street) setStreet(r.logradouro);
-      if (!neighborhood) setNeighborhood(r.bairro);
-      if (!city) setCity(r.localidade);
-      if (!state) setState(r.uf);
-    });
-    return () => { cancelled = true; };
-  }, [cep]);
-
-  const { data: slugCheck, isFetching: slugChecking } = useQuery({
-    queryKey: ["public-slug-check", computedSlug],
-    queryFn: () => isSlugAvailable({ data: { slug: computedSlug } }),
-    enabled: computedSlug.length >= 3,
-    staleTime: 0,
-  });
-  const slugOk = computedSlug.length >= 3 && !!slugCheck?.available;
+  // When user selects "Sou cliente", redirect to login
+  const handleCustomerStatusChange = (status: "sim" | "nao") => {
+    setCustomerStatus(status);
+    if (status === "sim") {
+      onOpenChange(false);
+      navigate({ to: "/admin/login" });
+    }
+  };
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  const pwStrong = pw.length >= 8;
-  const pwMatch = pw.length > 0 && pw === pw2;
-
-  const step1Valid = businessType !== null;
-  const step2Valid =
-    name.trim().length >= 2 &&
-    slugOk &&
+  const canSubmit =
+    fullName.trim().length >= 2 &&
     whatsapp.replace(/\D/g, "").length >= 10 &&
-    street.trim().length >= 3 &&
-    number.trim().length > 0 &&
-    neighborhood.trim().length >= 2 &&
-    city.trim().length >= 2 &&
-    state.trim().length === 2;
-  const step3Valid = emailValid && pwStrong && pwMatch && accept;
-
-  const canSubmit = step1Valid && step2Valid && step3Valid;
-
-  const next = () => {
-    if (step === 1 && !step1Valid) {
-      toast.error("Selecione um tipo de negócio.");
-      return;
-    }
-    if (step === 2 && !step2Valid) {
-      toast.error("Preencha os dados da loja corretamente.");
-      return;
-    }
-    if (step < 3) setStep((s) => s + 1);
-  };
-
-  const back = () => {
-    if (step > 1) setStep((s) => s - 1);
-  };
+    businessName.trim().length >= 2 &&
+    emailValid &&
+    password.length >= 8 &&
+    acceptTerms;
 
   const signupMut = useMutation({
     mutationFn: async () => {
-      if (!businessType) throw new Error("Selecione um tipo de negócio.");
       const result = await signupPresencaTenant({
         data: {
-          name: name.trim(),
-          slug: computedSlug,
+          name: businessName.trim(),
+          full_name: fullName.trim(),
           whatsapp: whatsapp.replace(/\D/g, ""),
-          city: city.trim(),
-          state: state.trim().toUpperCase(),
-          address: `${street.trim()}, ${number.trim()}`,
-          neighborhood: neighborhood.trim(),
-          cep,
           email: email.trim().toLowerCase(),
-          password: pw,
-          full_name: name.trim(),
-          business_type: businessType,
+          password: password,
+          business_type: "restaurante",
         },
       });
-      // Dispara o e-mail de confirmação de cadastro.
+
+      // Dispara o e-mail de confirmação de cadastro apontando para o painel admin.
+      const redirectUrl = `${window.location.origin}/admin/dashboard`;
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: result.email,
-        options: { emailRedirectTo: `${window.location.origin}/admin/login` },
+        options: { emailRedirectTo: redirectUrl },
       });
+
       if (error) {
         console.error("signup: falha ao enviar e-mail de confirmação", error);
       }
+
       return result;
     },
     onSuccess: (result) => {
       setPendingEmail(result.email);
-      toast.success("Loja criada! Confirme seu e-mail para acessar o painel.");
+      toast.success("Cadastro realizado! Verifique seu e-mail para ativar sua conta.");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const resendMut = useMutation({
     mutationFn: async () => {
+      const redirectUrl = `${window.location.origin}/admin/dashboard`;
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: pendingEmail,
-        options: { emailRedirectTo: `${window.location.origin}/admin/login` },
+        options: { emailRedirectTo: redirectUrl },
       });
       if (error) throw new Error(error.message);
     },
@@ -177,42 +122,55 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const handleSubmit = () => {
-    if (!canSubmit) {
-      toast.error("Preencha todos os campos obrigatórios.");
-      return;
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim()) return toast.error("Informe seu nome completo.");
+    if (whatsapp.replace(/\D/g, "").length < 10) return toast.error("Informe um WhatsApp válido com DDD.");
+    if (!businessName.trim()) return toast.error("Informe o nome do seu negócio.");
+    if (!emailValid) return toast.error("Informe um e-mail válido.");
+    if (password.length < 8) return toast.error("A senha deve ter no mínimo 8 caracteres.");
+    if (!acceptTerms) return toast.error("Aceite os termos para continuar.");
+
     signupMut.mutate();
   };
 
+  // Tela de Aguardando Confirmação por E-mail
   if (pendingEmail) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Mail className="h-6 w-6" />
+        <DialogContent className="max-w-md p-6 sm:p-8">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 mb-4">
+            <Mail className="h-8 w-8 animate-pulse" />
+          </div>
+          <DialogTitle className="text-center text-2xl font-bold">Confirme seu e-mail</DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground mt-2">
+            Enviamos um link de ativação para <strong className="text-foreground">{pendingEmail}</strong>.
+            <br />
+            Clique no link recebido para confirmar seu cadastro e ser redirecionado para a sua <strong>área de admin</strong>.
+          </DialogDescription>
+
+          <div className="mt-6 space-y-3">
+            <div className="rounded-xl border bg-muted/30 p-3.5 text-xs text-muted-foreground text-center">
+              Não encontrou o e-mail? Verifique a caixa de <strong>Spam</strong> ou <strong>Lixo eletrônico</strong>.
             </div>
-            <DialogTitle className="text-center text-2xl">Confirme seu e-mail</DialogTitle>
-            <DialogDescription className="text-center">
-              Enviamos um link de confirmação para <strong>{pendingEmail}</strong>. Clique no link
-              para ativar sua conta e acessar o painel.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
-              Não recebeu? Verifique a caixa de spam ou reenvie o e-mail abaixo.
-            </p>
+
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full h-11 border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
               onClick={() => resendMut.mutate()}
               disabled={resendMut.isPending}
             >
-              {resendMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {resendMut.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
               Reenviar e-mail de confirmação
             </Button>
-            <Button className="w-full" onClick={() => { onOpenChange(false); window.location.href = "/admin/login"; }}>
+
+            <Button
+              className="w-full h-11 bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold shadow-md hover:from-red-700 hover:to-rose-700"
+              onClick={() => {
+                onOpenChange(false);
+                navigate({ to: "/admin/login" });
+              }}
+            >
               Ir para o login
             </Button>
           </div>
@@ -221,250 +179,246 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
     );
   }
 
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
-          <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-            {step === 1 ? <Utensils className="h-6 w-6" /> : <Store className="h-6 w-6" />}
-          </div>
-          <DialogTitle className="text-center text-2xl">Crie seu cardápio grátis</DialogTitle>
-          <DialogDescription className="text-center">
-            Plano <strong>Presença</strong> — sem taxas, sem comissão. Você completa o resto depois.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-card text-card-foreground">
+        <DialogTitle className="sr-only">Teste Grátis o Menuzin agora</DialogTitle>
+        <DialogDescription className="sr-only">Crie seu acesso grátis e conheça o Menuzin.</DialogDescription>
 
-        {/* Stepper */}
-        <div className="px-6 pt-2 shrink-0">
-          <div className="mx-auto flex max-w-sm items-start justify-center">
-            {STEPS.map((s, idx) => (
-              <div
-                key={s.id}
-                className={`flex items-start ${idx < STEPS.length - 1 ? "flex-1" : ""}`}
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <div
-                    className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${
-                      step >= s.id
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {step > s.id ? <CheckCircle2 className="h-4 w-4" /> : s.id}
-                  </div>
-                  <span className={`whitespace-nowrap text-[10px] ${step >= s.id ? "text-foreground" : "text-muted-foreground"}`}>
-                    {s.label}
-                  </span>
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <div
-                    className={`mx-2 mt-3 h-0.5 flex-1 rounded-full ${
-                      step > s.id ? "bg-primary" : "bg-muted"
-                    }`}
-                  />
-                )}
+        <div className="grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
+          {/* Esquerda: Banner / Prova Social Menuzin */}
+          <div className="md:col-span-5 bg-gradient-to-br from-red-600 via-red-700 to-rose-800 text-white p-6 md:p-8 flex flex-col justify-between relative overflow-hidden">
+            {/* Efeitos visuais decorativos */}
+            <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-black/20 blur-2xl pointer-events-none" />
+
+            <div className="relative z-10 space-y-6">
+              {/* Selo / Badge "Aprovado +30 mil" */}
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 backdrop-blur-md border border-white/20">
+                <Award className="h-5 w-5 text-yellow-300 fill-yellow-300/30" />
+                <span className="text-xs font-bold tracking-wide uppercase text-white/95">
+                  APROVADO · +30 MIL RESTAURANTES
+                </span>
               </div>
-            ))}
+
+              {/* Título da Prova Social */}
+              <h2 className="text-2xl md:text-3xl font-extrabold leading-tight text-white drop-shadow-sm">
+                Mais de <span className="text-yellow-300 underline decoration-yellow-300/40">30 mil</span> restaurantes já escolheram o <span className="font-black">Menuzin</span>
+              </h2>
+
+              {/* Lista de Recursos / Benefícios com ícones estilizados */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/20 text-white backdrop-blur-sm shadow-sm">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-snug">Sistema completo para o seu restaurante</p>
+                    <p className="text-xs text-white/80">Cardápio digital, pedidos WhatsApp e gestão fácil.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/20 text-white backdrop-blur-sm shadow-sm">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-snug">Fácil de usar e com suporte especializado</p>
+                    <p className="text-xs text-white/80">Configure em menos de 2 minutos sem complicação.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/20 text-white backdrop-blur-sm shadow-sm">
+                    <Cloud className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold leading-snug">Rápido, simples e seguro</p>
+                    <p className="text-xs text-white/80">Sem taxas por vendas. Você fica com 100% do lucro.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rodapé informativo do banner */}
+            <div className="relative z-10 pt-6 mt-6 border-t border-white/20 text-[11px] text-white/75 flex items-center justify-between">
+              <span>● Pleno funcionamento</span>
+              <span>100% Grátis para testar</span>
+            </div>
           </div>
-        </div>
 
+          {/* Direita: Formulário de Autocadastro */}
+          <div className="md:col-span-7 p-6 md:p-8 bg-card flex flex-col justify-between relative">
+            {/* Botão de Fechar no canto superior direito */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-        <div className="overflow-y-auto px-6 pb-6 mt-2">
-          {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base">Tipo de negócio</Label>
-                <p className="text-xs text-muted-foreground">
-                  Selecione um tipo. Por padrão, o novo tenant é criado vazio — você monta o cardápio depois.
+            <div>
+              {/* Header do Formulário */}
+              <div className="mb-6">
+                <h3 className="text-2xl font-black tracking-tight text-foreground">
+                  Teste Grátis o <span className="text-red-600 dark:text-red-500">Menuzin</span> agora
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Crie seu acesso grátis e conheça o Menuzin.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {BUSINESS_TYPES.map((t) => (
-                  <label
-                    key={t}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 text-sm transition hover:border-primary/40 ${
-                      businessType === t ? "border-primary ring-1 ring-primary" : ""
-                    }`}
-                    onClick={() => setBusinessType(t)}
-                  >
-                    <div
-                      className={`grid h-5 w-5 place-items-center rounded-full border ${
-                        businessType === t
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/30"
-                      }`}
-                    >
-                      {businessType === t && <div className="h-2 w-2 rounded-full bg-current" />}
+              {/* Formulário */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Linha 1: Seu nome & WhatsApp */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Seu nome"
+                        className="pl-10 h-11 bg-background"
+                        required
+                      />
                     </div>
-                    <span className="font-medium">{BUSINESS_TYPE_LABELS[t]}</span>
+                  </div>
+
+                  <div>
+                    <div className="relative">
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={whatsapp}
+                        onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
+                        placeholder="WhatsApp"
+                        inputMode="tel"
+                        maxLength={15}
+                        className="pl-10 h-11 bg-background"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Linha 2: Nome do negócio & E-mail */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <div className="relative">
+                      <Utensils className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="Nome do seu negócio"
+                        className="pl-10 h-11 bg-background"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="E-mail"
+                        className="pl-10 h-11 bg-background"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campo de Senha (para a conta de login) */}
+                <div>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+                    <PasswordInput
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Senha de acesso (mín. 8 caracteres)"
+                      className="pl-10 h-11 bg-background"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Pergunta: Já é nosso cliente? */}
+                <div className="pt-2">
+                  <p className="text-xs font-bold text-foreground mb-2">Já é nosso cliente?</p>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
+                      <input
+                        type="radio"
+                        name="customer_status"
+                        checked={customerStatus === "sim"}
+                        onChange={() => handleCustomerStatusChange("sim")}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 accent-red-600"
+                      />
+                      <span>Sou cliente</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
+                      <input
+                        type="radio"
+                        name="customer_status"
+                        checked={customerStatus === "nao"}
+                        onChange={() => handleCustomerStatusChange("nao")}
+                        className="h-4 w-4 text-red-600 focus:ring-red-500 accent-red-600"
+                      />
+                      <span>Não, quero conhecer</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Botão de Envio: TESTAR GRÁTIS » */}
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full h-12 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-extrabold text-base shadow-lg shadow-red-600/25 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 mt-3"
+                  disabled={!canSubmit || signupMut.isPending}
+                >
+                  {signupMut.isPending ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <span>TESTAR GRÁTIS »</span>
+                  )}
+                </Button>
+
+                {/* Checkbox de Aceite e Privacidade */}
+                <div className="pt-1">
+                  <label className="flex items-start gap-2.5 cursor-pointer text-[11px] text-muted-foreground leading-tight">
+                    <Checkbox
+                      checked={acceptTerms}
+                      onCheckedChange={(v) => setAcceptTerms(!!v)}
+                      className="mt-0.5 border-muted-foreground/40 data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                    />
+                    <span>
+                      Aceito receber e-mails de informações do Menuzin.{" "}
+                      <a href="/privacidade" target="_blank" className="font-semibold text-foreground underline hover:text-red-600">
+                        Política de privacidade
+                      </a>
+                      .
+                    </span>
                   </label>
-                ))}
+                </div>
+              </form>
+            </div>
+
+            {/* Box de Segurança no Rodapé */}
+            <div className="mt-6 rounded-xl border bg-muted/40 p-3 flex items-center gap-3">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-background text-foreground shadow-xs">
+                <LockKeyhole className="h-4 w-4 text-red-600" />
+              </div>
+              <div className="text-xs leading-tight">
+                <p className="font-bold text-foreground">Seus dados estão protegidos.</p>
+                <p className="text-muted-foreground">Não compartilhamos suas informações.</p>
               </div>
             </div>
-          )}
-
-          {step === 2 && (
-            <div className="grid gap-4">
-              <div>
-                <Label>Nome do estabelecimento</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex.: Pizzaria Napoli"
-                  className="mt-1.5"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <Label className="flex items-center gap-2">
-                  Endereço da sua loja
-                  {computedSlug.length >= 3 && !slugChecking && (
-                    slugOk ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-3 w-3" /> disponível</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-destructive"><XCircle className="h-3 w-3" /> em uso</span>
-                    )
-                  )}
-                </Label>
-                <div className="mt-1.5 flex overflow-hidden rounded-md border">
-                  <span className="inline-flex items-center bg-muted px-3 text-xs text-muted-foreground">menuzin.app/</span>
-                  <Input
-                    value={computedSlug}
-                    onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
-                    placeholder="sua-loja"
-                    className="rounded-none border-0 font-mono focus-visible:ring-0"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>WhatsApp</Label>
-                  <Input
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
-                    placeholder="(00) 00000-0000"
-                    inputMode="tel"
-                    maxLength={15}
-                    className="mt-1.5"
-                  />
-                </div>
-                <div>
-                  <Label>CEP</Label>
-                  <Input
-                    value={cep}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
-                      setCep(digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits);
-                    }}
-                    placeholder="00000-000"
-                    inputMode="numeric"
-                    maxLength={9}
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-[1fr_100px]">
-                <div>
-                  <Label>Rua / Avenida</Label>
-                  <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Ex.: Rua das Flores" className="mt-1.5" />
-                </div>
-                <div>
-                  <Label>Nº</Label>
-                  <Input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="123" className="mt-1.5" />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <Label>Bairro</Label>
-                  <Input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Centro" className="mt-1.5" />
-                </div>
-                <div>
-                  <Label>Cidade</Label>
-                  <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Sua cidade" className="mt-1.5" />
-                </div>
-                <div>
-                  <Label>UF</Label>
-                  <Input
-                    value={state}
-                    onChange={(e) => setState(e.target.value.toUpperCase())}
-                    placeholder="PI"
-                    maxLength={2}
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="grid gap-4">
-              <div>
-                <Label>E-mail de acesso</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" className="mt-1.5" autoComplete="email" autoFocus />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label>Senha</Label>
-                  <PasswordInput value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Mínimo 8 caracteres" className="mt-1.5" autoComplete="new-password" />
-                </div>
-                <div>
-                  <Label>Confirmar senha</Label>
-                  <PasswordInput value={pw2} onChange={(e) => setPw2(e.target.value)} className="mt-1.5" autoComplete="new-password" />
-                  {pw2.length > 0 && !pwMatch && (
-                    <p className="mt-1 text-xs text-destructive">As senhas não coincidem.</p>
-                  )}
-                </div>
-              </div>
-
-              <label className="flex cursor-pointer items-start gap-2 rounded-lg border bg-muted/40 p-3 text-xs">
-                <Checkbox checked={accept} onCheckedChange={(v) => setAccept(!!v)} className="mt-0.5" />
-                <span className="text-muted-foreground">
-                  Li e aceito os termos de uso e a política de privacidade do Menuzin.
-                </span>
-              </label>
-            </div>
-          )}
-
-          {/* Footer actions */}
-          <div className="mt-6 flex items-center gap-3">
-            {step > 1 ? (
-              <Button type="button" variant="outline" onClick={back} className="gap-2">
-                <ChevronLeft className="h-4 w-4" /> Voltar
-              </Button>
-            ) : (
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="gap-2">
-                Cancelar
-              </Button>
-            )}
-
-            {step < 3 ? (
-              <Button type="button" className="ml-auto gap-2" onClick={next}>
-                Avançar <ChevronLeft className="h-4 w-4 rotate-180" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                size="lg"
-                className="ml-auto gap-2"
-                disabled={!canSubmit || signupMut.isPending}
-                onClick={handleSubmit}
-              >
-                {signupMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Store className="h-4 w-4" />}
-                Criar minha loja grátis
-              </Button>
-            )}
           </div>
-
-          <p className="mt-3 text-center text-[11px] text-muted-foreground">
-            Sem cartão de crédito · Sem taxas sobre vendas · Cancele quando quiser
-          </p>
         </div>
       </DialogContent>
     </Dialog>
