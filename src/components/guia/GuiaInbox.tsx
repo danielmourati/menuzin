@@ -2,7 +2,7 @@
 // do dispositivo (perfil universal por telefone + token) e nas ofertas ativas.
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Bell, MessageSquare, Store as StoreIcon, Tag } from "lucide-react";
+import { Bell, MessageSquare, Store as StoreIcon, Tag, Trash2, Undo2, X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -11,8 +11,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { listCustomerOrders } from "@/lib/customers.functions";
 import { useCustomerProfile } from "@/lib/customer-profile";
+import { useDismissed } from "@/lib/guia-inbox-dismiss";
 import type { GuiaSlot } from "@/lib/guia-types";
 import { brl } from "@/lib/format";
 
