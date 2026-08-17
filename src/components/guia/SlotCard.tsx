@@ -47,7 +47,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
           <div className="relative z-10 max-w-[75%]">
             <p className="text-[13px] font-black uppercase tracking-widest opacity-90">destaque</p>
-            <p className="mt-1 text-[21px] font-black leading-tight line-clamp-2 drop-shadow">{slot.title}</p>
+            <p className="mt-1 text-[27px] font-black leading-[1.1] line-clamp-2 drop-shadow">{slot.title}</p>
             {slot.subtitle && (
               <p className="mt-0.5 text-[16px] font-medium opacity-90 line-clamp-1">{slot.subtitle}</p>
             )}
