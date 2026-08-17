@@ -14,7 +14,7 @@ function formatCountdown(endsAt?: string): string {
 }
 
 function SlotLink({ slot, children }: { slot: GuiaSlot; children: ReactNode }) {
-  const cls = "block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl";
+  const cls = "block w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl";
   if (slot.productId) {
     return (
       <Link to="/guia/produto/$id" params={{ id: slot.productId }} className={cls}>
@@ -40,7 +40,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   const content = (() => {
     if (slot.kind === "hero") {
       return (
-        <div className={`relative w-[254px] h-[149px] mx-auto overflow-hidden rounded-2xl ${surface} p-4 text-white shadow-md`}>
+        <div className={`relative w-full h-[149px] sm:h-[180px] overflow-hidden rounded-2xl ${surface} p-4 text-white shadow-md`}>
           {img && (
             <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} draggable={false} />
           )}
@@ -76,7 +76,7 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
     if (slot.kind === "banner") {
       return (
-        <div className={`relative w-[254px] h-[149px] mx-auto overflow-hidden rounded-2xl ${surface} p-4 text-white shadow-md`}>
+        <div className={`relative w-full h-[149px] sm:h-[180px] overflow-hidden rounded-2xl ${surface} p-4 text-white shadow-md`}>
           {img && (
             <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
           )}
