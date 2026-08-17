@@ -500,7 +500,7 @@ function HeroCarousel({ slots }: { slots: GuiaSlot[] }) {
           style={{ transform: `translateX(calc(-${idx * 100}% + ${offsetPct}%))` }}
         >
           {slots.map((s) => (
-            <div key={s.id} className="w-full shrink-0">
+            <div key={s.id} className="flex w-full shrink-0 justify-center">
               <SlotCard slot={s} />
             </div>
           ))}

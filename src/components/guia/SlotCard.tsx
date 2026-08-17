@@ -40,31 +40,31 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
   const content = (() => {
     if (slot.kind === "hero") {
       return (
-        <div className={`relative overflow-hidden rounded-xl ${surface} p-5 text-white shadow-md ${size === "sm" ? "h-32" : "h-40"}`}>
+        <div className={`relative w-[254px] h-[149px] mx-auto overflow-hidden rounded-2xl ${surface} p-4 text-white shadow-md`}>
           {img && (
             <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} draggable={false} />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
-          <div className="relative z-10 max-w-[70%]">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+          <div className="relative z-10 max-w-[75%]">
             <p className="text-[10px] font-black uppercase tracking-widest opacity-90">destaque</p>
-            <p className="mt-1 text-2xl font-black leading-tight">{slot.title}</p>
+            <p className="mt-1 text-base font-black leading-tight line-clamp-2 drop-shadow">{slot.title}</p>
             {slot.subtitle && (
-              <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
+              <p className="mt-0.5 text-xs font-medium opacity-90 line-clamp-1">{slot.subtitle}</p>
             )}
           </div>
           {slot.storeName && (
-            <div className="absolute bottom-3 right-3 z-10 inline-flex max-w-[80%] items-center gap-2 rounded-full bg-black/45 py-1 pl-1 pr-3 backdrop-blur">
-              <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-white/40 bg-white/15">
+            <div className="absolute bottom-2.5 right-2.5 z-10 inline-flex max-w-[85%] items-center gap-1.5 rounded-full bg-black/50 py-0.5 pl-0.5 pr-2.5 backdrop-blur">
+              <span className="grid h-6 w-6 shrink-0 place-items-center overflow-hidden rounded-full border border-white/40 bg-white/15">
                 {slot.storeLogo ? (
                   <img src={slot.storeLogo} alt="" className="h-full w-full object-cover" draggable={false} />
                 ) : (
-                  <span className="text-[11px] font-black">{slot.storeName.slice(0, 1)}</span>
+                  <span className="text-[10px] font-black">{slot.storeName.slice(0, 1)}</span>
                 )}
               </span>
-              <span className="min-w-0 truncate text-xs font-bold">{slot.storeName}</span>
+              <span className="min-w-0 truncate text-[11px] font-bold">{slot.storeName}</span>
               {typeof slot.storeRating === "number" && (
-                <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-bold">
-                  <Star className="h-3 w-3 fill-current" />
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-bold text-amber-400">
+                  <Star className="h-2.5 w-2.5 fill-current" />
                   {slot.storeRating.toFixed(1).replace(".", ",")}
                 </span>
               )}
@@ -76,15 +76,15 @@ export function SlotCard({ slot, size = "md" }: { slot: GuiaSlot; size?: "sm" | 
 
     if (slot.kind === "banner") {
       return (
-        <div className={`relative overflow-hidden rounded-xl ${surface} p-6 text-white shadow-md`}>
+        <div className={`relative w-[254px] h-[149px] mx-auto overflow-hidden rounded-2xl ${surface} p-4 text-white shadow-md`}>
           {img && (
             <img src={img} alt="" className={`absolute inset-0 h-full w-full ${fitCls}`} />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
           <div className="relative z-10">
-            <p className="text-2xl font-black leading-tight">{slot.title}</p>
+            <p className="text-lg font-black leading-tight line-clamp-2 drop-shadow">{slot.title}</p>
             {slot.subtitle && (
-              <p className="mt-1 text-sm font-medium opacity-95">{slot.subtitle}</p>
+              <p className="mt-1 text-xs font-medium opacity-95 line-clamp-2">{slot.subtitle}</p>
             )}
           </div>
         </div>
