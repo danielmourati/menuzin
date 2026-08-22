@@ -66,6 +66,7 @@ import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slu
 import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
 import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
+import { Route as ApiPublicMpOrderWebhookRouteImport } from './routes/api.public.mp-order-webhook'
 import { Route as ApiPublicMpOauthCallbackRouteImport } from './routes/api.public.mp-oauth-callback'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
 import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
@@ -369,6 +370,11 @@ const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
   path: '/api/public/qz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMpOrderWebhookRoute = ApiPublicMpOrderWebhookRouteImport.update({
+  id: '/api/public/mp-order-webhook',
+  path: '/api/public/mp-order-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMpOauthCallbackRoute =
   ApiPublicMpOauthCallbackRouteImport.update({
     id: '/api/public/mp-oauth-callback',
@@ -509,6 +515,7 @@ export interface FileRoutesByFullPath {
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
+  '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -581,6 +588,7 @@ export interface FileRoutesByTo {
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
+  '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -656,6 +664,7 @@ export interface FileRoutesById {
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
+  '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -732,6 +741,7 @@ export interface FileRouteTypes {
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
+    | '/api/public/mp-order-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -804,6 +814,7 @@ export interface FileRouteTypes {
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
+    | '/api/public/mp-order-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -878,6 +889,7 @@ export interface FileRouteTypes {
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
+    | '/api/public/mp-order-webhook'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -943,6 +955,7 @@ export interface RootRouteChildren {
   ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicMpOauthCallbackRoute: typeof ApiPublicMpOauthCallbackRoute
+  ApiPublicMpOrderWebhookRoute: typeof ApiPublicMpOrderWebhookRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
@@ -1356,6 +1369,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicQzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mp-order-webhook': {
+      id: '/api/public/mp-order-webhook'
+      path: '/api/public/mp-order-webhook'
+      fullPath: '/api/public/mp-order-webhook'
+      preLoaderRoute: typeof ApiPublicMpOrderWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mp-oauth-callback': {
       id: '/api/public/mp-oauth-callback'
       path: '/api/public/mp-oauth-callback'
@@ -1583,6 +1603,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicMpOauthCallbackRoute: ApiPublicMpOauthCallbackRoute,
+  ApiPublicMpOrderWebhookRoute: ApiPublicMpOrderWebhookRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
