@@ -105,7 +105,7 @@ export const getMySubscription = createServerFn({ method: "POST" })
   });
 
 function publishedUrl(): string {
-  return process.env.PUBLIC_APP_URL || "https://menuzin.lovable.app";
+  return (process.env["PUBLIC_APP_URL"] || "https://menuzin.app").replace(/\/+$/, "");
 }
 
 export const createSubscriptionCharge = createServerFn({ method: "POST" })
