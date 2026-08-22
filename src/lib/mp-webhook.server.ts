@@ -71,20 +71,12 @@ export function extractPaymentId(body: Record<string, unknown>, url: URL): strin
   return fromQuery ? String(fromQuery) : null;
 }
 
+/** Mesmo mapeamento usado em payments.functions.ts (enum de orders/payments). */
 export function mapMpStatus(
   s: string | undefined,
-): "pending" | "approved" | "rejected" | "cancelled" | "refunded" {
-  switch (s) {
-    case "approved":
-      return "approved";
-    case "rejected":
-      return "rejected";
-    case "cancelled":
-      return "cancelled";
-    case "refunded":
-    case "charged_back":
-      return "refunded";
-    default:
-      return "pending";
-  }
+): "pending" | "approved" | "rejected" | "refunded" {
+  if (s === "approved") return "approved";
+  if (s === "rejected" || s === "cancelled") return "rejected";
+  if (s === "refunded" || s === "charged_back") return "refunded";
+  return "pending";
 }
