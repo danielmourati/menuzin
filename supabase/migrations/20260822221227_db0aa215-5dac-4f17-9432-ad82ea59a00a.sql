@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.guia_promo_requests_enforce_price() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.guia_promo_requests_block_tenant_update() FROM anon, authenticated, public;
