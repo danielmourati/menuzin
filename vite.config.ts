@@ -14,7 +14,34 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Server-side env (no VITE_ prefix) must be available to server routes such as
 // the email queue processor. These are NOT injected into the client bundle.
 const serverEnv = loadEnv(process.env["NODE_ENV"] ?? "development", process.cwd(), "");
-Object.assign(process.env, serverEnv);
+// Nunca sobrescrever variáveis já presentes no ambiente (build de produção do Lovable).
+for (const [key, value] of Object.entries(serverEnv)) {
+  if (process.env[key] === undefined || process.env[key] === "") process.env[key] = value;
+}
+
+// Config pública do backend: garantimos a injeção no bundle do cliente mesmo quando o
+// ambiente de build só expõe as variáveis sem o prefixo VITE_ (caso do deploy publicado).
+const publicSupabaseUrl =
+  process.env["VITE_SUPABASE_URL"] ?? process.env["SUPABASE_URL"] ?? "";
+const publicSupabaseKey =
+  process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
+  process.env["SUPABASE_PUBLISHABLE_KEY"] ??
+  process.env["VITE_SUPABASE_ANON_KEY"] ??
+  process.env["SUPABASE_ANON_KEY"] ??
+  "";
+const publicSupabaseProjectId =
+  process.env["VITE_SUPABASE_PROJECT_ID"] ?? process.env["SUPABASE_PROJECT_ID"] ?? "";
+
+const publicDefines: Record<string, string> = {};
+if (publicSupabaseUrl) {
+  publicDefines["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify(publicSupabaseUrl);
+}
+if (publicSupabaseKey) {
+  publicDefines["import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"] = JSON.stringify(publicSupabaseKey);
+}
+if (publicSupabaseProjectId) {
+  publicDefines["import.meta.env.VITE_SUPABASE_PROJECT_ID"] = JSON.stringify(publicSupabaseProjectId);
+}
 
 export default defineConfig({
   tanstackStart: {
