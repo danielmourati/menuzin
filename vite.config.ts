@@ -50,6 +50,7 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    define: publicDefines,
     resolve: {
       alias: {
         // React Email's htmlparser2 path needs entities v4.5.0; force the hoisted copy.
