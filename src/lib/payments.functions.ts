@@ -577,10 +577,13 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     const paymentRowId = paymentRow.id as string;
 
     // 5. Build MP body
+    const { publicAppUrl } = await import("@/lib/mp-webhook.server");
     const body: Record<string, unknown> = {
       transaction_amount: Number(order.total),
       description: `Pedido #${order.number} - ${tenant.name}`,
       external_reference: order.id,
+      // Garante a confirmação server-side mesmo se o cliente fechar o navegador.
+      notification_url: `${publicAppUrl()}/api/public/mp-order-webhook?tenant=${tenant.id}`,
       payer: {
         email: data.payer.email,
         first_name: data.payer.first_name,
