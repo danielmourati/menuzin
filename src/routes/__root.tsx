@@ -44,15 +44,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+  const isConfigError = /Missing Supabase environment variable/i.test(error?.message ?? "");
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">Algo deu errado</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Tente recarregar a página.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isConfigError
+            ? "Não conseguimos conectar ao servidor do Menuzin. Tente novamente em instantes."
+            : "Tente recarregar a página."}
+        </p>
         <div className="mt-6 flex justify-center gap-2">
           <button onClick={() => { router.invalidate(); reset(); }} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
             Tentar novamente
           </button>
+          <Link to="/" className="rounded-md border px-4 py-2 text-sm font-medium">
+            Ir para a home
+          </Link>
         </div>
       </div>
     </div>
@@ -120,15 +128,21 @@ function AuthStateInvalidator() {
   const router = useRouter();
   const queryClient = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        queryClient.removeQueries();
-      } else {
-        queryClient.invalidateQueries();
-      }
-      router.invalidate();
-    });
-    return () => subscription.unsubscribe();
+    // Falha de configuração do backend não pode derrubar toda a árvore React.
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT") {
+          queryClient.removeQueries();
+        } else {
+          queryClient.invalidateQueries();
+        }
+        router.invalidate();
+      });
+      return () => subscription.unsubscribe();
+    } catch (err) {
+      console.error("[auth] não foi possível assinar mudanças de sessão", err);
+      return;
+    }
   }, [router, queryClient]);
   return null;
 }
