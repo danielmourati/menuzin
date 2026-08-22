@@ -20,28 +20,40 @@ for (const [key, value] of Object.entries(serverEnv)) {
 }
 
 // Config pública do backend: garantimos a injeção no bundle do cliente mesmo quando o
-// ambiente de build só expõe as variáveis sem o prefixo VITE_ (caso do deploy publicado).
-const publicSupabaseUrl =
-  process.env["VITE_SUPABASE_URL"] ?? process.env["SUPABASE_URL"] ?? "";
-const publicSupabaseKey =
-  process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ??
-  process.env["SUPABASE_PUBLISHABLE_KEY"] ??
-  process.env["VITE_SUPABASE_ANON_KEY"] ??
-  process.env["SUPABASE_ANON_KEY"] ??
-  "";
-const publicSupabaseProjectId =
-  process.env["VITE_SUPABASE_PROJECT_ID"] ?? process.env["SUPABASE_PROJECT_ID"] ?? "";
+// ambiente de build não expõe nenhuma das variáveis (caso do deploy publicado).
+// Os valores abaixo são públicos por definição (URL + chave publicável/anon) — nenhuma
+// chave de serviço entra no bundle do cliente.
+const FALLBACK_SUPABASE_URL = "https://fetiqngwjgxajtqjaolb.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZldGlxbmd3amd4YWp0cWphb2xiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjY5NDksImV4cCI6MjA5NTkwMjk0OX0.u7YQo3y2GaIWPgeA7dBvC05huAkUdx-i5xqaqdyu8Is";
+const FALLBACK_SUPABASE_PROJECT_ID = "fetiqngwjgxajtqjaolb";
 
-const publicDefines: Record<string, string> = {};
-if (publicSupabaseUrl) {
-  publicDefines["import.meta.env.VITE_SUPABASE_URL"] = JSON.stringify(publicSupabaseUrl);
-}
-if (publicSupabaseKey) {
-  publicDefines["import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"] = JSON.stringify(publicSupabaseKey);
-}
-if (publicSupabaseProjectId) {
-  publicDefines["import.meta.env.VITE_SUPABASE_PROJECT_ID"] = JSON.stringify(publicSupabaseProjectId);
-}
+const pickEnv = (...keys: string[]) => {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value) return value;
+  }
+  return "";
+};
+
+const publicSupabaseUrl =
+  pickEnv("VITE_SUPABASE_URL", "SUPABASE_URL") || FALLBACK_SUPABASE_URL;
+const publicSupabaseKey =
+  pickEnv(
+    "VITE_SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "VITE_SUPABASE_ANON_KEY",
+    "SUPABASE_ANON_KEY",
+  ) || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+const publicSupabaseProjectId =
+  pickEnv("VITE_SUPABASE_PROJECT_ID", "SUPABASE_PROJECT_ID") || FALLBACK_SUPABASE_PROJECT_ID;
+
+const publicDefines: Record<string, string> = {
+  "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(publicSupabaseUrl),
+  "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(publicSupabaseKey),
+  "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(publicSupabaseProjectId),
+};
+
 
 export default defineConfig({
   tanstackStart: {
