@@ -76,7 +76,7 @@ export function mapMpStatus(
 ): "pending" | "approved" | "rejected" | "cancelled" | "refunded" {
   switch (s) {
     case "approved":
-ようこそ      return "approved";
+      return "approved";
     case "rejected":
       return "rejected";
     case "cancelled":
