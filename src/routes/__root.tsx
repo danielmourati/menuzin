@@ -120,15 +120,21 @@ function AuthStateInvalidator() {
   const router = useRouter();
   const queryClient = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        queryClient.removeQueries();
-      } else {
-        queryClient.invalidateQueries();
-      }
-      router.invalidate();
-    });
-    return () => subscription.unsubscribe();
+    // Falha de configuração do backend não pode derrubar toda a árvore React.
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "SIGNED_OUT") {
+          queryClient.removeQueries();
+        } else {
+          queryClient.invalidateQueries();
+        }
+        router.invalidate();
+      });
+      return () => subscription.unsubscribe();
+    } catch (err) {
+      console.error("[auth] não foi possível assinar mudanças de sessão", err);
+      return;
+    }
   }, [router, queryClient]);
   return null;
 }
