@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy } from "lucide-react";
 import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminNotificationsBell } from "@/components/admin/AdminNotificationsBell";
 import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListener";
+import { SupportChatWidget, openSupportChat } from "@/components/support/SupportChatWidget";
 import { useAuth } from "@/lib/auth-context";
 import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
@@ -135,6 +136,19 @@ function SidebarInner({ onNav, collapsed }: { onNav?: () => void; collapsed?: bo
         <Nav onClick={onNav} collapsed={collapsed} />
       </div>
       <div className={`mt-auto border-t border-sidebar-border space-y-1 ${collapsed ? "p-2" : "p-3"}`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`w-full text-muted-foreground hover:text-foreground ${collapsed ? "justify-center px-0" : "justify-start"}`}
+          title="Falar com Suporte"
+          onClick={() => {
+            if (onNav) onNav();
+            openSupportChat();
+          }}
+        >
+          <LifeBuoy className={collapsed ? "h-4 w-4 text-primary" : "mr-2 h-4 w-4 text-primary"} />
+          {!collapsed && "Suporte & Ajuda"}
+        </Button>
         {tenant?.slug && (
           <Button asChild variant="ghost" size="sm" className={`w-full ${collapsed ? "justify-center px-0" : "justify-start"}`} onClick={onNav} title="Ver loja pública">
             <Link to="/$slug" params={{ slug: tenant.slug }} target="_blank">
@@ -335,6 +349,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
     <AuthGate>
       <div className="flex h-screen overflow-hidden bg-muted/30">
         <OrdersRealtimeListener />
+        <SupportChatWidget />
         <aside
           className={`hidden shrink-0 border-r border-sidebar-border lg:block h-screen sticky top-0 transition-[width] duration-200 ${
             collapsed ? "w-16" : "w-64"
