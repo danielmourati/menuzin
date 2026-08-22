@@ -5,6 +5,7 @@ export const Route = createFileRoute("/api/public/menuzin-mp-webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const url = new URL(request.url);
         let body: Record<string, unknown> = {};
         try {
           body = (await request.json()) as Record<string, unknown>;
@@ -12,11 +13,23 @@ export const Route = createFileRoute("/api/public/menuzin-mp-webhook")({
           /* ignore */
         }
 
+        const { extractPaymentId, verifyMpSignature } = await import("@/lib/mp-webhook.server");
+
         // Mercado Pago envia: { action, type, data: { id } }
-        const data = body.data as { id?: string | number } | undefined;
-        const paymentId = data?.id ? String(data.id) : null;
+        const paymentId = extractPaymentId(body, url);
         if (!paymentId) {
           return new Response("ok", { status: 200 });
+        }
+
+        const sig = verifyMpSignature({ request, dataId: paymentId });
+        if (!sig.ok) {
+          console.warn("[menuzin-mp-webhook] assinatura rejeitada:", sig.reason);
+          return new Response("invalid signature", { status: 401 });
+        }
+        if (sig.reason === "not_configured") {
+          console.warn(
+            "[menuzin-mp-webhook] MP_WEBHOOK_SECRET ausente — notificação aceita sem validar assinatura.",
+          );
         }
 
         try {
