@@ -490,7 +490,8 @@ export const createPromoRequest = createServerFn({ method: "POST" })
       .object({
         slotKind,
         durationDays: z.number(),
-        amount: z.number(),
+        // `amount` é aceito por compatibilidade, mas ignorado: o preço vem do plano.
+        amount: z.number().optional(),
         note: z.string().optional(),
         productId: z.string().uuid().optional(),
       })
