@@ -43,4 +43,6 @@ Se preferir, faço primeiro só a correção do item 2 e tratamos o segredo depo
 ## Validação
 
 - Build de produção local com ambiente sem `.env` → `grep` na pasta de assets confirmando URL e chave publicável presentes.
-- Após publicar: recarregar `https://menuzin.app/`, `/guia` e a loja demo, com o console limpo de `Missing Supabase environment variable`.
+- Após publicar: recarregar `https://menuzin.app/`, `/guia` e a loja demo, com o console limpo de `Missing Supabase environment variable`.  
+  
+Sim, vamos primeiro para o item 2.
