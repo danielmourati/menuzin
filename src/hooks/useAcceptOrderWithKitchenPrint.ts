@@ -41,6 +41,17 @@ export function useAcceptOrderWithKitchenPrint(
     (p) => p.role === "kitchen" && p.is_active,
   );
 
+  const { data: printerSettings } = useQuery({
+    queryKey: ["printer-settings-auto-accept"],
+    queryFn: () => getMyPrinterSettings(),
+    enabled: isAuthenticated && can("kitchenPrinter"),
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const autoAcceptEnabled =
+    can("kitchenPrinter") && printerSettings?.settings?.auto_accept_orders === true;
+
   const printKitchenFor = useCallback(
     async (order: Order) => {
       if (!can("kitchenPrinter")) return;
