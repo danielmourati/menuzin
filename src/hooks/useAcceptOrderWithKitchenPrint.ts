@@ -68,14 +68,38 @@ export function useAcceptOrderWithKitchenPrint(
         const { printer } = await printKitchenTicket(order, kitchenPrinter);
         toast.success(`Comanda enviada para ${printer}`);
       } catch (err) {
+        const retry = {
+          label: "Reimprimir",
+          onClick: () => {
+            void printKitchenFor(order);
+          },
+        };
         if (err instanceof QzNotRunningError) {
-          toast.error("Pedido aceito, mas QZ Tray não está aberto para imprimir.");
+          toast.error("Pedido aceito, mas o QZ Tray não está aberto para imprimir.", { action: retry });
         } else {
-          toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda");
+          toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", { action: retry });
         }
       }
     },
     [can, kitchenPrinter, navigate],
+  );
+
+  /**
+   * Aceite automático: aprova o pedido assim que ele chega e manda a comanda
+   * para a cozinha. Falha de impressão nunca impede o aceite.
+   */
+  const autoAcceptOrder = useCallback(
+    async (order: Order) => {
+      if (order.status !== "novo") return;
+      try {
+        await updateOrderStatus(order.id, "preparo", "Aceito automaticamente");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Falha ao aceitar pedido automaticamente");
+        return;
+      }
+      await printKitchenFor(order);
+    },
+    [updateOrderStatus, printKitchenFor],
   );
 
   const acceptOrder = useCallback(
