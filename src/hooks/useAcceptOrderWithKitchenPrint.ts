@@ -124,5 +124,11 @@ export function useAcceptOrderWithKitchenPrint(
     [orders, updateOrderStatus, printKitchenFor],
   );
 
-  return { acceptOrder, updateOrderStatus: updateOrderStatusWithPrint };
+  return {
+    acceptOrder,
+    updateOrderStatus: updateOrderStatusWithPrint,
+    autoAcceptEnabled,
+    autoAcceptOrder,
+    printKitchenFor,
+  };
 }
