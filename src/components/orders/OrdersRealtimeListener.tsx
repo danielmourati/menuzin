@@ -7,48 +7,70 @@ import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitche
 
 export function OrdersRealtimeListener() {
   const { newOrderAlert, dismissAlert, orders, updateOrderStatus } = useOrdersRealtime();
-  const { acceptOrder } = useAcceptOrderWithKitchenPrint(orders, updateOrderStatus);
+  const { acceptOrder, autoAcceptEnabled, autoAcceptOrder, printKitchenFor } =
+    useAcceptOrderWithKitchenPrint(orders, updateOrderStatus);
   const { prefs } = useNotificationPrefs();
   const navigate = useNavigate();
 
-  // Evitar duplicar toast de um mesmo pedido
+  // Evitar duplicar toast/aceite de um mesmo pedido
   const notifiedIdsRef = useRef<Set<string>>(new Set());
+  // Fila sequencial para não disparar impressões simultâneas
+  const queueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     if (!newOrderAlert) return;
 
-    const orderId = newOrderAlert.id;
+    const order = newOrderAlert;
+    const orderId = order.id;
 
     // Se o pedido não estiver com status "novo" (já foi aceito/em produção) ou já tiver sido notificado:
-    if (newOrderAlert.status !== "novo" || notifiedIdsRef.current.has(orderId)) {
+    if (order.status !== "novo" || notifiedIdsRef.current.has(orderId)) {
       dismissAlert();
       return;
     }
 
     notifiedIdsRef.current.add(orderId);
 
-    if (prefs.toastEnabled) {
-      showNewOrderToast(
-        newOrderAlert,
-        () => {
-          navigate({ to: "/admin/pedidos" });
-          setTimeout(() => {
-            window.dispatchEvent(
-              new CustomEvent("open-order-details", {
-                detail: { orderId },
-              })
-            );
-          }, 100);
-        },
-        // Ao clicar em "Aceitar" — transita para preparo e dispara impressão se configurado
-        () => {
-          acceptOrder(orderId);
-        }
-      );
+    const openDetails = () => {
+      navigate({ to: "/admin/pedidos" });
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("open-order-details", { detail: { orderId } })
+        );
+      }, 100);
+    };
+
+    if (autoAcceptEnabled) {
+      // Aceita e imprime automaticamente, em série
+      queueRef.current = queueRef.current
+        .then(() => autoAcceptOrder(order))
+        .catch(() => undefined);
+
+      if (prefs.toastEnabled) {
+        showNewOrderToast(order, openDetails, () => {}, {
+          autoAccepted: true,
+          onReprint: () => {
+            void printKitchenFor(order);
+          },
+        });
+      }
+    } else if (prefs.toastEnabled) {
+      showNewOrderToast(order, openDetails, () => {
+        acceptOrder(orderId);
+      });
     }
 
     dismissAlert();
-  }, [newOrderAlert, prefs.toastEnabled, acceptOrder, dismissAlert, navigate]);
+  }, [
+    newOrderAlert,
+    prefs.toastEnabled,
+    acceptOrder,
+    autoAcceptEnabled,
+    autoAcceptOrder,
+    printKitchenFor,
+    dismissAlert,
+    navigate,
+  ]);
 
   return null;
 }

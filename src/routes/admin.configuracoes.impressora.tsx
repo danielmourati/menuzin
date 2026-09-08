@@ -939,6 +939,14 @@ function PrinterSettingsPage() {
                     onChange={(v) => set("auto_connect", v)}
                   />
                 </div>
+
+                <div className="md:col-span-2">
+                  <Toggle
+                    label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
+                    value={form.auto_accept_orders}
+                    onChange={(v) => set("auto_accept_orders", v)}
+                  />
+                </div>
               </CardContent>
             </Card>
 
