@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { ShoppingBag, Check, X } from "lucide-react";
+import { ShoppingBag, Check, X, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface NewOrderToastProps {
@@ -9,9 +9,20 @@ interface NewOrderToastProps {
   toastId: string | number;
   onView: () => void;
   onAccept: () => void;
+  /** Quando true, o pedido já foi aceito automaticamente. */
+  autoAccepted?: boolean;
+  /** Reimprimir a comanda (usado no modo aceite automático). */
+  onReprint?: () => void;
 }
 
-export function NewOrderToast({ order, toastId, onView, onAccept }: NewOrderToastProps) {
+export function NewOrderToast({
+  order,
+  toastId,
+  onView,
+  onAccept,
+  autoAccepted = false,
+  onReprint,
+}: NewOrderToastProps) {
   const handleView = () => {
     toast.dismiss(toastId);
     onView();
@@ -20,6 +31,11 @@ export function NewOrderToast({ order, toastId, onView, onAccept }: NewOrderToas
   const handleAccept = () => {
     toast.dismiss(toastId);
     onAccept();
+  };
+
+  const handleReprint = () => {
+    toast.dismiss(toastId);
+    onReprint?.();
   };
 
   return (
@@ -33,7 +49,7 @@ export function NewOrderToast({ order, toastId, onView, onAccept }: NewOrderToas
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-bold text-sm text-foreground flex items-center justify-between">
-            Novo Pedido Recebido!
+            {autoAccepted ? "Pedido aceito automaticamente" : "Novo Pedido Recebido!"}
             <button
               onClick={() => toast.dismiss(toastId)}
               className="text-muted-foreground hover:text-foreground shrink-0 p-0.5 rounded-md hover:bg-muted"
@@ -65,22 +81,41 @@ export function NewOrderToast({ order, toastId, onView, onAccept }: NewOrderToas
         >
           Ver Pedido
         </Button>
-        <Button
-          onClick={handleAccept}
-          variant="default"
-          size="sm"
-          className="flex-1 h-8 text-xs font-semibold bg-success hover:bg-success/90 text-success-foreground"
-        >
-          <Check className="h-3.5 w-3.5 mr-1" />
-          Aceitar
-        </Button>
+        {autoAccepted ? (
+          onReprint ? (
+            <Button
+              onClick={handleReprint}
+              variant="secondary"
+              size="sm"
+              className="flex-1 h-8 text-xs font-semibold"
+            >
+              <Printer className="h-3.5 w-3.5 mr-1" />
+              Reimprimir
+            </Button>
+          ) : null
+        ) : (
+          <Button
+            onClick={handleAccept}
+            variant="default"
+            size="sm"
+            className="flex-1 h-8 text-xs font-semibold bg-success hover:bg-success/90 text-success-foreground"
+          >
+            <Check className="h-3.5 w-3.5 mr-1" />
+            Aceitar
+          </Button>
+        )}
       </div>
     </div>
   );
 }
 
 // Helper para disparar este toast customizado facilmente
-export function showNewOrderToast(order: Order, onView: () => void, onAccept: () => void) {
+export function showNewOrderToast(
+  order: Order,
+  onView: () => void,
+  onAccept: () => void,
+  options?: { autoAccepted?: boolean; onReprint?: () => void },
+) {
   toast.custom(
     (t) => (
       <NewOrderToast
@@ -88,6 +123,8 @@ export function showNewOrderToast(order: Order, onView: () => void, onAccept: ()
         toastId={t}
         onView={onView}
         onAccept={onAccept}
+        autoAccepted={options?.autoAccepted}
+        onReprint={options?.onReprint}
       />
     ),
     {
