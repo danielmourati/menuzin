@@ -30,6 +30,8 @@ export type PrinterSettings = {
   feed_lines: number;
   /** Quando true, o app conecta ao QZ Tray automaticamente no login. */
   auto_connect: boolean;
+  /** Quando true, pedidos novos são aceitos e impressos automaticamente. */
+  auto_accept_orders: boolean;
 };
 
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
@@ -53,6 +55,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   cut_type: "none",
   feed_lines: 3,
   auto_connect: false,
+  auto_accept_orders: false,
 };
 
 
