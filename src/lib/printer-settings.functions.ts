@@ -32,6 +32,7 @@ const SaveInput = z.object({
   cut_type: CutType,
   feed_lines: z.number().int().min(0).max(10),
   auto_connect: z.boolean().default(false),
+  auto_accept_orders: z.boolean().default(false),
 });
 
 function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
@@ -59,6 +60,7 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     cut_type: (row.cut_type as PrinterSettings["cut_type"]) ?? "none",
     feed_lines: typeof row.feed_lines === "number" ? row.feed_lines : 3,
     auto_connect: row.auto_connect === true,
+    auto_accept_orders: row.auto_accept_orders === true,
   };
 }
 
