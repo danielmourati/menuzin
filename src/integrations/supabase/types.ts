@@ -1452,6 +1452,7 @@ export type Database = {
       }
       printer_settings: {
         Row: {
+          auto_accept_orders: boolean
           auto_connect: boolean
           connection_type: string
           created_at: string
@@ -1478,6 +1479,7 @@ export type Database = {
           use_double_total: boolean
         }
         Insert: {
+          auto_accept_orders?: boolean
           auto_connect?: boolean
           connection_type?: string
           created_at?: string
@@ -1504,6 +1506,7 @@ export type Database = {
           use_double_total?: boolean
         }
         Update: {
+          auto_accept_orders?: boolean
           auto_connect?: boolean
           connection_type?: string
           created_at?: string
