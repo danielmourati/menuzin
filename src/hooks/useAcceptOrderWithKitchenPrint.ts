@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
+import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
 import { printKitchenTicket } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
