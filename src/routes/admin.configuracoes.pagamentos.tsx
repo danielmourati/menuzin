@@ -236,7 +236,7 @@ function AdminPaymentSettingsPage() {
 
   if (loading) {
     return (
-      <AdminLayout title="Configurações de Pagamento">
+      <AdminLayout title="Configurações de Pagamento" backTo="/admin/configuracoes">
         <div className="flex h-64 items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <RefreshCw className="h-8 w-8 animate-spin text-primary" />
@@ -250,13 +250,7 @@ function AdminPaymentSettingsPage() {
   return (
     <AdminLayout
       title="Configurações de Pagamento"
-      action={
-        <Button asChild variant="outline" size="sm">
-          <Link to="/admin/configuracoes">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-          </Link>
-        </Button>
-      }
+      backTo="/admin/configuracoes"
     >
       <SettingsBreadcrumb current="Pagamento" />
       <div className="mx-auto max-w-4xl space-y-6">

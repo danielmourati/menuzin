@@ -14,12 +14,16 @@ export type TenantPrinter = {
   role: TenantPrinterRole;
   printer_name: string;
   paper_width: "55mm" | "80mm";
+  font_size: "compact" | "normal" | "large";
+  font_family: "mono" | "condensed" | "sans";
   is_active: boolean;
   is_default: boolean;
 };
 
 const RoleEnum = z.enum(["receipt", "kitchen", "bar", "counter", "other"]);
 const PaperEnum = z.enum(["55mm", "80mm"]);
+const FontSizeEnum = z.enum(["compact", "normal", "large"]).default("normal");
+const FontFamilyEnum = z.enum(["mono", "condensed", "sans"]).default("mono");
 
 const SaveInput = z.object({
   id: z.string().uuid().optional(),
@@ -27,6 +31,8 @@ const SaveInput = z.object({
   role: RoleEnum,
   printer_name: z.string().max(80).default(""),
   paper_width: PaperEnum.default("80mm"),
+  font_size: FontSizeEnum,
+  font_family: FontFamilyEnum,
   is_active: z.boolean().default(true),
   is_default: z.boolean().default(false),
 });
@@ -41,6 +47,8 @@ function rowToPrinter(row: Record<string, unknown>): TenantPrinter {
     role: (row.role as TenantPrinterRole) ?? "kitchen",
     printer_name: (row.printer_name as string) ?? "",
     paper_width: ((row.paper_width as string) === "55mm" ? "55mm" : "80mm"),
+    font_size: (row.font_size as TenantPrinter["font_size"]) ?? "normal",
+    font_family: (row.font_family as TenantPrinter["font_family"]) ?? "mono",
     is_active: row.is_active !== false,
     is_default: row.is_default === true,
   };
@@ -75,6 +83,8 @@ export const saveTenantPrinter = createServerFn({ method: "POST" })
       role: data.role,
       printer_name: data.printer_name,
       paper_width: data.paper_width,
+      font_size: data.font_size,
+      font_family: data.font_family,
       is_active: data.is_active,
       is_default: data.is_default,
     };

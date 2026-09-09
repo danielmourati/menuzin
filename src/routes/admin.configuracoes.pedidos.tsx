@@ -81,14 +81,7 @@ function OrderSettingsPage() {
   return (
     <AdminLayout
       title="Configurações de Pedidos"
-      action={
-        <Button asChild variant="outline" size="sm">
-          <Link to="/admin/configuracoes">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Link>
-        </Button>
-      }
+      backTo="/admin/configuracoes"
     >
       <SettingsBreadcrumb current="Pedidos" />
       <div className="max-w-2xl mx-auto space-y-6">

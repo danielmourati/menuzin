@@ -162,6 +162,7 @@ const ResolveInput = z.object({
   tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
   cep: z.string().max(20).optional().nullable(),
   neighborhood: z.string().max(120).optional().nullable(),
+  zone_id: z.string().uuid().optional().nullable(),
 });
 
 export const resolveDeliveryFee = createServerFn({ method: "POST" })
@@ -201,12 +202,27 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
     // mode === 'neighborhood'
     const { data: zones } = await supabaseAdmin
       .from("delivery_zones")
-      .select("neighborhood, fee, min_order_total, estimated_minutes, cep_start, cep_end")
+      .select("id, neighborhood, fee, min_order_total, estimated_minutes, cep_start, cep_end")
       .eq("tenant_id", tenant.id)
       .eq("active", true);
 
     const list = zones ?? [];
     const cep = cepDigits(data.cep);
+
+    // 0) Zone ID match
+    if (data.zone_id) {
+      const byId = list.find((z) => z.id === data.zone_id);
+      if (byId) {
+        return {
+          mode, available: true, fee: Number(byId.fee),
+          source: "neighborhood_by_name",
+          neighborhood: byId.neighborhood,
+          min_order_total: Number(byId.min_order_total),
+          estimated_minutes: byId.estimated_minutes,
+          message: null,
+        };
+      }
+    }
 
     // 1) CEP range match
     if (cep.length === 8) {
@@ -223,17 +239,22 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
       }
     }
 
-    // 2) neighborhood name match
+    // 2) Neighborhood name match
     const name = normalizeName(data.neighborhood ?? "");
     if (name) {
-      const byName = list.find((z) => normalizeName(z.neighborhood) === name);
-      if (byName) {
+      const matchingByName = list.filter((z) => normalizeName(z.neighborhood) === name);
+      if (matchingByName.length > 0) {
+        let best = matchingByName[0];
+        if (cep.length === 8) {
+          const cepMatch = matchingByName.find((z) => z.cep_start && z.cep_end && cep >= z.cep_start && cep <= z.cep_end);
+          if (cepMatch) best = cepMatch;
+        }
         return {
-          mode, available: true, fee: Number(byName.fee),
+          mode, available: true, fee: Number(best.fee),
           source: "neighborhood_by_name",
-          neighborhood: byName.neighborhood,
-          min_order_total: Number(byName.min_order_total),
-          estimated_minutes: byName.estimated_minutes,
+          neighborhood: best.neighborhood,
+          min_order_total: Number(best.min_order_total),
+          estimated_minutes: best.estimated_minutes,
           message: null,
         };
       }

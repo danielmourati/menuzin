@@ -228,7 +228,10 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
   const runStepTest = async (): Promise<boolean> => {
     updateStep("test", { status: "running", detail: undefined });
     try {
-      await printQzTextTest(form.printer_name, previewText);
+      await printQzTextTest(form.printer_name, previewText, {
+        feedLines: form.feed_lines,
+        cutType: form.cut_type,
+      });
       updateStep("test", { status: "ok", detail: "Cupom enviado para a impressora." });
       return true;
     } catch (e) {

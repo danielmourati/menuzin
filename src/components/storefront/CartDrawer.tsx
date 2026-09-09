@@ -130,6 +130,7 @@ export function CartDrawer({
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
   const [table, setTable] = useState("");
@@ -339,9 +340,11 @@ export function CartDrawer({
   // Resolve delivery fee from server (single source of truth).
   const cepDigitsOnly = cep.replace(/\D/g, "");
   const { data: feeResolution, isFetching: feeLoading } = useQuery<DeliveryFeeResolution>({
-    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood],
+    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood, selectedZoneId],
     queryFn: () =>
-      resolveDeliveryFee({ data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood } }),
+      resolveDeliveryFee({
+        data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood, zone_id: selectedZoneId },
+      }),
     enabled: !!slug && mode === "entrega",
     staleTime: 30_000,
   });
@@ -427,6 +430,7 @@ export function CartDrawer({
     setStreet("");
     setNumber("");
     setNeighborhood("");
+    setSelectedZoneId(null);
     setComplement("");
     setReference("");
     setTable("");
@@ -1199,16 +1203,47 @@ export function CartDrawer({
                 <div>
                   <Label>Bairro *</Label>
                   {deliveryMode === "neighborhood" && zones.length > 0 ? (
-                    <Select value={neighborhood} onValueChange={setNeighborhood}>
+                    <Select
+                      value={selectedZoneId ?? zones.find((x) => x.neighborhood === neighborhood)?.id ?? ""}
+                      onValueChange={(val) => {
+                        const matched = zones.find((x) => x.id === val);
+                        if (matched) {
+                          setSelectedZoneId(matched.id);
+                          setNeighborhood(matched.neighborhood);
+                          if (matched.cep_start && !cep) {
+                            const d = matched.cep_start.replace(/\D/g, "");
+                            const masked = d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+                            setCep(masked);
+                          }
+                        }
+                      }}
+                    >
                       <SelectTrigger className="mt-1.5 h-11">
                         <SelectValue placeholder="Selecione o bairro" />
                       </SelectTrigger>
                       <SelectContent>
-                        {zones.map((z) => (
-                          <SelectItem key={z.id} value={z.neighborhood}>
-                            {z.neighborhood} — {brl(z.fee)}
-                          </SelectItem>
-                        ))}
+                        {(() => {
+                          const nameCounts: Record<string, number> = {};
+                          for (const z of zones) {
+                            nameCounts[z.neighborhood] = (nameCounts[z.neighborhood] || 0) + 1;
+                          }
+                          const formatCep = (s?: string | null) => (s && s.length > 5 ? `${s.slice(0, 5)}-${s.slice(5)}` : s || "");
+                          return zones.map((z) => {
+                            const isDuplicate = (nameCounts[z.neighborhood] ?? 0) > 1;
+                            const rangeLabel = isDuplicate || z.cep_start
+                              ? z.cep_start && z.cep_end
+                                ? z.cep_start === z.cep_end
+                                  ? ` (CEP ${formatCep(z.cep_start)})`
+                                  : ` (CEP ${formatCep(z.cep_start)} a ${formatCep(z.cep_end)})`
+                                : ""
+                              : "";
+                            return (
+                              <SelectItem key={z.id} value={z.id}>
+                                {z.neighborhood}{rangeLabel} — {brl(z.fee)}
+                              </SelectItem>
+                            );
+                          });
+                        })()}
                       </SelectContent>
                     </Select>
                   ) : (

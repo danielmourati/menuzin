@@ -1459,6 +1459,7 @@ export type Database = {
           cut_type: string
           escpos_profile: string
           feed_lines: number
+          font_family?: string
           font_size: string
           id: string
           paper_width: string
@@ -1486,6 +1487,7 @@ export type Database = {
           cut_type?: string
           escpos_profile?: string
           feed_lines?: number
+          font_family?: string
           font_size?: string
           id?: string
           paper_width?: string
@@ -1513,6 +1515,7 @@ export type Database = {
           cut_type?: string
           escpos_profile?: string
           feed_lines?: number
+          font_family?: string
           font_size?: string
           id?: string
           paper_width?: string
@@ -2226,6 +2229,8 @@ export type Database = {
       tenant_printers: {
         Row: {
           created_at: string
+          font_family?: string
+          font_size?: string
           id: string
           is_active: boolean
           is_default: boolean
@@ -2238,6 +2243,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          font_family?: string
+          font_size?: string
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -2250,6 +2257,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          font_family?: string
+          font_size?: string
           id?: string
           is_active?: boolean
           is_default?: boolean

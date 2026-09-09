@@ -8,7 +8,8 @@ import { DEFAULT_PRINTER_SETTINGS, type PrinterSettings } from "@/lib/printer-ty
 const PaperWidth = z.enum(["55mm", "80mm"]);
 const ConnectionType = z.enum(["bluetooth", "usb", "network", "browser"]);
 const EscPosProfile = z.enum(["generic", "mini_bt_58", "generic_80", "elgin_i8_i9"]);
-const FontSize = z.enum(["normal", "compact"]);
+const FontSize = z.enum(["compact", "normal", "large"]);
+const FontFamily = z.enum(["mono", "condensed", "sans"]);
 const CutType = z.enum(["none", "partial", "full"]);
 
 const SaveInput = z.object({
@@ -17,7 +18,8 @@ const SaveInput = z.object({
   paper_width: PaperWidth,
   connection_type: ConnectionType,
   escpos_profile: EscPosProfile,
-  font_size: FontSize,
+  font_size: FontSize.default("normal"),
+  font_family: FontFamily.default("mono"),
   use_bold_titles: z.boolean(),
   use_double_total: z.boolean(),
   show_store_name: z.boolean(),
@@ -46,6 +48,7 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     connection_type: (row.connection_type as PrinterSettings["connection_type"]) ?? "browser",
     escpos_profile: (row.escpos_profile as PrinterSettings["escpos_profile"]) ?? "generic",
     font_size: (row.font_size as PrinterSettings["font_size"]) ?? "normal",
+    font_family: (row.font_family as PrinterSettings["font_family"]) ?? "mono",
     use_bold_titles: row.use_bold_titles !== false,
     use_double_total: row.use_double_total !== false,
     show_store_name: row.show_store_name !== false,

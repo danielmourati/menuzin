@@ -3,7 +3,8 @@
 export type PaperWidth = "55mm" | "80mm";
 export type ConnectionType = "bluetooth" | "usb" | "network" | "browser";
 export type EscPosProfile = "generic" | "mini_bt_58" | "generic_80" | "elgin_i8_i9";
-export type FontSize = "normal" | "compact";
+export type FontSize = "compact" | "normal" | "large";
+export type FontFamily = "mono" | "condensed" | "sans";
 export type CutType = "none" | "partial" | "full";
 
 export type PrinterSettings = {
@@ -15,6 +16,7 @@ export type PrinterSettings = {
   connection_type: ConnectionType;
   escpos_profile: EscPosProfile;
   font_size: FontSize;
+  font_family: FontFamily;
   use_bold_titles: boolean;
   use_double_total: boolean;
   show_store_name: boolean;
@@ -41,6 +43,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   connection_type: "browser",
   escpos_profile: "generic",
   font_size: "normal",
+  font_family: "mono",
   use_bold_titles: true,
   use_double_total: true,
   show_store_name: true,

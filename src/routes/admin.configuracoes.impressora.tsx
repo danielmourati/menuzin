@@ -353,7 +353,10 @@ function PrinterSettingsPage() {
     setQzBusy(true);
     const startedAt = performance.now();
     try {
-      await printQzTextTest(form.printer_name, previewText);
+      await printQzTextTest(form.printer_name, previewText, {
+        feedLines: form.feed_lines,
+        cutType: form.cut_type,
+      });
       setQzStatus("connected");
       setLastAttempt({
         at: new Date(), ok: true,
@@ -526,23 +529,18 @@ function PrinterSettingsPage() {
   return (
     <AdminLayout
       title="Impressora de Cupom"
+      backTo="/admin/configuracoes"
       action={
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/admin/configuracoes">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-            </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg" onClick={() => setWizardOpen(true)}>
+            <Printer className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Configurar impressora</span>
           </Button>
-
-          <Button variant="outline" onClick={() => setWizardOpen(true)}>
-            <Printer className="mr-2 h-4 w-4" />
-            Configurar impressora
-          </Button>
-          <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+          <Button size="sm" className="h-8 gap-1.5 px-3 text-xs font-semibold rounded-lg" onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
             {saveMut.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="h-3.5 w-3.5" />
             )}
             Salvar
           </Button>
@@ -556,10 +554,10 @@ function PrinterSettingsPage() {
         </div>
       ) : (
         <Tabs defaultValue="geral" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-xl">
-            <TabsTrigger value="geral">Conexão & Impressora</TabsTrigger>
-            <TabsTrigger value="layout">Layout do Cupom</TabsTrigger>
-            <TabsTrigger value="cozinha">Outras Impressoras</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 max-w-xl h-10 p-1 rounded-xl bg-muted/60">
+            <TabsTrigger value="geral" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Conexão & Impressora</TabsTrigger>
+            <TabsTrigger value="layout" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Layout do Cupom</TabsTrigger>
+            <TabsTrigger value="cozinha" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Outras Impressoras</TabsTrigger>
           </TabsList>
 
           <TabsContent value="geral" className="space-y-4 mt-4">
@@ -971,6 +969,20 @@ function PrinterSettingsPage() {
                   <CardContent className="space-y-4">
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
+                        <Label>Padrão da fonte</Label>
+                        <Select
+                          value={form.font_family ?? "mono"}
+                          onValueChange={(v) => set("font_family", v as PrinterSettings["font_family"])}
+                        >
+                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mono">Monoespaçada (Padrão Thermal)</SelectItem>
+                            <SelectItem value="condensed">Condensada (Compacta Font B)</SelectItem>
+                            <SelectItem value="sans">Sans-Serif (Limpa)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
                         <Label>Tamanho da fonte</Label>
                         <Select
                           value={form.font_size}
@@ -978,8 +990,9 @@ function PrinterSettingsPage() {
                         >
                           <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="normal">Normal</SelectItem>
-                            <SelectItem value="compact">Compacta</SelectItem>
+                            <SelectItem value="compact">Compacta (Pequena)</SelectItem>
+                            <SelectItem value="normal">Normal (Média)</SelectItem>
+                            <SelectItem value="large">Grande (Legível)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

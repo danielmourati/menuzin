@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft } from "lucide-react";
 import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
@@ -343,7 +343,7 @@ function OnboardingClaim() {
   );
 }
 
-export function AdminLayout({ children, title, action }: { children?: ReactNode; title?: string; action?: ReactNode }) {
+export function AdminLayout({ children, title, action, backTo }: { children?: ReactNode; title?: string; action?: ReactNode; backTo?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false); // sidebar expanded por padrão
   return (
@@ -379,6 +379,19 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
             >
               {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
             </Button>
+            {backTo && (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-all shrink-0"
+              >
+                <Link to={backTo}>
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Voltar</span>
+                </Link>
+              </Button>
+            )}
             <h1 className="text-base font-semibold lg:text-lg truncate">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
               <PrinterStatusIndicator />

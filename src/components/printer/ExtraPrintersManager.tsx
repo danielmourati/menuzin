@@ -47,6 +47,8 @@ function makeDraft(): DraftPrinter {
     role: "kitchen",
     printer_name: "",
     paper_width: "80mm",
+    font_size: "normal",
+    font_family: "mono",
     is_active: true,
     is_default: false,
     _dirty: true,
@@ -99,6 +101,8 @@ export function ExtraPrintersManager() {
           role: (d.role ?? "kitchen") as TenantPrinterRole,
           printer_name: d.printer_name ?? "",
           paper_width: (d.paper_width ?? "80mm") as "55mm" | "80mm",
+          font_size: (d.font_size ?? "normal") as "compact" | "normal" | "large",
+          font_family: (d.font_family ?? "mono") as "mono" | "condensed" | "sans",
           is_active: d.is_active ?? true,
           is_default: d.is_default ?? false,
         },
@@ -140,6 +144,7 @@ export function ExtraPrintersManager() {
       await printQzTextTest(
         d.printer_name,
         `=== TESTE ===\n${d.name}\n${ROLE_LABEL[(d.role ?? "kitchen") as TenantPrinterRole]}\nImpressao OK`,
+        { feedLines: 4, cutType: "partial" },
       );
       toast.success("Teste enviado");
     } catch (err) {
@@ -185,7 +190,7 @@ export function ExtraPrintersManager() {
       <div className="space-y-3">
         {drafts.map((d) => (
           <div key={d._localId} className="space-y-3 rounded-lg border bg-card p-3">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <Label className="text-xs">Nome</Label>
                 <Input
@@ -246,6 +251,34 @@ export function ExtraPrintersManager() {
                   <SelectContent>
                     <SelectItem value="80mm">80mm</SelectItem>
                     <SelectItem value="55mm">55mm (58mm)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Padrão da Fonte</Label>
+                <Select
+                  value={d.font_family ?? "mono"}
+                  onValueChange={(v) => updateDraft(d._localId, { font_family: v as "mono" | "condensed" | "sans" })}
+                >
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mono">Monoespaçada (Padrão)</SelectItem>
+                    <SelectItem value="condensed">Condensada (Compacta)</SelectItem>
+                    <SelectItem value="sans">Sans-Serif (Limpa)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Tamanho da Fonte</Label>
+                <Select
+                  value={d.font_size ?? "normal"}
+                  onValueChange={(v) => updateDraft(d._localId, { font_size: v as "compact" | "normal" | "large" })}
+                >
+                  <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="compact">Compacta (Pequena)</SelectItem>
+                    <SelectItem value="normal">Normal (Média)</SelectItem>
+                    <SelectItem value="large">Grande (Legível)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

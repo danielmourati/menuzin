@@ -266,9 +266,34 @@ export async function listQzPrintersWithDefault(): Promise<{
   };
 }
 
+/**
+ * Retorna a sequência de comandos de corte ESC/POS compatível com
+ * impressoras térmicas genéricas (Epson, Bematech, Elgin, Diebold)
+ * e especificamente o modelo Daruma DR800 / DR700.
+ *
+ * Evita o byte NUL (\x00) que é truncado por codificadores de string JS/WinSpool API,
+ * utilizando os caracteres ASCII GS V '0' (\x1DV0) e GS V '1' (\x1DV1),
+ * além das instruções nativas Daruma (ESC w / ESC m / ESC i).
+ */
+export function getCutSequence(cutType?: "none" | "partial" | "full"): string {
+  if (cutType === "full") {
+    // \x1DV0 (GS V '0' - ESC/POS Full Cut em ASCII '0' = 0x30, sem byte NUL)
+    // \x1Bw  (ESC w  - Daruma DR800 / DR700 corte total nativo)
+    // \x1Bi  (ESC i  - Daruma / Bematech / Elgin corte total em modo Dual)
+    return "\x1DV0\x1Bw\x1Bi";
+  }
+  if (cutType === "partial") {
+    // \x1DV1 (GS V '1' - ESC/POS Partial Cut em ASCII '1' = 0x31)
+    // \x1Bm  (ESC m  - Daruma DR800 / Bematech / Elgin corte parcial nativo)
+    return "\x1DV1\x1Bm";
+  }
+  return "";
+}
+
 export async function printQzTextTest(
   printerName: string | undefined,
   text: string,
+  opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" },
 ): Promise<void> {
   await withQzRetry(async (qz) => {
     let target = printerName?.trim();
@@ -280,8 +305,11 @@ export async function printQzTextTest(
       }
     }
     if (!target) throw new Error("Nenhuma impressora encontrada.");
+    const feed = Math.max(0, opts?.feedLines ?? 3);
+    const cut = getCutSequence(opts?.cutType ?? "full");
+    const payload = text + "\n".repeat(feed) + cut;
     const config = qz.configs.create(target, { encoding: "CP860" });
-    await qz.print(config, [text + "\n\n\n"]);
+    await qz.print(config, [payload]);
   });
 }
 
@@ -308,12 +336,7 @@ export async function printQzReceipt(
     if (!target) throw new Error("Nenhuma impressora configurada e nenhuma padrão no sistema.");
 
     const feed = Math.max(0, opts?.feedLines ?? 3);
-    const cut =
-      opts?.cutType === "full"
-        ? "\x1DV\x00"
-        : opts?.cutType === "partial"
-          ? "\x1Dm"
-          : "";
+    const cut = getCutSequence(opts?.cutType);
 
     const payload = text + "\n".repeat(feed) + cut;
     const config = qz.configs.create(target, { encoding: "CP860" });
