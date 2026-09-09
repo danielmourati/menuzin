@@ -36,7 +36,7 @@ function OrdersPage() {
     cancelOrder,
     updateOrderStatus: rawUpdateOrderStatus,
   } = useOrdersRealtime();
-  const { acceptOrder, updateOrderStatus } = useAcceptOrderWithKitchenPrint(
+  const { acceptOrder, updateOrderStatus, autoAcceptEnabled } = useAcceptOrderWithKitchenPrint(
     orders,
     rawUpdateOrderStatus,
   );
@@ -214,6 +214,7 @@ function OrdersPage() {
               onAccept={acceptOrder}
               onCancel={(order) => setCancellationOrderId(order.id)}
               onUpdateStatus={updateOrderStatus}
+              autoAcceptEnabled={autoAcceptEnabled}
             />
           )}
         </div>

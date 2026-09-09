@@ -61,6 +61,10 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     row.printer_model as string | undefined,
     row.font_family as string | undefined,
   );
+  const rawFontSize = row.font_size as string | undefined;
+  const mappedFontSize: PrinterSettings["font_size"] =
+    rawFontSize === "small" ? "compact" : rawFontSize === "large" ? "large" : "normal";
+
   return {
     id: row.id as string,
     tenant_id: row.tenant_id as string,
@@ -69,7 +73,7 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     paper_width: ((row.paper_width as string) === "58mm" ? "55mm" : (row.paper_width as PrinterSettings["paper_width"])) ?? "80mm",
     connection_type: (row.connection_type as PrinterSettings["connection_type"]) ?? "browser",
     escpos_profile: (row.escpos_profile as PrinterSettings["escpos_profile"]) ?? "generic",
-    font_size: (row.font_size as PrinterSettings["font_size"]) ?? "normal",
+    font_size: mappedFontSize,
     font_family: fontFamily,
     use_bold_titles: row.use_bold_titles !== false,
     use_double_total: row.use_double_total !== false,
@@ -113,14 +117,20 @@ export const saveMyPrinterSettings = createServerFn({ method: "POST" })
     if (!resolved?.tenantId) throw new Error("Usuário sem loja vinculada.");
 
     // Armazena font_family dentro de printer_model usando a tag "::ff:" (ex: "Generic thermal printer::ff:condensed").
-    // Isso evita o erro de coluna inexistente ("font_family not found") E respeita o check constraint de font_size.
-    const { font_family, printer_model, ...dbData } = data;
+    // E mapeia font_size "compact" -> "small" para respeitar o check constraint "printer_settings_font_size_check" ('small', 'normal', 'large').
+    const { font_family, printer_model, font_size, ...dbData } = data;
     const dbPrinterModel = `${printer_model}::ff:${font_family}`;
+    const dbFontSize = font_size === "compact" ? "small" : font_size === "large" ? "large" : "normal";
 
     const { data: row, error } = await supabaseAdmin
       .from("printer_settings")
       .upsert(
-        { tenant_id: resolved.tenantId, ...dbData, printer_model: dbPrinterModel },
+        {
+          tenant_id: resolved.tenantId,
+          ...dbData,
+          printer_model: dbPrinterModel,
+          font_size: dbFontSize,
+        },
         { onConflict: "tenant_id" },
       )
       .select("*")
