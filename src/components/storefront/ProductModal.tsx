@@ -66,6 +66,11 @@ export function ProductModal({
   const [crustId, setCrustId] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [imageOpen, setImageOpen] = useState(false);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  useEffect(() => {
+    if (open) setHasAttemptedSubmit(false);
+  }, [open, product?.id]);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -243,12 +248,6 @@ export function ProductModal({
 
   const isOptionSelected = (g: AddonGroup, o: AddonOption) =>
     (groupSelections[g.id] ?? []).includes(o.id);
-
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
-
-  useEffect(() => {
-    if (open) setHasAttemptedSubmit(false);
-  }, [open, product?.id]);
 
   const onAdd = () => {
     setHasAttemptedSubmit(true);
