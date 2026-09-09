@@ -142,12 +142,7 @@ function DeliveryZonesPage() {
       toast.success("Bairro salvo");
       setOpen(false);
     },
-    onError: (e: Error) => {
-      const msg = e.message.includes("delivery_zones_tenant_id_neighborhood_key") || e.message.includes("duplicate key")
-        ? "Já existe um bairro cadastrado com este nome nesta loja."
-        : e.message;
-      toast.error(msg);
-    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const delMut = useMutation({
@@ -176,12 +171,7 @@ function DeliveryZonesPage() {
         },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "delivery-zones"] }),
-    onError: (e: Error) => {
-      const msg = e.message.includes("delivery_zones_tenant_id_neighborhood_key") || e.message.includes("duplicate key")
-        ? "Já existe um bairro cadastrado com este nome nesta loja."
-        : e.message;
-      toast.error(msg);
-    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const list = data ?? [];
@@ -452,6 +442,11 @@ function DeliveryZonesPage() {
                   placeholder="Ex: Centro"
                   maxLength={120}
                 />
+                {editing.neighborhood.trim() && list.some((z) => z.id !== editing.id && stripAcc(z.neighborhood.trim()).toLowerCase() === stripAcc(editing.neighborhood.trim()).toLowerCase()) && (
+                  <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    Nota: Já existem faixas para este bairro. Esta ação adicionará uma nova faixa de CEP/preço para "{editing.neighborhood.trim()}".
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-3">

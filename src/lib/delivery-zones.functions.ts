@@ -86,21 +86,11 @@ export const upsertDeliveryZone = createServerFn({ method: "POST" })
     };
     if (data.id) {
       const { error } = await supabase.from("delivery_zones").update(payload).eq("id", data.id);
-      if (error) {
-        if (error.code === "23505" || error.message.includes("delivery_zones_tenant_id_neighborhood_key") || error.message.includes("duplicate key")) {
-          throw new Error(`Já existe um bairro cadastrado com o nome "${data.neighborhood.trim()}".`);
-        }
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
       return { ok: true };
     }
     const { error } = await supabase.from("delivery_zones").insert(payload);
-    if (error) {
-      if (error.code === "23505" || error.message.includes("delivery_zones_tenant_id_neighborhood_key") || error.message.includes("duplicate key")) {
-        throw new Error(`Já existe um bairro cadastrado com o nome "${data.neighborhood.trim()}".`);
-      }
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 
