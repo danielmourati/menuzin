@@ -57,8 +57,8 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   separator_char: "-",
   cut_type: "none",
   feed_lines: 3,
-  auto_connect: false,
-  auto_accept_orders: false,
+  auto_connect: true,
+  auto_accept_orders: true,
 };
 
 

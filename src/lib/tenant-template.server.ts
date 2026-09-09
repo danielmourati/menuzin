@@ -131,6 +131,8 @@ export async function applyTenantTemplate(tenantId: string): Promise<TemplateRep
     delete base.updated_at;
     delete base.printer_name; // específico da máquina do dono
     base.tenant_id = tenantId;
+    base.auto_connect = true;
+    base.auto_accept_orders = true;
     await supabaseAdmin.from("printer_settings").insert(base as never);
     report.created.push("printer_settings");
   }
