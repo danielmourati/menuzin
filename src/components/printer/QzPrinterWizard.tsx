@@ -427,11 +427,21 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
                       <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
+                          variant="default"
+                          onClick={handleDownloadCert}
+                          disabled={busy !== null}
+                        >
+                          <Download className="mr-1.5 h-3.5 w-3.5" />
+                          Baixar cert.pem (Todos os SOs)
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={handleDownloadInstaller}
                           disabled={busy !== null}
                         >
                           <Download className="mr-1.5 h-3.5 w-3.5" />
-                          Baixar configurador Menuzin (.bat)
+                          Configurador Windows (.bat)
                         </Button>
                         <Button
                           size="sm"
@@ -448,41 +458,8 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Clique direito no arquivo → <strong>Executar como administrador</strong>.
-                        Ao final, volte aqui e clique em <em>Testar de novo</em>.
+                        No Windows, execute o <code>.bat</code> como administrador ou copie <code>cert.pem</code> para a pasta do QZ Tray (<code>allowed.pem</code>). No macOS/Linux, copie <code>cert.pem</code> para a pasta do QZ Tray.
                       </p>
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowLinuxMac((v) => !v)}
-                      >
-                        <ChevronDown
-                          className={
-                            "h-3 w-3 transition-transform " +
-                            (showLinuxMac ? "rotate-180" : "")
-                          }
-                        />
-                        Não estou no Windows
-                      </button>
-                      {showLinuxMac && (
-                        <div className="space-y-1 rounded-md border bg-muted/30 p-2 text-[11px] text-muted-foreground">
-                          <p>
-                            Baixe o cert e copie para o caminho do seu sistema, depois reinicie o QZ Tray:
-                          </p>
-                          <ul className="ml-3 list-disc space-y-0.5">
-                            <li>
-                              macOS:{" "}
-                              <code>/Library/Application Support/qz/data/certificates/allowed.pem</code>
-                            </li>
-                            <li>
-                              Linux: <code>/etc/qz/data/certificates/allowed.pem</code>
-                            </li>
-                          </ul>
-                          <Button size="sm" variant="outline" onClick={handleDownloadCert}>
-                            <Download className="mr-1.5 h-3.5 w-3.5" /> Baixar cert.pem
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   )}
 

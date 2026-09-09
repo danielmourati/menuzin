@@ -20,6 +20,7 @@ const SaveInput = z.object({
   escpos_profile: EscPosProfile,
   font_size: FontSize.default("normal"),
   font_family: FontFamily.default("mono"),
+  use_default_typography: z.boolean().default(true),
   use_bold_titles: z.boolean(),
   use_double_total: z.boolean(),
   show_store_name: z.boolean(),
@@ -41,52 +42,43 @@ function parseModelAndFonts(rawModel?: string, rawFontSize?: string, rawFontFami
   printerModel: string;
   fontSize: PrinterSettings["font_size"];
   fontFamily: PrinterSettings["font_family"];
+  useDefaultTypography: boolean;
 } {
-  const defaultModel = DEFAULT_PRINTER_SETTINGS.printer_model;
-  if (!rawModel) {
-    const fs: PrinterSettings["font_size"] =
-      rawFontSize === "small" || rawFontSize === "compact" ? "compact" : rawFontSize === "large" ? "large" : "normal";
-    return {
-      printerModel: defaultModel,
-      fontSize: fs,
-      fontFamily: (rawFontFamily as PrinterSettings["font_family"]) ?? "mono",
-    };
+  let modelStr = rawModel || DEFAULT_PRINTER_SETTINGS.printer_model;
+  let useDefaultTypography = true;
+
+  if (modelStr.includes("::dt:")) {
+    const parts = modelStr.split("::dt:");
+    modelStr = parts[0];
+    useDefaultTypography = parts[1] !== "0" && parts[1] !== "false";
   }
 
-  if (rawModel.includes("::fs:")) {
-    const [modelAndFs, family] = rawModel.split("::ff:");
-    const [model, size] = modelAndFs.split("::fs:");
-    return {
-      printerModel: model || defaultModel,
-      fontSize: (size as PrinterSettings["font_size"]) ?? "normal",
-      fontFamily: (family as PrinterSettings["font_family"]) ?? "mono",
-    };
+  let fontFamily: PrinterSettings["font_family"] = (rawFontFamily as PrinterSettings["font_family"]) ?? "mono";
+  if (modelStr.includes("::ff:")) {
+    const parts = modelStr.split("::ff:");
+    modelStr = parts[0];
+    fontFamily = (parts[1] as PrinterSettings["font_family"]) ?? "mono";
   }
 
-  if (rawModel.includes("::ff:")) {
-    const [model, family] = rawModel.split("::ff:");
-    const fs: PrinterSettings["font_size"] =
-      rawFontSize === "small" || rawFontSize === "compact" ? "compact" : rawFontSize === "large" ? "large" : "normal";
-    return {
-      printerModel: model || defaultModel,
-      fontSize: fs,
-      fontFamily: (family as PrinterSettings["font_family"]) ?? "mono",
-    };
-  }
-
-  const fs: PrinterSettings["font_size"] =
+  let fontSize: PrinterSettings["font_size"] =
     rawFontSize === "small" || rawFontSize === "compact" ? "compact" : rawFontSize === "large" ? "large" : "normal";
+  if (modelStr.includes("::fs:")) {
+    const parts = modelStr.split("::fs:");
+    modelStr = parts[0];
+    fontSize = (parts[1] as PrinterSettings["font_size"]) ?? "normal";
+  }
 
   return {
-    printerModel: rawModel,
-    fontSize: fs,
-    fontFamily: (rawFontFamily as PrinterSettings["font_family"]) ?? "mono",
+    printerModel: modelStr || DEFAULT_PRINTER_SETTINGS.printer_model,
+    fontSize,
+    fontFamily,
+    useDefaultTypography,
   };
 }
 
 function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
   if (!row) return { ...DEFAULT_PRINTER_SETTINGS };
-  const { printerModel, fontSize, fontFamily } = parseModelAndFonts(
+  const { printerModel, fontSize, fontFamily, useDefaultTypography } = parseModelAndFonts(
     row.printer_model as string | undefined,
     row.font_size as string | undefined,
     row.font_family as string | undefined,
@@ -102,6 +94,7 @@ function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
     escpos_profile: (row.escpos_profile as PrinterSettings["escpos_profile"]) ?? "generic",
     font_size: fontSize,
     font_family: fontFamily,
+    use_default_typography: useDefaultTypography,
     use_bold_titles: row.use_bold_titles !== false,
     use_double_total: row.use_double_total !== false,
     show_store_name: row.show_store_name !== false,
@@ -143,10 +136,10 @@ export const saveMyPrinterSettings = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Usuário sem loja vinculada.");
 
-    // Armazena font_size E font_family dentro de printer_model usando a tag "::fs:compact::ff:mono".
-    // Isso garante que font_size passe no check constraint "printer_settings_font_size_check" da tabela PostgreSQL.
-    const { font_family, printer_model, font_size, ...dbData } = data;
-    const dbPrinterModel = `${printer_model}::fs:${font_size}::ff:${font_family}`;
+    // Armazena font_size, font_family e use_default_typography dentro de printer_model usando tags.
+    // Isso garante compatibilidade total com a tabela PostgreSQL.
+    const { font_family, printer_model, font_size, use_default_typography, ...dbData } = data;
+    const dbPrinterModel = `${printer_model}::fs:${font_size}::ff:${font_family}::dt:${use_default_typography ? '1' : '0'}`;
 
     const { data: row, error } = await supabaseAdmin
       .from("printer_settings")

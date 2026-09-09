@@ -17,6 +17,7 @@ export type PrinterSettings = {
   escpos_profile: EscPosProfile;
   font_size: FontSize;
   font_family: FontFamily;
+  use_default_typography: boolean;
   use_bold_titles: boolean;
   use_double_total: boolean;
   show_store_name: boolean;
@@ -44,6 +45,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   escpos_profile: "generic",
   font_size: "normal",
   font_family: "mono",
+  use_default_typography: true,
   use_bold_titles: true,
   use_double_total: true,
   show_store_name: true,

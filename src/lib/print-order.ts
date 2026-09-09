@@ -5,6 +5,7 @@ import type { PrinterSettings } from "@/lib/printer-types";
 import { columnsFor } from "@/lib/printer-types";
 import { buildReceipt, type ReceiptStoreInfo } from "@/lib/receipt-builder";
 import { printQzReceipt } from "@/lib/qz-tray";
+import { getEffectivePrinterName } from "@/lib/device-printer";
 
 export async function printOrderViaQz(
   order: Order,
@@ -13,7 +14,8 @@ export async function printOrderViaQz(
 ): Promise<{ printer: string }> {
   const cols = columnsFor(settings.paper_width);
   const text = buildReceipt(order, cols, settings, storeInfo);
-  return printQzReceipt(settings.printer_name, text, {
+  const effectivePrinter = getEffectivePrinterName(settings.printer_name, settings.tenant_id);
+  return printQzReceipt(effectivePrinter, text, {
     feedLines: settings.feed_lines,
     cutType: settings.cut_type,
   });

@@ -87,26 +87,49 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
               2
             </span>
-            <div className="flex-1">
-              <div className="font-medium">Baixe e rode o configurador Menuzin (Windows)</div>
-              <Button
-                size="sm"
-                onClick={handleDownloadInstaller}
-                disabled={installing}
-                className="mt-1.5"
-              >
-                {installing ? (
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                )}
-                menuzin-qz-setup.bat
-              </Button>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Clique direito → <strong>Executar como administrador</strong>. Ele já
-                instala e confia no certificado para você. Se aparecer o SmartScreen
-                azul, clique em <em>Mais informações → Executar assim mesmo</em>.
+            <div className="flex-1 space-y-2">
+              <div className="font-medium">Certificado de Segurança (cert.pem) — Obrigatório para todos os SOs</div>
+              <p className="text-xs text-muted-foreground">
+                O arquivo <code className="font-semibold text-foreground">cert.pem</code> é <strong>imprescindível</strong> para que o QZ Tray reconheça o Menuzin e imprima sem pop-ups de segurança.
               </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={handleDownloadCert}
+                  disabled={downloadingCert}
+                  className="h-8 gap-1.5 text-xs font-semibold"
+                >
+                  {downloadingCert ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  Baixar cert.pem (Todos os sistemas)
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadInstaller}
+                  disabled={installing}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {installing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  Auto-configurador (Windows .bat)
+                </Button>
+              </div>
+
+              <div className="rounded-md bg-muted/40 p-2.5 text-xs text-muted-foreground space-y-1">
+                <div>• <strong>No Windows:</strong> Execute o <code>menuzin-qz-setup.bat</code> como administrador ou copie o <code>cert.pem</code> para <code>%PROGRAMDATA%\qz\data\certificates\allowed.pem</code>.</div>
+                <div>• <strong>No macOS:</strong> Copie para <code>/Library/Application Support/qz/data/certificates/allowed.pem</code>.</div>
+                <div>• <strong>No Linux:</strong> Copie para <code>/etc/qz/data/certificates/allowed.pem</code>.</div>
+              </div>
             </div>
           </li>
 
@@ -125,33 +148,7 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
           </li>
         </ol>
 
-        <details className="text-xs text-muted-foreground">
-          <summary className="cursor-pointer select-none">
-            Não estou no Windows ou preciso do cert.pem
-          </summary>
-          <div className="mt-2 space-y-2 text-foreground">
-            <p>
-              Baixe o cert e coloque-o no caminho correto do seu sistema, depois
-              reinicie o QZ Tray:
-            </p>
-            <ul className="ml-3 list-disc space-y-0.5 text-xs">
-              <li>
-                macOS: <code>/Library/Application Support/qz/data/certificates/allowed.pem</code>
-              </li>
-              <li>
-                Linux: <code>/etc/qz/data/certificates/allowed.pem</code>
-              </li>
-            </ul>
-            <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={downloadingCert}>
-              {downloadingCert ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Download className="mr-1.5 h-3.5 w-3.5" />
-              )}
-              cert.pem
-            </Button>
-          </div>
-        </details>
+
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

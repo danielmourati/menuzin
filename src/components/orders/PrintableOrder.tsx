@@ -32,15 +32,18 @@ export function PrintableOrder({
   const width = paperWidth ?? s.paper_width;
   const isNarrow = width === "55mm";
   const cols = columnsFor(width);
-  const fontStyle = s.font_family === "sans"
+  const effectiveFontFamily = s.use_default_typography !== false ? "mono" : s.font_family;
+  const effectiveFontSize = s.use_default_typography !== false ? "normal" : s.font_size;
+
+  const fontStyle = effectiveFontFamily === "sans"
     ? 'system-ui, -apple-system, sans-serif'
-    : s.font_family === "condensed"
+    : effectiveFontFamily === "condensed"
       ? '"Consolas", "Courier New", monospace'
       : '"Courier New", Courier, monospace';
 
   const fontSize = isNarrow
-    ? (s.font_size === "compact" ? "8px" : s.font_size === "large" ? "10px" : "9px")
-    : (s.font_size === "compact" ? "10px" : s.font_size === "large" ? "12px" : "11px");
+    ? (effectiveFontSize === "compact" ? "8px" : effectiveFontSize === "large" ? "10px" : "9px")
+    : (effectiveFontSize === "compact" ? "10px" : effectiveFontSize === "large" ? "12px" : "11px");
   const widthClass = isNarrow ? "max-w-[55mm]" : "max-w-[80mm]";
   const pageMargin = isNarrow ? "1mm" : "2mm";
 

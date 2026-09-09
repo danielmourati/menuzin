@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
 import { printOrderViaQz } from "@/lib/print-order";
 import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/lib/qz-tray";
+import { getEffectivePrinterName } from "@/lib/device-printer";
 
 interface PrintOrderButtonProps {
   order: Order;
@@ -66,7 +67,8 @@ export function PrintOrderButton({
     setPrinting(true);
     const toastId = toast.loading("Verificando impressora...");
     try {
-      const status = await getQzPrinterStatus(settings.printer_name);
+      const targetPrinter = getEffectivePrinterName(settings.printer_name, settings.tenant_id);
+      const status = await getQzPrinterStatus(targetPrinter);
       if (!status.ok) {
         toast.error(status.reason || "Impressora indisponível.", {
           id: toastId,

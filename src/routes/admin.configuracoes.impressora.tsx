@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download, Stethoscope, ChevronDown, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download, Stethoscope, ChevronDown, Eye, EyeOff, ArrowLeft, Laptop } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -20,6 +20,7 @@ import {
 import {
   DEFAULT_PRINTER_SETTINGS, columnsFor, type PrinterSettings,
 } from "@/lib/printer-types";
+import { getDevicePrinter, setDevicePrinter, getEffectivePrinterName } from "@/lib/device-printer";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { buildReceiptPreviewText } from "@/lib/receipt-preview";
 import {
@@ -106,8 +107,22 @@ function PrinterSettingsPage() {
   const trustStorageKey = tenantId ? `qz:trust:${tenantId}` : "qz:trust:default";
   const lastAttemptStorageKey = tenantId ? `qz:last-attempt:${tenantId}` : "qz:last-attempt:default";
   const wizardSeenKey = tenantId ? `qz:wizard-seen:${tenantId}` : "qz:wizard-seen:default";
-
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [devicePrinter, setDevicePrinterState] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setDevicePrinterState(getDevicePrinter(tenantId ?? undefined));
+  }, [tenantId]);
+
+  const handleSetDevicePrinter = (name: string | null) => {
+    setDevicePrinter(name, tenantId ?? undefined);
+    setDevicePrinterState(name);
+    if (name) {
+      toast.success(`Impressora deste dispositivo salva: "${name}"`);
+    } else {
+      toast.success("Dispositivo configurado para usar a impressora padrão da loja.");
+    }
+  };
 
   const [qzTrustState, setQzTrustState] = useState<"unknown" | "trusted" | "prompted">("unknown");
   useEffect(() => {
@@ -352,8 +367,9 @@ function PrinterSettingsPage() {
   const handleTestPrint = async () => {
     setQzBusy(true);
     const startedAt = performance.now();
+    const targetPrinter = getEffectivePrinterName(form.printer_name, tenantId ?? undefined);
     try {
-      await printQzTextTest(form.printer_name, previewText, {
+      await printQzTextTest(targetPrinter, previewText, {
         feedLines: form.feed_lines,
         cutType: form.cut_type,
       });
@@ -361,7 +377,7 @@ function PrinterSettingsPage() {
       setLastAttempt({
         at: new Date(), ok: true,
         durationMs: Math.round(performance.now() - startedAt),
-        action: `Teste de impressão${form.printer_name ? ` → ${form.printer_name}` : ""}`,
+        action: `Teste de impressão${targetPrinter ? ` → ${targetPrinter}` : ""}`,
       });
       toast.success("Teste de impressão enviado com sucesso.");
     } catch (e) {
@@ -802,39 +818,34 @@ function PrinterSettingsPage() {
                   </div>
                 )}
 
-                <div className="rounded-lg border bg-muted/40 p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium">Configurar confiança permanente (Windows)</div>
-                        {serverCertReady ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
-                            <CheckCircle2 className="h-3 w-3" /> Cert próprio: {qzCert?.subjectCN}
-                          </span>
-                        ) : null}
+                <div className="rounded-lg border bg-primary/5 border-primary/20 p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 font-semibold text-sm">
+                        <Download className="h-4 w-4 text-primary" />
+                        Certificado de Segurança QZ Tray (cert.pem)
                       </div>
-                      <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-xs text-muted-foreground">
-                        <li>Baixe o instalador abaixo.</li>
-                        <li>Clique direito → <strong>Executar como administrador</strong>.</li>
-                        <li>Volte aqui e clique em <strong>Detectar</strong>. O prompt não deve mais aparecer.</li>
-                      </ol>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        O arquivo <code className="font-semibold text-foreground">cert.pem</code> é <strong>obrigatório em todos os sistemas operacionais</strong> (Windows, macOS e Linux) para autorizar impressões silenciosas.
+                      </p>
                     </div>
-                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleDownloadInstaller} disabled={installerBusy || isDemoCert}>
-                      {installerBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                      Baixar instalador
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="default" className="h-8 gap-1.5 text-xs font-semibold" onClick={handleDownloadCert} disabled={certBusy}>
+                        {certBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        Baixar cert.pem (Todos os SOs)
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleDownloadInstaller} disabled={installerBusy || isDemoCert}>
+                        {installerBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        Instalador Windows (.bat)
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="rounded border bg-background/60 p-2.5 text-xs text-muted-foreground space-y-1">
+                    <div>• <strong>Windows:</strong> Baixe o <code>cert.pem</code> e copie para <code>%PROGRAMDATA%\qz\data\certificates\allowed.pem</code> (ou rode o instalador .bat como admin).</div>
+                    <div>• <strong>macOS:</strong> Copie para <code>/Library/Application Support/qz/data/certificates/allowed.pem</code>.</div>
+                    <div>• <strong>Linux:</strong> Copie para <code>/etc/qz/data/certificates/allowed.pem</code>.</div>
                   </div>
                 </div>
-
-                <details className="text-xs text-muted-foreground">
-                  <summary className="cursor-pointer select-none">Instalação manual (avançado / macOS / Linux)</summary>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={handleDownloadCert} disabled={certBusy}>
-                      {certBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
-                      Baixar cert.pem
-                    </Button>
-                  </div>
-                </details>
               </CardContent>
             </Card>
 
@@ -842,9 +853,68 @@ function PrinterSettingsPage() {
             <Card>
               <CardHeader><CardTitle className="text-base">Impressora</CardTitle></CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-2">
+                {/* Reconhecimento por Dispositivo (Local) */}
+                <div className="md:col-span-2 rounded-lg border bg-muted/30 p-3.5 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-sm font-semibold flex items-center gap-2">
+                      <Laptop className="h-4 w-4 text-primary" />
+                      Impressora deste Computador / Dispositivo (Local)
+                    </div>
+                    {devicePrinter ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-600/10 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-400">
+                        <CheckCircle2 className="h-3 w-3" /> Específica desta máquina: {devicePrinter}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        Usando Padrão da Nuvem ({form.printer_name || "Nenhuma"})
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A impressora abaixo ("Padrão da Nuvem") reflete em todos os dispositivos da loja. Selecione abaixo caso esta máquina/terminal deva imprimir em uma impressora local específica.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {qzPrinters.length > 0 ? (
+                      <Select
+                        value={devicePrinter || "__STORE_DEFAULT__"}
+                        onValueChange={(v) => handleSetDevicePrinter(v === "__STORE_DEFAULT__" ? null : v)}
+                      >
+                        <SelectTrigger className="w-full sm:w-80 h-9 text-xs font-medium bg-background">
+                          <SelectValue placeholder="Selecione para este dispositivo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__STORE_DEFAULT__">
+                            Usar Padrão da Nuvem / Loja ({form.printer_name || "Sem impressora"})
+                          </SelectItem>
+                          {qzPrinters.map((p) => (
+                            <SelectItem key={`dev-${p.name}`} value={p.name}>
+                              {p.name} (Apenas este dispositivo)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Clique em <strong>Detectar</strong> no topo da página para escolher a impressora local desta máquina.</span>
+                      </div>
+                    )}
+                    {devicePrinter && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-9 text-xs"
+                        onClick={() => handleSetDevicePrinter(null)}
+                      >
+                        Voltar para Padrão da Loja
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <Label>Nome da impressora</Label>
+                    <Label>Nome da impressora (Padrão da Nuvem)</Label>
                     {qzPrinters.length > 0 && (
                       <button
                         type="button"
@@ -967,11 +1037,33 @@ function PrinterSettingsPage() {
                 <Card>
                   <CardHeader><CardTitle className="text-base">Layout do cupom</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Toggle Configuração Padrão de Tipografia */}
+                    <div className="rounded-lg border p-3.5 bg-muted/20 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-semibold">Usar configuração padrão do sistema</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Utiliza a tipografia padrão recomendada (Fonte Monoespaçada e Tamanho Normal) sem customizações manuais.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={form.use_default_typography ?? true}
+                          onCheckedChange={(v) => set("use_default_typography", v)}
+                        />
+                      </div>
+                      {form.use_default_typography && (
+                        <div className="text-xs text-amber-800 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-md p-2">
+                          A tipografia padrão do sistema está ativa. Os seletores de fonte e tamanho abaixo ficam desabilitados. Para personalizar manualmente, desative a chave acima.
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
-                        <Label>Padrão da fonte</Label>
+                        <Label className={form.use_default_typography ? "opacity-60" : ""}>Padrão da fonte</Label>
                         <Select
-                          value={form.font_family ?? "mono"}
+                          disabled={form.use_default_typography ?? true}
+                          value={form.use_default_typography ? "mono" : (form.font_family ?? "mono")}
                           onValueChange={(v) => set("font_family", v as PrinterSettings["font_family"])}
                         >
                           <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
@@ -983,9 +1075,10 @@ function PrinterSettingsPage() {
                         </Select>
                       </div>
                       <div>
-                        <Label>Tamanho da fonte</Label>
+                        <Label className={form.use_default_typography ? "opacity-60" : ""}>Tamanho da fonte</Label>
                         <Select
-                          value={form.font_size}
+                          disabled={form.use_default_typography ?? true}
+                          value={form.use_default_typography ? "normal" : form.font_size}
                           onValueChange={(v) => set("font_size", v as PrinterSettings["font_size"])}
                         >
                           <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
