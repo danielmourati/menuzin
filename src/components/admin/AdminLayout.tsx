@@ -382,13 +382,13 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
             {backTo && (
               <Button
                 asChild
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                className="h-8 gap-1.5 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-all shrink-0"
+                className="h-8 gap-1.5 px-3 text-xs font-semibold text-foreground bg-background hover:bg-accent border-border shadow-xs rounded-lg transition-all shrink-0 mr-1"
               >
                 <Link to={backTo}>
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="hidden sm:inline">Voltar</span>
+                  <ArrowLeft className="h-3.5 w-3.5 text-primary" />
+                  <span>Voltar</span>
                 </Link>
               </Button>
             )}

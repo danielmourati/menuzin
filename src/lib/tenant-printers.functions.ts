@@ -39,16 +39,48 @@ const SaveInput = z.object({
 
 const DeleteInput = z.object({ id: z.string().uuid() });
 
+function parsePaperWidthAndFonts(rawPaperWidth?: string, rawFontSize?: string, rawFontFamily?: string): {
+  paperWidth: "55mm" | "80mm";
+  fontSize: TenantPrinter["font_size"];
+  fontFamily: TenantPrinter["font_family"];
+} {
+  if (!rawPaperWidth) {
+    return {
+      paperWidth: "80mm",
+      fontSize: (rawFontSize as TenantPrinter["font_size"]) ?? "normal",
+      fontFamily: (rawFontFamily as TenantPrinter["font_family"]) ?? "mono",
+    };
+  }
+  if (rawPaperWidth.includes(":")) {
+    const [w, size, family] = rawPaperWidth.split(":");
+    return {
+      paperWidth: w === "55mm" || w === "58mm" ? "55mm" : "80mm",
+      fontSize: (size as TenantPrinter["font_size"]) ?? "normal",
+      fontFamily: (family as TenantPrinter["font_family"]) ?? "mono",
+    };
+  }
+  return {
+    paperWidth: rawPaperWidth === "55mm" || rawPaperWidth === "58mm" ? "55mm" : "80mm",
+    fontSize: (rawFontSize as TenantPrinter["font_size"]) ?? "normal",
+    fontFamily: (rawFontFamily as TenantPrinter["font_family"]) ?? "mono",
+  };
+}
+
 function rowToPrinter(row: Record<string, unknown>): TenantPrinter {
+  const { paperWidth, fontSize, fontFamily } = parsePaperWidthAndFonts(
+    row.paper_width as string | undefined,
+    row.font_size as string | undefined,
+    row.font_family as string | undefined,
+  );
   return {
     id: row.id as string,
     tenant_id: row.tenant_id as string,
     name: (row.name as string) ?? "",
     role: (row.role as TenantPrinterRole) ?? "kitchen",
     printer_name: (row.printer_name as string) ?? "",
-    paper_width: ((row.paper_width as string) === "55mm" ? "55mm" : "80mm"),
-    font_size: (row.font_size as TenantPrinter["font_size"]) ?? "normal",
-    font_family: (row.font_family as TenantPrinter["font_family"]) ?? "mono",
+    paper_width: paperWidth,
+    font_size: fontSize,
+    font_family: fontFamily,
     is_active: row.is_active !== false,
     is_default: row.is_default === true,
   };
@@ -77,17 +109,20 @@ export const saveTenantPrinter = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Usuário sem loja vinculada.");
     await requireProPlan(resolved.tenantId);
+
+    // Codifica font_size e font_family dentro de paper_width (ex: "80mm:normal:mono") para evitar
+    // erro de coluna inexistente no schema do Supabase caso a tabela física não tenha essas colunas.
+    const dbPaperWidth = `${data.paper_width}:${data.font_size}:${data.font_family}`;
     const payload = {
       tenant_id: resolved.tenantId,
       name: data.name,
       role: data.role,
       printer_name: data.printer_name,
-      paper_width: data.paper_width,
-      font_size: data.font_size,
-      font_family: data.font_family,
+      paper_width: dbPaperWidth,
       is_active: data.is_active,
       is_default: data.is_default,
     };
+
     if (data.id) {
       const { data: row, error } = await supabaseAdmin
         .from("tenant_printers")
