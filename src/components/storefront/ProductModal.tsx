@@ -244,17 +244,45 @@ export function ProductModal({
   const isOptionSelected = (g: AddonGroup, o: AddonOption) =>
     (groupSelections[g.id] ?? []).includes(o.id);
 
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  useEffect(() => {
+    if (open) setHasAttemptedSubmit(false);
+  }, [open, product?.id]);
+
   const onAdd = () => {
+    setHasAttemptedSubmit(true);
+
     if (!canAdd) {
-      toast.error(validations[0] ?? "Selecione as opções obrigatórias");
+      toast.error(validations[0] ?? "Selecione as opções obrigatórias", {
+        description: "Preencha os campos destacados em vermelho para continuar.",
+      });
+      setTimeout(() => {
+        const firstInvalid = scrollRef.current?.querySelector('[data-invalid="true"]');
+        if (firstInvalid) {
+          firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 50);
       return;
     }
     if (showPizzaExtras && pizzaDoughs.length > 0 && !selectedDough) {
       toast.error("Escolha a massa da pizza");
+      setTimeout(() => {
+        const firstInvalid = scrollRef.current?.querySelector('[data-invalid="true"]');
+        if (firstInvalid) {
+          firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 50);
       return;
     }
     if (showPizzaExtras && crustMode === "customer_choice" && !selectedCrust) {
       toast.error("Escolha sua borda grátis");
+      setTimeout(() => {
+        const firstInvalid = scrollRef.current?.querySelector('[data-invalid="true"]');
+        if (firstInvalid) {
+          firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 50);
       return;
     }
     const extras: ProductAddon[] = [];
@@ -409,7 +437,7 @@ export function ProductModal({
 
           {/* Tamanhos (pizza-category) */}
           {isPizzaCategory && visiblePizzaSizes.length > 0 && (
-            <Section title="Tamanho" required>
+            <Section title="Tamanho" required isInvalid={hasAttemptedSubmit && !selectedPizzaSize}>
               <RadioGroup value={sizeId ?? ""} onValueChange={(v) => {
                 setSizeId(v);
                 const nextSize = visiblePizzaSizes.find((s) => s.id === v);
@@ -446,7 +474,7 @@ export function ProductModal({
 
           {/* Tamanhos (standard) */}
           {!isPizzaCategory && product.sizes && product.sizes.length > 0 && (
-            <Section title="Tamanho" required>
+            <Section title="Tamanho" required isInvalid={hasAttemptedSubmit && !sizeId}>
               <RadioGroup value={sizeId ?? ""} onValueChange={setSizeId} className="mt-2 space-y-2">
                 {product.sizes.map((s) => (
                   <label key={s.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
@@ -466,6 +494,7 @@ export function ProductModal({
             <Section
               title="Sabores"
               required
+              isInvalid={hasAttemptedSubmit && selectedPizzaFlavors.length < pizzaMaxFlavors}
               hint={`Escolha ${pizzaMaxFlavors} sabores (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
             >
               <div className="mt-2 space-y-2">
@@ -514,6 +543,7 @@ export function ProductModal({
             <Section
               title={`Sabores`}
               required
+              isInvalid={hasAttemptedSubmit && flavorIds.length < 1}
               hint={`Escolha até ${maxFlavors} (${selectedFlavors.length}/${maxFlavors})`}
             >
               <div className="mt-2 space-y-2">
@@ -540,7 +570,7 @@ export function ProductModal({
 
           {/* Massa da pizza (categoria pizza) */}
           {showPizzaExtras && pizzaDoughs.length > 0 && (
-            <Section title="Massa" required>
+            <Section title="Massa" required isInvalid={hasAttemptedSubmit && !selectedDough}>
               <RadioGroup value={doughId ?? ""} onValueChange={setDoughId} className="mt-2 space-y-2">
                 {pizzaDoughs.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
@@ -560,6 +590,7 @@ export function ProductModal({
             <Section
               title="Borda"
               required={crustMode === "customer_choice"}
+              isInvalid={hasAttemptedSubmit && crustMode === "customer_choice" && !selectedCrust}
               hint={
                 crustMode === "fixed"
                   ? "Borda grátis inclusa 🎁"
@@ -851,9 +882,10 @@ export function ProductModal({
               <p className="text-base font-bold">{brl(total)}</p>
             </div>
             <Button
-              className="h-12 min-w-[140px] rounded-xl text-base font-semibold"
+              className={`h-12 min-w-[140px] rounded-xl text-base font-semibold transition-all ${
+                !canAdd && hasAttemptedSubmit ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""
+              }`}
               onClick={onAdd}
-              disabled={!canAdd}
             >
               Adicionar
             </Button>
@@ -864,15 +896,39 @@ export function ProductModal({
   );
 }
 
-function Section({ title, hint, required, children }: { title: string; hint?: string; required?: boolean; children: React.ReactNode }) {
+function Section({
+  title,
+  hint,
+  required,
+  isInvalid,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  required?: boolean;
+  isInvalid?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="mt-6">
+    <div
+      data-invalid={isInvalid ? "true" : undefined}
+      className={`mt-6 rounded-2xl p-2 transition-all ${
+        isInvalid ? "border border-destructive/50 bg-destructive/5 ring-2 ring-destructive/20" : ""
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-base font-bold">
+        <h4 className="text-base font-bold flex items-center">
           {title}
-          {required && <Badge variant="secondary" className="ml-2 text-[10px] uppercase">Obrigatório</Badge>}
+          {required && (
+            <Badge
+              variant={isInvalid ? "destructive" : "secondary"}
+              className="ml-2 text-[10px] uppercase font-bold tracking-wider"
+            >
+              {isInvalid ? "Selecione para continuar" : "Obrigatório"}
+            </Badge>
+          )}
         </h4>
-        {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+        {hint && <span className={`text-xs ${isInvalid ? "text-destructive font-medium" : "text-muted-foreground"}`}>{hint}</span>}
       </div>
       {children}
     </div>

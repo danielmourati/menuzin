@@ -198,6 +198,31 @@ function ProductsPage() {
     );
   }
 
+  const handleOpenChange = async (nextOpen: boolean) => {
+    if (!nextOpen && editing) {
+      const original = editing.id ? products.find((p) => p.id === editing.id) : null;
+      const isDirty = original
+        ? editing.name !== original.name ||
+          editing.description !== (original.description ?? "") ||
+          Number(editing.price) !== Number(original.price) ||
+          editing.category_id !== original.category_id
+        : editing.name.trim().length > 0 || editing.description.trim().length > 0 || editing.price > 0;
+
+      if (isDirty) {
+        const ok = await confirmDialog({
+          title: "Descartar alterações?",
+          description: "Você possui alterações não salvas neste produto. Deseja sair sem salvar?",
+          confirmText: "Descartar",
+          cancelText: "Continuar editando",
+          variant: "destructive",
+        });
+        if (!ok) return;
+      }
+    }
+    setOpen(nextOpen);
+    if (!nextOpen) setEditing(null);
+  };
+
   return (
     <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
       <div className="space-y-4">
@@ -313,7 +338,7 @@ function ProductsPage() {
         </div>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           className="max-h-[90vh] max-w-2xl overflow-y-auto"
           onPointerDownOutside={(e) => e.preventDefault()}
