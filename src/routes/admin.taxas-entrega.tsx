@@ -142,7 +142,12 @@ function DeliveryZonesPage() {
       toast.success("Bairro salvo");
       setOpen(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const msg = e.message.includes("delivery_zones_tenant_id_neighborhood_key") || e.message.includes("duplicate key")
+        ? "Já existe um bairro cadastrado com este nome nesta loja."
+        : e.message;
+      toast.error(msg);
+    },
   });
 
   const delMut = useMutation({
@@ -171,7 +176,12 @@ function DeliveryZonesPage() {
         },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "delivery-zones"] }),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const msg = e.message.includes("delivery_zones_tenant_id_neighborhood_key") || e.message.includes("duplicate key")
+        ? "Já existe um bairro cadastrado com este nome nesta loja."
+        : e.message;
+      toast.error(msg);
+    },
   });
 
   const list = data ?? [];
