@@ -21,8 +21,12 @@ export type DeliveryZoneRow = {
 };
 
 const cepDigits = (v?: string | null) => (v ?? "").replace(/\D/g, "");
+
+export const cleanNeighborhoodName = (v?: string | null) =>
+  (v ?? "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
+
 const normalizeName = (v: string) =>
-  v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  cleanNeighborhoodName(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
 export const listMyDeliveryZones = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -36,7 +40,11 @@ export const listMyDeliveryZones = createServerFn({ method: "POST" })
       .eq("tenant_id", resolved.tenantId)
       .order("neighborhood", { ascending: true });
     if (error) throw new Error(error.message);
-    return { zones: (data ?? []) as unknown as DeliveryZoneRow[] };
+    const zones = ((data ?? []) as unknown as DeliveryZoneRow[]).map((z) => ({
+      ...z,
+      neighborhood: cleanNeighborhoodName(z.neighborhood),
+    }));
+    return { zones };
   });
 
 const CepSchema = z
@@ -72,9 +80,27 @@ export const upsertDeliveryZone = createServerFn({ method: "POST" })
     if (!resolved?.tenantId) throw new Error("Loja não encontrada");
     const { requirePlanAtLeast } = await import("@/lib/plan-server");
     await requirePlanAtLeast(resolved.tenantId, "pro");
+
+    const baseName = cleanNeighborhoodName(data.neighborhood);
+    const targetNormalized = normalizeName(baseName);
+
+    // Consulta bairros existentes para desambiguar e garantir compatibilidade com a constraint UNIQUE do banco
+    const { data: existingZones } = await supabase
+      .from("delivery_zones")
+      .select("id, neighborhood")
+      .eq("tenant_id", resolved.tenantId);
+
+    const otherZones = (existingZones ?? []).filter((z) => z.id !== data.id);
+    const matchingCount = otherZones.filter(
+      (z) => normalizeName(z.neighborhood) === targetNormalized,
+    ).length;
+
+    // Aplica sufixo invisível (Zero-Width Space) para contornar a constraint UNIQUE (tenant_id, neighborhood) legada
+    const disambiguatedName = baseName + "\u200B".repeat(matchingCount);
+
     const payload = {
       tenant_id: resolved.tenantId,
-      neighborhood: data.neighborhood.trim(),
+      neighborhood: disambiguatedName,
       fee: data.fee,
       min_order_total: data.min_order_total,
       estimated_minutes: data.estimated_minutes ?? null,
@@ -84,6 +110,7 @@ export const upsertDeliveryZone = createServerFn({ method: "POST" })
       uf: data.uf?.trim().toUpperCase() || null,
       active: data.active,
     };
+
     if (data.id) {
       const { error } = await supabase.from("delivery_zones").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
@@ -135,7 +162,7 @@ export const listPublicDeliveryZones = createServerFn({ method: "POST" })
     return {
       zones: (zones ?? []).map((z) => ({
         id: z.id,
-        neighborhood: z.neighborhood,
+        neighborhood: cleanNeighborhoodName(z.neighborhood),
         fee: Number(z.fee),
         min_order_total: Number(z.min_order_total),
         estimated_minutes: z.estimated_minutes,
@@ -216,7 +243,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
         return {
           mode, available: true, fee: Number(byId.fee),
           source: "neighborhood_by_name",
-          neighborhood: byId.neighborhood,
+          neighborhood: cleanNeighborhoodName(byId.neighborhood),
           min_order_total: Number(byId.min_order_total),
           estimated_minutes: byId.estimated_minutes,
           message: null,
@@ -231,7 +258,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
         return {
           mode, available: true, fee: Number(byCep.fee),
           source: "neighborhood_by_cep",
-          neighborhood: byCep.neighborhood,
+          neighborhood: cleanNeighborhoodName(byCep.neighborhood),
           min_order_total: Number(byCep.min_order_total),
           estimated_minutes: byCep.estimated_minutes,
           message: null,
@@ -252,7 +279,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
         return {
           mode, available: true, fee: Number(best.fee),
           source: "neighborhood_by_name",
-          neighborhood: best.neighborhood,
+          neighborhood: cleanNeighborhoodName(best.neighborhood),
           min_order_total: Number(best.min_order_total),
           estimated_minutes: best.estimated_minutes,
           message: null,

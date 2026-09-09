@@ -16,7 +16,7 @@ import {
 import { Plus, Edit2, Trash2, Loader2, MapPin, Ban, DollarSign, Map as MapIcon, Check, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
-  listMyDeliveryZones, upsertDeliveryZone, deleteDeliveryZone,
+  listMyDeliveryZones, upsertDeliveryZone, deleteDeliveryZone, cleanNeighborhoodName,
   type DeliveryZoneRow,
 } from "@/lib/delivery-zones.functions";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
@@ -69,12 +69,12 @@ const maskCep = (v: string) => {
 };
 const cepDigits = (v: string) => v.replace(/\D/g, "");
 
-const stripAcc = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const stripAcc = (s: string) => cleanNeighborhoodName(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 const neighborhoodKey = (name: string, city: string, uf: string) => {
-  const base = stripAcc(name.trim()).toLowerCase();
-  return `${base}|${stripAcc(city.trim()).toLowerCase()}|${uf.trim().toLowerCase()}`;
+  const base = stripAcc(name).toLowerCase();
+  return `${base}|${stripAcc(city).toLowerCase()}|${uf.trim().toLowerCase()}`;
 };
-const neighborhoodBaseName = (name: string) => name.trim();
+const neighborhoodBaseName = (name: string) => cleanNeighborhoodName(name);
 
 function DeliveryZonesPage() {
   const qc = useQueryClient();
