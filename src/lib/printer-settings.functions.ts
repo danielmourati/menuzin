@@ -37,39 +37,39 @@ const SaveInput = z.object({
   auto_accept_orders: z.boolean().default(false),
 });
 
-function parseFontSizeAndFamily(rawFontSize?: string, rawFontFamily?: string): {
-  fontSize: PrinterSettings["font_size"];
+function parseModelAndFontFamily(rawModel?: string, rawFontFamily?: string): {
+  printerModel: string;
   fontFamily: PrinterSettings["font_family"];
 } {
-  if (!rawFontSize) return { fontSize: "normal", fontFamily: (rawFontFamily as PrinterSettings["font_family"]) ?? "mono" };
-  if (rawFontSize.includes(":")) {
-    const [size, family] = rawFontSize.split(":");
+  if (!rawModel) return { printerModel: DEFAULT_PRINTER_SETTINGS.printer_model, fontFamily: (rawFontFamily as PrinterSettings["font_family"]) ?? "mono" };
+  if (rawModel.includes("::ff:")) {
+    const [model, family] = rawModel.split("::ff:");
     return {
-      fontSize: (size as PrinterSettings["font_size"]) ?? "normal",
+      printerModel: model || DEFAULT_PRINTER_SETTINGS.printer_model,
       fontFamily: (family as PrinterSettings["font_family"]) ?? "mono",
     };
   }
   return {
-    fontSize: (rawFontSize as PrinterSettings["font_size"]) ?? "normal",
+    printerModel: rawModel,
     fontFamily: (rawFontFamily as PrinterSettings["font_family"]) ?? "mono",
   };
 }
 
 function rowToSettings(row: Record<string, unknown> | null): PrinterSettings {
   if (!row) return { ...DEFAULT_PRINTER_SETTINGS };
-  const { fontSize, fontFamily } = parseFontSizeAndFamily(
-    row.font_size as string | undefined,
+  const { printerModel, fontFamily } = parseModelAndFontFamily(
+    row.printer_model as string | undefined,
     row.font_family as string | undefined,
   );
   return {
     id: row.id as string,
     tenant_id: row.tenant_id as string,
     printer_name: (row.printer_name as string) ?? "",
-    printer_model: (row.printer_model as string) ?? DEFAULT_PRINTER_SETTINGS.printer_model,
+    printer_model: printerModel,
     paper_width: ((row.paper_width as string) === "58mm" ? "55mm" : (row.paper_width as PrinterSettings["paper_width"])) ?? "80mm",
     connection_type: (row.connection_type as PrinterSettings["connection_type"]) ?? "browser",
     escpos_profile: (row.escpos_profile as PrinterSettings["escpos_profile"]) ?? "generic",
-    font_size: fontSize,
+    font_size: (row.font_size as PrinterSettings["font_size"]) ?? "normal",
     font_family: fontFamily,
     use_bold_titles: row.use_bold_titles !== false,
     use_double_total: row.use_double_total !== false,
@@ -112,15 +112,15 @@ export const saveMyPrinterSettings = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Usuário sem loja vinculada.");
 
-    // Codifica font_family dentro de font_size (ex: "normal:condensed") para evitar
-    // erro de coluna inexistente no schema do Supabase caso a coluna física não exista.
-    const { font_family, font_size, ...dbData } = data;
-    const dbFontSize = `${font_size}:${font_family}`;
+    // Armazena font_family dentro de printer_model usando a tag "::ff:" (ex: "Generic thermal printer::ff:condensed").
+    // Isso evita o erro de coluna inexistente ("font_family not found") E respeita o check constraint de font_size.
+    const { font_family, printer_model, ...dbData } = data;
+    const dbPrinterModel = `${printer_model}::ff:${font_family}`;
 
     const { data: row, error } = await supabaseAdmin
       .from("printer_settings")
       .upsert(
-        { tenant_id: resolved.tenantId, ...dbData, font_size: dbFontSize },
+        { tenant_id: resolved.tenantId, ...dbData, printer_model: dbPrinterModel },
         { onConflict: "tenant_id" },
       )
       .select("*")
