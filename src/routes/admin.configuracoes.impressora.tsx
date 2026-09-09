@@ -590,8 +590,8 @@ function PrinterSettingsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Button size="sm" onClick={() => setGuideOpen(true)}>
-                    <HelpCircle className="mr-1.5 h-4 w-4" /> Como instalar
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setGuideOpen(true)}>
+                    <HelpCircle className="h-3.5 w-3.5" /> Como instalar
                   </Button>
                 </div>
               </CardHeader>
@@ -623,12 +623,12 @@ function PrinterSettingsPage() {
                     )}
                   </div>
                   <div className="ml-auto flex flex-wrap gap-1.5">
-                    <Button size="sm" variant="outline" onClick={handleDetectQz} disabled={qzBusy || testBusy}>
-                      {qzBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Plug className="mr-1.5 h-4 w-4" />}
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleDetectQz} disabled={qzBusy || testBusy}>
+                      {qzBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
                       Detectar
                     </Button>
-                    <Button size="sm" variant="default" onClick={handleTestConnection} disabled={qzBusy || testBusy}>
-                      {testBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5 hover:text-primary font-medium" onClick={handleTestConnection} disabled={qzBusy || testBusy}>
+                      {testBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                       Teste de conexão
                     </Button>
                   </div>
@@ -748,8 +748,8 @@ function PrinterSettingsPage() {
                       <li>
                         <strong>Baixe o instalador v2</strong> e execute como administrador.
                         <div className="mt-1">
-                          <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy}>
-                            {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleDownloadInstaller} disabled={installerBusy}>
+                            {installerBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                             Baixar instalador v2
                           </Button>
                         </div>
@@ -819,8 +819,8 @@ function PrinterSettingsPage() {
                         <li>Volte aqui e clique em <strong>Detectar</strong>. O prompt não deve mais aparecer.</li>
                       </ol>
                     </div>
-                    <Button size="sm" onClick={handleDownloadInstaller} disabled={installerBusy || isDemoCert}>
-                      {installerBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+                    <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleDownloadInstaller} disabled={installerBusy || isDemoCert}>
+                      {installerBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                       Baixar instalador
                     </Button>
                   </div>
@@ -1067,11 +1067,11 @@ function PrinterSettingsPage() {
               <Card className="lg:sticky lg:top-4 self-start">
                 <CardHeader className="flex-row items-center justify-between gap-2">
                   <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
-                  <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5 hover:text-primary font-medium" onClick={handleTestPrint} disabled={qzBusy}>
                     {qzBusy ? (
-                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Printer className="mr-1.5 h-4 w-4" />
+                      <Printer className="h-3.5 w-3.5" />
                     )}
                     Testar impressão
                   </Button>
