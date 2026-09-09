@@ -1,6 +1,6 @@
 import { PlanGate } from "@/components/subscription/PlanGate";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,32 @@ function OrdersPage() {
     return orders.find((o) => o.id === cancellationOrderId) || null;
   }, [orders, cancellationOrderId]);
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isInput = target?.tagName === "INPUT" || target?.tagName === "TEXTAREA";
+
+      if (e.key === "F2" || (e.key === "/" && !isInput)) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      } else if (e.key === "Escape") {
+        if (detailedOrderId) {
+          setDetailedOrderId(null);
+        } else if (cancellationOrderId) {
+          setCancellationOrderId(null);
+        } else if (q) {
+          setQ("");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [detailedOrderId, cancellationOrderId, q]);
+
   // Listener para eventos customizados de abertura (para o bell/toast)
   useEffect(() => {
     const handleOpenDetails = (e: Event) => {
@@ -107,7 +133,14 @@ function OrdersPage() {
     <AdminLayout
       title="Gestão de Pedidos"
       action={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 rounded-lg border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
+            <kbd className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold shadow-sm">F2</kbd>
+            <span>Buscar</span>
+            <span className="mx-0.5">•</span>
+            <kbd className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold shadow-sm">Esc</kbd>
+            <span>Fechar</span>
+          </div>
           <LiveClock />
         </div>
       }
@@ -120,9 +153,10 @@ function OrdersPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  ref={searchInputRef}
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Buscar por cliente ou nº do pedido..."
+                  placeholder="Buscar por cliente ou nº do pedido... (Pressione F2)"
                   className="pl-9 h-10 rounded-xl"
                 />
               </div>

@@ -103,8 +103,9 @@ export function useAcceptOrderWithKitchenPrint(
   );
 
   const acceptOrder = useCallback(
-    async (orderId: string) => {
-      const order = orders.find((o) => o.id === orderId);
+    async (orderOrId: string | Order) => {
+      const order = typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
+      const orderId = typeof orderOrId === "string" ? orderOrId : orderOrId.id;
       await updateOrderStatus(orderId, "preparo", "Pedido aceito — iniciou preparo");
       if (order) await printKitchenFor(order);
     },

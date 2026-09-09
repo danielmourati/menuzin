@@ -16,6 +16,7 @@ import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.funct
 import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
 import { computeStoreOpen } from "@/lib/store-hours";
 import { toast } from "sonner";
+import { PrinterStatusIndicator } from "@/components/admin/PrinterStatusIndicator";
 
 
 const sections = [
@@ -380,6 +381,7 @@ export function AdminLayout({ children, title, action }: { children?: ReactNode;
             </Button>
             <h1 className="text-base font-semibold lg:text-lg truncate">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
+              <PrinterStatusIndicator />
               <StoreOpenToggle />
               <AdminNotificationsBell />
               {action}

@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Printer, Save, AlertTriangle, Plug, HelpCircle, CheckCircle2, XCircle, Download, Stethoscope, ChevronDown, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   getMyPrinterSettings, saveMyPrinterSettings,
@@ -554,8 +555,16 @@ function PrinterSettingsPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-4">
+        <Tabs defaultValue="geral" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 max-w-xl">
+            <TabsTrigger value="geral">Conexão & Impressora</TabsTrigger>
+            <TabsTrigger value="layout">Layout do Cupom</TabsTrigger>
+            <TabsTrigger value="cozinha">Outras Impressoras</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="geral" className="space-y-4 mt-4">
+            <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+              <div className="space-y-4">
             {/* Status do QZ Tray */}
             <Card>
               <CardHeader className="flex-row items-center justify-between gap-2">
@@ -949,190 +958,208 @@ function PrinterSettingsPage() {
                 </div>
               </CardContent>
             </Card>
-
-
-            {/* Bloco 3 — Layout do cupom */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Layout do cupom</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <Label>Tamanho da fonte</Label>
-                    <Select
-                      value={form.font_size}
-                      onValueChange={(v) => set("font_size", v as PrinterSettings["font_size"])}
-                    >
-                      <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="normal">Normal</SelectItem>
-                        <SelectItem value="compact">Compacta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Separador</Label>
-                    <Select
-                      value={form.separator_char}
-                      onValueChange={(v) => set("separator_char", v)}
-                    >
-                      <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="-">Traços ( - )</SelectItem>
-                        <SelectItem value="=">Iguais ( = )</SelectItem>
-                        <SelectItem value=".">Pontos ( . )</SelectItem>
-                        <SelectItem value="*">Asteriscos ( * )</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Tipo de corte</Label>
-                    <Select
-                      value={form.cut_type}
-                      onValueChange={(v) => set("cut_type", v as PrinterSettings["cut_type"])}
-                    >
-                      <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sem corte</SelectItem>
-                        <SelectItem value="partial">Corte parcial</SelectItem>
-                        <SelectItem value="full">Corte total</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Linhas em branco no final</Label>
-                    <Input
-                      type="number" min={0} max={10}
-                      value={form.feed_lines}
-                      onChange={(e) => set("feed_lines", Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
-                      className="mt-1.5"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-2 md:grid-cols-2">
-                  <Toggle label="Negrito em títulos" value={form.use_bold_titles} onChange={(v) => set("use_bold_titles", v)} />
-                  <Toggle label="Fonte dupla no total" value={form.use_double_total} onChange={(v) => set("use_double_total", v)} />
-                  <Toggle label="Exibir nome da loja" value={form.show_store_name} onChange={(v) => set("show_store_name", v)} />
-                  <Toggle label="Exibir endereço" value={form.show_address} onChange={(v) => set("show_address", v)} />
-                  <Toggle label="Exibir CNPJ/CPF" value={form.show_document} onChange={(v) => set("show_document", v)} />
-                  <Toggle label="Exibir WhatsApp" value={form.show_whatsapp} onChange={(v) => set("show_whatsapp", v)} />
-                  <Toggle label="Exibir PIX" value={form.show_pix} onChange={(v) => set("show_pix", v)} />
-                  <Toggle label="Exibir Instagram" value={form.show_instagram} onChange={(v) => set("show_instagram", v)} />
-                  <Toggle label="Exibir mensagem de agradecimento" value={form.show_thank_message} onChange={(v) => set("show_thank_message", v)} />
-                </div>
-
-                {form.show_thank_message && (
-                  <div>
-                    <Label>Mensagem de agradecimento</Label>
-                    <Input
-                      value={form.thank_message}
-                      onChange={(e) => set("thank_message", e.target.value)}
-                      maxLength={120}
-                      className="mt-1.5"
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
+        </div>
+      </TabsContent>
 
-          {/* Bloco 4 — Papel + Prévia */}
-          <Card className="lg:sticky lg:top-4 self-start">
-            <CardHeader className="flex-row items-center justify-between gap-2">
-              <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
-              <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
-                {qzBusy ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                ) : (
-                  <Printer className="mr-1.5 h-4 w-4" />
-                )}
-                Testar impressão
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <Label className="text-xs">Tamanho do papel</Label>
-                <div className="mt-1.5 flex flex-wrap gap-2">
-                  {(["55mm", "80mm"] as const).map((w) => (
-                    <Button
-                      key={w}
-                      type="button"
-                      size="sm"
-                      variant={form.paper_width === w ? "default" : "outline"}
-                      onClick={() => set("paper_width", w)}
-                    >
-                      {w}
-                    </Button>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {cols} colunas calculadas
-                </p>
+          <TabsContent value="layout" className="space-y-4 mt-4">
+            <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+              <div className="space-y-4">
+                {/* Bloco 3 — Layout do cupom */}
+                <Card>
+                  <CardHeader><CardTitle className="text-base">Layout do cupom</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div>
+                        <Label>Tamanho da fonte</Label>
+                        <Select
+                          value={form.font_size}
+                          onValueChange={(v) => set("font_size", v as PrinterSettings["font_size"])}
+                        >
+                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="normal">Normal</SelectItem>
+                            <SelectItem value="compact">Compacta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Separador</Label>
+                        <Select
+                          value={form.separator_char}
+                          onValueChange={(v) => set("separator_char", v)}
+                        >
+                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="-">Traços ( - )</SelectItem>
+                            <SelectItem value="=">Iguais ( = )</SelectItem>
+                            <SelectItem value=".">Pontos ( . )</SelectItem>
+                            <SelectItem value="*">Asteriscos ( * )</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Tipo de corte</Label>
+                        <Select
+                          value={form.cut_type}
+                          onValueChange={(v) => set("cut_type", v as PrinterSettings["cut_type"])}
+                        >
+                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sem corte</SelectItem>
+                            <SelectItem value="partial">Corte parcial</SelectItem>
+                            <SelectItem value="full">Corte total</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Linhas em branco no final</Label>
+                        <Input
+                          type="number" min={0} max={10}
+                          value={form.feed_lines}
+                          onChange={(e) => set("feed_lines", Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 md:grid-cols-2">
+                      <Toggle label="Negrito em títulos" value={form.use_bold_titles} onChange={(v) => set("use_bold_titles", v)} />
+                      <Toggle label="Fonte dupla no total" value={form.use_double_total} onChange={(v) => set("use_double_total", v)} />
+                      <Toggle label="Exibir nome da loja" value={form.show_store_name} onChange={(v) => set("show_store_name", v)} />
+                      <Toggle label="Exibir endereço" value={form.show_address} onChange={(v) => set("show_address", v)} />
+                      <Toggle label="Exibir CNPJ/CPF" value={form.show_document} onChange={(v) => set("show_document", v)} />
+                      <Toggle label="Exibir WhatsApp" value={form.show_whatsapp} onChange={(v) => set("show_whatsapp", v)} />
+                      <Toggle label="Exibir PIX" value={form.show_pix} onChange={(v) => set("show_pix", v)} />
+                      <Toggle label="Exibir Instagram" value={form.show_instagram} onChange={(v) => set("show_instagram", v)} />
+                      <Toggle label="Exibir mensagem de agradecimento" value={form.show_thank_message} onChange={(v) => set("show_thank_message", v)} />
+                    </div>
+
+                    {form.show_thank_message && (
+                      <div>
+                        <Label>Mensagem de agradecimento</Label>
+                        <Input
+                          value={form.thank_message}
+                          onChange={(e) => set("thank_message", e.target.value)}
+                          maxLength={120}
+                          className="mt-1.5"
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
 
-              {qzPrinters.length > 0 && (
-                <div>
-                  <Label className="text-xs">Impressora QZ Tray</Label>
-                  <Select
-                    value={form.printer_name || ""}
-                    onValueChange={(v) => set("printer_name", v)}
-                  >
-                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
-                    <SelectContent>
-                      {qzPrinters.map((p) => (
-                        <SelectItem key={p.name} value={p.name}>
-                          {p.name}{p.isDefault ? " (padrão)" : ""}
-                        </SelectItem>
+              {/* Bloco 4 — Papel + Prévia */}
+              <Card className="lg:sticky lg:top-4 self-start">
+                <CardHeader className="flex-row items-center justify-between gap-2">
+                  <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
+                  <Button size="sm" onClick={handleTestPrint} disabled={qzBusy}>
+                    {qzBusy ? (
+                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Printer className="mr-1.5 h-4 w-4" />
+                    )}
+                    Testar impressão
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Tamanho do papel</Label>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {(["55mm", "80mm"] as const).map((w) => (
+                        <Button
+                          key={w}
+                          type="button"
+                          size="sm"
+                          variant={form.paper_width === w ? "default" : "outline"}
+                          onClick={() => set("paper_width", w)}
+                        >
+                          {w}
+                        </Button>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full justify-center"
-                onClick={() => setPreviewOpen((v) => !v)}
-              >
-                {previewOpen ? (
-                  <><EyeOff className="mr-1.5 h-4 w-4" /> Ocultar prévia do cupom</>
-                ) : (
-                  <><Eye className="mr-1.5 h-4 w-4" /> Mostrar prévia do cupom</>
-                )}
-              </Button>
-
-              {previewOpen && (
-                <>
-                  <div
-                    className="receipt-preview mx-auto"
-                    style={{
-                      background: "#E8D69F",
-                      color: "#111",
-                      fontFamily: '"Courier New", Courier, monospace',
-                      fontSize: form.font_size === "compact" ? "12px" : "13px",
-                      lineHeight: 1.35,
-                      whiteSpace: "pre",
-                      overflowX: "auto",
-                      padding: "16px",
-                      borderRadius: "12px",
-                      border: "1px solid hsl(var(--border))",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                      maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
-                      maxHeight: "70vh",
-                    }}
-                  >
-                    {previewText}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {cols} colunas calculadas
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Prévia em texto puro · {columnsFor(form.paper_width)} colunas.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+
+                  {qzPrinters.length > 0 && (
+                    <div>
+                      <Label className="text-xs">Impressora QZ Tray</Label>
+                      <Select
+                        value={form.printer_name || ""}
+                        onValueChange={(v) => set("printer_name", v)}
+                      >
+                        <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
+                        <SelectContent>
+                          {qzPrinters.map((p) => (
+                            <SelectItem key={p.name} value={p.name}>
+                              {p.name}{p.isDefault ? " (padrão)" : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={() => setPreviewOpen((v) => !v)}
+                  >
+                    {previewOpen ? (
+                      <><EyeOff className="mr-1.5 h-4 w-4" /> Ocultar prévia do cupom</>
+                    ) : (
+                      <><Eye className="mr-1.5 h-4 w-4" /> Mostrar prévia do cupom</>
+                    )}
+                  </Button>
+
+                  {previewOpen && (
+                    <>
+                      <div
+                        className="receipt-preview mx-auto"
+                        style={{
+                          background: "#E8D69F",
+                          color: "#111",
+                          fontFamily: '"Courier New", Courier, monospace',
+                          fontSize: form.font_size === "compact" ? "12px" : "13px",
+                          lineHeight: 1.35,
+                          whiteSpace: "pre",
+                          overflowX: "auto",
+                          padding: "16px",
+                          borderRadius: "12px",
+                          border: "1px solid hsl(var(--border))",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                          maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
+                          maxHeight: "70vh",
+                        }}
+                      >
+                        {previewText}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Prévia em texto puro · {columnsFor(form.paper_width)} colunas.
+                      </p>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="cozinha" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Impressoras adicionais (cozinha, balcão, bar)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ExtraPrintersManagerGated />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       )}
 
       <QzInstallGuide
@@ -1154,15 +1181,6 @@ function PrinterSettingsPage() {
         retrying={qzBusy}
       />
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">Impressoras adicionais (cozinha, balcão, bar)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ExtraPrintersManagerGated />
-        </CardContent>
-      </Card>
-
       <QzPrinterWizard
         open={wizardOpen}
         onOpenChange={(v) => {
@@ -1171,7 +1189,6 @@ function PrinterSettingsPage() {
         }}
         onComplete={() => {
           markWizardSeen();
-          // Recarrega status do servidor e settings ao concluir o wizard.
           void refetchQzCert();
           qc.invalidateQueries({ queryKey: ["printer-settings"] });
         }}

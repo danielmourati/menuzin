@@ -110,6 +110,59 @@ function ProductsPage() {
     return true;
   }), [products, q, catFilter, statusFilter, pizzaCatIds]);
 
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  const toggleSelectProduct = (id: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedProductIds.length === filtered.length) {
+      setSelectedProductIds([]);
+    } else {
+      setSelectedProductIds(filtered.map((p) => p.id));
+    }
+  };
+
+  const handleBatchToggleAvailable = async (available: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    try {
+      await Promise.all(
+        selectedProductIds.map((id) => toggleProductAvailable({ data: { id, available } }))
+      );
+      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success(
+        `${selectedProductIds.length} produto(s) ${available ? "ativado(s)" : "pausado(s)"}.`
+      );
+      setSelectedProductIds([]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao atualizar produtos.");
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    const ok = await confirmDialog({
+      title: `Excluir ${selectedProductIds.length} produto(s)?`,
+      description: "Esta ação é irreversível e excluirá os produtos selecionados.",
+      confirmText: "Excluir todos",
+      cancelText: "Cancelar",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    try {
+      await Promise.all(selectedProductIds.map((id) => deleteProduct({ data: { id } })));
+      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success(`${selectedProductIds.length} produto(s) excluído(s).`);
+      setSelectedProductIds([]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir produtos.");
+    }
+  };
+
   const saveMut = useMutation({
     mutationFn: (input: Editing) => {
       // Força type='pizza' se a categoria for de pizza
@@ -267,16 +320,23 @@ function ProductsPage() {
           {!productsQ.isLoading && filtered.length === 0 && (
             <Card><CardContent className="p-10 text-center text-muted-foreground">Nenhum produto.</CardContent></Card>
           )}
-          {filtered.map((p, idx) => (
-            <Card key={p.id}>
-              <CardContent className="flex gap-4 p-4">
-                <ReorderButtons
-                  entity="product"
-                  id={p.id}
-                  invalidateKeys={[["admin", "products"]]}
-                  isFirst={idx === 0}
-                  isLast={idx === filtered.length - 1}
-                />
+          {filtered.map((p, idx) => {
+            const isSelected = selectedProductIds.includes(p.id);
+            return (
+              <Card key={p.id} className={`transition-colors ${isSelected ? "border-primary/60 bg-primary/5" : ""}`}>
+                <CardContent className="flex items-center gap-3 p-4">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSelectProduct(p.id)}
+                    className="mr-1"
+                  />
+                  <ReorderButtons
+                    entity="product"
+                    id={p.id}
+                    invalidateKeys={[["admin", "products"]]}
+                    isFirst={idx === 0}
+                    isLast={idx === filtered.length - 1}
+                  />
                 <img src={productImage(p.image_url)} alt="" className={`h-20 w-20 rounded-xl bg-muted ${isDefaultProductImage(p.image_url) ? "object-contain p-2" : "object-cover"}`} loading="lazy" decoding="async" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -334,9 +394,51 @@ function ProductsPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </div>
+
+      {selectedProductIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-2xl bg-foreground px-5 py-3 text-background shadow-2xl animate-in fade-in slide-in-from-bottom-5">
+          <span className="text-sm font-semibold">
+            {selectedProductIds.length} selecionado(s)
+          </span>
+          <div className="h-4 w-px bg-background/20" />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-8 text-xs font-semibold"
+            onClick={() => handleBatchToggleAvailable(true)}
+          >
+            Ativar todos
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs font-semibold bg-background/10 text-background border-background/20 hover:bg-background/20"
+            onClick={() => handleBatchToggleAvailable(false)}
+          >
+            Pausar todos
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-8 text-xs font-semibold"
+            onClick={handleBatchDelete}
+          >
+            Excluir
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-background hover:bg-background/10"
+            onClick={() => setSelectedProductIds([])}
+          >
+            ✕
+          </Button>
+        </div>
+      )}
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent

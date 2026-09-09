@@ -15,6 +15,8 @@ import { listMyCategories } from "@/lib/catalog-admin.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
+import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
+import { OnboardingChecklist } from "@/components/admin/OnboardingChecklist";
 
 export const Route = createFileRoute("/admin/dashboard")({
   head: () => ({
@@ -84,6 +86,14 @@ function DashboardPage() {
     enabled,
     retry: false,
   });
+
+  const { data: printerSettingsData } = useQuery({
+    queryKey: ["admin", "printer-settings"],
+    queryFn: () => getMyPrinterSettings(),
+    enabled,
+    retry: false,
+  });
+
   const catalogEmpty =
     !!categoriesData &&
     categoriesData.length === 0 &&
@@ -110,6 +120,13 @@ function DashboardPage() {
           <p className="text-sm text-muted-foreground">Bem-vindo de volta</p>
           <h2 className="mt-0.5 text-xl sm:text-2xl font-bold tracking-tight break-words">{greetingText}</h2>
         </div>
+
+        <OnboardingChecklist
+          hasCategories={(categoriesData?.length ?? 0) > 0}
+          hasProducts={(analytics?.productsActive ?? 0) > 0}
+          hasPrinter={Boolean(printerSettingsData?.settings?.printer_name || printerSettingsData?.settings?.auto_connect)}
+          hasOrders={(analytics?.monthOrdersCount ?? 0) > 0 || (analytics?.todayOrdersCount ?? 0) > 0 || (ordersData?.orders?.length ?? 0) > 0}
+        />
 
         {catalogEmpty && (
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 shadow-[var(--shadow-soft)]">
