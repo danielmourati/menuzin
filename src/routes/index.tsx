@@ -59,10 +59,10 @@ const PLAN_CTA: Record<string, string> = {
 
 
 
-const HOME_TITLE = "Menuzin — Cardápio digital e pedidos por WhatsApp";
+const HOME_TITLE = "Cardápio digital sem comissão — Menuzin";
 const HOME_DESC =
-  "Catálogo digital com pedidos pelo WhatsApp, pagamento online e gestão completa para restaurantes, lanchonetes, pizzarias, marmitarias e cafeterias.";
-const HOME_OG_TITLE = "Menuzin — Vitrine digital para o seu negócio food";
+  "Use apps como vitrine e fidelize clientes com seu cardápio Menuzin. Receba pedidos no WhatsApp e fique com 100% das vendas.";
+const HOME_OG_TITLE = "Menuzin — Fidelize clientes sem pagar comissão";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -71,7 +71,9 @@ export const Route = createFileRoute("/")({
       { name: "description", content: HOME_DESC },
       { property: "og:title", content: HOME_OG_TITLE },
       { property: "og:description", content: HOME_DESC },
+      { property: "og:type", content: "website" },
       { property: "og:url", content: "https://menuzin.app/" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: HOME_OG_TITLE },
       { name: "twitter:description", content: HOME_DESC },
     ],
@@ -174,10 +176,11 @@ function Landing() {
         <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center lg:gap-8">
           <div>
             <h1 className="text-4xl font-bold leading-tight text-balance md:text-6xl">
-              A vitrine digital do seu <span className="text-primary">negócio food</span>.
+              Pare de dividir seu lucro. <span className="text-primary">Fidelize sem comissão.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground text-balance">
-              Cardápio online, carrinho, checkout e pedidos direto no WhatsApp. Tudo personalizável, em um link só, pronto para vender hoje.
+              Use os grandes apps como vitrine para atrair clientes e o Menuzin para fazê-los voltar.
+              Receba pedidos no WhatsApp e fique com 100% das vendas.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
@@ -349,18 +352,19 @@ function Landing() {
               const displayed = billing === "annual" ? annualMonthly : monthly;
               const fmt = (n: number) =>
                 n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              const isPro = p.id === "pro";
               return (
                 <div
                   key={p.id}
                   className={`relative flex flex-col rounded-3xl border bg-card p-8 transition ${
-                    isFree
+                    isPro
                       ? "border-2 border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
                       : "shadow-[var(--shadow-soft)]"
                   }`}
                 >
-                  {isFree && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center rounded-full bg-emerald-600 px-4 py-1 text-xs font-bold uppercase tracking-wide text-white shadow">
-                      Grátis
+                  {isPro && (
+                    <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center whitespace-nowrap rounded-full bg-primary px-4 py-1 text-xs font-bold text-primary-foreground shadow">
+                      Melhor Custo-Benefício
                     </span>
                   )}
                   <div className="flex items-center justify-between gap-2">
