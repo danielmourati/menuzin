@@ -1203,15 +1203,26 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
   );
 }
 
-function ExtraPrintersManagerGated() {
+function PrintersManagerGated({
+  mainPrinterName,
+  mainDetail,
+}: {
+  mainPrinterName?: string;
+  mainDetail: ReactNode;
+}) {
   const { can } = useTenantPlan();
-  if (!can("multiplePrinters")) {
-    return (
-      <UpgradeNotice
-        title="Múltiplas impressoras no Plano Pro"
-        description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. A impressora principal de recibo continua disponível normalmente."
-      />
-    );
-  }
-  return <ExtraPrintersManager />;
+  const canMultiple = can("multiplePrinters");
+  return (
+    <PrintersManager
+      mainPrinterName={mainPrinterName}
+      mainDetail={mainDetail}
+      canMultiple={canMultiple}
+      upgradeNotice={
+        <UpgradeNotice
+          title="Múltiplas impressoras no Plano Pro"
+          description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. A impressora principal de recibo continua disponível normalmente."
+        />
+      }
+    />
+  );
 }
