@@ -26,8 +26,9 @@ import {
 } from "@/lib/store-hours";
 import { BusinessTypesField } from "@/components/admin/BusinessTypesField";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
+import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
+import { listQzPrintersWithDefault, QzNotRunningError } from "@/lib/qz-tray";
 import { type BusinessType } from "@/lib/business-types";
-
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: SettingsPage });
 
@@ -59,15 +60,54 @@ function SettingsPage() {
   });
   const tenant = data?.tenant;
 
-  // Onboarding: vindo do cadastro rápido em /comece-agora
   const [onboarding, setOnboarding] = useState(false);
   const [nextStepOpen, setNextStepOpen] = useState(false);
   const [printersOpen, setPrintersOpen] = useState(false);
+  const [qzGuideOpen, setQzGuideOpen] = useState(false);
+  const [retryingQz, setRetryingQz] = useState(false);
+
+  const tenantId = (tenant as { id?: string } | null | undefined)?.id;
+  const wizardSeenKey = tenantId ? `qz:wizard-seen:${tenantId}` : "qz:wizard-seen:default";
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("onboarding") === "1") setOnboarding(true);
   }, []);
+
+  // Auto-exibição na 1ª vez de configuração
+  useEffect(() => {
+    if (typeof window === "undefined" || !tenantId) return;
+    const seen = window.localStorage.getItem(wizardSeenKey);
+    if (!seen) {
+      setQzGuideOpen(true);
+    }
+  }, [tenantId, wizardSeenKey]);
+
+  const markWizardSeen = () => {
+    if (typeof window !== "undefined" && tenantId) {
+      window.localStorage.setItem(wizardSeenKey, "1");
+    }
+  };
+
+  const handleRetryQz = async () => {
+    setRetryingQz(true);
+    try {
+      const res = await listQzPrintersWithDefault();
+      markWizardSeen();
+      toast.success(`QZ Tray conectado! ${res.printers.length} impressora(s) detectada(s).`);
+      setQzGuideOpen(false);
+      setPrintersOpen(true);
+    } catch (err) {
+      if (err instanceof QzNotRunningError) {
+        toast.error("QZ Tray ainda não foi detectado em execução no computador.");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Erro ao conectar ao QZ Tray");
+      }
+    } finally {
+      setRetryingQz(false);
+    }
+  };
 
 
   const [form, setForm] = useState<FormState>({
@@ -286,18 +326,27 @@ function SettingsPage() {
 
             <TabsContent value="impressora" className="mt-6 space-y-4">
               <div className="max-w-2xl mx-auto text-center space-y-4 py-4">
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  Configure sua impressora térmica não fiscal (55mm ou 80mm), Bluetooth, USB ou rede,
-                  com perfis ESC/POS para mini impressoras e modelos ELGIN i8/i9.
+                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  Configure sua impressora térmica não fiscal (55mm ou 80mm),
+                  Bluetooth, USB ou rede, com perfis ESC/POS para mini impressoras e modelos ELGIN i8/i9.
                 </p>
                 <div className="pt-2">
                   <Button
-                    className="h-11 px-6 rounded-xl font-semibold"
-                    onClick={() => setPrintersOpen(true)}
+                    className="h-11 px-8 rounded-full font-semibold bg-[#F95716] hover:bg-[#e04b0f] text-white shadow-sm transition-all text-sm sm:text-base"
+                    onClick={() => setQzGuideOpen(true)}
                   >
                     Configurar impressora
                   </Button>
                 </div>
+                <QzInstallGuide
+                  open={qzGuideOpen}
+                  onOpenChange={(v) => {
+                    setQzGuideOpen(v);
+                    if (!v) markWizardSeen();
+                  }}
+                  onRetry={handleRetryQz}
+                  retrying={retryingQz}
+                />
                 <PrinterConfigModal open={printersOpen} onOpenChange={setPrintersOpen} />
               </div>
             </TabsContent>

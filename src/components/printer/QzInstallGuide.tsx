@@ -1,13 +1,8 @@
-// Guia simplificado em 3 passos. O passo de "confiar no cert" deixou de ser
-// uma cópia manual de URL — o instalador .bat embute o cert e grava em
-// `allowed.pem` automaticamente. cert.pem fica disponível como fallback
-// (macOS/Linux) num link discreto no rodapé.
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -29,7 +24,12 @@ interface QzInstallGuideProps {
   retrying?: boolean;
 }
 
-export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInstallGuideProps) {
+export function QzInstallGuide({
+  open,
+  onOpenChange,
+  onRetry,
+  retrying,
+}: QzInstallGuideProps) {
   const [installing, setInstalling] = useState(false);
   const [downloadingCert, setDownloadingCert] = useState(false);
 
@@ -37,7 +37,7 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
     setInstalling(true);
     try {
       await downloadQzWindowsInstaller();
-      toast.success("Configurador baixado.");
+      toast.success("Auto-configurador baixado.");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -59,47 +59,68 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Configurar QZ Tray em 3 passos</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-lg p-6 sm:p-7 rounded-3xl bg-[#FAF9F6] dark:bg-zinc-950 border text-foreground">
+        <DialogHeader className="space-y-1.5 text-left">
+          <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+            Configurar QZ Tray em 3 passos
+          </DialogTitle>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             Faça uma vez por máquina. Depois disso, a impressão acontece direto,
             sem pop-up de autorização.
-          </DialogDescription>
+          </p>
         </DialogHeader>
 
-        <ol className="space-y-3 text-sm">
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+        <ol className="space-y-5 text-sm my-2">
+          {/* Passo 1 */}
+          <li className="flex items-start gap-3.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
               1
             </span>
-            <div className="flex-1">
-              <div className="font-medium">Instale o QZ Tray</div>
-              <Button asChild size="sm" variant="outline" className="mt-1.5">
-                <a href="https://qz.io/download/" target="_blank" rel="noreferrer">
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> qz.io/download
-                </a>
-              </Button>
+            <div className="flex-1 space-y-2">
+              <div className="font-semibold text-foreground text-sm">
+                Instale o QZ Tray
+              </div>
+              <div>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full h-8 px-4 text-xs font-medium border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xs hover:bg-slate-50"
+                >
+                  <a
+                    href="https://qz.io/download/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" /> qz.io/download
+                  </a>
+                </Button>
+              </div>
             </div>
           </li>
 
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+          {/* Passo 2 */}
+          <li className="flex items-start gap-3.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
               2
             </span>
-            <div className="flex-1 space-y-2">
-              <div className="font-medium">Certificado de Segurança (cert.pem) — Obrigatório para todos os SOs</div>
-              <p className="text-xs text-muted-foreground">
-                O arquivo <code className="font-semibold text-foreground">cert.pem</code> é <strong>imprescindível</strong> para que o QZ Tray reconheça o Menuzin e imprima sem pop-ups de segurança.
+            <div className="flex-1 space-y-2.5">
+              <div className="font-semibold text-foreground text-sm leading-tight">
+                Certificado de Segurança (cert.pem) — Obrigatório para todos os SOs
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                O arquivo <code className="font-semibold text-foreground">cert.pem</code> é{" "}
+                <strong>imprescindível</strong> para que o QZ Tray reconheça o
+                Menuzin e imprima sem pop-ups de segurança.
               </p>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <Button
                   size="sm"
-                  variant="default"
                   onClick={handleDownloadCert}
                   disabled={downloadingCert}
-                  className="h-8 gap-1.5 text-xs font-semibold"
+                  className="rounded-full h-9 px-4 text-xs font-semibold bg-[#F95716] hover:bg-[#e04b0f] text-white shadow-2xs gap-1.5"
                 >
                   {downloadingCert ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -114,7 +135,7 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
                   variant="outline"
                   onClick={handleDownloadInstaller}
                   disabled={installing}
-                  className="h-8 gap-1.5 text-xs"
+                  className="rounded-full h-9 px-4 text-xs font-medium border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xs hover:bg-slate-50 gap-1.5"
                 >
                   {installing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -125,41 +146,68 @@ export function QzInstallGuide({ open, onOpenChange, onRetry, retrying }: QzInst
                 </Button>
               </div>
 
-              <div className="rounded-md bg-muted/40 p-2.5 text-xs text-muted-foreground space-y-1">
-                <div>• <strong>No Windows:</strong> Execute o <code>menuzin-qz-setup.bat</code> como administrador ou copie o <code>cert.pem</code> para <code>%PROGRAMDATA%\qz\data\certificates\allowed.pem</code>.</div>
-                <div>• <strong>No macOS:</strong> Copie para <code>/Library/Application Support/qz/data/certificates/allowed.pem</code>.</div>
-                <div>• <strong>No Linux:</strong> Copie para <code>/etc/qz/data/certificates/allowed.pem</code>.</div>
+              {/* Caixa de instrução por SO */}
+              <div className="rounded-2xl border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5 font-sans leading-relaxed">
+                <div>
+                  • <strong>No Windows:</strong> Execute o{" "}
+                  <code className="font-semibold text-foreground">menuzin-qz-setup.bat</code>{" "}
+                  como administrador ou copie o <code className="font-semibold text-foreground">cert.pem</code> para{" "}
+                  <code className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                    %PROGRAMDATA%\qz\data\certificates\allowed.pem
+                  </code>.
+                </div>
+                <div>
+                  • <strong>No macOS:</strong> Copie para{" "}
+                  <code className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                    /Library/Application Support/qz/data/certificates/allowed.pem
+                  </code>.
+                </div>
+                <div>
+                  • <strong>No Linux:</strong> Copie para{" "}
+                  <code className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                    /etc/qz/data/certificates/allowed.pem
+                  </code>.
+                </div>
               </div>
             </div>
           </li>
 
-          <li className="flex gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+          {/* Passo 3 */}
+          <li className="flex items-start gap-3.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">
               3
             </span>
-            <div className="flex-1">
-              <div className="font-medium">
+            <div className="flex-1 space-y-1">
+              <div className="font-semibold text-foreground text-sm">
                 Volte aqui e clique em <em>Testar de novo</em>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Se ficar verde sem pop-up, está pronto. Pronto para imprimir cupons direto.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Se ficar verde sem pop-up, está pronto. Pronto para imprimir cupons
+                direto.
               </p>
             </div>
           </li>
         </ol>
 
-
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-row items-center justify-end gap-2 sm:gap-2 pt-2 border-t border-slate-200/60 dark:border-zinc-800">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="rounded-full h-9 px-5 text-xs font-medium border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+          >
             Fechar
           </Button>
+
           {onRetry && (
-            <Button onClick={() => onRetry()} disabled={retrying}>
+            <Button
+              onClick={() => onRetry()}
+              disabled={retrying}
+              className="rounded-full h-9 px-5 text-xs font-semibold bg-[#F95716] hover:bg-[#e04b0f] text-white shadow-2xs gap-1.5"
+            >
               {retrying ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <RefreshCw className="mr-1.5 h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5" />
               )}
               Testar de novo
             </Button>
