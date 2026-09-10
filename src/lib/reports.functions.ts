@@ -9,6 +9,19 @@ const Input = z.object({
   to: z.string().min(8).max(40),
 });
 
+export type DetailedOrderReportItem = {
+  id: string;
+  number: number;
+  createdAt: string;
+  customerName: string;
+  whatsapp: string;
+  mode: string;
+  status: string;
+  paymentLabel: string;
+  total: number;
+  itemsSummary?: string;
+};
+
 export type BasicReports = {
   totalSales: number;
   ordersCount: number;
@@ -17,6 +30,7 @@ export type BasicReports = {
   ordersByStatus: { status: string; count: number }[];
   paymentMethods: { method: string; count: number; total: number }[];
   ordersByType: { mode: string; count: number; total: number }[];
+  detailedOrders: DetailedOrderReportItem[];
 };
 
 export const getBasicReports = createServerFn({ method: "POST" })
@@ -34,6 +48,7 @@ export const getBasicReports = createServerFn({ method: "POST" })
       ordersByStatus: [],
       paymentMethods: [],
       ordersByType: [],
+      detailedOrders: [],
     };
     if (!tenantId) return empty;
 
@@ -45,10 +60,11 @@ export const getBasicReports = createServerFn({ method: "POST" })
 
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, mode, status, total, payment_label, created_at")
+      .select("id, display_id, mode, status, total, payment_label, customer_name, whatsapp, created_at")
       .eq("tenant_id", tenantId)
       .gte("created_at", fromISO)
-      .lte("created_at", toISO);
+      .lte("created_at", toISO)
+      .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
 
     const list = orders ?? [];
@@ -82,27 +98,52 @@ export const getBasicReports = createServerFn({ method: "POST" })
     }
 
     let topProducts: BasicReports["topProducts"] = [];
+    const itemsByOrder = new Map<string, string[]>();
     const ids = list.map((o) => o.id as string);
+
     if (ids.length) {
       const { data: items } = await supabaseAdmin
         .from("order_items")
-        .select("name_snapshot, qty, unit_price")
+        .select("order_id, name_snapshot, qty, unit_price")
         .in("order_id", ids);
+
       const acc = new Map<string, { qty: number; revenue: number }>();
       for (const it of items ?? []) {
-        const name = it.name_snapshot as string;
+        const orderId = it.order_id as string;
+        const name = (it.name_snapshot as string) || "Item";
         const qty = Number(it.qty ?? 0);
         const rev = qty * Number(it.unit_price ?? 0);
+
+        // Top products accumulation
         const cur = acc.get(name) ?? { qty: 0, revenue: 0 };
         cur.qty += qty;
         cur.revenue += rev;
         acc.set(name, cur);
+
+        // Items summary per order
+        const existingSummary = itemsByOrder.get(orderId) ?? [];
+        existingSummary.push(`${qty}x ${name}`);
+        itemsByOrder.set(orderId, existingSummary);
       }
+
       topProducts = Array.from(acc.entries())
         .map(([name, v]) => ({ name, qty: v.qty, revenue: v.revenue }))
         .sort((a, b) => b.qty - a.qty)
         .slice(0, 10);
     }
+
+    const detailedOrders: DetailedOrderReportItem[] = list.map((o) => ({
+      id: o.id as string,
+      number: Number(o.display_id ?? 0),
+      createdAt: o.created_at as string,
+      customerName: (o.customer_name as string) || "Cliente Não Identificado",
+      whatsapp: (o.whatsapp as string) || "",
+      mode: (o.mode as string) || "entrega",
+      status: (o.status as string) || "novo",
+      paymentLabel: ((o.payment_label as string) || "Não informado").trim() || "Não informado",
+      total: Number(o.total ?? 0),
+      itemsSummary: itemsByOrder.get(o.id as string)?.join(", ") || "",
+    }));
 
     return {
       totalSales,
@@ -118,5 +159,6 @@ export const getBasicReports = createServerFn({ method: "POST" })
       ordersByType: Array.from(byMode.entries())
         .map(([mode, v]) => ({ mode, count: v.count, total: v.total }))
         .sort((a, b) => b.count - a.count),
+      detailedOrders,
     };
   });

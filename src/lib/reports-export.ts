@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { brl, statusLabel, modeLabel } from "@/lib/format";
+import type { DetailedOrderReportItem } from "@/lib/reports.functions";
 
 export type ReportData = {
   totalSales: number;
@@ -11,13 +12,29 @@ export type ReportData = {
   ordersByStatus: { status: string; count: number }[];
   paymentMethods: { method: string; count: number; total: number }[];
   ordersByType: { mode: string; count: number; total: number }[];
+  detailedOrders?: DetailedOrderReportItem[];
 };
 
 export type ReportRange = { from: string; to: string };
 
 function fmtDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+  if (!iso) return "";
+  const parts = iso.split("T")[0].split("-");
+  if (parts.length < 3) return iso;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function fmtDateTime(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function fileBase(range: ReportRange): string {
@@ -94,7 +111,7 @@ export function exportReportToPdf(
       head: [head],
       body,
       margin: { left: margin, right: margin },
-      styles: { fontSize: 9, cellPadding: 6 },
+      styles: { fontSize: 8, cellPadding: 5 },
       headStyles: { fillColor: [241, 245, 249], textColor: 30, fontStyle: "bold" },
       alternateRowStyles: { fillColor: [250, 250, 252] },
       theme: "plain",
@@ -123,6 +140,22 @@ export function exportReportToPdf(
     ["Modalidade", "Pedidos", "Total"],
     data.ordersByType.map((t) => [modeLabel[t.mode] ?? t.mode, t.count, brl(t.total)]),
   );
+
+  if (data.detailedOrders && data.detailedOrders.length > 0) {
+    addTable(
+      "Detalhamento dos Pedidos",
+      ["Nº", "Data/Hora", "Cliente", "Modalidade", "Pagamento", "Status", "Total"],
+      data.detailedOrders.map((o) => [
+        `#${o.number || o.id.slice(0, 6)}`,
+        fmtDateTime(o.createdAt),
+        o.customerName,
+        modeLabel[o.mode] ?? o.mode,
+        o.paymentLabel,
+        statusLabel[o.status] ?? o.status,
+        brl(o.total),
+      ]),
+    );
+  }
 
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -160,6 +193,40 @@ export function exportReportToExcel(data: ReportData, range: ReportRange): void 
   wsResumo["B8"] = { t: "n", v: data.averageTicket, z: money };
   wsResumo["!cols"] = [{ wch: 28 }, { wch: 18 }];
   XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo");
+
+  if (data.detailedOrders && data.detailedOrders.length > 0) {
+    const rows = [
+      ["Nº Pedido", "Data e Hora", "Cliente", "WhatsApp", "Modalidade", "Pagamento", "Status", "Valor Total (R$)", "Itens"],
+      ...data.detailedOrders.map((o) => [
+        o.number ? `#${o.number}` : o.id,
+        fmtDateTime(o.createdAt),
+        o.customerName,
+        o.whatsapp || "-",
+        modeLabel[o.mode] ?? o.mode,
+        o.paymentLabel,
+        statusLabel[o.status] ?? o.status,
+        o.total,
+        o.itemsSummary || "",
+      ]),
+    ];
+    const wsDetailed = XLSX.utils.aoa_to_sheet(rows);
+    for (let i = 0; i < data.detailedOrders.length; i++) {
+      const cell = XLSX.utils.encode_cell({ r: i + 1, c: 7 });
+      wsDetailed[cell] = { t: "n", v: data.detailedOrders[i].total, z: money };
+    }
+    wsDetailed["!cols"] = [
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 26 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 24 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 40 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsDetailed, "Pedidos Detalhados");
+  }
 
   const wsProdutos = XLSX.utils.aoa_to_sheet([
     ["Produto", "Quantidade", "Receita"],
