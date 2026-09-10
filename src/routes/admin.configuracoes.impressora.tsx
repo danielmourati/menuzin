@@ -58,7 +58,6 @@ function PrinterSettingsPage() {
   });
 
   const [form, setForm] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
-  const [previewOpen, setPreviewOpen] = useState(true);
   useEffect(() => {
     if (data?.settings) setForm(data.settings);
   }, [data]);
@@ -1155,103 +1154,6 @@ function PrinterSettingsPage() {
                   </CardContent>
                 </Card>
               </div>
-
-              {/* Bloco 4 — Papel + Prévia */}
-              <Card className="lg:sticky lg:top-4 self-start">
-                <CardHeader className="flex-row items-center justify-between gap-2">
-                  <CardTitle className="text-base">Prévia · {form.paper_width}</CardTitle>
-                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-primary/30 text-primary hover:bg-primary/5 hover:text-primary font-medium" onClick={handleTestPrint} disabled={qzBusy}>
-                    {qzBusy ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Printer className="h-3.5 w-3.5" />
-                    )}
-                    Testar impressão
-                  </Button>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div>
-                    <Label className="text-xs">Tamanho do papel</Label>
-                    <div className="mt-1.5 flex flex-wrap gap-2">
-                      {(["55mm", "80mm"] as const).map((w) => (
-                        <Button
-                          key={w}
-                          type="button"
-                          size="sm"
-                          variant={form.paper_width === w ? "default" : "outline"}
-                          onClick={() => set("paper_width", w)}
-                        >
-                          {w}
-                        </Button>
-                      ))}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {cols} colunas calculadas
-                    </p>
-                  </div>
-
-                  {qzPrinters.length > 0 && (
-                    <div>
-                      <Label className="text-xs">Impressora QZ Tray</Label>
-                      <Select
-                        value={form.printer_name || ""}
-                        onValueChange={(v) => set("printer_name", v)}
-                      >
-                        <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione a impressora" /></SelectTrigger>
-                        <SelectContent>
-                          {qzPrinters.map((p) => (
-                            <SelectItem key={p.name} value={p.name}>
-                              {p.name}{p.isDefault ? " (padrão)" : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-center"
-                    onClick={() => setPreviewOpen((v) => !v)}
-                  >
-                    {previewOpen ? (
-                      <><EyeOff className="mr-1.5 h-4 w-4" /> Ocultar prévia do cupom</>
-                    ) : (
-                      <><Eye className="mr-1.5 h-4 w-4" /> Mostrar prévia do cupom</>
-                    )}
-                  </Button>
-
-                  {previewOpen && (
-                    <>
-                      <div
-                        className="receipt-preview mx-auto"
-                        style={{
-                          background: "#E8D69F",
-                          color: "#111",
-                          fontFamily: '"Courier New", Courier, monospace',
-                          fontSize: form.font_size === "compact" ? "12px" : "13px",
-                          lineHeight: 1.35,
-                          whiteSpace: "pre",
-                          overflowX: "auto",
-                          padding: "16px",
-                          borderRadius: "12px",
-                          border: "1px solid hsl(var(--border))",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                          maxWidth: form.paper_width === "55mm" ? "300px" : "440px",
-                          maxHeight: "70vh",
-                        }}
-                      >
-                        {previewText}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Prévia em texto puro · {columnsFor(form.paper_width)} colunas.
-                      </p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
