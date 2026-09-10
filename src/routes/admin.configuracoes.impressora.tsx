@@ -1199,6 +1199,25 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
   );
 }
 
+function AutoAcceptToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  const { can } = useTenantPlan();
+  if (!can("kitchenPrinter")) {
+    return (
+      <UpgradeNotice
+        title="Aceite automático no Plano Pro"
+        description="No Plano Pro o pedido é aprovado assim que chega e a comanda da cozinha é impressa na hora."
+      />
+    );
+  }
+  return (
+    <Toggle
+      label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
+      value={value}
+      onChange={onChange}
+    />
+  );
+}
+
 function PrintersManagerGated({
   mainPrinterName,
   mainDetail,
