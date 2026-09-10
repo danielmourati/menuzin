@@ -115,6 +115,7 @@ function rowToPrinter(row: Record<string, unknown>): TenantPrinter {
     font_family: fontFamily,
     is_active: row.is_active !== false,
     is_default: row.is_default === true,
+    layout_overrides: (row.layout_overrides as PrinterLayoutOverrides | null) ?? null,
   };
 }
 
