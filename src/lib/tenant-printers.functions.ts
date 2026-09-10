@@ -76,6 +76,7 @@ const SaveInput = z.object({
   font_family: FontFamilyEnum,
   is_active: z.boolean().default(true),
   is_default: z.boolean().default(false),
+  layout_overrides: LayoutOverridesSchema,
 });
 
 const DeleteInput = z.object({ id: z.string().uuid() });
