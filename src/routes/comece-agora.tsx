@@ -1,18 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
-  ArrowRight, CheckCircle2, MessageCircle, Rocket, ShieldCheck,
+  ArrowRight, CheckCircle2, MessageCircle, Rocket,
   Smartphone, Store, Zap,
 } from "lucide-react";
 import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
 import { LandingFooter } from "@/components/landing/LandingSections";
+import { PricingTable, SmartStrategySection } from "@/components/landing/CroSections";
+import { listPlans } from "@/lib/subscriptions.functions";
 import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
 
 const menuzinLogo = menuzinLogoAsset.url;
 
-const TITLE = "Crie seu cardápio digital grátis — Menuzin";
-const DESC = "Monte seu cardápio online em minutos, receba pedidos direto no WhatsApp. Sem taxas, sem comissão sobre as vendas.";
+const TITLE = "Cardápio sem comissão para restaurantes — Menuzin";
+const DESC = "Use apps como vitrine e fidelize com o Menuzin. Receba pedidos no WhatsApp, sem comissão, e fique com 100% das vendas.";
 
 export const Route = createFileRoute("/comece-agora")({
   head: () => ({
@@ -33,6 +36,12 @@ export const Route = createFileRoute("/comece-agora")({
 
 function ComeceAgora() {
   const [open, setOpen] = useState(false);
+  const { data: plansData } = useQuery({
+    queryKey: ["plans"],
+    queryFn: () => listPlans(),
+    staleTime: 60_000,
+  });
+  const proPrice = plansData?.plans.find((plan) => plan.slug === "pro")?.monthly_price;
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -68,24 +77,19 @@ function ComeceAgora() {
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
               <Zap className="h-3 w-3" /> Plano Presença · 100% grátis
             </span>
-            <h1 className="mt-5 text-4xl font-bold leading-[1.05] text-balance md:text-6xl">
-              Seu cardápio digital no ar em{" "}
-              <span className="bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">2 minutos</span>.
+            <h1 className="mt-5 text-4xl font-bold leading-[1.08] text-balance md:text-5xl lg:text-6xl">
+              Pare de dividir seu lucro. Seu cardápio digital no ar em{" "}
+              <span className="text-primary">2 minutos.</span>
             </h1>
-            <p className="mt-4 text-2xl font-semibold text-foreground/90 md:text-3xl">
-              Sem taxas. Sem comissão sobre as vendas.
-            </p>
             <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-              Monte seu cardápio, compartilhe o link e receba pedidos direto no WhatsApp.
-              Você fica com <strong>100% do que vender</strong>.
+              Use os grandes apps de delivery como vitrine para atrair, e o Menuzin para fidelizar sem
+              pagar comissão. Você recebe os pedidos no WhatsApp e fica com{" "}
+              <strong className="text-foreground">100% das vendas.</strong>
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8">
               <Button size="lg" onClick={() => setOpen(true)} className="gap-2 shadow-lg">
-                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-              </Button>
-              <Button asChild size="lg" variant="outline" className="gap-2">
-                <Link to="/">Ver como funciona <ArrowRight className="h-4 w-4" /></Link>
+                Criar Meu Cardápio Grátis <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
 
@@ -174,6 +178,8 @@ function ComeceAgora() {
         </div>
       </section>
 
+      <SmartStrategySection />
+
       {/* HOW IT WORKS */}
       <section className="border-y bg-muted/30">
         <div className="container mx-auto px-4 py-16">
@@ -199,35 +205,10 @@ function ComeceAgora() {
         </div>
       </section>
 
-      {/* BENEFITS */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="mx-auto max-w-4xl">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Por que <span className="text-primary">grátis de verdade</span>?</h2>
-            <p className="mt-3 text-muted-foreground">O plano Presença não cobra mensalidade nem comissão sobre suas vendas.</p>
-          </div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            {[
-              "0% de comissão sobre pedidos",
-              "Link público + QR code prontos",
-              "Vitrine no Guia Menuzin",
-              "Até 20 produtos e 4 categorias",
-              "Botão de WhatsApp integrado",
-              "Estatísticas básicas",
-            ].map((b) => (
-              <div key={b} className="flex items-start gap-3 rounded-xl border bg-card p-4">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />
-                <span className="text-sm font-medium">{b}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> LGPD &amp; dados protegidos</span>
-            <span className="flex items-center gap-2"><Store className="h-4 w-4 text-primary" /> Já usado por lojas em todo Brasil</span>
-          </div>
-        </div>
-      </section>
+      <PricingTable
+        proPrice={proPrice == null ? null : Number(proPrice)}
+        onCTAClick={() => setOpen(true)}
+      />
 
       {/* CTA final */}
       <section className="relative overflow-hidden border-y bg-gradient-to-br from-primary via-orange-500 to-orange-400 text-white">
