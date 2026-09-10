@@ -153,6 +153,7 @@ export const saveTenantPrinter = createServerFn({ method: "POST" })
       paper_width: data.paper_width,
       is_active: data.is_active,
       is_default: data.is_default,
+      layout_overrides: data.layout_overrides ?? null,
     };
 
     if (data.id) {
