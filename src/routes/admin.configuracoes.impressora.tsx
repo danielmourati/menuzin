@@ -32,6 +32,7 @@ import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
 import { PrintersManager } from "@/components/printer/PrintersManager";
+import { ReceiptLayoutFields } from "@/components/printer/ReceiptLayoutFields";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
