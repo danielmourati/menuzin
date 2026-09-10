@@ -32,6 +32,7 @@ import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
 import { PrintersManager } from "@/components/printer/PrintersManager";
+import { ReceiptLayoutFields } from "@/components/printer/ReceiptLayoutFields";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
@@ -845,22 +846,12 @@ function PrinterSettingsPage() {
                     <div>• <strong>Linux:</strong> Copie para <code>/etc/qz/data/certificates/allowed.pem</code>.</div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Automações da conexão */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Automações</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
+                {/* Conexão automática pertence ao status do QZ Tray */}
                 <Toggle
                   label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
                   value={form.auto_connect}
                   onChange={(v) => set("auto_connect", v)}
-                />
-                <Toggle
-                  label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
-                  value={form.auto_accept_orders}
-                  onChange={(v) => set("auto_accept_orders", v)}
                 />
               </CardContent>
             </Card>
@@ -1029,6 +1020,12 @@ function PrinterSettingsPage() {
                   </div>
                 )}
 
+                <div className="md:col-span-2">
+                  <AutoAcceptToggle
+                    value={form.auto_accept_orders}
+                    onChange={(v) => set("auto_accept_orders", v)}
+                  />
+                </div>
               </div>
             }
           />
@@ -1062,100 +1059,13 @@ function PrinterSettingsPage() {
                       )}
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <Label className={form.use_default_typography ? "opacity-60" : ""}>Padrão da fonte</Label>
-                        <Select
-                          disabled={form.use_default_typography ?? true}
-                          value={form.use_default_typography ? "mono" : (form.font_family ?? "mono")}
-                          onValueChange={(v) => set("font_family", v as PrinterSettings["font_family"])}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="mono">Monoespaçada (Padrão Thermal)</SelectItem>
-                            <SelectItem value="condensed">Condensada (Compacta Font B)</SelectItem>
-                            <SelectItem value="sans">Sans-Serif (Limpa)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className={form.use_default_typography ? "opacity-60" : ""}>Tamanho da fonte</Label>
-                        <Select
-                          disabled={form.use_default_typography ?? true}
-                          value={form.use_default_typography ? "normal" : form.font_size}
-                          onValueChange={(v) => set("font_size", v as PrinterSettings["font_size"])}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="compact">Compacta (Pequena)</SelectItem>
-                            <SelectItem value="normal">Normal (Média)</SelectItem>
-                            <SelectItem value="large">Grande (Legível)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Separador</Label>
-                        <Select
-                          value={form.separator_char}
-                          onValueChange={(v) => set("separator_char", v)}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="-">Traços ( - )</SelectItem>
-                            <SelectItem value="=">Iguais ( = )</SelectItem>
-                            <SelectItem value=".">Pontos ( . )</SelectItem>
-                            <SelectItem value="*">Asteriscos ( * )</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Tipo de corte</Label>
-                        <Select
-                          value={form.cut_type}
-                          onValueChange={(v) => set("cut_type", v as PrinterSettings["cut_type"])}
-                        >
-                          <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sem corte</SelectItem>
-                            <SelectItem value="partial">Corte parcial</SelectItem>
-                            <SelectItem value="full">Corte total</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Linhas em branco no final</Label>
-                        <Input
-                          type="number" min={0} max={10}
-                          value={form.feed_lines}
-                          onChange={(e) => set("feed_lines", Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
-                          className="mt-1.5"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2 md:grid-cols-2">
-                      <Toggle label="Negrito em títulos" value={form.use_bold_titles} onChange={(v) => set("use_bold_titles", v)} />
-                      <Toggle label="Fonte dupla no total" value={form.use_double_total} onChange={(v) => set("use_double_total", v)} />
-                      <Toggle label="Exibir nome da loja" value={form.show_store_name} onChange={(v) => set("show_store_name", v)} />
-                      <Toggle label="Exibir endereço" value={form.show_address} onChange={(v) => set("show_address", v)} />
-                      <Toggle label="Exibir CNPJ/CPF" value={form.show_document} onChange={(v) => set("show_document", v)} />
-                      <Toggle label="Exibir WhatsApp" value={form.show_whatsapp} onChange={(v) => set("show_whatsapp", v)} />
-                      <Toggle label="Exibir PIX" value={form.show_pix} onChange={(v) => set("show_pix", v)} />
-                      <Toggle label="Exibir Instagram" value={form.show_instagram} onChange={(v) => set("show_instagram", v)} />
-                      <Toggle label="Exibir mensagem de agradecimento" value={form.show_thank_message} onChange={(v) => set("show_thank_message", v)} />
-                    </div>
-
-                    {form.show_thank_message && (
-                      <div>
-                        <Label>Mensagem de agradecimento</Label>
-                        <Input
-                          value={form.thank_message}
-                          onChange={(e) => set("thank_message", e.target.value)}
-                          maxLength={120}
-                          className="mt-1.5"
-                        />
-                      </div>
-                    )}
+                    <ReceiptLayoutFields
+                      value={form}
+                      onChange={(patch) =>
+                        setForm((prev) => (prev ? { ...prev, ...patch } : prev))
+                      }
+                      typographyDisabled={form.use_default_typography ?? true}
+                    />
                   </CardContent>
                 </Card>
               </div>
@@ -1200,6 +1110,25 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
       <Label className="text-sm font-normal">{label}</Label>
       <Switch checked={value} onCheckedChange={onChange} />
     </div>
+  );
+}
+
+function AutoAcceptToggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  const { can } = useTenantPlan();
+  if (!can("kitchenPrinter")) {
+    return (
+      <UpgradeNotice
+        title="Aceite automático no Plano Pro"
+        description="No Plano Pro o pedido é aprovado assim que chega e a comanda da cozinha é impressa na hora."
+      />
+    );
+  }
+  return (
+    <Toggle
+      label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
+      value={value}
+      onChange={onChange}
+    />
   );
 }
 

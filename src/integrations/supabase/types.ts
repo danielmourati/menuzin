@@ -2229,6 +2229,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          layout_overrides: Json | null
           name: string
           paper_width: string
           printer_name: string
@@ -2241,6 +2242,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          layout_overrides?: Json | null
           name: string
           paper_width?: string
           printer_name?: string
@@ -2253,6 +2255,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          layout_overrides?: Json | null
           name?: string
           paper_width?: string
           printer_name?: string

@@ -19,9 +19,29 @@ import {
   deleteTenantPrinter,
   listMyTenantPrinters,
   saveTenantPrinter,
+  type PrinterLayoutOverrides,
   type TenantPrinter,
   type TenantPrinterRole,
 } from "@/lib/tenant-printers.functions";
+import { ReceiptLayoutFields } from "@/components/printer/ReceiptLayoutFields";
+
+const DEFAULT_OVERRIDES: PrinterLayoutOverrides = {
+  font_family: "mono",
+  font_size: "normal",
+  separator_char: "-",
+  cut_type: "partial",
+  feed_lines: 4,
+  use_bold_titles: true,
+  use_double_total: true,
+  show_store_name: true,
+  show_address: false,
+  show_document: false,
+  show_whatsapp: false,
+  show_pix: false,
+  show_instagram: false,
+  show_thank_message: false,
+  thank_message: "",
+};
 import {
   listQzPrintersWithDefault,
   printQzTextTest,
@@ -134,6 +154,7 @@ export function PrintersManager({
           font_family: (d.font_family ?? "mono") as "mono" | "condensed" | "sans",
           is_active: d.is_active ?? true,
           is_default: d.is_default ?? false,
+          layout_overrides: d.layout_overrides ?? null,
         },
       }),
     onSuccess: (res) => {
@@ -379,6 +400,38 @@ export function PrintersManager({
                   <span className="text-sm">{selected.is_active === false ? "Inativa" : "Ativa"}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Layout do cupom desta impressora */}
+            <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-semibold">Layout do cupom</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.layout_overrides
+                      ? "Personalizado para esta impressora."
+                      : "Usando o layout da loja."}
+                  </p>
+                </div>
+                <Switch
+                  checked={Boolean(selected.layout_overrides)}
+                  onCheckedChange={(v) =>
+                    updateDraft(selected._localId, {
+                      layout_overrides: v ? { ...DEFAULT_OVERRIDES } : null,
+                    })
+                  }
+                />
+              </div>
+              {selected.layout_overrides && (
+                <ReceiptLayoutFields
+                  value={selected.layout_overrides}
+                  onChange={(patch) =>
+                    updateDraft(selected._localId, {
+                      layout_overrides: { ...selected.layout_overrides, ...patch },
+                    })
+                  }
+                />
+              )}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">

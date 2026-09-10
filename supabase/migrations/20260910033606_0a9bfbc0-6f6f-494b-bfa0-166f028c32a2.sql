@@ -1,0 +1,1 @@
+ALTER TABLE public.tenant_printers ADD COLUMN IF NOT EXISTS layout_overrides jsonb;
