@@ -848,10 +848,31 @@ function PrinterSettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Bloco 1 — Impressora */}
+            {/* Automações da conexão */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Impressora</CardTitle></CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
+              <CardHeader><CardTitle className="text-base">Automações</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <Toggle
+                  label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
+                  value={form.auto_connect}
+                  onChange={(v) => set("auto_connect", v)}
+                />
+                <Toggle
+                  label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
+                  value={form.auto_accept_orders}
+                  onChange={(v) => set("auto_accept_orders", v)}
+                />
+              </CardContent>
+            </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+        <TabsContent value="impressoras" className="space-y-4 mt-4">
+          <PrintersManagerGated
+            mainPrinterName={form.printer_name}
+            mainDetail={
+              <div className="grid gap-4 md:grid-cols-2">
                 {/* Reconhecimento por Dispositivo (Local) */}
                 <div className="md:col-span-2 rounded-lg border bg-muted/30 p-3.5 space-y-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
