@@ -7,6 +7,25 @@ import { requireProPlan } from "@/lib/plan-server";
 
 export type TenantPrinterRole = "receipt" | "kitchen" | "bar" | "counter" | "other";
 
+/** Sobrescritas de layout do cupom por impressora. `null` = herda da loja. */
+export type PrinterLayoutOverrides = {
+  font_family?: "mono" | "condensed" | "sans";
+  font_size?: "compact" | "normal" | "large";
+  separator_char?: string;
+  cut_type?: "none" | "partial" | "full";
+  feed_lines?: number;
+  use_bold_titles?: boolean;
+  use_double_total?: boolean;
+  show_store_name?: boolean;
+  show_address?: boolean;
+  show_document?: boolean;
+  show_whatsapp?: boolean;
+  show_pix?: boolean;
+  show_instagram?: boolean;
+  show_thank_message?: boolean;
+  thank_message?: string;
+};
+
 export type TenantPrinter = {
   id: string;
   tenant_id: string;
@@ -18,7 +37,29 @@ export type TenantPrinter = {
   font_family: "mono" | "condensed" | "sans";
   is_active: boolean;
   is_default: boolean;
+  layout_overrides: PrinterLayoutOverrides | null;
 };
+
+const LayoutOverridesSchema = z
+  .object({
+    font_family: z.enum(["mono", "condensed", "sans"]).optional(),
+    font_size: z.enum(["compact", "normal", "large"]).optional(),
+    separator_char: z.string().max(1).optional(),
+    cut_type: z.enum(["none", "partial", "full"]).optional(),
+    feed_lines: z.number().int().min(0).max(10).optional(),
+    use_bold_titles: z.boolean().optional(),
+    use_double_total: z.boolean().optional(),
+    show_store_name: z.boolean().optional(),
+    show_address: z.boolean().optional(),
+    show_document: z.boolean().optional(),
+    show_whatsapp: z.boolean().optional(),
+    show_pix: z.boolean().optional(),
+    show_instagram: z.boolean().optional(),
+    show_thank_message: z.boolean().optional(),
+    thank_message: z.string().max(120).optional(),
+  })
+  .nullable()
+  .optional();
 
 const RoleEnum = z.enum(["receipt", "kitchen", "bar", "counter", "other"]);
 const PaperEnum = z.enum(["55mm", "80mm"]);
