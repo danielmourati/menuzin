@@ -1019,6 +1019,12 @@ function PrinterSettingsPage() {
                   </div>
                 )}
 
+                <div className="md:col-span-2">
+                  <AutoAcceptToggle
+                    value={form.auto_accept_orders}
+                    onChange={(v) => set("auto_accept_orders", v)}
+                  />
+                </div>
               </div>
             }
           />
