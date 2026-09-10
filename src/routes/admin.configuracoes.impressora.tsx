@@ -845,22 +845,12 @@ function PrinterSettingsPage() {
                     <div>• <strong>Linux:</strong> Copie para <code>/etc/qz/data/certificates/allowed.pem</code>.</div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Automações da conexão */}
-            <Card>
-              <CardHeader><CardTitle className="text-base">Automações</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
+                {/* Conexão automática pertence ao status do QZ Tray */}
                 <Toggle
                   label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
                   value={form.auto_connect}
                   onChange={(v) => set("auto_connect", v)}
-                />
-                <Toggle
-                  label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
-                  value={form.auto_accept_orders}
-                  onChange={(v) => set("auto_accept_orders", v)}
                 />
               </CardContent>
             </Card>
