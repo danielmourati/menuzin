@@ -733,6 +733,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
         defaultPrinter={systemPrinters.find((p) => p.isDefault)?.name ?? null}
         qzPrinters={systemPrinters}
         qzStatus={qzStatus}
+        lastAttempt={null}
         onRetryDetect={() => detect()}
         retrying={scanning}
       />
