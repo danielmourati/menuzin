@@ -60,7 +60,7 @@ export const getBasicReports = createServerFn({ method: "POST" })
 
     const { data: orders, error } = await supabaseAdmin
       .from("orders")
-      .select("id, display_id, mode, status, total, payment_label, customer_name, whatsapp, created_at")
+      .select("id, number, mode, status, total, payment_label, customer_name, whatsapp, created_at")
       .eq("tenant_id", tenantId)
       .gte("created_at", fromISO)
       .lte("created_at", toISO)
@@ -134,7 +134,7 @@ export const getBasicReports = createServerFn({ method: "POST" })
 
     const detailedOrders: DetailedOrderReportItem[] = list.map((o) => ({
       id: o.id as string,
-      number: Number(o.display_id ?? 0),
+      number: Number(o.number ?? 0),
       createdAt: o.created_at as string,
       customerName: (o.customer_name as string) || "Cliente Não Identificado",
       whatsapp: (o.whatsapp as string) || "",
