@@ -19,9 +19,29 @@ import {
   deleteTenantPrinter,
   listMyTenantPrinters,
   saveTenantPrinter,
+  type PrinterLayoutOverrides,
   type TenantPrinter,
   type TenantPrinterRole,
 } from "@/lib/tenant-printers.functions";
+import { ReceiptLayoutFields } from "@/components/printer/ReceiptLayoutFields";
+
+const DEFAULT_OVERRIDES: PrinterLayoutOverrides = {
+  font_family: "mono",
+  font_size: "normal",
+  separator_char: "-",
+  cut_type: "partial",
+  feed_lines: 4,
+  use_bold_titles: true,
+  use_double_total: true,
+  show_store_name: true,
+  show_address: false,
+  show_document: false,
+  show_whatsapp: false,
+  show_pix: false,
+  show_instagram: false,
+  show_thank_message: false,
+  thank_message: "",
+};
 import {
   listQzPrintersWithDefault,
   printQzTextTest,
