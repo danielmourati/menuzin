@@ -25,6 +25,7 @@ import {
   type WeekdayCode,
 } from "@/lib/store-hours";
 import { BusinessTypesField } from "@/components/admin/BusinessTypesField";
+import { PrintersDialog } from "@/components/printer/PrintersDialog";
 import { type BusinessType } from "@/lib/business-types";
 
 
