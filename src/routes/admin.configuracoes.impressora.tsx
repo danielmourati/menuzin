@@ -31,7 +31,7 @@ import {
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
-import { ExtraPrintersManager } from "@/components/printer/ExtraPrintersManager";
+import { PrintersManager } from "@/components/printer/PrintersManager";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
