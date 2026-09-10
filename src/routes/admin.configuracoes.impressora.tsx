@@ -1008,26 +1008,10 @@ function PrinterSettingsPage() {
                   </div>
                 )}
 
-                <div className="md:col-span-2">
-                  <Toggle
-                    label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
-                    value={form.auto_connect}
-                    onChange={(v) => set("auto_connect", v)}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Toggle
-                    label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
-                    value={form.auto_accept_orders}
-                    onChange={(v) => set("auto_accept_orders", v)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </TabsContent>
+              </div>
+            }
+          />
+        </TabsContent>
 
           <TabsContent value="layout" className="space-y-4 mt-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
