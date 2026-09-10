@@ -290,10 +290,14 @@ function SettingsPage() {
                   com perfis ESC/POS para mini impressoras e modelos ELGIN i8/i9.
                 </p>
                 <div className="pt-2">
-                  <Button asChild className="h-11 px-6 rounded-xl font-semibold">
-                    <Link to="/admin/configuracoes/impressora">Configurar impressora</Link>
+                  <Button
+                    className="h-11 px-6 rounded-xl font-semibold"
+                    onClick={() => setPrintersOpen(true)}
+                  >
+                    Configurar impressora
                   </Button>
                 </div>
+                <PrintersDialog open={printersOpen} onOpenChange={setPrintersOpen} />
               </div>
             </TabsContent>
 
