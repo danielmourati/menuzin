@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
@@ -31,7 +31,7 @@ import {
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
-import { ExtraPrintersManager } from "@/components/printer/ExtraPrintersManager";
+import { PrintersManager } from "@/components/printer/PrintersManager";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
@@ -568,14 +568,14 @@ function PrinterSettingsPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <Tabs defaultValue="geral" className="space-y-4">
+        <Tabs defaultValue="conexao" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 max-w-xl h-10 p-1 rounded-xl bg-muted/60">
-            <TabsTrigger value="geral" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Conexão & Impressora</TabsTrigger>
+            <TabsTrigger value="conexao" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Conexão</TabsTrigger>
+            <TabsTrigger value="impressoras" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Impressoras</TabsTrigger>
             <TabsTrigger value="layout" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Layout do Cupom</TabsTrigger>
-            <TabsTrigger value="cozinha" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Outras Impressoras</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="geral" className="space-y-4 mt-4">
+          <TabsContent value="conexao" className="space-y-4 mt-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
               <div className="space-y-4">
             {/* Status do QZ Tray */}
@@ -848,10 +848,31 @@ function PrinterSettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Bloco 1 — Impressora */}
+            {/* Automações da conexão */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Impressora</CardTitle></CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
+              <CardHeader><CardTitle className="text-base">Automações</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <Toggle
+                  label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
+                  value={form.auto_connect}
+                  onChange={(v) => set("auto_connect", v)}
+                />
+                <Toggle
+                  label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
+                  value={form.auto_accept_orders}
+                  onChange={(v) => set("auto_accept_orders", v)}
+                />
+              </CardContent>
+            </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+        <TabsContent value="impressoras" className="space-y-4 mt-4">
+          <PrintersManagerGated
+            mainPrinterName={form.printer_name}
+            mainDetail={
+              <div className="grid gap-4 md:grid-cols-2">
                 {/* Reconhecimento por Dispositivo (Local) */}
                 <div className="md:col-span-2 rounded-lg border bg-muted/30 p-3.5 space-y-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1008,26 +1029,10 @@ function PrinterSettingsPage() {
                   </div>
                 )}
 
-                <div className="md:col-span-2">
-                  <Toggle
-                    label="Conectar automaticamente ao QZ Tray ao logar (mantém conexão viva para impressões mais rápidas)"
-                    value={form.auto_connect}
-                    onChange={(v) => set("auto_connect", v)}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Toggle
-                    label="Aceite automático de pedidos (aprova o pedido assim que ele chega e imprime a comanda da cozinha na hora)"
-                    value={form.auto_accept_orders}
-                    onChange={(v) => set("auto_accept_orders", v)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </TabsContent>
+              </div>
+            }
+          />
+        </TabsContent>
 
           <TabsContent value="layout" className="space-y-4 mt-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
@@ -1156,17 +1161,6 @@ function PrinterSettingsPage() {
               </div>
             </div>
           </TabsContent>
-
-          <TabsContent value="cozinha" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Impressoras adicionais (cozinha, balcão, bar)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ExtraPrintersManagerGated />
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       )}
 
@@ -1209,15 +1203,26 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
   );
 }
 
-function ExtraPrintersManagerGated() {
+function PrintersManagerGated({
+  mainPrinterName,
+  mainDetail,
+}: {
+  mainPrinterName?: string;
+  mainDetail: ReactNode;
+}) {
   const { can } = useTenantPlan();
-  if (!can("multiplePrinters")) {
-    return (
-      <UpgradeNotice
-        title="Múltiplas impressoras no Plano Pro"
-        description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. A impressora principal de recibo continua disponível normalmente."
-      />
-    );
-  }
-  return <ExtraPrintersManager />;
+  const canMultiple = can("multiplePrinters");
+  return (
+    <PrintersManager
+      mainPrinterName={mainPrinterName}
+      mainDetail={mainDetail}
+      canMultiple={canMultiple}
+      upgradeNotice={
+        <UpgradeNotice
+          title="Múltiplas impressoras no Plano Pro"
+          description="Configure impressoras dedicadas para cozinha, bar e balcão no Plano Pro. A impressora principal de recibo continua disponível normalmente."
+        />
+      }
+    />
+  );
 }
