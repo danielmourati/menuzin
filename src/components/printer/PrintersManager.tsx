@@ -134,6 +134,7 @@ export function PrintersManager({
           font_family: (d.font_family ?? "mono") as "mono" | "condensed" | "sans",
           is_active: d.is_active ?? true,
           is_default: d.is_default ?? false,
+          layout_overrides: d.layout_overrides ?? null,
         },
       }),
     onSuccess: (res) => {
