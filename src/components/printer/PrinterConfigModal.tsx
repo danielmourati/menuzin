@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+// Modal único de impressoras: lista de locais à esquerda, ajustes do local
+// selecionado à direita, opções avançadas recolhidas e estado da impressão no
+// rodapé. É a única tela de configuração de impressora do sistema.
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,25 +20,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Check,
   CheckCircle2,
   ChefHat,
+  ChevronDown,
   Coffee,
+  HelpCircle,
   Loader2,
   Monitor,
   Plus,
   Printer,
+  RefreshCw,
   Store,
   Trash2,
-  X,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_PRINTER_SETTINGS,
-  type FontFamily,
-  type FontSize,
   type PaperWidth,
   type PrinterSettings,
 } from "@/lib/printer-types";
@@ -46,630 +50,693 @@ import {
   deleteTenantPrinter,
   listMyTenantPrinters,
   saveTenantPrinter,
+  type PrinterLayoutOverrides,
   type TenantPrinter,
   type TenantPrinterRole,
 } from "@/lib/tenant-printers.functions";
 import {
+  ensureQzConnected,
   listQzPrintersWithDefault,
   printQzTextTest,
   QzNotRunningError,
   type QzPrinter,
 } from "@/lib/qz-tray";
-import { getDevicePrinter, setDevicePrinter } from "@/lib/device-printer";
+import { setDevicePrinter } from "@/lib/device-printer";
+import { ReceiptLayoutFields } from "@/components/printer/ReceiptLayoutFields";
+import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
+import { QzDiagnosticsModal } from "@/components/printer/QzDiagnosticsModal";
+import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 interface PrinterConfigModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-type PrintMode = "disabled" | "installed" | "shared";
-
-interface LocationItem {
-  id: string; // 'caixa' or UUID for extra printers
-  isCaixa: boolean;
+type ExtraDraft = {
+  localId: string;
+  id?: string;
   name: string;
-  role?: TenantPrinterRole;
-  printerName: string;
-  mode: PrintMode;
-  paperWidth: PaperWidth;
-  fontSize: FontSize;
-  fontFamily: FontFamily;
-  useDefaultTypography: boolean; // Utilizar texto simplificado
-  useBoldTitles: boolean;
-  isActive: boolean;
-  extraPrinterRef?: TenantPrinter;
+  role: TenantPrinterRole;
+  printer_name: string;
+  paper_width: PaperWidth;
+  is_active: boolean;
+  layout_overrides: PrinterLayoutOverrides | null;
+};
+
+const ROLE_LABEL: Record<TenantPrinterRole, string> = {
+  receipt: "Caixa",
+  kitchen: "Cozinha",
+  bar: "Bar",
+  counter: "Balcão",
+  other: "Outro",
+};
+
+const DEFAULT_OVERRIDES: PrinterLayoutOverrides = {
+  font_family: "mono",
+  font_size: "normal",
+  separator_char: "-",
+  cut_type: "partial",
+  feed_lines: 3,
+  use_bold_titles: true,
+  use_double_total: true,
+  show_store_name: true,
+  show_address: false,
+  show_document: false,
+  show_whatsapp: false,
+  show_pix: false,
+  show_instagram: false,
+  show_thank_message: false,
+  thank_message: "",
+};
+
+function fromTenantPrinter(p: TenantPrinter): ExtraDraft {
+  return {
+    localId: p.id,
+    id: p.id,
+    name: p.name || "Impressora",
+    role: p.role,
+    printer_name: p.printer_name,
+    paper_width: p.paper_width,
+    is_active: p.is_active,
+    layout_overrides: p.layout_overrides ?? null,
+  };
 }
 
-const DEFAULT_FONTS: { label: string; value: FontFamily }[] = [
-  { label: "Consolas", value: "mono" },
-  { label: "Courier New", value: "condensed" },
-  { label: "Sans-Serif (Genérica)", value: "sans" },
-];
-
-const DEFAULT_SIZES: { label: string; value: FontSize }[] = [
-  { label: "Pequeno", value: "compact" },
-  { label: "Médio (8.25pt)", value: "normal" },
-  { label: "Grande", value: "large" },
-];
+function roleIcon(role?: TenantPrinterRole, isCaixa?: boolean) {
+  if (isCaixa) return <Monitor className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />;
+  if (role === "kitchen") return <ChefHat className="h-5 w-5 text-amber-600 dark:text-amber-400" />;
+  if (role === "bar") return <Coffee className="h-5 w-5 text-blue-600 dark:text-blue-400" />;
+  return <Store className="h-5 w-5 text-purple-600 dark:text-purple-400" />;
+}
 
 export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalProps) {
   const qc = useQueryClient();
+  const { can } = useTenantPlan();
+  const canMultiple = can("multiplePrinters");
+  const canAutoAccept = can("kitchenPrinter");
 
-  // Queries
-  const { data: mainSettingsData, isLoading: isLoadingMain } = useQuery({
+  const { data: mainData, isLoading: loadingMain } = useQuery({
     queryKey: ["printer-settings"],
     queryFn: () => getMyPrinterSettings(),
     enabled: open,
   });
-
-  const { data: extraPrintersData, isLoading: isLoadingExtra } = useQuery({
+  const { data: extraData, isLoading: loadingExtra } = useQuery({
     queryKey: ["tenant-printers"],
     queryFn: () => listMyTenantPrinters(),
-    enabled: open,
+    enabled: open && canMultiple,
   });
 
-  // State
+  const [caixa, setCaixa] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
+  const [drafts, setDrafts] = useState<ExtraDraft[]>([]);
   const [selectedId, setSelectedId] = useState<string>("caixa");
   const [systemPrinters, setSystemPrinters] = useState<QzPrinter[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [qzStatus, setQzStatus] = useState<"unknown" | "connected" | "offline">("unknown");
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [diagOpen, setDiagOpen] = useState(false);
 
-  // Form State for Caixa
-  const [caixaForm, setCaixaForm] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
-
-  // Form State for Extra Printers
-  const [extraDrafts, setExtraDrafts] = useState<LocationItem[]>([]);
-
-  // Load Caixa settings
   useEffect(() => {
-    if (mainSettingsData?.settings) {
-      setCaixaForm(mainSettingsData.settings);
-    }
-  }, [mainSettingsData]);
+    if (mainData?.settings) setCaixa(mainData.settings);
+  }, [mainData]);
 
-  // Load Extra printers
   useEffect(() => {
-    if (extraPrintersData?.printers) {
-      const mapped: LocationItem[] = extraPrintersData.printers.map((p) => ({
-        id: p.id,
-        isCaixa: false,
-        name: p.name || "Impressora Adicional",
-        role: p.role,
-        printerName: p.printer_name,
-        mode: p.is_active ? "installed" : "disabled",
-        paperWidth: p.paper_width,
-        fontSize: p.font_size,
-        fontFamily: p.font_family,
-        useDefaultTypography: true,
-        useBoldTitles: true,
-        isActive: p.is_active,
-        extraPrinterRef: p,
-      }));
-      setExtraDrafts(mapped);
+    if (extraData?.printers) {
+      setDrafts((prev) => [
+        ...extraData.printers.map(fromTenantPrinter),
+        ...prev.filter((d) => !d.id),
+      ]);
     }
-  }, [extraPrintersData]);
+  }, [extraData]);
 
-  // Scan system printers via QZ Tray
-  const scanPrinters = async () => {
-    setIsScanning(true);
+  const detect = async (silent = false) => {
+    setScanning(true);
     try {
+      await ensureQzConnected();
       const res = await listQzPrintersWithDefault();
       setSystemPrinters(res.printers);
+      setQzStatus("connected");
+      if (!silent) toast.success(`${res.printers.length} impressora(s) encontrada(s)`);
     } catch (err) {
-      if (err instanceof QzNotRunningError) {
-        toast.error("QZ Tray não está em execução no sistema.");
-      } else {
-        toast.error("Não foi possível carregar as impressoras do sistema.");
+      setQzStatus("offline");
+      if (!silent) {
+        toast.error(
+          err instanceof QzNotRunningError
+            ? "O programa de impressão não está aberto neste computador."
+            : err instanceof Error
+              ? err.message
+              : "Não foi possível encontrar impressoras.",
+        );
       }
     } finally {
-      setIsScanning(false);
+      setScanning(false);
     }
   };
 
   useEffect(() => {
     if (open) {
-      scanPrinters();
+      setSelectedId("caixa");
+      setAdvancedOpen(false);
+      void detect(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Construct location list
-  const caixaLocation: LocationItem = {
-    id: "caixa",
-    isCaixa: true,
-    name: "Impressora do Caixa (Este PC)",
-    printerName: caixaForm.printer_name || getDevicePrinter() || "",
-    mode: caixaForm.printer_name || getDevicePrinter() ? "installed" : "disabled",
-    paperWidth: caixaForm.paper_width,
-    fontSize: caixaForm.font_size,
-    fontFamily: caixaForm.font_family,
-    useDefaultTypography: caixaForm.use_default_typography,
-    useBoldTitles: caixaForm.use_bold_titles,
-    isActive: true,
+  const selected = useMemo(
+    () => drafts.find((d) => d.localId === selectedId) ?? null,
+    [drafts, selectedId],
+  );
+  const isCaixa = selectedId === "caixa";
+
+  const updateDraft = (patch: Partial<ExtraDraft>) => {
+    setDrafts((prev) =>
+      prev.map((d) => (d.localId === selectedId ? { ...d, ...patch } : d)),
+    );
   };
 
-  const locations: LocationItem[] = [caixaLocation, ...extraDrafts];
-  const activeLocation = locations.find((l) => l.id === selectedId) || caixaLocation;
-
-  // Handlers for active location state update
-  const updateActiveLocation = (updates: Partial<LocationItem>) => {
-    if (activeLocation.isCaixa) {
-      setCaixaForm((prev) => ({
-        ...prev,
-        ...(updates.printerName !== undefined && { printer_name: updates.printerName }),
-        ...(updates.paperWidth !== undefined && { paper_width: updates.paperWidth }),
-        ...(updates.fontSize !== undefined && { font_size: updates.fontSize }),
-        ...(updates.fontFamily !== undefined && { font_family: updates.fontFamily }),
-        ...(updates.useDefaultTypography !== undefined && { use_default_typography: updates.useDefaultTypography }),
-        ...(updates.useBoldTitles !== undefined && { use_bold_titles: updates.useBoldTitles }),
-      }));
-    } else {
-      setExtraDrafts((prev) =>
-        prev.map((item) => (item.id === activeLocation.id ? { ...item, ...updates } : item)),
-      );
-    }
-  };
-
-  // Mutations
-  const saveCaixaMut = useMutation({
-    mutationFn: (data: PrinterSettings) => saveMyPrinterSettings({ data }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["printer-settings"] });
-    },
-  });
-
-  const saveExtraMut = useMutation({
-    mutationFn: (item: LocationItem) =>
-      saveTenantPrinter({
-        data: {
-          id: item.id.length > 20 ? item.id : undefined,
-          name: item.name,
-          role: item.role || "kitchen",
-          printer_name: item.printerName,
-          paper_width: item.paperWidth,
-          font_size: item.fontSize,
-          font_family: item.fontFamily,
-          is_active: item.mode !== "disabled",
-          is_default: false,
-        },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tenant-printers"] });
-    },
-  });
-
-  const deleteExtraMut = useMutation({
+  const deleteMut = useMutation({
     mutationFn: (id: string) => deleteTenantPrinter({ data: { id } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["tenant-printers"] });
-      setSelectedId("caixa");
-      toast.success("Local removido com sucesso");
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tenant-printers"] }),
   });
 
-  const handleSaveAll = async () => {
-    try {
-      // Save Caixa settings
-      if (caixaForm.printer_name) {
-        setDevicePrinter(caixaForm.printer_name);
-      }
-      await saveCaixaMut.mutateAsync(caixaForm);
-
-      // Save Extra printers
-      for (const draft of extraDrafts) {
-        await saveExtraMut.mutateAsync(draft);
-      }
-
-      toast.success("Configurações de impressora salvas com sucesso!");
-      onOpenChange(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao salvar configurações");
+  const removeSelected = () => {
+    if (!selected) return;
+    setSelectedId("caixa");
+    setDrafts((prev) => prev.filter((d) => d.localId !== selected.localId));
+    if (selected.id) {
+      deleteMut.mutate(selected.id, {
+        onSuccess: () => toast.success("Local removido"),
+        onError: (e: Error) => toast.error(e.message),
+      });
     }
   };
 
-  const handleAddLocation = () => {
-    const newId = crypto.randomUUID();
-    const newLocation: LocationItem = {
-      id: newId,
-      isCaixa: false,
-      name: "Cozinha / Bar",
-      role: "kitchen",
-      printerName: "",
-      mode: "installed",
-      paperWidth: "80mm",
-      fontSize: "normal",
-      fontFamily: "mono",
-      useDefaultTypography: true,
-      useBoldTitles: true,
-      isActive: true,
-    };
-    setExtraDrafts((prev) => [...prev, newLocation]);
-    setSelectedId(newId);
+  const addLocation = () => {
+    const localId = crypto.randomUUID();
+    setDrafts((prev) => [
+      ...prev,
+      {
+        localId,
+        name: "Cozinha",
+        role: "kitchen",
+        printer_name: "",
+        paper_width: "80mm",
+        is_active: true,
+        layout_overrides: null,
+      },
+    ]);
+    setSelectedId(localId);
   };
 
-  const handleTestPrinter = async () => {
-    const targetPrinter = activeLocation.printerName;
-    if (!targetPrinter) {
-      toast.error("Selecione uma impressora antes de testar.");
+  const currentPrinterName = isCaixa ? caixa.printer_name : (selected?.printer_name ?? "");
+
+  const testPrint = async () => {
+    if (!currentPrinterName) {
+      toast.error("Escolha uma impressora antes de testar.");
       return;
     }
-    setIsTesting(true);
+    setTesting(true);
     try {
-      const testText = [
-        "========================================",
-        "          TESTE DE IMPRESSAO            ",
-        "              MENUIN.APP                ",
-        "========================================",
-        `Local: ${activeLocation.name}`,
-        `Impressora: ${targetPrinter}`,
-        `Data/Hora: ${new Date().toLocaleString("pt-BR")}`,
-        "========================================",
-        "Status: OK - Conexao via QZ Tray",
-        "========================================",
-      ].join("\n");
-
-      await printQzTextTest(targetPrinter, testText);
-      toast.success(`Teste enviado com sucesso para "${targetPrinter}"!`);
+      await printQzTextTest(
+        currentPrinterName,
+        [
+          "======================================",
+          "         TESTE DE IMPRESSAO",
+          "======================================",
+          `Local: ${isCaixa ? "Caixa" : selected?.name}`,
+          `Impressora: ${currentPrinterName}`,
+          new Date().toLocaleString("pt-BR"),
+          "======================================",
+        ].join("\n"),
+      );
+      toast.success("Teste enviado para a impressora.");
     } catch (err) {
-      if (err instanceof QzNotRunningError) {
-        toast.error("QZ Tray não está em execução no computador.");
-      } else {
-        toast.error(err instanceof Error ? err.message : "Falha ao enviar impressão de teste");
-      }
+      toast.error(
+        err instanceof QzNotRunningError
+          ? "O programa de impressão não está aberto neste computador."
+          : err instanceof Error
+            ? err.message
+            : "Não foi possível imprimir.",
+      );
     } finally {
-      setIsTesting(false);
+      setTesting(false);
     }
   };
 
-  const getRoleIcon = (role?: TenantPrinterRole, isCaixa?: boolean) => {
-    if (isCaixa) return <Monitor className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />;
-    switch (role) {
-      case "kitchen":
-        return <ChefHat className="w-5 h-5 text-amber-600 dark:text-amber-400" />;
-      case "bar":
-        return <Coffee className="w-5 h-5 text-blue-600 dark:text-blue-400" />;
-      default:
-        return <Store className="w-5 h-5 text-purple-600 dark:text-purple-400" />;
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (caixa.printer_name) setDevicePrinter(caixa.printer_name);
+      await saveMyPrinterSettings({ data: caixa });
+      for (const d of drafts) {
+        if (!d.name.trim()) continue;
+        await saveTenantPrinter({
+          data: {
+            id: d.id,
+            name: d.name,
+            role: d.role,
+            printer_name: d.printer_name,
+            paper_width: d.paper_width,
+            font_size: d.layout_overrides?.font_size ?? "normal",
+            font_family: d.layout_overrides?.font_family ?? "mono",
+            is_active: d.is_active,
+            is_default: false,
+            layout_overrides: d.layout_overrides,
+          },
+        });
+      }
+      qc.invalidateQueries({ queryKey: ["printer-settings"] });
+      qc.invalidateQueries({ queryKey: ["tenant-printers"] });
+      qc.invalidateQueries({ queryKey: ["tenant-printers-indicator"] });
+      toast.success("Configuração salva.");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const isSaving = saveCaixaMut.isPending || saveExtraMut.isPending;
+  const printerSelect = (value: string, onChange: (v: string) => void) => (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium">Escolha a impressora</Label>
+        <Button
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs"
+          onClick={() => detect()}
+          disabled={scanning}
+        >
+          {scanning ? (
+            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+          ) : (
+            <RefreshCw className="mr-1 h-3 w-3" />
+          )}
+          Procurar impressoras
+        </Button>
+      </div>
+      {systemPrinters.length > 0 ? (
+        <Select value={value || undefined} onValueChange={onChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a impressora" />
+          </SelectTrigger>
+          <SelectContent>
+            {systemPrinters.map((p) => (
+              <SelectItem key={p.name} value={p.name}>
+                {p.name}
+                {p.isDefault ? " (a mais usada)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Clique em Procurar impressoras"
+        />
+      )}
+    </div>
+  );
+
+  const paperSelect = (value: PaperWidth, onChange: (v: PaperWidth) => void) => (
+    <div className="space-y-1.5">
+      <Label className="text-sm font-medium">Tamanho do papel</Label>
+      <Select value={value} onValueChange={(v) => onChange(v as PaperWidth)}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="80mm">80mm (bobina comum)</SelectItem>
+          <SelectItem value="55mm">58mm (bobina pequena)</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  const advancedBlock = (
+    <div className="rounded-lg border bg-muted/20">
+      <button
+        type="button"
+        onClick={() => setAdvancedOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-3 py-2.5 text-sm font-medium"
+      >
+        Opções avançadas
+        <ChevronDown
+          className={"h-4 w-4 transition-transform " + (advancedOpen ? "rotate-180" : "")}
+        />
+      </button>
+      {advancedOpen && (
+        <div className="space-y-4 border-t px-3 py-3">
+          {isCaixa ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Aparência do cupom da loja. Se não mexer aqui, usamos a configuração
+                recomendada.
+              </p>
+              <ReceiptLayoutFields
+                value={caixa}
+                onChange={(patch) =>
+                  setCaixa((prev) => ({
+                    ...prev,
+                    ...patch,
+                    ...(patch.font_family || patch.font_size
+                      ? { use_default_typography: false }
+                      : {}),
+                  }))
+                }
+              />
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+                <span className="text-sm">Conectar à impressão sozinho ao entrar</span>
+                <Switch
+                  checked={caixa.auto_connect}
+                  onCheckedChange={(v) => setCaixa((p) => ({ ...p, auto_connect: v }))}
+                />
+              </div>
+            </>
+          ) : selected ? (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Aparência do cupom</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.layout_overrides
+                      ? "Personalizada para esta impressora."
+                      : "Seguindo o padrão da loja."}
+                  </p>
+                </div>
+                <Switch
+                  checked={Boolean(selected.layout_overrides)}
+                  onCheckedChange={(v) =>
+                    updateDraft({ layout_overrides: v ? { ...DEFAULT_OVERRIDES } : null })
+                  }
+                />
+              </div>
+              {selected.layout_overrides && (
+                <ReceiptLayoutFields
+                  value={selected.layout_overrides}
+                  onChange={(patch) =>
+                    updateDraft({
+                      layout_overrides: { ...selected.layout_overrides, ...patch },
+                    })
+                  }
+                />
+              )}
+            </>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 gap-0 overflow-hidden bg-background text-foreground border rounded-xl shadow-2xl">
-        {/* Header Modal */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-muted/30">
-          <div className="flex items-center gap-2">
-            <Printer className="w-5 h-5 text-primary" />
-            <DialogTitle className="text-lg font-semibold">Impressoras</DialogTitle>
-          </div>
-        </div>
-
-        {/* Modal Body with Sidebar + Main Content */}
-        <div className="grid grid-cols-1 md:grid-cols-3 min-h-[480px]">
-          {/* Sidebar Locais */}
-          <div className="md:col-span-1 border-r bg-muted/10 p-4 flex flex-col justify-between">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[88vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+          <div className="flex items-center gap-2 border-b px-5 py-4">
+            <Printer className="h-5 w-5 text-primary" />
             <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">
-                Locais
+              <DialogTitle className="text-base font-semibold">Impressoras</DialogTitle>
+              <DialogDescription className="text-xs">
+                Escolha o local à esquerda e ajuste a impressora ao lado.
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="grid flex-1 grid-cols-1 overflow-hidden md:grid-cols-[220px_1fr]">
+            {/* Locais */}
+            <div className="flex flex-col gap-2 border-b bg-muted/10 p-3 md:border-b-0 md:border-r">
+              <div className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Onde imprimir
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedId("caixa")}
+                  className={
+                    "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
+                    (isCaixa ? "border bg-background shadow-sm" : "hover:bg-muted/60")
+                  }
+                >
+                  {roleIcon(undefined, true)}
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">Caixa (recibo)</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      {caixa.printer_name || "Nenhuma escolhida"}
+                    </span>
+                  </span>
+                </button>
+
+                {canMultiple &&
+                  drafts.map((d) => (
+                    <button
+                      key={d.localId}
+                      type="button"
+                      onClick={() => setSelectedId(d.localId)}
+                      className={
+                        "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
+                        (selectedId === d.localId
+                          ? "border bg-background shadow-sm"
+                          : "hover:bg-muted/60")
+                      }
+                    >
+                      {roleIcon(d.role)}
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">
+                          {d.name || "Sem nome"}
+                        </span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {d.is_active
+                            ? d.printer_name || "Nenhuma escolhida"
+                            : "Não está em uso"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
               </div>
 
-              <div className="space-y-1">
-                {locations.map((loc) => {
-                  const isSelected = loc.id === selectedId;
-                  return (
-                    <button
-                      key={loc.id}
-                      onClick={() => setSelectedId(loc.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all text-sm font-medium ${
-                        isSelected
-                          ? "bg-background border shadow-sm text-foreground"
-                          : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <div className="flex-shrink-0">
-                        {getRoleIcon(loc.role, loc.isCaixa)}
-                      </div>
-                      <div className="truncate flex-1">
-                        <div className="truncate text-foreground leading-tight font-medium">
-                          {loc.name}
-                        </div>
-                        <span className="text-[11px] text-muted-foreground block truncate">
-                          {loc.mode === "disabled"
-                            ? "Não utilizada"
-                            : loc.printerName || "Nenhuma selecionada"}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              {canMultiple && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-auto w-full gap-2 text-xs"
+                  onClick={addLocation}
+                >
+                  <Plus className="h-4 w-4" /> Adicionar local
+                </Button>
+              )}
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddLocation}
-              className="w-full mt-4 flex items-center justify-center gap-2 text-xs"
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar Local
-            </Button>
-          </div>
-
-          {/* Main Content Area */}
-          <div className="md:col-span-2 p-6 flex flex-col justify-between">
-            {isLoadingMain || isLoadingExtra ? (
-              <div className="flex items-center justify-center h-full min-h-[300px]">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Header of selected location */}
-                <div className="flex items-center justify-between border-b pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
-                      {getRoleIcon(activeLocation.role, activeLocation.isCaixa)}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg leading-snug">
-                        {activeLocation.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {activeLocation.isCaixa
-                          ? "Impressora configurada para o caixa deste computador"
-                          : "Impressora para produção e comanda de setor"}
-                      </p>
-                    </div>
+            {/* Detalhe */}
+            <div className="min-h-[320px] flex-1 overflow-y-auto p-5">
+              {loadingMain || (canMultiple && loadingExtra) ? (
+                <div className="grid h-full place-items-center py-16">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : isCaixa ? (
+                <div className="space-y-4">
+                  <div className="border-b pb-3">
+                    <h3 className="text-base font-semibold">Caixa (recibo do cliente)</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Impressora usada para o recibo deste computador.
+                    </p>
                   </div>
 
-                  {!activeLocation.isCaixa && (
+                  {printerSelect(caixa.printer_name, (v) =>
+                    setCaixa((p) => ({ ...p, printer_name: v })),
+                  )}
+                  {paperSelect(caixa.paper_width, (v) =>
+                    setCaixa((p) => ({ ...p, paper_width: v })),
+                  )}
+
+                  {canAutoAccept ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+                      <div className="space-y-0.5">
+                        <span className="text-sm font-medium">
+                          Imprimir e aceitar pedidos automaticamente
+                        </span>
+                        <p className="text-xs text-muted-foreground">
+                          O pedido é aceito assim que chega e o cupom sai na hora.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={caixa.auto_accept_orders}
+                        onCheckedChange={(v) =>
+                          setCaixa((p) => ({ ...p, auto_accept_orders: v }))
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <UpgradeNotice
+                      title="Impressão automática no Plano Pro"
+                      description="No Plano Pro o pedido é aceito assim que chega e o cupom sai sozinho."
+                    />
+                  )}
+
+                  {advancedBlock}
+                </div>
+              ) : !canMultiple ? (
+                <UpgradeNotice
+                  title="Mais de uma impressora no Plano Pro"
+                  description="No Plano Pro você pode ter impressoras separadas para cozinha, bar e balcão. O recibo do caixa continua funcionando normalmente."
+                />
+              ) : selected ? (
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3 border-b pb-3">
+                    <div>
+                      <h3 className="text-base font-semibold">{selected.name || "Novo local"}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Impressora do setor (comanda de produção).
+                      </p>
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteExtraMut.mutate(activeLocation.id)}
+                      onClick={removeSelected}
                       title="Excluir este local"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                  )}
-                </div>
-
-                {/* Print Mode Selector (Radio Group) */}
-                <RadioGroup
-                  value={activeLocation.mode}
-                  onValueChange={(val) => updateActiveLocation({ mode: val as PrintMode })}
-                  className="grid grid-cols-3 gap-3"
-                >
-                  <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-muted/40 transition-colors">
-                    <RadioGroupItem value="disabled" id="mode-disabled" />
-                    <Label htmlFor="mode-disabled" className="cursor-pointer text-xs font-medium">
-                      Não utilizo
-                    </Label>
                   </div>
-                  <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-muted/40 transition-colors">
-                    <RadioGroupItem value="installed" id="mode-installed" />
-                    <Label htmlFor="mode-installed" className="cursor-pointer text-xs font-medium">
-                      Impressoras Instaladas
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-muted/40 transition-colors">
-                    <RadioGroupItem value="shared" id="mode-shared" />
-                    <Label htmlFor="mode-shared" className="cursor-pointer text-xs font-medium">
-                      Compartilhadas
-                    </Label>
-                  </div>
-                </RadioGroup>
 
-                {activeLocation.mode !== "disabled" && (
-                  <>
-                    {/* System Printer Dropdown */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">Impressora:</Label>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          onClick={scanPrinters}
-                          disabled={isScanning}
-                          className="h-auto p-0 text-xs text-primary"
-                        >
-                          {isScanning ? (
-                            <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                          ) : null}
-                          Atualizar lista
-                        </Button>
-                      </div>
-
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Nome do local</Label>
+                      <Input
+                        value={selected.name}
+                        onChange={(e) => updateDraft({ name: e.target.value })}
+                        placeholder="Ex.: Cozinha"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium">Onde fica</Label>
                       <Select
-                        value={activeLocation.printerName}
-                        onValueChange={(val) => updateActiveLocation({ printerName: val })}
+                        value={selected.role}
+                        onValueChange={(v) => updateDraft({ role: v as TenantPrinterRole })}
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione uma impressora instalada no PC" />
+                        <SelectTrigger>
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {systemPrinters.length > 0 ? (
-                            systemPrinters.map((p) => (
-                              <SelectItem key={p.name} value={p.name}>
-                                {p.name} {p.isDefault ? "(Padrão do Sistema)" : ""}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <SelectItem value={activeLocation.printerName || "empty"} disabled>
-                              {activeLocation.printerName || "Nenhuma impressora detectada no QZ Tray"}
+                          {(Object.keys(ROLE_LABEL) as TenantPrinterRole[]).map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {ROLE_LABEL[r]}
                             </SelectItem>
-                          )}
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
 
-                    {/* Printer Advanced Options Box */}
-                    <div className="border rounded-xl p-4 bg-muted/20 space-y-4">
-                      {/* Checkbox simplified text */}
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          id="chk-simplified"
-                          checked={activeLocation.useDefaultTypography}
-                          onCheckedChange={(checked) =>
-                            updateActiveLocation({ useDefaultTypography: !!checked })
-                          }
-                        />
-                        <Label htmlFor="chk-simplified" className="text-xs leading-normal font-medium cursor-pointer">
-                          Utilizar texto simplificado (impressoras com drivers genéricos)
-                        </Label>
-                      </div>
+                  {printerSelect(selected.printer_name, (v) => updateDraft({ printer_name: v }))}
+                  {paperSelect(selected.paper_width, (v) => updateDraft({ paper_width: v }))}
 
-                      {/* Checkbox bold titles */}
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          id="chk-bold"
-                          checked={activeLocation.useBoldTitles}
-                          onCheckedChange={(checked) =>
-                            updateActiveLocation({ useBoldTitles: !!checked })
-                          }
-                        />
-                        <Label htmlFor="chk-bold" className="text-xs leading-normal font-medium cursor-pointer">
-                          Destacar alguns elementos em negrito
-                        </Label>
-                      </div>
+                  <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+                    <span className="text-sm">Em uso</span>
+                    <Switch
+                      checked={selected.is_active}
+                      onCheckedChange={(v) => updateDraft({ is_active: v })}
+                    />
+                  </div>
 
-                      {/* Font Family & Size Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                        {/* Font Select */}
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-medium text-muted-foreground">Fonte:</Label>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={activeLocation.fontFamily}
-                              onValueChange={(val) =>
-                                updateActiveLocation({ fontFamily: val as FontFamily })
-                              }
-                            >
-                              <SelectTrigger className="w-full h-9 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {DEFAULT_FONTS.map((f) => (
-                                  <SelectItem key={f.value} value={f.value}>
-                                    {f.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9 px-2 text-[11px] whitespace-nowrap"
-                              onClick={() => updateActiveLocation({ fontFamily: "mono" })}
-                            >
-                              Definir padrão
-                            </Button>
-                          </div>
-                        </div>
+                  {advancedBlock}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Escolha um local na lista.</p>
+              )}
+            </div>
+          </div>
 
-                        {/* Font Size Select */}
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-medium text-muted-foreground">Tamanho:</Label>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={activeLocation.fontSize}
-                              onValueChange={(val) =>
-                                updateActiveLocation({ fontSize: val as FontSize })
-                              }
-                            >
-                              <SelectTrigger className="w-full h-9 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {DEFAULT_SIZES.map((s) => (
-                                  <SelectItem key={s.value} value={s.value}>
-                                    {s.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-9 px-2 text-[11px] whitespace-nowrap"
-                              onClick={() => updateActiveLocation({ fontSize: "normal" })}
-                            >
-                              Definir padrão
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Paper Width Select */}
-                      <div className="space-y-1.5 pt-1">
-                        <Label className="text-xs font-medium text-muted-foreground">Tamanho do papel:</Label>
-                        <Select
-                          value={activeLocation.paperWidth}
-                          onValueChange={(val) =>
-                            updateActiveLocation({ paperWidth: val as PaperWidth })
-                          }
-                        >
-                          <SelectTrigger className="w-full h-9 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="80mm">80mm (Bobina padrão)</SelectItem>
-                            <SelectItem value="55mm">55mm / 58mm (Bobina estreita)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+          {/* Rodapé */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-5 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1.5 text-xs">
+                {qzStatus === "connected" ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Impressão ligada
+                  </>
+                ) : qzStatus === "offline" ? (
+                  <>
+                    <XCircle className="h-3.5 w-3.5 text-destructive" /> Programa de impressão não
+                    encontrado
+                  </>
+                ) : (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />{" "}
+                    Verificando impressão…
                   </>
                 )}
-              </div>
-            )}
-
-            {/* Bottom Actions Bar */}
-            <div className="flex items-center justify-between border-t pt-4 mt-6">
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => setGuideOpen(true)}
+              >
+                <HelpCircle className="h-3.5 w-3.5" /> Ajuda
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground"
+                onClick={() => setDiagOpen(true)}
+              >
+                Diagnóstico
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleTestPrinter}
-                disabled={isTesting || activeLocation.mode === "disabled"}
-                className="flex items-center gap-2 text-xs"
+                className="h-7 gap-1.5 text-xs"
+                onClick={testPrint}
+                disabled={testing}
               >
-                {isTesting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                {testing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Printer className="w-4 h-4" />
+                  <Printer className="h-3.5 w-3.5" />
                 )}
-                Testar Impressora
+                Imprimir teste
               </Button>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onOpenChange(false)}
-                  className="text-xs"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSaveAll}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 text-xs"
-                >
-                  {isSaving ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Check className="w-4 h-4" />
-                  )}
-                  Salvar
-                </Button>
-              </div>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                Salvar
+              </Button>
             </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <QzInstallGuide
+        open={guideOpen}
+        onOpenChange={setGuideOpen}
+        onRetry={() => detect()}
+        retrying={scanning}
+      />
+      <QzDiagnosticsModal
+        open={diagOpen}
+        onOpenChange={setDiagOpen}
+        selectedPrinter={currentPrinterName}
+        defaultPrinter={systemPrinters.find((p) => p.isDefault)?.name ?? null}
+        qzPrinters={systemPrinters}
+        qzStatus={qzStatus}
+        lastAttempt={null}
+        onRetryDetect={() => detect()}
+        retrying={scanning}
+      />
+    </>
   );
 }

@@ -25,7 +25,7 @@ import {
   type WeekdayCode,
 } from "@/lib/store-hours";
 import { BusinessTypesField } from "@/components/admin/BusinessTypesField";
-import { PrintersDialog } from "@/components/printer/PrintersDialog";
+import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
 import { type BusinessType } from "@/lib/business-types";
 
 
@@ -298,7 +298,7 @@ function SettingsPage() {
                     Configurar impressora
                   </Button>
                 </div>
-                <PrintersDialog open={printersOpen} onOpenChange={setPrintersOpen} />
+                <PrinterConfigModal open={printersOpen} onOpenChange={setPrintersOpen} />
               </div>
             </TabsContent>
 
