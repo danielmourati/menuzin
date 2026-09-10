@@ -382,6 +382,38 @@ export function PrintersManager({
               </div>
             </div>
 
+            {/* Layout do cupom desta impressora */}
+            <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-semibold">Layout do cupom</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {selected.layout_overrides
+                      ? "Personalizado para esta impressora."
+                      : "Usando o layout da loja."}
+                  </p>
+                </div>
+                <Switch
+                  checked={Boolean(selected.layout_overrides)}
+                  onCheckedChange={(v) =>
+                    updateDraft(selected._localId, {
+                      layout_overrides: v ? { ...DEFAULT_OVERRIDES } : null,
+                    })
+                  }
+                />
+              </div>
+              {selected.layout_overrides && (
+                <ReceiptLayoutFields
+                  value={selected.layout_overrides}
+                  onChange={(patch) =>
+                    updateDraft(selected._localId, {
+                      layout_overrides: { ...selected.layout_overrides, ...patch },
+                    })
+                  }
+                />
+              )}
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
               <Button
                 type="button"
