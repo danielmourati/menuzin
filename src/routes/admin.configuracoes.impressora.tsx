@@ -30,7 +30,7 @@ import {
 } from "@/lib/qz-tray";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal, type QzConnectionAttempt } from "@/components/printer/QzDiagnosticsModal";
-import { QzPrinterWizard } from "@/components/printer/QzPrinterWizard";
+import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
 import { ExtraPrintersManager } from "@/components/printer/ExtraPrintersManager";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
@@ -1287,16 +1287,11 @@ function PrinterSettingsPage() {
         retrying={qzBusy}
       />
 
-      <QzPrinterWizard
+      <PrinterConfigModal
         open={wizardOpen}
         onOpenChange={(v) => {
           setWizardOpen(v);
           if (!v) markWizardSeen();
-        }}
-        onComplete={() => {
-          markWizardSeen();
-          void refetchQzCert();
-          qc.invalidateQueries({ queryKey: ["printer-settings"] });
         }}
       />
     </AdminLayout>

@@ -1,5 +1,4 @@
-// Wrapper fino — todo o fluxo guiado vive em QzPrinterWizard.
-import { QzPrinterWizard } from "./QzPrinterWizard";
+import { PrinterConfigModal } from "./PrinterConfigModal";
 
 interface PrinterSettingsDialogProps {
   open: boolean;
@@ -7,5 +6,6 @@ interface PrinterSettingsDialogProps {
 }
 
 export function PrinterSettingsDialog({ open, onOpenChange }: PrinterSettingsDialogProps) {
-  return <QzPrinterWizard open={open} onOpenChange={onOpenChange} />;
+  return <PrinterConfigModal open={open} onOpenChange={onOpenChange} />;
 }
+
