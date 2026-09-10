@@ -1156,17 +1156,6 @@ function PrinterSettingsPage() {
               </div>
             </div>
           </TabsContent>
-
-          <TabsContent value="cozinha" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Impressoras adicionais (cozinha, balcão, bar)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ExtraPrintersManagerGated />
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       )}
 
