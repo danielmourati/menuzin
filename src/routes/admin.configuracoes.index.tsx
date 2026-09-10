@@ -62,6 +62,7 @@ function SettingsPage() {
   // Onboarding: vindo do cadastro rápido em /comece-agora
   const [onboarding, setOnboarding] = useState(false);
   const [nextStepOpen, setNextStepOpen] = useState(false);
+  const [printersOpen, setPrintersOpen] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
