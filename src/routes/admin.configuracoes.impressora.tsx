@@ -568,14 +568,14 @@ function PrinterSettingsPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <Tabs defaultValue="geral" className="space-y-4">
+        <Tabs defaultValue="conexao" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 max-w-xl h-10 p-1 rounded-xl bg-muted/60">
-            <TabsTrigger value="geral" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Conexão & Impressora</TabsTrigger>
+            <TabsTrigger value="conexao" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Conexão</TabsTrigger>
+            <TabsTrigger value="impressoras" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Impressoras</TabsTrigger>
             <TabsTrigger value="layout" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Layout do Cupom</TabsTrigger>
-            <TabsTrigger value="cozinha" className="h-8 text-xs font-semibold px-3 rounded-lg transition-all">Outras Impressoras</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="geral" className="space-y-4 mt-4">
+          <TabsContent value="conexao" className="space-y-4 mt-4">
             <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
               <div className="space-y-4">
             {/* Status do QZ Tray */}
