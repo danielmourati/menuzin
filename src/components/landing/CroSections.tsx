@@ -19,7 +19,7 @@ import confirmedAsset from "@/assets/menuzin-order-confirmed.png.asset.json";
 import trackingAsset from "@/assets/menuzin-order-tracking.png.asset.json";
 import detailsAsset from "@/assets/menuzin-order-details.png.asset.json";
 import ordersKanbanV2Asset from "@/assets/menuzin-orders-kanban-v2.png.asset.json";
-import printersV2Asset from "@/assets/menuzin-printers-v2.png.asset.json";
+import autoPrintingAsset from "@/assets/menuzin-auto-printing.png.asset.json";
 
 
 type Asset = { url: string };
@@ -169,12 +169,12 @@ const featureBlocks = [
   },
   {
     eyebrow: "Automação",
-    title: "Frete certo e pedido impresso sem correria",
-    copy: "Escolha entrega grátis, taxa fixa ou por bairro. Quando o pedido chega, o Menuzin pode aceitar e imprimir automaticamente no caixa e na cozinha, sem retrabalho.",
+    title: "O pedido chega e a cozinha já começa a preparar",
+    copy: "Ative a impressão automática para aceitar cada novo pedido e enviar o cupom direto à cozinha, sem cliques, gritos ou papelzinho levado pelo salão. Mais agilidade no preparo e menos chance de erro.",
     icon: Printer,
     reverse: true,
     images: [
-      { asset: printersV2Asset as Asset, alt: "Configuração simplificada de impressoras no Menuzin" },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha" },
     ],
   },
 ];
