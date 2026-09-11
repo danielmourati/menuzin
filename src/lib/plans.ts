@@ -37,7 +37,6 @@ export const plans = [
       "Múltiplos usuários e impressoras",
       "Destaque no Guia Menuzin",
       "Suporte prioritário via WhatsApp",
-      "Sem marca Menuzin",
     ],
   },
 ] as const;
