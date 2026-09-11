@@ -69,6 +69,8 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
       blocked: res.blocked ?? false,
     };
   },
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 15,
 });
 
 import { StorefrontSkeleton } from "@/components/storefront/StorefrontSkeleton";

@@ -38,62 +38,105 @@ export const getTenantBySlug = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!tenantRow) return { tenant: null as DbTenant | null };
     const { getTenantPlan } = await import("@/lib/plan-server");
-    const tenant = await attachRatingToTenant(tenantRow);
-    return { tenant: { ...tenant, plan: await getTenantPlan(tenant.id as string) } as DbTenant };
+    const [tenantWithRating, plan] = await Promise.all([
+      attachRatingToTenant(tenantRow),
+      getTenantPlan(tenantRow.id as string),
+    ]);
+    return { tenant: { ...tenantWithRating, plan } as DbTenant };
   });
 
 export const getCatalog = createServerFn({ method: "POST" })
   .inputValidator((d) => SlugInput.parse(d))
   .handler(async ({ data }) => {
+    // Batch 1: Tenant lookup by slug
     const { data: tenantRow, error: tErr } = await supabaseAdmin
       .from("tenants").select("*").eq("slug", data.slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
     if (!tenantRow) return { tenant: null, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: false };
 
     const tenantId = tenantRow.id as string;
-    const { getTenantPlan } = await import("@/lib/plan-server");
-    const tenant = await attachRatingToTenant(tenantRow);
-    const tenantWithEffectivePlan = { ...tenant, plan: await getTenantPlan(tenantId) } as DbTenant;
 
+    // Batch 2: Fetch tenant plan, ratings, block status, categories, products, and addon_groups IN PARALLEL
+    const { getTenantPlan } = await import("@/lib/plan-server");
     const { isTenantBlocked } = await import("@/lib/tenant-access.server");
-    if (await isTenantBlocked(tenantId)) {
-      return { tenant: tenantWithEffectivePlan, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: true };
-    }
 
     const [
+      { data: rRows },
+      plan,
+      blocked,
       { data: categories },
       { data: products },
-      { data: addons },
       { data: groupsRaw },
     ] = await Promise.all([
+      supabaseAdmin.from("order_ratings").select("stars").eq("tenant_id", tenantId),
+      getTenantPlan(tenantId),
+      isTenantBlocked(tenantId),
       supabaseAdmin.from("categories").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order"),
       supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).order("sort_order"),
-      supabaseAdmin.from("product_addons").select("*").order("sort_order"),
       supabaseAdmin.from("addon_groups").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order"),
     ]);
+
+    let rating_avg = null;
+    let rating_count = 0;
+    if (rRows && rRows.length > 0) {
+      const sum = rRows.reduce((acc, r) => acc + (Number(r.stars) || 0), 0);
+      rating_count = rRows.length;
+      rating_avg = Math.round((sum / rating_count) * 10) / 10;
+    }
+    const tenantWithEffectivePlan = { ...tenantRow, rating_avg, rating_count, plan } as DbTenant;
+
+    if (blocked) {
+      return { tenant: tenantWithEffectivePlan, categories: [], products: [], pizzaSizes: [], pizzaDoughs: [], pizzaCrusts: [], blocked: true };
+    }
 
     const cats = (categories ?? []) as DbCategory[];
     const catNameById = new Map(cats.map((c) => [c.id, c.name]));
     const prodList = ((products ?? []) as unknown) as DbProduct[];
     const prodIds = prodList.map((p) => p.id);
 
-    // Sizes / flavors apenas dos produtos do tenant
-    const [{ data: sizes }, { data: flavors }] = prodIds.length
-      ? await Promise.all([
-          supabaseAdmin.from("product_sizes").select("*").in("product_id", prodIds).order("sort_order"),
-          supabaseAdmin.from("product_flavors").select("*").in("product_id", prodIds).eq("available", true).order("sort_order"),
-        ])
-      : [{ data: [] }, { data: [] }];
-
-    // Addon options + targets dos grupos ativos
     const groups = ((groupsRaw ?? []) as unknown) as DbAddonGroup[];
     const groupIds = groups.map((g) => g.id);
-    const [{ data: opts }, { data: targets }] = groupIds.length
-      ? await Promise.all([
-          supabaseAdmin.from("addon_options").select("*").in("group_id", groupIds).eq("active", true).order("sort_order"),
-          supabaseAdmin.from("addon_group_targets").select("*").in("group_id", groupIds),
-        ])
-      : [{ data: [] }, { data: [] }];
+
+    const pizzaCats = cats.filter((c) => (c as DbCategory).kind === "pizza").map((c) => c.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sbAny = supabaseAdmin as unknown as { from: (t: string) => any };
+
+    // Batch 3: Fetch all item-level details (sizes, flavors, addons, addon_options, targets, pizza configs) IN PARALLEL
+    const [
+      { data: sizes },
+      { data: flavors },
+      { data: addons },
+      { data: opts },
+      { data: targets },
+      { data: pSizes },
+      { data: pDoughs },
+      { data: pCrusts },
+    ] = await Promise.all([
+      prodIds.length
+        ? supabaseAdmin.from("product_sizes").select("*").in("product_id", prodIds).order("sort_order")
+        : Promise.resolve({ data: [] }),
+      prodIds.length
+        ? supabaseAdmin.from("product_flavors").select("*").in("product_id", prodIds).eq("available", true).order("sort_order")
+        : Promise.resolve({ data: [] }),
+      prodIds.length
+        ? supabaseAdmin.from("product_addons").select("*").in("product_id", prodIds).order("sort_order")
+        : Promise.resolve({ data: [] }),
+      groupIds.length
+        ? supabaseAdmin.from("addon_options").select("*").in("group_id", groupIds).eq("active", true).order("sort_order")
+        : Promise.resolve({ data: [] }),
+      groupIds.length
+        ? supabaseAdmin.from("addon_group_targets").select("*").in("group_id", groupIds)
+        : Promise.resolve({ data: [] }),
+      pizzaCats.length
+        ? sbAny.from("category_pizza_sizes").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order")
+        : Promise.resolve({ data: [] }),
+      pizzaCats.length
+        ? sbAny.from("category_pizza_doughs").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order")
+        : Promise.resolve({ data: [] }),
+      pizzaCats.length
+        ? sbAny.from("category_pizza_crusts").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order")
+        : Promise.resolve({ data: [] }),
+    ]);
 
     const optionsByGroup = new Map<string, DbAddonOption[]>();
     for (const o of (opts ?? []) as DbAddonOption[]) {
@@ -157,18 +200,6 @@ export const getCatalog = createServerFn({ method: "POST" })
       addonGroups: (groupsByProduct.get(p.id) ?? []).sort((a, b) => a.sort_order - b.sort_order),
       category: p.category_id ? catNameById.get(p.category_id) ?? "" : "",
     }));
-
-    // Pizza config por categoria (somente categorias kind='pizza')
-    const pizzaCats = cats.filter((c) => (c as DbCategory).kind === "pizza").map((c) => c.id);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sbAny = supabaseAdmin as unknown as { from: (t: string) => any };
-    const [{ data: pSizes }, { data: pDoughs }, { data: pCrusts }] = pizzaCats.length
-      ? await Promise.all([
-          sbAny.from("category_pizza_sizes").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
-          sbAny.from("category_pizza_doughs").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
-          sbAny.from("category_pizza_crusts").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order"),
-        ])
-      : [{ data: [] }, { data: [] }, { data: [] }];
 
     return {
       tenant: tenantWithEffectivePlan,

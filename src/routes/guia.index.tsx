@@ -35,20 +35,28 @@ import {
 const categoriesQO = queryOptions({
   queryKey: ["guia", "categories"],
   queryFn: () => listCategories(),
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 15,
 });
 const featuredQO = queryOptions({
   queryKey: ["guia", "featured"],
   queryFn: () => listFeatured(),
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 15,
 });
 
 const storesQO = queryOptions({
   queryKey: ["guia", "stores"],
   queryFn: () => listAllStores(),
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 15,
 });
 
 const homeQO = queryOptions({
   queryKey: ["guia", "home"],
   queryFn: () => getGuiaHome({ data: {} }),
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 15,
 });
 
 
