@@ -111,13 +111,13 @@ export function PainSolutionGrid() {
 }
 
 interface FeatureVisualProps {
-  images: Array<{ asset: Asset; alt: string; mobile?: boolean }>;
+  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean }>;
 }
 
 function FeatureVisual({ images }: FeatureVisualProps) {
   return (
     <div className={`grid items-center gap-4 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-      {images.map(({ asset, alt, mobile }, index) => (
+      {images.map(({ asset, alt, mobile, eager }, index) => (
         <div
           key={alt}
           className={`overflow-hidden border bg-card shadow-[var(--shadow-pop)] ${
@@ -127,7 +127,7 @@ function FeatureVisual({ images }: FeatureVisualProps) {
           <img
             src={asset.url}
             alt={alt}
-            loading="lazy"
+            loading={eager ? "eager" : "lazy"}
             className={`h-auto w-full ${mobile ? "rounded-[1.6rem]" : "rounded-md"}`}
           />
         </div>
@@ -174,7 +174,7 @@ const featureBlocks = [
     icon: Printer,
     reverse: true,
     images: [
-      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha" },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
     ],
   },
 ];
