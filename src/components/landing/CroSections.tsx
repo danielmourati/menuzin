@@ -111,27 +111,35 @@ export function PainSolutionGrid() {
 }
 
 interface FeatureVisualProps {
-  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean }>;
+  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean; noWrapper?: boolean }>;
 }
 
 function FeatureVisual({ images }: FeatureVisualProps) {
   return (
     <div className={`grid items-center gap-4 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-      {images.map(({ asset, alt, mobile, eager }, index) => (
-        <div
-          key={alt}
-          className={`overflow-hidden border bg-card shadow-[var(--shadow-pop)] ${
-            mobile ? "mx-auto max-w-64 rounded-[2rem] border-4" : "rounded-lg p-1.5"
-          } ${index === 1 ? "mt-8" : "mb-8"}`}
-        >
+      {images.map(({ asset, alt, mobile, eager, noWrapper }, index) => {
+        const img = (
           <img
             src={asset.url}
             alt={alt}
             loading={eager ? "eager" : "lazy"}
-            className={`h-auto w-full ${mobile ? "rounded-[1.6rem]" : "rounded-md"}`}
+            className={`h-auto w-full ${mobile ? "rounded-[1.6rem]" : noWrapper ? "" : "rounded-md"}`}
           />
-        </div>
-      ))}
+        );
+        if (noWrapper) {
+          return <div key={alt}>{img}</div>;
+        }
+        return (
+          <div
+            key={alt}
+            className={`overflow-hidden border bg-card shadow-[var(--shadow-pop)] ${
+              mobile ? "mx-auto max-w-64 rounded-[2rem] border-4" : "rounded-lg p-1.5"
+            } ${index === 1 ? "mt-8" : "mb-8"}`}
+          >
+            {img}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -174,7 +182,7 @@ const featureBlocks = [
     icon: Printer,
     reverse: true,
     images: [
-      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true, noWrapper: true },
     ],
   },
 ];
