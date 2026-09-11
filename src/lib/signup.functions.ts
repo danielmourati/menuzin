@@ -40,6 +40,18 @@ const SignupInput = z.object({
 export const signupPresencaTenant = createServerFn({ method: "POST" })
   .inputValidator((d) => SignupInput.parse(d))
   .handler(async ({ data }) => {
+    const { getClientIp, consumeRateLimit } = await import("@/lib/rate-limit.server");
+    const ip = getClientIp();
+    const rateCheck = consumeRateLimit({
+      key: `signup:${ip}`,
+      maxAttempts: 5,
+      windowSeconds: 3600, // 1 hr
+    });
+    if (!rateCheck.allowed) {
+      const mins = Math.ceil((rateCheck.resetInSeconds || 60) / 60);
+      throw new Error(`Limite de cadastros excedido para seu endereço IP. Por favor, aguarde ${mins} minuto(s).`);
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const rawSlug = data.slug || data.name;

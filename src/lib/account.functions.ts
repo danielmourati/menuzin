@@ -87,6 +87,17 @@ const SlugInput = z.object({ slug: z.string().trim().min(2).max(80) });
 export const listTenantLoginUsers = createServerFn({ method: "POST" })
   .inputValidator((d) => SlugInput.parse(d))
   .handler(async ({ data }) => {
+    const { getClientIp, consumeRateLimit } = await import("@/lib/rate-limit.server");
+    const ip = getClientIp();
+    const rateCheck = consumeRateLimit({
+      key: `list_users:${ip}`,
+      maxAttempts: 20,
+      windowSeconds: 60,
+    });
+    if (!rateCheck.allowed) {
+      throw new Error("Muitas requisições. Aguarde um momento para tentar novamente.");
+    }
+
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
       .select("id, name")

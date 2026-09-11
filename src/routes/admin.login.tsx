@@ -7,8 +7,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, ShieldAlert } from "lucide-react";
 import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
+import { checkAuthRateLimitFn, recordAuthFailureFn, clearAuthLimitFn } from "@/lib/rate-limit.functions";
 
 const menuzinLogo = menuzinLogoAsset.url;
 
@@ -73,6 +74,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -80,20 +82,68 @@ function LoginPage() {
     }
   }, [loading, isAuthenticated, isPlatformAdmin, navigate]);
 
+  useEffect(() => {
+    if (!lockoutSeconds || lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (!prev || prev <= 1) {
+          clearInterval(timer);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return toast.error("Informe o e-mail.");
+    
+    // Check rate limit status
+    try {
+      const check = await checkAuthRateLimitFn({ data: { action: "login", identifier: email } });
+      if (!check.allowed) {
+        setLockoutSeconds(check.resetInSeconds);
+        const mins = Math.ceil((check.resetInSeconds || 60) / 60);
+        toast.error(`Acesso suspenso por muitas tentativas incorretas. Aguarde ${mins} minuto(s).`);
+        return;
+      }
+    } catch {
+      /* continue on rate limit check network warning */
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
       if (error) throw error;
+
+      // Reset rate limiter on successful login
+      await clearAuthLimitFn({ data: { action: "login", identifier: email } }).catch(() => {});
       toast.success("Bem-vindo!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no login");
+      // Record failure for brute force protection
+      try {
+        const failRecord = await recordAuthFailureFn({
+          data: { action: "login", identifier: email, maxAttempts: 5, windowSeconds: 900 },
+        });
+        if (!failRecord.allowed) {
+          setLockoutSeconds(failRecord.resetInSeconds);
+          toast.error(`Número de tentativas excedido. Tentativas bloqueadas por ${Math.ceil(failRecord.resetInSeconds / 60)} min.`);
+        } else {
+          toast.error(`Credenciais inválidas. Tentativas restantes: ${failRecord.remainingAttempts}`);
+        }
+      } catch {
+        toast.error(err instanceof Error ? err.message : "Falha no login");
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
+  const isLockedOut = !!lockoutSeconds && lockoutSeconds > 0;
+  const minutesLeft = lockoutSeconds ? Math.floor(lockoutSeconds / 60) : 0;
+  const secondsLeft = lockoutSeconds ? lockoutSeconds % 60 : 0;
 
   return (
     <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-orange-50/90 via-amber-50/60 to-orange-100/40 dark:from-slate-950 dark:via-orange-950/20 dark:to-slate-900 overflow-hidden">
@@ -119,6 +169,23 @@ function LoginPage() {
           <p className="mt-1 text-sm text-muted-foreground">Acesse sua loja Menuzin</p>
         </div>
 
+        {/* Banner de Bloqueio por Rate Limit */}
+        {isLockedOut && (
+          <div className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-destructive flex items-start gap-3">
+            <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold">Muitas tentativas incorretas</p>
+              <p className="mt-0.5 text-xs text-destructive/90">
+                Por segurança, o acesso para este e-mail/IP está bloqueado. Tente novamente em{" "}
+                <span className="font-bold">
+                  {minutesLeft > 0 ? `${minutesLeft}m ` : ""}
+                  {secondsLeft}s
+                </span>.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div>
@@ -131,6 +198,7 @@ function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seuemail@exemplo.com"
                 required
+                disabled={isLockedOut}
                 autoComplete="email"
                 className="h-11"
               />
@@ -145,6 +213,7 @@ function LoginPage() {
                 value={pwd}
                 onChange={(e) => setPwd(e.target.value)}
                 required
+                disabled={isLockedOut}
                 minLength={6}
                 autoComplete="current-password"
                 className="h-11"
@@ -155,10 +224,10 @@ function LoginPage() {
           <Button
             type="submit"
             className="h-11 w-full bg-gradient-to-r from-orange-500 to-amber-500 font-semibold text-white shadow-lg shadow-orange-500/25 transition-all hover:from-orange-600 hover:to-amber-600 active:scale-[0.99] disabled:opacity-50"
-            disabled={submitting || !email}
+            disabled={submitting || !email || isLockedOut}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Entrar
+            {isLockedOut ? "Acesso Bloqueado Temporariamente" : "Entrar"}
           </Button>
         </form>
 
@@ -171,3 +240,4 @@ function LoginPage() {
     </div>
   );
 }
+

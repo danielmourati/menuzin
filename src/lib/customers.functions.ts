@@ -26,6 +26,17 @@ const SaveProfileInput = z.object({
 export const saveCustomerProfile = createServerFn({ method: "POST" })
   .inputValidator((d) => SaveProfileInput.parse(d))
   .handler(async ({ data }) => {
+    const { getClientIp, consumeRateLimit } = await import("@/lib/rate-limit.server");
+    const ip = getClientIp();
+    const rateCheck = consumeRateLimit({
+      key: `customer_save:${ip}`,
+      maxAttempts: 15,
+      windowSeconds: 60,
+    });
+    if (!rateCheck.allowed) {
+      throw new Error("Muitas requisições. Por favor, aguarde um momento.");
+    }
+
     const { upsertCustomer, saveDefaultAddress } = await import("@/lib/customers.server");
     const row = await upsertCustomer({
       phone: data.phone,
@@ -69,6 +80,17 @@ const TokenInput = z.object({
 export const getCustomerProfile = createServerFn({ method: "POST" })
   .inputValidator((d) => TokenInput.parse(d))
   .handler(async ({ data }) => {
+    const { getClientIp, consumeRateLimit } = await import("@/lib/rate-limit.server");
+    const ip = getClientIp();
+    const rateCheck = consumeRateLimit({
+      key: `customer_get:${ip}`,
+      maxAttempts: 20,
+      windowSeconds: 60,
+    });
+    if (!rateCheck.allowed) {
+      throw new Error("Muitas requisições. Por favor, aguarde um momento.");
+    }
+
     const { getCustomerByToken } = await import("@/lib/customers.server");
     const row = await getCustomerByToken(data.phone, data.token);
     if (!row) return { customer: null };
@@ -94,6 +116,17 @@ export const getCustomerProfile = createServerFn({ method: "POST" })
 export const listCustomerOrders = createServerFn({ method: "POST" })
   .inputValidator((d) => TokenInput.parse(d))
   .handler(async ({ data }) => {
+    const { getClientIp, consumeRateLimit } = await import("@/lib/rate-limit.server");
+    const ip = getClientIp();
+    const rateCheck = consumeRateLimit({
+      key: `customer_orders:${ip}`,
+      maxAttempts: 20,
+      windowSeconds: 60,
+    });
+    if (!rateCheck.allowed) {
+      throw new Error("Muitas requisições. Por favor, aguarde um momento.");
+    }
+
     const { getCustomerByToken, listOrdersForCustomer } = await import("@/lib/customers.server");
     const row = await getCustomerByToken(data.phone, data.token);
     if (!row) return { orders: [] };
@@ -106,6 +139,18 @@ const CepInput = z.object({ cep: z.string().min(8).max(12) });
 export const resolveCityByCep = createServerFn({ method: "POST" })
   .inputValidator((d) => CepInput.parse(d))
   .handler(async ({ data }) => {
+    const { getClientIp, consumeRateLimit } = await import("@/lib/rate-limit.server");
+    const ip = getClientIp();
+    const rateCheck = consumeRateLimit({
+      key: `resolve_cep:${ip}`,
+      maxAttempts: 30,
+      windowSeconds: 60,
+    });
+    if (!rateCheck.allowed) {
+      throw new Error("Muitas requisições de CEP. Aguarde um momento.");
+    }
+
     const { resolveCity } = await import("@/lib/customers.server");
     return await resolveCity(data.cep);
   });
+

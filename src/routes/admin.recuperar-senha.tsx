@@ -6,6 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { checkAuthRateLimitFn, recordAuthFailureFn } from "@/lib/rate-limit.functions";
 
 export const Route = createFileRoute("/admin/recuperar-senha")({
   component: ForgotPasswordPage,
@@ -18,8 +19,26 @@ function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) return;
+
+    try {
+      const check = await checkAuthRateLimitFn({ data: { action: "forgot_password", identifier: email } });
+      if (!check.allowed) {
+        const mins = Math.ceil((check.resetInSeconds || 60) / 60);
+        toast.error(`Muitas solicitações enviadas. Por favor, aguarde ${mins} minuto(s).`);
+        return;
+      }
+    } catch {
+      /* continue */
+    }
+
     setSubmitting(true);
     try {
+      // Record rate limit consumption
+      await recordAuthFailureFn({
+        data: { action: "forgot_password", identifier: email, maxAttempts: 3, windowSeconds: 900 },
+      }).catch(() => {});
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/admin/redefinir-senha`,
       });
@@ -67,3 +86,4 @@ function ForgotPasswordPage() {
     </div>
   );
 }
+
