@@ -183,9 +183,13 @@ export function ProductDeepDive() {
           <h2 className="mt-3 text-3xl font-bold text-balance md:text-5xl">Tecnologia de ponta para quem vive a rotina do delivery</h2>
         </div>
       </div>
-      {featureBlocks.map(({ eyebrow, title, copy, icon: Icon, images, reverse }, index) => (
-        <article key={title} className={index % 2 ? "border-y bg-muted/35" : "bg-background"}>
-          <div className="container mx-auto grid items-center gap-10 px-4 py-16 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16 lg:py-24">
+      {featureBlocks.map(({ eyebrow, title, copy, icon: Icon, images, reverse, wideImage }, index) => {
+        const gridCols = reverse && wideImage
+          ? "lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]"
+          : "lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]";
+        return (
+          <article key={title} className={index % 2 ? "border-y bg-muted/35" : "bg-background"}>
+            <div className={`container mx-auto grid items-center gap-10 px-4 py-16 ${gridCols} lg:gap-16 lg:py-24`}>
             <div className={reverse ? "lg:order-2" : ""}>
               <div className="grid h-11 w-11 place-items-center rounded-md bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" aria-hidden="true" />
