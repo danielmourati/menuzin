@@ -226,6 +226,11 @@ function formatPrice(price: number) {
 }
 
 export function PricingTable({ plans, onCTAClick }: PricingTableProps) {
+  const [proExpanded, setProExpanded] = useState(false);
+  const presencaPlan = plans.find((p) => p.id === "presenca");
+  const proPlan = plans.find((p) => p.id === "pro");
+  const visibleProCount = presencaPlan ? presencaPlan.features.length : 4;
+
   return (
     <section id="planos" className="bg-muted/35">
       <div className="container mx-auto px-4 py-20 md:py-24">
@@ -237,6 +242,7 @@ export function PricingTable({ plans, onCTAClick }: PricingTableProps) {
         <div className="mx-auto mt-12 grid max-w-4xl items-stretch gap-6 md:grid-cols-2">
           {plans.map((plan) => {
             const isPro = plan.id === "pro";
+            const displayedFeatures = isPro && !proExpanded ? plan.features.slice(0, visibleProCount) : plan.features;
             return (
               <article key={plan.id} className={`relative flex flex-col rounded-lg border bg-card p-7 md:p-9 ${isPro ? "border-2 border-primary shadow-[var(--shadow-pop)]" : "shadow-[var(--shadow-soft)]"}`}>
                 {isPro && <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-1 text-xs font-bold text-primary-foreground">Melhor Custo-Benefício</span>}
@@ -245,8 +251,18 @@ export function PricingTable({ plans, onCTAClick }: PricingTableProps) {
                 <p className="mt-3 min-h-12 text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
                 {isPro && <div className="mt-5 rounded-md bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">Primeiros 14 dias liberados no cadastro</div>}
                 <ul className="mt-6 space-y-3 text-sm">
-                  {plan.features.map((feature) => <li key={feature} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}
+                  {displayedFeatures.map((feature) => <li key={feature} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span>{feature}</span></li>)}
                 </ul>
+                {isPro && proPlan && proPlan.features.length > visibleProCount && (
+                  <button
+                    type="button"
+                    onClick={() => setProExpanded((v) => !v)}
+                    className="mt-4 flex items-center gap-1 self-start text-sm font-semibold text-primary hover:underline"
+                  >
+                    {proExpanded ? "Ver menos funcionalidades" : "Ver todas as funcionalidades"}
+                    {proExpanded ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+                  </button>
+                )}
                 <Button size="lg" variant={isPro ? "default" : "outline"} className="mt-8 w-full" onClick={onCTAClick}>
                   {isPro ? "Testar o Pro por 14 dias" : "Começar grátis"}<ArrowRight aria-hidden="true" />
                 </Button>
