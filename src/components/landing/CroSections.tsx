@@ -18,6 +18,9 @@ import addressAsset from "@/assets/menuzin-address.png.asset.json";
 import confirmedAsset from "@/assets/menuzin-order-confirmed.png.asset.json";
 import trackingAsset from "@/assets/menuzin-order-tracking.png.asset.json";
 import detailsAsset from "@/assets/menuzin-order-details.png.asset.json";
+import ordersKanbanV2Asset from "@/assets/menuzin-orders-kanban-v2.png.asset.json";
+import printersV2Asset from "@/assets/menuzin-printers-v2.png.asset.json";
+
 
 type Asset = { url: string };
 
@@ -161,8 +164,7 @@ const featureBlocks = [
     copy: "Do pedido novo à entrega final, o painel organiza delivery, retirada e consumo no local. Abra os detalhes, confira pagamento e endereço e avance cada etapa com segurança.",
     icon: ClipboardCheck,
     images: [
-      { asset: ordersAsset as Asset, alt: "Gestão visual de pedidos no painel Menuzin" },
-      { asset: detailsAsset as Asset, alt: "Detalhes completos de um pedido Menuzin" },
+      { asset: ordersKanbanV2Asset as Asset, alt: "Gestão visual de pedidos no painel Menuzin" },
     ],
   },
   {
@@ -172,8 +174,7 @@ const featureBlocks = [
     icon: Printer,
     reverse: true,
     images: [
-      { asset: deliveryFeesAsset as Asset, alt: "Configuração de taxas de entrega no Menuzin" },
-      { asset: printersAsset as Asset, alt: "Configuração simplificada de impressoras no Menuzin" },
+      { asset: printersV2Asset as Asset, alt: "Configuração simplificada de impressoras no Menuzin" },
     ],
   },
 ];
