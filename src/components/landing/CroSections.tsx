@@ -31,16 +31,14 @@ interface SignupAction {
 export function ProductHeroVisual() {
   return (
     <div className="relative mx-auto w-full max-w-2xl pb-10 pt-4 lg:pb-14">
-      <div className="overflow-hidden rounded-lg border bg-card p-1.5 shadow-[var(--shadow-pop)] sm:p-2">
-        <img
-          src={(ordersAsset as Asset).url}
-          alt="Painel Menuzin organizando pedidos novos, em preparo e prontos"
-          width={1584}
-          height={768}
-          fetchPriority="high"
-          className="h-auto w-full rounded-md"
-        />
-      </div>
+      <img
+        src={(ordersAsset as Asset).url}
+        alt="Painel Menuzin organizando pedidos novos, em preparo e prontos"
+        width={1584}
+        height={768}
+        fetchPriority="high"
+        className="h-auto w-full rounded-lg shadow-[var(--shadow-soft)]"
+      />
       <div className="absolute -bottom-1 left-2 w-[31%] min-w-28 max-w-52 drop-shadow-2xl sm:-bottom-3 sm:left-8">
         <img
           src={(storefrontAsset as Asset).url}
@@ -111,35 +109,23 @@ export function PainSolutionGrid() {
 }
 
 interface FeatureVisualProps {
-  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean; noWrapper?: boolean }>;
+  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean }>;
 }
 
 function FeatureVisual({ images }: FeatureVisualProps) {
   return (
     <div className={`grid items-center gap-4 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-      {images.map(({ asset, alt, mobile, eager, noWrapper }, index) => {
-        const img = (
-          <img
-            src={asset.url}
-            alt={alt}
-            loading={eager ? "eager" : "lazy"}
-            className={`h-auto w-full ${mobile ? "rounded-[1.6rem]" : noWrapper ? "" : "rounded-md"}`}
-          />
-        );
-        if (noWrapper) {
-          return <div key={alt}>{img}</div>;
-        }
-        return (
-          <div
-            key={alt}
-            className={`overflow-hidden border bg-card shadow-[var(--shadow-pop)] ${
-              mobile ? "mx-auto max-w-64 rounded-[2rem] border-4" : "rounded-lg p-1.5"
-            } ${index === 1 ? "mt-8" : "mb-8"}`}
-          >
-            {img}
-          </div>
-        );
-      })}
+      {images.map(({ asset, alt, mobile, eager }, index) => (
+        <img
+          key={alt}
+          src={asset.url}
+          alt={alt}
+          loading={eager ? "eager" : "lazy"}
+          className={`h-auto w-full shadow-[var(--shadow-soft)] ${
+            mobile ? "mx-auto max-w-64 rounded-[1.6rem]" : "rounded-lg"
+          } ${index === 1 ? "mt-8" : "mb-8"}`}
+        />
+      ))}
     </div>
   );
 }
@@ -181,8 +167,9 @@ const featureBlocks = [
     copy: "Ative a impressão automática para aceitar cada novo pedido e enviar o cupom direto à cozinha, sem cliques, gritos ou papelzinho levado pelo salão. Mais agilidade no preparo e menos chance de erro.",
     icon: Printer,
     reverse: true,
+    wideImage: true,
     images: [
-      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true, noWrapper: true },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
     ],
   },
 ];
@@ -196,9 +183,13 @@ export function ProductDeepDive() {
           <h2 className="mt-3 text-3xl font-bold text-balance md:text-5xl">Tecnologia de ponta para quem vive a rotina do delivery</h2>
         </div>
       </div>
-      {featureBlocks.map(({ eyebrow, title, copy, icon: Icon, images, reverse }, index) => (
+      {featureBlocks.map(({ eyebrow, title, copy, icon: Icon, images, reverse, wideImage }, index) => (
         <article key={title} className={index % 2 ? "border-y bg-muted/35" : "bg-background"}>
-          <div className="container mx-auto grid items-center gap-10 px-4 py-16 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16 lg:py-24">
+          <div className={`container mx-auto grid items-center gap-10 px-4 py-16 lg:gap-16 lg:py-24 ${
+            reverse && wideImage
+              ? "lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]"
+              : "lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"
+          }`}>
             <div className={reverse ? "lg:order-2" : ""}>
               <div className="grid h-11 w-11 place-items-center rounded-md bg-primary/10 text-primary">
                 <Icon className="h-5 w-5" aria-hidden="true" />
