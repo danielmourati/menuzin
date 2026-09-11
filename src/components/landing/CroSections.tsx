@@ -182,7 +182,7 @@ const featureBlocks = [
     icon: Printer,
     reverse: true,
     images: [
-      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true, noWrapper: true },
     ],
   },
 ];
