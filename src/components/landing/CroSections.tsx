@@ -112,19 +112,19 @@ export function PainSolutionGrid() {
 }
 
 interface FeatureVisualProps {
-  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean }>;
+  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean; shadow?: boolean }>;
 }
 
 function FeatureVisual({ images }: FeatureVisualProps) {
   return (
     <div className={`grid items-center gap-4 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-      {images.map(({ asset, alt, mobile, eager }, index) => (
+      {images.map(({ asset, alt, mobile, eager, shadow = true }, index) => (
         <img
           key={alt}
           src={asset.url}
           alt={alt}
           loading={eager ? "eager" : "lazy"}
-          className={`h-auto w-full shadow-[var(--shadow-soft)] ${
+          className={`h-auto w-full ${shadow ? "shadow-[var(--shadow-soft)]" : ""} ${
             mobile ? "mx-auto max-w-64 rounded-[1.6rem]" : "rounded-lg"
           } ${index === 1 ? "mt-8" : "mb-8"}`}
         />
