@@ -102,7 +102,6 @@ function ComeceAgora() {
             <img src={menuzinLogoAsset.url} alt="Menuzin" className="h-9 w-auto" />
           </Link>
           <div className="flex shrink-0 items-center gap-3">
-            <Link to="/admin/login" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">Entrar</Link>
             <Button onClick={openSignup}><Rocket aria-hidden="true" /> Testar grátis</Button>
           </div>
         </div>
