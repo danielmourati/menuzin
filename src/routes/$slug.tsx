@@ -71,6 +71,8 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
   },
 });
 
+import { StorefrontSkeleton } from "@/components/storefront/StorefrontSkeleton";
+
 export const Route = createFileRoute("/$slug")({
   validateSearch: z.object({
     produto: z.string().optional(),
@@ -79,6 +81,7 @@ export const Route = createFileRoute("/$slug")({
     if (!isCatalogSlug(params.slug)) return null;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
   },
+  pendingComponent: StorefrontSkeleton,
   head: ({ params, loaderData }) => {
     const tenant = loaderData?.tenant ?? null;
     const url = `https://menuzin.app/${params.slug}`;

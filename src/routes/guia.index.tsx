@@ -14,6 +14,7 @@ import { getGuiaHome } from "@/lib/guia.functions";
 import type { GuiaSectionId, GuiaSlot } from "@/lib/guia-types";
 
 import { SlotCard } from "@/components/guia/SlotCard";
+import { GuiaHomeSkeleton } from "@/components/guia/GuiaSkeleton";
 import { GuiaSearchOverlay } from "@/components/guia/GuiaSearch";
 import { MessagesButton, NotificationsButton } from "@/components/guia/GuiaInbox";
 import { CepGateDialog, useGuiaLocation } from "@/components/guia/CepGateDialog";
@@ -59,14 +60,7 @@ export const Route = createFileRoute("/guia/")({
     context.queryClient.prefetchQuery(homeQO);
     return { origin: "https://menuzin.app" };
   },
-  pendingComponent: () => (
-    <div className="flex h-dvh items-center justify-center bg-muted/30">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        <p className="text-sm font-medium text-muted-foreground">Carregando lojas...</p>
-      </div>
-    </div>
-  ),
+  pendingComponent: GuiaHomeSkeleton,
   head: () => ({
     meta: [
       { title: "Guia Menuzin — comida do seu bairro em Parnaíba" },
