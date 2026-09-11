@@ -109,35 +109,23 @@ export function PainSolutionGrid() {
 }
 
 interface FeatureVisualProps {
-  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean; noWrapper?: boolean }>;
+  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean }>;
 }
 
 function FeatureVisual({ images }: FeatureVisualProps) {
   return (
     <div className={`grid items-center gap-4 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-      {images.map(({ asset, alt, mobile, eager, noWrapper }, index) => {
-        const img = (
-          <img
-            src={asset.url}
-            alt={alt}
-            loading={eager ? "eager" : "lazy"}
-            className={`h-auto w-full ${mobile ? "rounded-[1.6rem]" : noWrapper ? "" : "rounded-md"}`}
-          />
-        );
-        if (noWrapper) {
-          return <div key={alt}>{img}</div>;
-        }
-        return (
-          <div
-            key={alt}
-            className={`overflow-hidden border bg-card shadow-[var(--shadow-pop)] ${
-              mobile ? "mx-auto max-w-64 rounded-[2rem] border-4" : "rounded-lg p-1.5"
-            } ${index === 1 ? "mt-8" : "mb-8"}`}
-          >
-            {img}
-          </div>
-        );
-      })}
+      {images.map(({ asset, alt, mobile, eager }, index) => (
+        <img
+          key={alt}
+          src={asset.url}
+          alt={alt}
+          loading={eager ? "eager" : "lazy"}
+          className={`h-auto w-full shadow-[var(--shadow-soft)] ${
+            mobile ? "mx-auto max-w-64 rounded-[1.6rem]" : "rounded-lg"
+          } ${index === 1 ? "mt-8" : "mb-8"}`}
+        />
+      ))}
     </div>
   );
 }
