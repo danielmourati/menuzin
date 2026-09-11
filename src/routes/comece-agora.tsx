@@ -1,32 +1,50 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, CheckCircle2, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  ArrowRight, CheckCircle2, MessageCircle, Rocket,
-  Smartphone, Store, Zap,
-} from "lucide-react";
 import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
-import { LandingFooter } from "@/components/landing/LandingSections";
-import { PricingTable, SmartStrategySection } from "@/components/landing/CroSections";
+import { FaqSection, LandingFooter } from "@/components/landing/LandingSections";
+import {
+  AuthorityStrip,
+  PainSolutionGrid,
+  PricingTable,
+  ProductDeepDive,
+  ProductHeroVisual,
+} from "@/components/landing/CroSections";
 import { listPlans } from "@/lib/subscriptions.functions";
 import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
 
-const menuzinLogo = menuzinLogoAsset.url;
+const TITLE = "Plataforma de gestão para delivery — Menuzin";
+const DESC = "Gestão Kanban, impressão automática e rastreio em tempo real, sem comissão por pedido. Teste o Menuzin Pro grátis por 14 dias.";
 
-const TITLE = "Cardápio sem comissão para restaurantes — Menuzin";
-const DESC = "Use apps como vitrine e fidelize com o Menuzin. Receba pedidos no WhatsApp, sem comissão, e fique com 100% das vendas.";
+const fallbackPlans = [
+  {
+    id: "presenca",
+    name: "Presença",
+    price: 0,
+    description: "Sua vitrine digital gratuita para continuar vendendo sem comissão.",
+    features: ["Até 20 produtos", "Link e QR Code", "Pedidos pelo WhatsApp", "0% de comissão"],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: 79.8,
+    description: "Gestão completa, automação e produtos ilimitados para profissionalizar seu delivery.",
+    features: ["Painel Kanban de pedidos", "Impressão automática", "Rastreio para o cliente", "Produtos ilimitados", "Sem taxa por pedido"],
+  },
+];
 
 export const Route = createFileRoute("/comece-agora")({
   head: () => ({
     meta: [
       { title: TITLE },
       { name: "description", content: DESC },
-      { property: "og:title", content: TITLE },
+      { property: "og:title", content: "Menuzin — Gestão completa sem comissão" },
       { property: "og:description", content: DESC },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: TITLE },
+      { name: "twitter:title", content: "Menuzin — Gestão completa sem comissão" },
       { name: "twitter:description", content: DESC },
     ],
     links: [{ rel: "canonical", href: "https://menuzin.app/comece-agora" }],
@@ -35,197 +53,88 @@ export const Route = createFileRoute("/comece-agora")({
 });
 
 function ComeceAgora() {
-  const [open, setOpen] = useState(false);
-  const { data: plansData } = useQuery({
-    queryKey: ["plans"],
-    queryFn: () => listPlans(),
-    staleTime: 60_000,
-  });
-  const proPrice = plansData?.plans.find((plan) => plan.slug === "pro")?.monthly_price;
+  const [signupOpen, setSignupOpen] = useState(false);
+  const { data } = useQuery({ queryKey: ["plans"], queryFn: () => listPlans(), staleTime: 60_000 });
+  const plans = useMemo(() => {
+    const active = data?.plans
+      ?.filter((plan) => plan.slug === "presenca" || plan.slug === "pro")
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((plan) => ({
+        id: plan.slug,
+        name: plan.name,
+        price: Number(plan.monthly_price) || 0,
+        description: plan.description ?? "",
+        features: plan.features ?? [],
+      }));
+    return active?.length === 2 ? active : fallbackPlans;
+  }, [data]);
+
+  const openSignup = () => setSignupOpen(true);
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur">
-        <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={menuzinLogo} alt="Menuzin" className="h-9 w-auto" />
+    <div className="min-h-screen overflow-x-hidden bg-background">
+      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+        <div className="container mx-auto grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:flex sm:justify-between">
+          <Link to="/" className="min-w-0">
+            <img src={menuzinLogoAsset.url} alt="Menuzin" className="h-9 w-auto" />
           </Link>
-          <div className="flex items-center gap-3">
-            <Link to="/admin/login" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">
-              Entrar
-            </Link>
-            <Button onClick={() => setOpen(true)} className="gap-2">
-              <Rocket className="h-4 w-4" />
-              Criar grátis
-            </Button>
+          <div className="flex shrink-0 items-center gap-3">
+            <Link to="/admin/login" className="hidden text-sm text-muted-foreground hover:text-foreground sm:inline">Entrar</Link>
+            <Button onClick={openSignup}><Rocket aria-hidden="true" /> Testar grátis</Button>
           </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        {/* animated gradient blobs */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div className="animate-blob-pulse absolute -left-24 top-10 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
-          <div className="animate-blob-pulse absolute right-0 top-40 h-96 w-96 rounded-full bg-orange-400/25 blur-3xl" style={{ animationDelay: "3s" }} />
-          <div className="animate-blob-pulse absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-yellow-300/20 blur-3xl" style={{ animationDelay: "6s" }} />
-        </div>
-
-        <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center">
-          <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <Zap className="h-3 w-3" /> Plano Presença · 100% grátis
-            </span>
-            <h1 className="mt-5 text-4xl font-bold leading-[1.08] text-balance md:text-5xl lg:text-6xl">
-              Pare de dividir seu lucro. Seu cardápio digital no ar em{" "}
-              <span className="text-primary">2 minutos.</span>
-            </h1>
-            <p className="mt-4 max-w-xl text-lg text-muted-foreground">
-              Use os grandes apps de delivery como vitrine para atrair, e o Menuzin para fidelizar sem
-              pagar comissão. Você recebe os pedidos no WhatsApp e fica com{" "}
-              <strong className="text-foreground">100% das vendas.</strong>
-            </p>
-
-            <div className="mt-8">
-              <Button size="lg" onClick={() => setOpen(true)} className="gap-2 shadow-lg">
-                Criar Meu Cardápio Grátis <ArrowRight className="h-4 w-4" />
-              </Button>
+      <main>
+        <section className="relative border-b">
+          <div className="container mx-auto grid items-center gap-12 px-4 py-14 md:py-20 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-10">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                <Rocket className="h-3.5 w-3.5" aria-hidden="true" /> 14 dias grátis do Plano Pro
+              </span>
+              <p className="mt-6 text-sm font-bold uppercase text-primary">Pare de dividir seu lucro.</p>
+              <h1 className="mt-3 text-4xl font-bold leading-tight text-balance md:text-5xl lg:text-6xl">
+                A experiência de um grande app de delivery, <span className="text-primary">sem pagar comissão por pedido.</span>
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                Gestão de pedidos em Kanban, impressão automática na cozinha e rastreio em tempo real para o cliente. <strong className="text-foreground">Assuma o controle do seu delivery.</strong>
+              </p>
+              <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                <Button size="lg" onClick={openSignup} className="w-full shadow-[var(--shadow-pop)] sm:w-auto">
+                  Testar o Pro por 14 dias <ArrowRight aria-hidden="true" />
+                </Button>
+                <a href="#recursos" className="px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground">Ver como funciona</a>
+              </div>
+              <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                {["Sem pedir cartão", "0% de comissão", "Retorno grátis ao Presença"].map((item) => (
+                  <li key={item} className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />{item}</li>
+                ))}
+              </ul>
             </div>
-
-            <ul className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              <li className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem cartão</li>
-              <li className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> 0% de comissão</li>
-              <li className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Cancele quando quiser</li>
-            </ul>
+            <ProductHeroVisual />
           </div>
+        </section>
 
-          {/* Right: floating mockup */}
-          <div className="relative mx-auto flex h-[520px] w-full max-w-md items-center justify-center lg:h-[560px]">
-            {/* phone frame */}
-            <div className="animate-float-slow relative h-[480px] w-[240px] rounded-[2.5rem] border-8 border-foreground/90 bg-card shadow-2xl">
-              <div className="absolute left-1/2 top-1.5 h-4 w-20 -translate-x-1/2 rounded-full bg-foreground/90" />
-              <div className="h-full w-full overflow-hidden rounded-[2rem] bg-gradient-to-b from-primary/10 to-orange-100">
-                <div className="p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary to-orange-500 text-white font-bold">
-                      P
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-bold">Pizzaria Napoli</p>
-                      <p className="text-[9px] text-emerald-600 font-semibold">● Aberto agora</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex gap-1.5 overflow-hidden">
-                    {["Pizzas", "Bebidas", "Doces"].map((c, i) => (
-                      <span key={c} className={`whitespace-nowrap rounded-full px-2 py-1 text-[9px] font-semibold ${i === 0 ? "bg-primary text-primary-foreground" : "bg-white/80 text-foreground"}`}>{c}</span>
-                    ))}
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    {[
-                      { n: "Margherita", p: "R$ 45,90" },
-                      { n: "Calabresa", p: "R$ 48,90" },
-                      { n: "Portuguesa", p: "R$ 52,90" },
-                    ].map((it) => (
-                      <div key={it.n} className="flex items-center gap-2 rounded-xl bg-white/90 p-2 shadow-sm">
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-orange-200 to-yellow-100" />
-                        <div className="flex-1">
-                          <p className="text-[10px] font-semibold leading-tight">{it.n}</p>
-                          <p className="text-[9px] text-muted-foreground">Molho, muçarela</p>
-                        </div>
-                        <span className="text-[10px] font-bold text-primary">{it.p}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+        <AuthorityStrip />
+        <PainSolutionGrid />
+        <ProductDeepDive />
+        <PricingTable plans={plans} onCTAClick={openSignup} />
+        <FaqSection plans={plans.map((plan) => ({ name: plan.name, price: plan.price }))} />
 
-            {/* floating chips */}
-            <div className="animate-float-delayed absolute -left-4 top-8 hidden items-center gap-2 rounded-full bg-white px-3 py-2 shadow-xl sm:flex">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-emerald-600">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <div className="text-left leading-tight">
-                <p className="text-[10px] font-bold">Novo pedido #1058</p>
-                <p className="text-[9px] text-muted-foreground">R$ 64,80</p>
-              </div>
-            </div>
-
-            <div className="animate-float-slow absolute -right-2 top-32 flex items-center gap-2 rounded-full bg-[#25D366] px-3 py-2 text-white shadow-xl" style={{ animationDelay: "0.7s" }}>
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-[11px] font-semibold">Pedido no WhatsApp</span>
-            </div>
-
-            <div className="animate-float-delayed absolute -right-6 bottom-16 hidden items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-xl sm:flex">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-primary">
-                <Zap className="h-4 w-4" />
-              </div>
-              <div className="text-left leading-tight">
-                <p className="text-[10px] font-bold">0% de taxa</p>
-                <p className="text-[9px] text-muted-foreground">100% seu</p>
-              </div>
-            </div>
-
-            <div className="animate-float-slow absolute -left-4 bottom-6 hidden items-center gap-2 rounded-2xl bg-white px-3 py-2 shadow-xl sm:flex" style={{ animationDelay: "2s" }}>
-              <span className="text-2xl">⭐</span>
-              <div className="text-left leading-tight">
-                <p className="text-[10px] font-bold">4.9 · 210 lojas</p>
-                <p className="text-[9px] text-muted-foreground">satisfeitas</p>
-              </div>
-            </div>
+        <section className="border-y bg-primary text-primary-foreground">
+          <div className="container mx-auto px-4 py-20 text-center">
+            <p className="text-sm font-bold uppercase text-primary-foreground/80">Pare de dividir seu lucro.</p>
+            <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-bold text-balance md:text-5xl">Sua operação completa pode começar hoje.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-primary-foreground/85">Teste todos os recursos do Pro por 14 dias. Sem cartão e sem comissão por pedido.</p>
+            <Button size="lg" variant="secondary" onClick={openSignup} className="mt-7">
+              Começar meus 14 dias grátis <ArrowRight aria-hidden="true" />
+            </Button>
           </div>
-        </div>
-      </section>
-
-      <SmartStrategySection />
-
-      {/* HOW IT WORKS */}
-      <section className="border-y bg-muted/30">
-        <div className="container mx-auto px-4 py-16">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Do zero ao primeiro pedido em 3 passos</h2>
-            <p className="mt-3 text-muted-foreground">Simples, rápido e sem enrolação.</p>
-          </div>
-          <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-3">
-            {[
-              { icon: Store, t: "1. Cadastre sua loja", d: "Nome, WhatsApp e senha. Só isso. Sua vitrine já está no ar." },
-              { icon: Smartphone, t: "2. Monte o cardápio", d: "Adicione categorias, produtos e fotos com um assistente guiado." },
-              { icon: MessageCircle, t: "3. Receba pelo WhatsApp", d: "Cada pedido chega formatado direto no seu WhatsApp, pronto para atender." },
-            ].map(({ icon: Icon, t, d }) => (
-              <div key={t} className="rounded-2xl border bg-card p-6 shadow-sm transition hover:shadow-md">
-                <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-6 w-6" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold">{t}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <PricingTable
-        proPrice={proPrice == null ? null : Number(proPrice)}
-        onCTAClick={() => setOpen(true)}
-      />
-
-      {/* CTA final */}
-      <section className="relative overflow-hidden border-y bg-gradient-to-br from-primary via-orange-500 to-orange-400 text-white">
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h2 className="text-3xl font-bold md:text-4xl">Pronto para começar a vender?</h2>
-          <p className="mx-auto mt-3 max-w-xl text-white/90">
-            Sua loja pode estar no ar em menos de 2 minutos. Sem cartão, sem letra miúda.
-          </p>
-          <Button size="lg" variant="secondary" onClick={() => setOpen(true)} className="mt-6 gap-2 shadow-xl">
-            <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-          </Button>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <LandingFooter />
-
-      <QuickSignupModal open={open} onOpenChange={setOpen} />
+      <QuickSignupModal open={signupOpen} onOpenChange={setSignupOpen} />
     </div>
   );
 }
