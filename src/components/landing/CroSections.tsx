@@ -167,8 +167,9 @@ const featureBlocks = [
     copy: "Ative a impressão automática para aceitar cada novo pedido e enviar o cupom direto à cozinha, sem cliques, gritos ou papelzinho levado pelo salão. Mais agilidade no preparo e menos chance de erro.",
     icon: Printer,
     reverse: true,
+    wideImage: true,
     images: [
-      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true, noWrapper: true },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
     ],
   },
 ];
