@@ -31,16 +31,14 @@ interface SignupAction {
 export function ProductHeroVisual() {
   return (
     <div className="relative mx-auto w-full max-w-2xl pb-10 pt-4 lg:pb-14">
-      <div className="overflow-hidden rounded-lg border bg-card p-1.5 shadow-[var(--shadow-pop)] sm:p-2">
-        <img
-          src={(ordersAsset as Asset).url}
-          alt="Painel Menuzin organizando pedidos novos, em preparo e prontos"
-          width={1584}
-          height={768}
-          fetchPriority="high"
-          className="h-auto w-full rounded-md"
-        />
-      </div>
+      <img
+        src={(ordersAsset as Asset).url}
+        alt="Painel Menuzin organizando pedidos novos, em preparo e prontos"
+        width={1584}
+        height={768}
+        fetchPriority="high"
+        className="h-auto w-full rounded-lg shadow-[var(--shadow-soft)]"
+      />
       <div className="absolute -bottom-1 left-2 w-[31%] min-w-28 max-w-52 drop-shadow-2xl sm:-bottom-3 sm:left-8">
         <img
           src={(storefrontAsset as Asset).url}
