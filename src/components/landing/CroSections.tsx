@@ -187,7 +187,7 @@ export function ProductDeepDive() {
         <article key={title} className={index % 2 ? "border-y bg-muted/35" : "bg-background"}>
           <div className={`container mx-auto grid items-center gap-10 px-4 py-16 lg:gap-16 lg:py-24 ${
             reverse && wideImage
-              ? "lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]"
+              ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
               : "lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]"
           }`}>
             <div className={reverse ? "lg:order-2" : ""}>
