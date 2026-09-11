@@ -227,9 +227,8 @@ function formatPrice(price: number) {
 
 export function PricingTable({ plans, onCTAClick }: PricingTableProps) {
   const [proExpanded, setProExpanded] = useState(false);
-  const presencaPlan = plans.find((p) => p.id === "presenca");
   const proPlan = plans.find((p) => p.id === "pro");
-  const visibleProCount = presencaPlan ? presencaPlan.features.length : 4;
+  const visibleProCount = 4;
 
   return (
     <section id="planos" className="bg-muted/35">
