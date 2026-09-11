@@ -16,31 +16,27 @@ Reposicionar o Menuzin como uma plataforma completa de gestão para delivery, mo
 ## Estrutura da página
 
 1. **Faixa de autoridade**
-   - Inserir a mensagem “Usado por hamburguerias, pizzarias e restaurantes que não dividem lucro”.
-   - Evitar números ou depoimentos não comprovados.
-
+  - Inserir a mensagem “Usado por hamburguerias, pizzarias e restaurantes que não dividem lucro”.
+  - Evitar números ou depoimentos não comprovados.
 2. **Dores e soluções rápidas**
-   - Criar três pontos curtos e escaneáveis: taxas por pedido, operação desorganizada e falta de acompanhamento para o cliente.
-   - Conectar cada dor diretamente à resposta oferecida pelo Menuzin, sem textos longos.
-
+  - Criar três pontos curtos e escaneáveis: taxas por pedido, operação desorganizada e falta de acompanhamento para o cliente.
+  - Conectar cada dor diretamente à resposta oferecida pelo Menuzin, sem textos longos.
 3. **Demonstrações aprofundadas com telas reais**
-   - Alternar texto e imagem em cada bloco no desktop; empilhar naturalmente no celular.
-   - **Cardápio e endereço inteligente:** imagens 5 e 6, mostrando compra moderna, CEP automático e cálculo de entrega.
-   - **Rastreio em tempo real:** imagens 7 e 8, mostrando confirmação e acompanhamento do pedido sem instalação.
-   - **Coração da operação:** imagens 1 e 9, destacando Kanban, modalidades, detalhes do pedido e controle do fluxo.
-   - **Automação e precificação:** imagens 3 e 4, mostrando taxas configuráveis, aceite automático e impressoras separadas.
-   - Usar as copies de dor e benefício fornecidas como base, condensadas para manter a interface como principal elemento de venda.
-
+  - Alternar texto e imagem em cada bloco no desktop; empilhar naturalmente no celular.
+  - **Cardápio e endereço inteligente:** imagens 5 e 6, mostrando compra moderna, CEP automático e cálculo de entrega.
+  - **Rastreio em tempo real:** imagens 7 e 8, mostrando confirmação e acompanhamento do pedido sem instalação.
+  - **Coração da operação:** imagens 1 e 9, destacando Kanban, modalidades, detalhes do pedido e controle do fluxo.
+  - **Automação e precificação:** imagens 3 e 4, mostrando taxas configuráveis, aceite automático e impressoras separadas.
+  - Usar as copies de dor e benefício fornecidas como base, condensadas para manter a interface como principal elemento de venda.
 4. **Planos e teste reverso**
-   - Substituir a comparação resumida atual por uma apresentação clara dos planos Presença e Pro.
-   - Manter valores, benefícios e disponibilidade vindos da configuração central já usada pelo sistema.
-   - Destacar o Pro como “Melhor Custo-Benefício” e explicar visualmente os 14 dias de acesso completo, sem cartão, seguidos pelo retorno automático ao Presença se não houver assinatura.
-   - Todos os CTAs de conversão abrem o cadastro existente, sem criar um fluxo paralelo.
-
+  - Substituir a comparação resumida atual por uma apresentação clara dos planos Presença e Pro.
+  - Manter valores, benefícios e disponibilidade vindos da configuração central já usada pelo sistema.
+  - Destacar o Pro como “Melhor Custo-Benefício” e explicar visualmente os 14 dias de acesso completo, sem cartão, seguidos pelo retorno automático ao Presença se não houver assinatura.
+  - Todos os CTAs de conversão abrem o cadastro existente, sem criar um fluxo paralelo.
 5. **Fechamento**
-   - Adicionar FAQ com objeções sobre comissão, teste Pro, necessidade de instalação, impressão e acompanhamento do cliente.
-   - Atualizar o CTA final para repetir a oferta de 14 dias do Pro.
-   - Preservar o rodapé institucional existente.
+  - Adicionar FAQ com objeções sobre comissão, teste Pro, necessidade de instalação, impressão e acompanhamento do cliente.
+  - Atualizar o CTA final para repetir a oferta de 14 dias do Pro.
+  - Preservar o rodapé institucional existente.
 
 ## Direção visual
 
@@ -64,4 +60,6 @@ Reposicionar o Menuzin como uma plataforma completa de gestão para delivery, mo
 - Validar todos os CTAs, abertura do cadastro e comunicação do teste Pro de 14 dias.
 - Confirmar que preços e benefícios continuam vindo da configuração central.
 - Verificar carregamento das imagens, textos alternativos, um único H1, navegação por teclado e preferência por movimento reduzido.
-- Confirmar compilação sem erros e ausência de regressão visual na homepage, que deve permanecer inalterada.
+- Confirmar compilação sem erros e ausência de regressão visual na homepage, que deve permanecer inalterada.  
+  
+Reforçar mensagem: **Pare de dividir seu lucro.**
