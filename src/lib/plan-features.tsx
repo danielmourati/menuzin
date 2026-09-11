@@ -212,27 +212,30 @@ export function UpgradeNotice({
   className = "",
 }: UpgradeNoticeProps) {
   const label = PLAN_LABEL[requiredPlan];
-  const finalTitle = title ?? `Disponível no Plano ${label}`;
+  const finalTitle = title ?? `Recurso Exclusivo do Plano ${label}`;
   const finalDescription =
     description ??
-    `Este recurso está disponível no Plano ${label}. Faça o upgrade para desbloquear.`;
+    `Você experimentou este recurso na sua degustação Pro. Para continuar com a impressão automática, o painel Kanban e os relatórios, faça o upgrade por apenas R$ 79,80/mês.`;
   return (
     <div
-      className={`rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 p-6 ${className}`}
+      className={`rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-orange-600/10 p-6 shadow-sm ${className}`}
     >
       <div className="flex items-start gap-4">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-          <Crown className="h-5 w-5" />
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md">
+          <Lock className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="flex items-center gap-2 font-semibold">
-            <Lock className="h-3.5 w-3.5 text-primary" />
+          <h3 className="flex items-center gap-2 font-bold text-lg text-foreground">
             {finalTitle}
           </h3>
-          <p className="mt-1 text-sm text-muted-foreground">{finalDescription}</p>
-          <Button asChild size="sm" className="mt-4">
-            <Link to="/admin/assinatura">Ver planos</Link>
-          </Button>
+          <p className="mt-1 text-sm text-muted-foreground leading-relaxed">{finalDescription}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button asChild size="sm" className="bg-gradient-to-r from-orange-500 to-amber-500 font-bold text-white shadow-md hover:from-orange-600 hover:to-amber-600">
+              <Link to="/admin/assinatura">
+                <Crown className="mr-2 h-4 w-4" /> Desbloquear Plano Pro (R$ 79,80/mês)
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

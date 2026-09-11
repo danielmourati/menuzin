@@ -111,9 +111,13 @@ function SubscriptionsAdmin() {
                         <td className="px-4 py-3">{brl(Number(s.amount))}</td>
                         <td className="px-4 py-3">{s.billing_period}</td>
                         <td className="px-4 py-3">
-                          {isPresenca
-                            ? <SubscriptionStatusBadge status="ativa" label="Ativa (grátis)" />
-                            : <SubscriptionStatusBadge status={c.effective} />}
+                          {s.status === "teste" ? (
+                            <SubscriptionStatusBadge status="teste" label="Degustação Pro (14d)" />
+                          ) : isPresenca ? (
+                            <SubscriptionStatusBadge status="ativa" label="Ativa (grátis)" />
+                          ) : (
+                            <SubscriptionStatusBadge status={c.effective} />
+                          )}
                         </td>
                         <td className="px-4 py-3">{isPresenca ? "—" : (s.due_date ? new Date(`${s.due_date}T00:00:00Z`).toLocaleDateString("pt-BR") : "—")}</td>
                         <td className="px-4 py-3">{isPresenca ? "—" : (c.daysRemaining ?? "—")}</td>

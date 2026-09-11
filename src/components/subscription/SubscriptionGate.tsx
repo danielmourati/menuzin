@@ -22,9 +22,38 @@ export function useEffectiveSubscription() {
 export function SubscriptionAlertBanner() {
   const { sub, computed, loading } = useEffectiveSubscription();
   if (loading || !sub) return null;
-  if (!computed.expiringSoon && computed.effective !== "tolerancia" && computed.effective !== "vencida") return null;
 
   const days = computed.daysRemaining ?? 0;
+  const isTrial = computed.effective === "teste";
+
+  // Banner de Aversão à Perda (Loss Aversion) nos últimos 3 dias de Trial PRO
+  if (isTrial) {
+    if (days > 3) return null; // Não incomoda nos primeiros 11 dias
+    const dayText = days === 0 ? "hoje" : days === 1 ? "amanhã" : `em ${days} dias`;
+    return (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-orange-500/40 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 px-4 py-2.5 text-white shadow-md lg:px-8">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/20 text-white">
+            <AlertTriangle className="h-4 w-4 animate-bounce" />
+          </div>
+          <div className="text-xs sm:text-sm">
+            <span className="font-bold">Seu período Pro está acabando ({dayText})!</span>{" "}
+            <span>
+              Para não perder a impressão automática na cozinha, o painel Kanban e o faturamento, assine o Pro por R$ 79,80.
+            </span>
+          </div>
+        </div>
+        <Button asChild size="sm" className="bg-white text-orange-600 hover:bg-orange-50 font-bold shrink-0 shadow-sm">
+          <Link to="/admin/assinatura">
+            <CreditCard className="mr-1.5 h-4 w-4" /> Garantir Plano Pro (R$ 79,80)
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (!computed.expiringSoon && computed.effective !== "tolerancia" && computed.effective !== "vencida") return null;
+
   const msg =
     computed.effective === "vencida"
       ? "Sua assinatura está vencida. Regularize o pagamento para continuar usando o Menuzin."

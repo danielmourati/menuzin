@@ -287,13 +287,13 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3.5 py-1.5 backdrop-blur-md border border-white/20">
                   <Zap className="h-4 w-4 text-yellow-300 fill-yellow-300" />
                   <span className="text-xs font-bold tracking-wide uppercase text-white">
-                    100% GRATUITO · PLANO PRESENÇA
+                    14 DIAS GRÁTIS · DEGUSTAÇÃO PLANO PRO
                   </span>
                 </div>
 
-                {/* Título Atualizado (sem +30 mil) */}
+                {/* Título Atualizado */}
                 <h2 className="text-2xl md:text-3xl font-extrabold leading-tight text-white drop-shadow-sm">
-                  Crie seu <span className="text-yellow-300 underline decoration-yellow-300/40">cardápio digital</span> e comece a vender no <span className="font-black">WhatsApp</span>
+                  Ganhe <span className="text-yellow-300 underline decoration-yellow-300/40">14 dias grátis</span> do Plano PRO sem pedir cartão
                 </h2>
 
                 {/* Recursos / Benefícios */}
@@ -303,8 +303,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                       <TrendingUp className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold leading-snug">Sistema completo para o seu negócio</p>
-                      <p className="text-xs text-white/80">Cardápio digital, pedidos WhatsApp e gestão fácil.</p>
+                      <p className="text-sm font-bold leading-snug">Degustação Total (14 dias PRO)</p>
+                      <p className="text-xs text-white/80">Impressão na cozinha, painel Kanban e relatórios.</p>
                     </div>
                   </div>
 
@@ -313,8 +313,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                       <Shield className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold leading-snug">Fácil de usar e suporte dedicado</p>
-                      <p className="text-xs text-white/80">Configure em menos de 2 minutos sem complicação.</p>
+                      <p className="text-sm font-bold leading-snug">Sem Cartão de Crédito</p>
+                      <p className="text-xs text-white/80">Cadastre-se de graça. Se não quiser assinar, continua no Plano Presença grátis.</p>
                     </div>
                   </div>
 
@@ -323,8 +323,8 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                       <Cloud className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold leading-snug">Rápido, simples e seguro</p>
-                      <p className="text-xs text-white/80">Sem taxas por vendas. Você fica com 100% do lucro.</p>
+                      <p className="text-sm font-bold leading-snug">Zero Comissão por Vendas</p>
+                      <p className="text-xs text-white/80">Receba no WhatsApp ou Pix e fique com 100% do lucro.</p>
                     </div>
                   </div>
                 </div>

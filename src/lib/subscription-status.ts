@@ -42,12 +42,13 @@ export function computeSubscriptionStatus(
     // Fallback: sem assinatura = liberado em cortesia.
     return { effective: "cortesia", expiringSoon: false, daysRemaining: null, blocked: false };
   }
-  if (sub.status === "cortesia" || sub.status === "teste") {
-    return { effective: sub.status, expiringSoon: false, daysRemaining: null, blocked: false };
+  if (sub.status === "cortesia") {
+    return { effective: "cortesia", expiringSoon: false, daysRemaining: null, blocked: false };
   }
   if (sub.status === "cancelada" || sub.status === "bloqueada") {
     return { effective: sub.status, expiringSoon: false, daysRemaining: null, blocked: true };
   }
+
   const due = toDate(sub.due_date);
   if (!due) {
     return {
@@ -57,8 +58,19 @@ export function computeSubscriptionStatus(
       blocked: sub.status === "vencida",
     };
   }
+
   const diffMs = due.getTime() - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const days = Math.ceil(diffMs / DAY_MS);
+
+  if (sub.status === "teste") {
+    const expired = days < 0;
+    return {
+      effective: "teste",
+      expiringSoon: days >= 0 && days <= 3,
+      daysRemaining: days,
+      blocked: false,
+    };
+  }
 
   if (days >= 0) {
     return {

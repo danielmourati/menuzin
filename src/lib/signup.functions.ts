@@ -89,7 +89,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
       ? data.business_types.slice(0, 3)
       : [data.business_type];
 
-    // Cria tenant Presença
+    // Cria tenant no plano "pro" (Trial Reverso de 14 dias)
     const whatsappDigits = data.whatsapp.replace(/\D/g, "");
     const cepDigits = data.cep.replace(/\D/g, "");
     const { data: tenant, error: tErr } = await supabaseAdmin
@@ -104,7 +104,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         neighborhood: data.neighborhood || "",
         cep: cepDigits ? `${cepDigits.slice(0, 5)}-${cepDigits.slice(5)}` : "",
         logo_letter: data.name.charAt(0).toUpperCase(),
-        plan: "presenca",
+        plan: "pro",
         status: "ativa",
         active: true,
         theme_from: "#FF6A1F",
@@ -120,6 +120,74 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
       throw new Error(tErr?.message ?? "Falha ao criar loja.");
     }
 
+    // Calcula 14 dias de trial PRO
+    const now = new Date();
+    now.setUTCDate(now.getUTCDate() + 14);
+    const trialDueDate = now.toISOString().slice(0, 10);
+
+    // Resolve o ID do plano Pro no banco
+    const { data: proPlan } = await supabaseAdmin
+      .from("plans")
+      .select("id, monthly_price")
+      .eq("slug", "pro")
+      .maybeSingle();
+
+    const proPlanId = (proPlan as { id?: string } | null)?.id;
+    const proAmount = Number((proPlan as { monthly_price?: number } | null)?.monthly_price ?? 79.8);
+
+    if (proPlanId) {
+      // Cria/Atualiza assinatura com status "teste" (14 dias do Plano PRO)
+      const { data: existingSub } = await supabaseAdmin
+        .from("tenant_subscriptions")
+        .select("id")
+        .eq("tenant_id", tenant.id)
+        .maybeSingle();
+
+      let subId: string | null = (existingSub as { id?: string } | null)?.id ?? null;
+
+      if (subId) {
+        await supabaseAdmin
+          .from("tenant_subscriptions")
+          .update({
+            plan_id: proPlanId,
+            status: "teste",
+            amount: proAmount,
+            due_date: trialDueDate,
+            notes: "Trial Reverso de 14 dias do Plano PRO liberado no cadastro",
+          })
+          .eq("id", subId);
+      } else {
+        const { data: createdSub } = await supabaseAdmin
+          .from("tenant_subscriptions")
+          .insert({
+            tenant_id: tenant.id,
+            plan_id: proPlanId,
+            status: "teste",
+            billing_period: "mensal",
+            amount: proAmount,
+            due_date: trialDueDate,
+            grace_days: 0,
+            auto_block_enabled: false,
+            notes: "Trial Reverso de 14 dias do Plano PRO liberado no cadastro",
+          })
+          .select("id")
+          .single();
+
+        subId = (createdSub as { id?: string } | null)?.id ?? null;
+      }
+
+      if (subId) {
+        await supabaseAdmin.from("subscription_events").insert({
+          tenant_id: tenant.id,
+          subscription_id: subId,
+          event_type: "trial_started",
+          description: "Degustação total do Plano PRO iniciada por 14 dias (Trial Reverso)",
+          metadata: { due_date: trialDueDate, amount: proAmount },
+          created_by: userId,
+        });
+      }
+    }
+
     // Vincula tenant ao profile (trigger handle_new_user já criou o profile)
     await supabaseAdmin.from("profiles").update({ tenant_id: tenant.id }).eq("id", userId);
 
@@ -128,8 +196,6 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert({ user_id: userId, tenant_id: tenant.id, role: "owner" });
     if (rErr) {
-      // Não bloqueia — o admin pode logar e a plataforma pode corrigir depois.
-      // Mas registra.
       console.error("signup: failed to insert owner role", rErr);
     }
 

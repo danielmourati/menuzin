@@ -85,7 +85,7 @@ export async function getTenantPlan(tenantId: string): Promise<ServerTenantPlan>
   const [{ data: sub }, { data: tenant }] = await Promise.all([
     supabaseAdmin
       .from("tenant_subscriptions")
-      .select("id, plan_id, updated_at, plan:plans(slug)")
+      .select("id, plan_id, status, due_date, updated_at, plan:plans(slug)")
       .eq("tenant_id", tenantId)
       .maybeSingle(),
     supabaseAdmin
@@ -96,9 +96,53 @@ export async function getTenantPlan(tenantId: string): Promise<ServerTenantPlan>
   ]);
 
   const subRow = sub as
-    | { id: string; plan_id: string; updated_at: string | null; plan?: { slug?: string } | null }
+    | { id: string; plan_id: string; status: string; due_date: string | null; updated_at: string | null; plan?: { slug?: string } | null }
     | null;
   const tenantRow = tenant as { plan?: string; updated_at?: string | null } | null;
+
+  // Checagem de expiração de Trial de 14 dias (Trial Reverso)
+  if (subRow && subRow.status === "teste" && subRow.due_date) {
+    const due = new Date(`${subRow.due_date}T00:00:00Z`).getTime();
+    const now = new Date();
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+    if (due < todayUTC) {
+      // Trial expirado -> Downgrade automático para o Plano Presença (Grátis)
+      try {
+        const { data: presencaPlan } = await supabaseAdmin
+          .from("plans")
+          .select("id")
+          .eq("slug", "presenca")
+          .maybeSingle();
+
+        const presencaPlanId = (presencaPlan as { id?: string } | null)?.id;
+        if (presencaPlanId) {
+          await supabaseAdmin
+            .from("tenant_subscriptions")
+            .update({
+              plan_id: presencaPlanId,
+              status: "ativa",
+              amount: 0,
+              notes: "Downgrade automático após o término do período de teste de 14 dias",
+            })
+            .eq("id", subRow.id);
+
+          await supabaseAdmin.from("tenants").update({ plan: "presenca" }).eq("id", tenantId);
+
+          await supabaseAdmin.from("subscription_events").insert({
+            tenant_id: tenantId,
+            subscription_id: subRow.id,
+            event_type: "trial_expired_downgrade",
+            description: "Trial de 14 dias do Plano Pro encerrado. Downgrade automático para o Plano Presença (Grátis).",
+          });
+
+          return "presenca";
+        }
+      } catch (err) {
+        console.error("[getTenantPlan] Falha no downgrade automático de trial:", err);
+      }
+    }
+  }
 
   const subSlug = subRow?.plan?.slug ? normalize(subRow.plan.slug) : null;
   const tenantSlug = tenantRow ? normalize(tenantRow.plan) : null;

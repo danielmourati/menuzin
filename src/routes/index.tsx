@@ -175,6 +175,10 @@ function Landing() {
       <section className="relative overflow-hidden">
         <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center lg:gap-8">
           <div>
+            <div className="inline-flex items-center gap-2 rounded-full border bg-orange-500/10 px-3.5 py-1 text-xs font-bold text-orange-600 dark:text-orange-400 mb-3">
+              <Rocket className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
+              <span>14 DIAS GRÁTIS DO PLANO PRO LIBERADOS NO CADASTRO</span>
+            </div>
             <h1 className="text-4xl font-bold leading-tight text-balance md:text-6xl">
               Pare de dividir seu lucro. <span className="text-primary">Fidelize sem comissão.</span>
             </h1>
@@ -183,8 +187,8 @@ function Landing() {
               Receba pedidos no WhatsApp e fique com 100% das vendas.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button size="lg" className="gap-2" onClick={() => setSignupOpen(true)}>
-                <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
+              <Button size="lg" className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 font-extrabold text-white shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600" onClick={() => setSignupOpen(true)}>
+                <Rocket className="h-4 w-4" /> Testar 14 Dias Grátis (Plano PRO)
               </Button>
               {demoSlug && (
                 <Button asChild variant="outline" size="lg" className="gap-2">
@@ -195,9 +199,9 @@ function Landing() {
               )}
             </div>
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem cartão</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Pronto em minutos</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Mobile first</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem pedir cartão</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> 14 dias do Plano PRO</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Downgrade grátis automático</span>
             </div>
           </div>
 
