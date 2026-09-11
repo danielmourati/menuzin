@@ -238,7 +238,7 @@ export function PricingTable({ plans, onCTAClick }: PricingTableProps) {
           <h2 className="mt-3 text-3xl font-bold text-balance md:text-5xl">Experimente o Pro. Decida depois.</h2>
           <p className="mt-4 text-muted-foreground">Sem cartão. Se não assinar, sua loja continua gratuitamente no plano Presença.</p>
         </div>
-        <div className="mx-auto mt-12 grid max-w-4xl items-stretch gap-6 md:grid-cols-2">
+        <div className="mx-auto mt-12 grid max-w-4xl items-start gap-6 md:grid-cols-2">
           {plans.map((plan) => {
             const isPro = plan.id === "pro";
             const displayedFeatures = isPro && !proExpanded ? plan.features.slice(0, visibleProCount) : plan.features;
