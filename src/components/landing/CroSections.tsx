@@ -172,7 +172,7 @@ const featureBlocks = [
     reverse: true,
     wideImage: true,
     images: [
-      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true, shadow: false },
     ],
   },
 ];
