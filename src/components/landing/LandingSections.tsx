@@ -334,8 +334,14 @@ export function buildFaqs(plans?: FaqPlanInfo[]) {
 
 export const faqs = buildFaqs();
 
-export function FaqSection({ plans }: { plans?: FaqPlanInfo[] }) {
-  const items = buildFaqs(plans);
+export function FaqSection({
+  plans,
+  items: customItems,
+}: {
+  plans?: FaqPlanInfo[];
+  items?: Array<{ q: string; a: string }>;
+}) {
+  const items = customItems ?? buildFaqs(plans);
   return (
     <section id="faq" className="container mx-auto px-4 py-20">
       <div className="text-center">

@@ -35,6 +35,29 @@ const fallbackPlans = [
   },
 ];
 
+const strategicFaqs = [
+  {
+    q: "O Menuzin cobra comissão por pedido?",
+    a: "Não. O Menuzin não retém uma parte das suas vendas. No Pro, você paga somente a assinatura configurada e mantém o valor dos pedidos.",
+  },
+  {
+    q: "Como funcionam os 14 dias grátis do Pro?",
+    a: "O acesso completo é liberado no cadastro, sem pedir cartão. Ao final dos 14 dias, você pode assinar o Pro ou continuar gratuitamente no plano Presença.",
+  },
+  {
+    q: "O cliente precisa instalar um aplicativo?",
+    a: "Não. O cardápio, a confirmação e o acompanhamento do pedido funcionam direto no navegador do celular.",
+  },
+  {
+    q: "A impressão na cozinha pode ser automática?",
+    a: "Sim. No Pro, você pode configurar locais e impressoras para aceitar e imprimir pedidos automaticamente enquanto o painel estiver conectado.",
+  },
+  {
+    q: "Como o cliente acompanha o pedido?",
+    a: "Depois de comprar, ele recebe uma página de acompanhamento que mostra cada atualização, do aceite até a entrega ou retirada.",
+  },
+];
+
 export const Route = createFileRoute("/comece-agora")({
   head: () => ({
     meta: [
@@ -119,7 +142,10 @@ function ComeceAgora() {
         <PainSolutionGrid />
         <ProductDeepDive />
         <PricingTable plans={plans} onCTAClick={openSignup} />
-        <FaqSection plans={plans.map((plan) => ({ name: plan.name, price: plan.price }))} />
+        <FaqSection
+          plans={plans.map((plan) => ({ name: plan.name, price: plan.price }))}
+          items={strategicFaqs}
+        />
 
         <section className="border-y bg-primary text-primary-foreground">
           <div className="container mx-auto px-4 py-20 text-center">
