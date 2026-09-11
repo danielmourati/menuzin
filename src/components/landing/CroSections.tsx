@@ -19,7 +19,7 @@ import confirmedAsset from "@/assets/menuzin-order-confirmed.png.asset.json";
 import trackingAsset from "@/assets/menuzin-order-tracking.png.asset.json";
 import detailsAsset from "@/assets/menuzin-order-details.png.asset.json";
 import ordersKanbanV2Asset from "@/assets/menuzin-orders-kanban-v2.png.asset.json";
-import printersV2Asset from "@/assets/menuzin-printers-v2.png.asset.json";
+import autoPrintingAsset from "@/assets/menuzin-auto-printing.png.asset.json";
 
 
 type Asset = { url: string };
@@ -111,13 +111,13 @@ export function PainSolutionGrid() {
 }
 
 interface FeatureVisualProps {
-  images: Array<{ asset: Asset; alt: string; mobile?: boolean }>;
+  images: Array<{ asset: Asset; alt: string; mobile?: boolean; eager?: boolean }>;
 }
 
 function FeatureVisual({ images }: FeatureVisualProps) {
   return (
     <div className={`grid items-center gap-4 ${images.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
-      {images.map(({ asset, alt, mobile }, index) => (
+      {images.map(({ asset, alt, mobile, eager }, index) => (
         <div
           key={alt}
           className={`overflow-hidden border bg-card shadow-[var(--shadow-pop)] ${
@@ -127,7 +127,7 @@ function FeatureVisual({ images }: FeatureVisualProps) {
           <img
             src={asset.url}
             alt={alt}
-            loading="lazy"
+            loading={eager ? "eager" : "lazy"}
             className={`h-auto w-full ${mobile ? "rounded-[1.6rem]" : "rounded-md"}`}
           />
         </div>
@@ -169,12 +169,12 @@ const featureBlocks = [
   },
   {
     eyebrow: "Automação",
-    title: "Frete certo e pedido impresso sem correria",
-    copy: "Escolha entrega grátis, taxa fixa ou por bairro. Quando o pedido chega, o Menuzin pode aceitar e imprimir automaticamente no caixa e na cozinha, sem retrabalho.",
+    title: "O pedido chega e a cozinha já começa a preparar",
+    copy: "Ative a impressão automática para aceitar cada novo pedido e enviar o cupom direto à cozinha, sem cliques, gritos ou papelzinho levado pelo salão. Mais agilidade no preparo e menos chance de erro.",
     icon: Printer,
     reverse: true,
     images: [
-      { asset: printersV2Asset as Asset, alt: "Configuração simplificada de impressoras no Menuzin" },
+      { asset: autoPrintingAsset as Asset, alt: "Menuzin imprimindo automaticamente um novo pedido na cozinha", eager: true },
     ],
   },
 ];
