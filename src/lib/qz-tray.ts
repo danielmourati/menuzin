@@ -495,7 +495,7 @@ export function downloadQzProperties(): void {
  * Tray Community — por isso o prompt continuava aparecendo mesmo executando
  * como administrador.
  */
-export const QZ_INSTALLER_VERSION = 2;
+export const QZ_INSTALLER_VERSION = 3;
 export function buildQzWindowsInstaller(certPem: string): string {
   const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
   const certB64 = encodeBase64Utf8(cleanedCert);
@@ -520,6 +520,7 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "  exit /b 1",
     ")",
     "",
+    'set "BAT_DIR=%~dp0"',
     `set "CERT_B64=${certB64}"`,
     `set "INSTALLER_VERSION=${QZ_INSTALLER_VERSION}"`,
     "",
@@ -530,7 +531,8 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "if %ERR% NEQ 0 (",
     "  echo Houve uma falha na configuracao. Codigo: %ERR%",
     ") else (",
-    "  echo Configuracao concluida. Volte ao Menuzin e clique em Detectar.",
+    "  echo Configuracao concluida com sucesso!",
+    "  echo Volte ao Menuzin e clique em 'Testar de novo'.",
     "  echo O prompt 'Action Required' nao deve mais aparecer.",
     ")",
     "echo.",
@@ -542,23 +544,39 @@ export function buildQzWindowsInstaller(certPem: string): string {
 }
 
 /**
- * Script PowerShell que:
- *   1. Grava `allowed.pem` em todos os diretórios `data/certificates/` que o
- *      QZ Tray Community efetivamente lê (per-user e system-wide).
- *   2. Remove o mesmo cert de `blocked.pem` caso ele esteja lá (blocked vence
- *      allowed no QZ Tray).
- *   3. Reinicia o QZ Tray.
+ * Script PowerShell (v3) que:
+ *   1. Lê o cert.pem (da pasta local do .bat ou do payload base64).
+ *   2. Grava `allowed.pem` e `cert.pem` em TODOS os diretórios de configuração do QZ Tray (system-wide e per-user em C:\Users).
+ *   3. Popula `allowed.txt` com menuzin.app, *.menuzin.app, localhost para preencher o "Site Manager" visual do QZ Tray.
+ *   4. Atualiza `qz-tray.properties` com `authcert.override=allowed.pem`.
+ *   5. Remove o certificado de `blocked.pem` em todas as pastas.
+ *   6. Reinicia o QZ Tray.
  */
 const QZ_INSTALL_PS1 = `
 $ErrorActionPreference = 'Stop'
 try {
   Write-Host ("Menuzin QZ installer - PowerShell stage (v" + $env:INSTALLER_VERSION + ")")
-  $certBytes = [Convert]::FromBase64String($env:CERT_B64)
-  $certText  = [Text.Encoding]::UTF8.GetString($certBytes)
-  $certTrim  = $certText.Trim()
+  
+  $certTrim = $null
+  $certBytes = $null
 
-  # Fingerprint SHA-256 do nosso cert (formato XX:XX:...), para comparar com
-  # entradas em blocked.pem.
+  if ($env:BAT_DIR -and (Test-Path -LiteralPath (Join-Path $env:BAT_DIR 'cert.pem'))) {
+    try {
+      $localCert = Get-Content -LiteralPath (Join-Path $env:BAT_DIR 'cert.pem') -Raw -ErrorAction SilentlyContinue
+      if ($localCert -and $localCert.Contains('-----BEGIN CERTIFICATE-----')) {
+        $certTrim = $localCert.Trim()
+        $certBytes = [Text.Encoding]::UTF8.GetBytes($certTrim)
+        Write-Host "Certificado cert.pem lido da pasta local do instalador."
+      }
+    } catch {}
+  }
+  
+  if (-not $certTrim) {
+    $certBytes = [Convert]::FromBase64String($env:CERT_B64)
+    $certText  = [Text.Encoding]::UTF8.GetString($certBytes)
+    $certTrim  = $certText.Trim()
+  }
+
   $certObj = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$certBytes)
   function Get-Fingerprint([System.Security.Cryptography.X509Certificates.X509Certificate2]$c) {
     $sha = [System.Security.Cryptography.SHA256]::Create()
@@ -568,36 +586,82 @@ try {
   $ourFp = Get-Fingerprint $certObj
   Write-Host ("Fingerprint do cert: " + $ourFp)
 
-  function Ensure-AllowedPem([string]$dataCertDir) {
+  function Ensure-AllowedPem([string]$dir) {
     try {
-      New-Item -ItemType Directory -Path $dataCertDir -Force | Out-Null
-      $allowed = Join-Path $dataCertDir 'allowed.pem'
-      $write = $true
-      if (Test-Path -LiteralPath $allowed) {
-        $existing = Get-Content -LiteralPath $allowed -Raw -ErrorAction SilentlyContinue
-        if ($existing -and $existing.Contains($certTrim)) { $write = $false }
-        elseif ($existing) {
-          # Anexa (mantém outros certs ja confiados)
-          $merged = ($existing.TrimEnd() + "\`n" + $certTrim + "\`n")
-          [IO.File]::WriteAllText($allowed, $merged)
-          Write-Host ("Confiado (append): " + $allowed)
-          $write = $false
+      if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+      }
+      foreach ($file in @('allowed.pem', 'cert.pem')) {
+        $allowed = Join-Path $dir $file
+        $write = $true
+        if (Test-Path -LiteralPath $allowed) {
+          $existing = Get-Content -LiteralPath $allowed -Raw -ErrorAction SilentlyContinue
+          if ($existing -and $existing.Contains($certTrim)) { $write = $false }
+          elseif ($existing) {
+            $merged = ($existing.TrimEnd() + "\`n" + $certTrim + "\`n")
+            [IO.File]::WriteAllText($allowed, $merged)
+            Write-Host ("Confiado (append): " + $allowed)
+            $write = $false
+          }
+        }
+        if ($write) {
+          [IO.File]::WriteAllText($allowed, $certTrim + "\`n")
+          Write-Host ("Confiado: " + $allowed)
         }
       }
-      if ($write) {
-        [IO.File]::WriteAllText($allowed, $certTrim + "\`n")
-        Write-Host ("Confiado: " + $allowed)
-      }
-    } catch { Write-Host ("Aviso allowed em " + $dataCertDir + ": " + $_.Exception.Message) }
+    } catch { Write-Host ("Aviso pem em " + $dir + ": " + $_.Exception.Message) }
   }
 
-  function Scrub-BlockedPem([string]$dataCertDir) {
+  function Ensure-AllowedTxt([string]$dir) {
     try {
-      $blocked = Join-Path $dataCertDir 'blocked.pem'
+      if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+      }
+      $allowedTxt = Join-Path $dir 'allowed.txt'
+      $domains = @('menuzin.app', '*.menuzin.app', 'localhost', '127.0.0.1')
+      $existingLines = @()
+      if (Test-Path -LiteralPath $allowedTxt) {
+        $existingLines = Get-Content -LiteralPath $allowedTxt -ErrorAction SilentlyContinue
+      }
+      $toAdd = @()
+      foreach ($d in $domains) {
+        if ($existingLines -notcontains $d) {
+          $toAdd += $d
+        }
+      }
+      if ($toAdd.Count -gt 0) {
+        $newLines = ($existingLines + $toAdd)
+        [IO.File]::WriteAllText($allowedTxt, (($newLines -join "\`n") + "\`n"))
+        Write-Host ("Site Manager liberado (allowed.txt): " + $allowedTxt)
+      }
+    } catch { Write-Host ("Aviso txt em " + $dir + ": " + $_.Exception.Message) }
+  }
+
+  function Ensure-QzProperties([string]$dir) {
+    try {
+      if (-not (Test-Path -LiteralPath $dir)) { return }
+      $propFile = Join-Path $dir 'qz-tray.properties'
+      $overrideLine = 'authcert.override=allowed.pem'
+      if (Test-Path -LiteralPath $propFile) {
+        $content = Get-Content -LiteralPath $propFile -Raw -ErrorAction SilentlyContinue
+        if ($content -and -not $content.Contains('authcert.override')) {
+          $merged = ($content.TrimEnd() + "\`n" + $overrideLine + "\`n")
+          [IO.File]::WriteAllText($propFile, $merged)
+          Write-Host ("Properties atualizado: " + $propFile)
+        }
+      } else {
+        [IO.File]::WriteAllText($propFile, $overrideLine + "\`n")
+        Write-Host ("Properties criado: " + $propFile)
+      }
+    } catch { Write-Host ("Aviso properties em " + $dir + ": " + $_.Exception.Message) }
+  }
+
+  function Scrub-BlockedPem([string]$dir) {
+    try {
+      $blocked = Join-Path $dir 'blocked.pem'
       if (-not (Test-Path -LiteralPath $blocked)) { return }
       $content = Get-Content -LiteralPath $blocked -Raw -ErrorAction SilentlyContinue
       if (-not $content) { return }
-      # Divide em blocos PEM (-----BEGIN CERTIFICATE----- ... -----END CERTIFICATE-----).
       $pattern = '(?s)-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----'
       $blocks = [System.Text.RegularExpressions.Regex]::Matches($content, $pattern)
       if ($blocks.Count -eq 0) { return }
@@ -612,7 +676,6 @@ try {
           if ($fp -ne $ourFp) { [void]$kept.Add($pem) }
           else { Write-Host ("Removido de blocked: " + $blocked) }
         } catch {
-          # Bloco ilegivel: mantem para nao quebrar a config do usuario.
           [void]$kept.Add($m.Value)
         }
       }
@@ -622,33 +685,32 @@ try {
       } else {
         [IO.File]::WriteAllText($blocked, (($kept -join "\`n") + "\`n"))
       }
-    } catch { Write-Host ("Aviso blocked em " + $dataCertDir + ": " + $_.Exception.Message) }
+    } catch { Write-Host ("Aviso blocked em " + $dir + ": " + $_.Exception.Message) }
   }
 
-  # 1) System-wide: %PROGRAMDATA%\\qz\\data\\certificates
-  $sharedDirs = @()
+  # Coleta de todas as pastas base de configuração do QZ Tray
+  $baseDirs = @()
+
+  # 1) System-wide: %PROGRAMDATA%\\qz
   foreach ($base in @($env:ProgramData, "$env:SystemDrive\\ProgramData")) {
-    if ($base) { $sharedDirs += (Join-Path $base 'qz\\data\\certificates') }
+    if ($base) { $baseDirs += (Join-Path $base 'qz') }
   }
 
-  # 2) Per-user: varre C:\\Users\\*\\AppData\\Roaming\\qz\\data\\certificates
-  $userDirs = @()
+  # 2) Per-user: varre todos os perfis em C:\\Users
   $usersRoot = Join-Path $env:SystemDrive 'Users'
   if (Test-Path -LiteralPath $usersRoot) {
     Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue |
-      Where-Object { $_.Name -notin @('Public','Default','Default User','All Users') -and (Test-Path -LiteralPath (Join-Path $_.FullName 'AppData\\Roaming')) } |
+      Where-Object { $_.Name -notin @('Public','Default','Default User','All Users') } |
       ForEach-Object {
-        $userDirs += (Join-Path $_.FullName 'AppData\\Roaming\\qz\\data\\certificates')
+        $uPath = $_.FullName
+        if (Test-Path -LiteralPath (Join-Path $uPath 'AppData\\Roaming')) {
+          $baseDirs += (Join-Path $uPath 'AppData\\Roaming\\qz')
+        }
+        $baseDirs += (Join-Path $uPath '.qz')
       }
   }
 
-  $allDirs = ($sharedDirs + $userDirs) | Where-Object { $_ } | Select-Object -Unique
-  foreach ($d in $allDirs) {
-    Ensure-AllowedPem $d
-    Scrub-BlockedPem $d
-  }
-
-  # 3) Reinicia o QZ Tray. Localiza o executavel pela pasta de instalacao.
+  # 3) Pastas de instalação do QZ Tray em Program Files
   $installCandidates = @()
   foreach ($p in @($env:ProgramW6432, $env:ProgramFiles, \${env:ProgramFiles(x86)}, "$env:SystemDrive\\Program Files", "$env:SystemDrive\\Program Files (x86)", "$env:LocalAppData\\Programs")) {
     if ($p) { $installCandidates += (Join-Path $p 'QZ Tray') }
@@ -662,21 +724,41 @@ try {
       Where-Object { $_.DisplayName -like 'QZ Tray*' -and $_.InstallLocation } |
       ForEach-Object { $installCandidates += $_.InstallLocation.TrimEnd('\\') }
   } catch {}
-  $installDirs = $installCandidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
 
+  $baseDirs += ($installCandidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) })
+  $allBaseDirs = $baseDirs | Where-Object { $_ } | Select-Object -Unique
+
+  foreach ($b in $allBaseDirs) {
+    $subDirs = @(
+      $b,
+      (Join-Path $b 'override'),
+      (Join-Path $b 'data'),
+      (Join-Path $b 'data\\certificates')
+    )
+    foreach ($sub in $subDirs) {
+      Ensure-AllowedPem $sub
+      Ensure-AllowedTxt $sub
+      Scrub-BlockedPem $sub
+    }
+    Ensure-QzProperties $b
+  }
+
+  # Reinicia o QZ Tray
   Get-Process -Name 'QZ Tray','qz-tray' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Milliseconds 1500
+
   $exe = $null
-  foreach ($dir in $installDirs) {
+  foreach ($dir in $installCandidates) {
+    if (-not $dir -or -not (Test-Path -LiteralPath $dir)) { continue }
     foreach ($name in @('QZ Tray.exe','qz-tray.exe')) {
       $p = Join-Path $dir $name
       if ((-not $exe) -and (Test-Path -LiteralPath $p)) { $exe = $p }
     }
   }
   if ($exe) {
-    try { Start-Process -FilePath $exe } catch { Write-Host ("Nao foi possivel iniciar o QZ Tray automaticamente: " + $_.Exception.Message) }
+    try { Start-Process -FilePath $exe } catch { Write-Host ("Aviso: inicie o QZ Tray pelo Menu Iniciar se nao abrir.") }
   } else {
-    Write-Host 'Atencao: nao encontrei o executavel do QZ Tray. Abra-o manualmente pelo Menu Iniciar.'
+    Write-Host 'Atencao: abra o QZ Tray pelo Menu Iniciar.'
   }
 
   exit 0
