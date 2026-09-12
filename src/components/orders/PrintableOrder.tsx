@@ -31,9 +31,9 @@ export function PrintableOrder({
   const s = settings ?? DEFAULT_PRINTER_SETTINGS;
   const width = paperWidth ?? s.paper_width;
   const isNarrow = width === "55mm";
-  const cols = columnsFor(width);
   const effectiveFontFamily = s.use_default_typography !== false ? "mono" : s.font_family;
   const effectiveFontSize = s.use_default_typography !== false ? "normal" : s.font_size;
+  const cols = columnsFor(width, effectiveFontSize, effectiveFontFamily);
 
   const fontStyle = effectiveFontFamily === "sans"
     ? 'system-ui, -apple-system, sans-serif'

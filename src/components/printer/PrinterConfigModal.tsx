@@ -39,9 +39,11 @@ import {
 import { toast } from "sonner";
 import {
   DEFAULT_PRINTER_SETTINGS,
+  columnsFor,
   type PaperWidth,
   type PrinterSettings,
 } from "@/lib/printer-types";
+import { center } from "@/lib/receipt-builder";
 import {
   getMyPrinterSettings,
   saveMyPrinterSettings,
@@ -266,18 +268,30 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     }
     setTesting(true);
     try {
+      const width = isCaixa ? caixa.paper_width : (selected?.paper_width ?? "80mm");
+      const fontSz = isCaixa
+        ? (caixa.use_default_typography ? "normal" : caixa.font_size)
+        : (selected?.layout_overrides?.font_size ?? "normal");
+      const fontFam = isCaixa
+        ? (caixa.use_default_typography ? "mono" : caixa.font_family)
+        : (selected?.layout_overrides?.font_family ?? "mono");
+      const cols = columnsFor(width, fontSz, fontFam);
       const feed = isCaixa ? caixa.feed_lines : (selected?.layout_overrides?.feed_lines ?? 3);
       const cut = isCaixa ? caixa.cut_type : (selected?.layout_overrides?.cut_type ?? "partial");
+      const sep = "=".repeat(cols);
+
       await printQzTextTest(
         currentPrinterName,
         [
-          "======================================",
-          "         TESTE DE IMPRESSAO",
-          "======================================",
-          `Local: ${isCaixa ? "Caixa" : selected?.name}`,
+          sep,
+          center("TESTE DE IMPRESSAO", cols),
+          sep,
+          `Local: ${isCaixa ? "Caixa" : selected?.name || "Cozinha"}`,
           `Impressora: ${currentPrinterName}`,
-          new Date().toLocaleString("pt-BR"),
-          "======================================",
+          `Papel: ${width} · Colunas: ${cols}`,
+          `Fonte: ${fontSz} (${fontFam})`,
+          `Data: ${new Date().toLocaleString("pt-BR")}`,
+          sep,
         ].join("\n"),
         { feedLines: feed, cutType: cut },
       );
@@ -295,7 +309,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (closeAfterSave = false) => {
     setSaving(true);
     try {
       setDevicePrinter(caixa.printer_name);
@@ -320,8 +334,10 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       qc.invalidateQueries({ queryKey: ["printer-settings"] });
       qc.invalidateQueries({ queryKey: ["tenant-printers"] });
       qc.invalidateQueries({ queryKey: ["tenant-printers-indicator"] });
-      toast.success("Configuração salva.");
-      onOpenChange(false);
+      toast.success("Configuração salva com sucesso!");
+      if (closeAfterSave) {
+        onOpenChange(false);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
@@ -761,16 +777,16 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+              <Button size="sm" className="gap-1.5" onClick={() => void handleSave(false)} disabled={saving}>
                 {saving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Check className="h-4 w-4" />
                 )}
                 Salvar
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                Concluir
               </Button>
             </div>
           </div>

@@ -12,7 +12,16 @@ import {
   stripAccents,
   wrap,
 } from "@/lib/receipt-builder";
-import { columnsFor, type PaperWidth } from "@/lib/printer-types";
+import { columnsFor, type PaperWidth, type FontSize, type FontFamily } from "@/lib/printer-types";
+
+// ...
+export function kitchenColumnsFor(
+  paper: PaperWidth,
+  fontSize?: FontSize,
+  fontFamily?: FontFamily,
+) {
+  return columnsFor(paper, fontSize, fontFamily);
+}
 
 // ESC/POS sequences:
 // - ESC @         (\x1b@)        : initialize printer
@@ -95,8 +104,4 @@ export function buildKitchenTicket(order: Order, cols: number): string {
   out.push(sep);
 
   return out.join("\n");
-}
-
-export function kitchenColumnsFor(paper: PaperWidth) {
-  return columnsFor(paper);
 }

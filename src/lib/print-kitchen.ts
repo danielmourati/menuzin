@@ -8,10 +8,11 @@ export async function printKitchenTicket(
   order: Order,
   printer: TenantPrinter,
 ): Promise<{ printer: string }> {
-  const cols = kitchenColumnsFor(printer.paper_width);
-  const text = buildKitchenTicket(order, cols);
-  // Layout personalizado da impressora (quando existir) sobrescreve o padrão.
   const ov = printer.layout_overrides ?? null;
+  const fontSize = ov?.font_size ?? printer.font_size;
+  const fontFamily = ov?.font_family ?? printer.font_family;
+  const cols = kitchenColumnsFor(printer.paper_width, fontSize, fontFamily);
+  const text = buildKitchenTicket(order, cols);
   return printQzReceipt(printer.printer_name, text, {
     feedLines: ov?.feed_lines ?? 4,
     cutType: ov?.cut_type ?? "partial",
