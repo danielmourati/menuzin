@@ -381,10 +381,26 @@ export function MercadoPagoStatus({
                 </Button>
 
                 {oauthRedirectUri && (
-                  <p className="text-[11px] text-muted-foreground leading-relaxed break-all">
-                    URL de retorno esperada (deve estar cadastrada na aplicação do Mercado Pago):{" "}
-                    <code className="font-mono">{oauthRedirectUri}</code>
-                  </p>
+                  <div className="pt-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-muted-foreground cursor-pointer transition-colors">
+                            <HelpCircle className="h-3 w-3" /> Informações técnicas da aplicação
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-md p-3 text-xs leading-normal">
+                          <p className="font-semibold text-foreground mb-1">URL de retorno da plataforma:</p>
+                          <code className="block rounded bg-muted px-2 py-1 font-mono text-[11px] break-all select-all">
+                            {oauthRedirectUri}
+                          </code>
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            Deve estar cadastrada em "Redirect URI" no Painel de Desenvolvedores do Mercado Pago (aplicação mestre da plataforma).
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 )}
 
 
