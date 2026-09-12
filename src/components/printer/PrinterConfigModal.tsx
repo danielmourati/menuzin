@@ -259,6 +259,8 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     }
     setTesting(true);
     try {
+      const feed = isCaixa ? caixa.feed_lines : (selected?.layout_overrides?.feed_lines ?? 3);
+      const cut = isCaixa ? caixa.cut_type : (selected?.layout_overrides?.cut_type ?? "partial");
       await printQzTextTest(
         currentPrinterName,
         [
@@ -270,6 +272,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           new Date().toLocaleString("pt-BR"),
           "======================================",
         ].join("\n"),
+        { feedLines: feed, cutType: cut },
       );
       toast.success("Teste enviado para a impressora.");
     } catch (err) {

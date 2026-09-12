@@ -1,12 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Loader2, Printer } from "lucide-react";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
+import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
+import { checkQzStatusAndTrust } from "@/lib/qz-tray";
 import { PlanGate } from "@/components/subscription/PlanGate";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
   component: () => (
@@ -23,7 +26,45 @@ export const Route = createFileRoute("/admin/configuracoes/impressora")({
 
 function PrinterSettingsPage() {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(true);
+  const [printersOpen, setPrintersOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const initPrinterFlow = async () => {
+    setLoading(true);
+    try {
+      const status = await checkQzStatusAndTrust();
+      if (status.ok && !status.prompted) {
+        setPrintersOpen(true);
+      } else {
+        setGuideOpen(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void initPrinterFlow();
+  }, []);
+
+  const handleRetryGuide = async () => {
+    setLoading(true);
+    try {
+      const status = await checkQzStatusAndTrust();
+      if (status.ok && !status.prompted) {
+        toast.success(`QZ Tray reconhecido e validado! ${status.printersCount} impressora(s) encontrada(s).`);
+        setGuideOpen(false);
+        setPrintersOpen(true);
+      } else if (status.ok && status.prompted) {
+        toast.error("O QZ Tray pediu confirmação manual. Execute o auto-configurador como Administrador.");
+      } else {
+        toast.error("QZ Tray ainda não foi detectado em execução no computador.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <AdminLayout>
@@ -38,17 +79,28 @@ function PrinterSettingsPage() {
               Escolha qual impressora usar no caixa, na cozinha e no bar, e teste a
               impressão em poucos cliques.
             </p>
-            <Button className="mt-1" onClick={() => setOpen(true)}>
+            <Button className="mt-1" onClick={initPrinterFlow} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Abrir configuração
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <PrinterConfigModal
-        open={open}
+      <QzInstallGuide
+        open={guideOpen}
         onOpenChange={(v) => {
-          setOpen(v);
+          setGuideOpen(v);
+          if (!v && !printersOpen) navigate({ to: "/admin/configuracoes" });
+        }}
+        onRetry={handleRetryGuide}
+        retrying={loading}
+      />
+
+      <PrinterConfigModal
+        open={printersOpen}
+        onOpenChange={(v) => {
+          setPrintersOpen(v);
           if (!v) navigate({ to: "/admin/configuracoes" });
         }}
       />

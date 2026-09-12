@@ -458,7 +458,7 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        No Windows, execute o <code>.bat</code> como administrador ou copie <code>cert.pem</code> para a pasta do QZ Tray (<code>allowed.pem</code>). No macOS/Linux, copie <code>cert.pem</code> para a pasta do QZ Tray.
+                        No Windows, certifique-se de baixar <code>cert.pem</code> e <code>menuzin-qz-setup.bat</code> na mesma pasta e execute o <code>.bat</code> como administrador.
                       </p>
                     </div>
                   )}

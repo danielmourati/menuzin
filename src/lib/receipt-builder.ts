@@ -277,6 +277,6 @@ export function buildReceiptPreviewText(
   settings: PrinterSettings,
   opts: ReceiptStoreInfo = {},
 ): string {
-  const cols = columnsFor(settings.paper_width);
+  const cols = columnsFor(settings.paper_width, settings.font_size, settings.font_family);
   return buildReceipt(sampleOrderForPreview(), cols, settings, opts);
 }

@@ -268,26 +268,41 @@ export async function listQzPrintersWithDefault(): Promise<{
 
 /**
  * Retorna a sequência de comandos de corte ESC/POS compatível com
- * impressoras térmicas genéricas (Epson, Bematech, Elgin, Diebold)
- * e especificamente o modelo Daruma DR800 / DR700.
+ * impressoras térmicas genéricas (Epson, Bematech, Elgin, Diebold, Daruma).
  *
- * Evita o byte NUL (\x00) que é truncado por codificadores de string JS/WinSpool API,
- * utilizando os caracteres ASCII GS V '0' (\x1DV0) e GS V '1' (\x1DV1),
- * além das instruções nativas Daruma (ESC w / ESC m / ESC i).
+ * Utiliza o comando GS V 0 (\x1DV0) para corte total e GS V 1 (\x1DV1) para corte parcial.
+ * Evita concatenar múltiplos comandos de marcas distintas na mesma string,
+ * o que causava disparo duplo (corte duplo) do módulo de corte da impressora.
  */
 export function getCutSequence(cutType?: "none" | "partial" | "full"): string {
   if (cutType === "full") {
-    // \x1DV0 (GS V '0' - ESC/POS Full Cut em ASCII '0' = 0x30, sem byte NUL)
-    // \x1Bw  (ESC w  - Daruma DR800 / DR700 corte total nativo)
-    // \x1Bi  (ESC i  - Daruma / Bematech / Elgin corte total em modo Dual)
-    return "\x1DV0\x1Bw\x1Bi";
+    return "\x1DV0";
   }
   if (cutType === "partial") {
-    // \x1DV1 (GS V '1' - ESC/POS Partial Cut em ASCII '1' = 0x31)
-    // \x1Bm  (ESC m  - Daruma DR800 / Bematech / Elgin corte parcial nativo)
-    return "\x1DV1\x1Bm";
+    return "\x1DV1";
   }
   return "";
+}
+
+/**
+ * Verifica de forma rápida e segura se a conexão com o QZ Tray está 100% funcional
+ * e se o certificado foi instalado e validado sem exibir pop-ups manuais de segurança.
+ */
+export async function checkQzStatusAndTrust(): Promise<{
+  ok: boolean;
+  printersCount: number;
+  prompted: boolean;
+}> {
+  try {
+    const t0 = performance.now();
+    const qz = await ensureQzConnected();
+    const res = await listQzPrintersWithDefault();
+    const ms = Math.round(performance.now() - t0);
+    // Se a requisição respondeu sem erros e rapidamente, o certificado está 100% confiado
+    return { ok: true, printersCount: res.printers.length, prompted: ms > 3000 };
+  } catch {
+    return { ok: false, printersCount: 0, prompted: false };
+  }
 }
 
 export async function printQzTextTest(

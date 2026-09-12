@@ -27,7 +27,7 @@ import {
 import { BusinessTypesField } from "@/components/admin/BusinessTypesField";
 import { PrinterConfigModal } from "@/components/printer/PrinterConfigModal";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
-import { listQzPrintersWithDefault, QzNotRunningError } from "@/lib/qz-tray";
+import { listQzPrintersWithDefault, QzNotRunningError, checkQzStatusAndTrust } from "@/lib/qz-tray";
 import { type BusinessType } from "@/lib/business-types";
 
 export const Route = createFileRoute("/admin/configuracoes/")({ component: SettingsPage });
@@ -75,13 +75,22 @@ function SettingsPage() {
     if (params.get("onboarding") === "1") setOnboarding(true);
   }, []);
 
-  // Auto-exibição na 1ª vez de configuração
+  // Auto-exibição inteligente: se o QZ Tray já estiver 100% funcional, pula o tutorial e libera o modal de impressoras
   useEffect(() => {
     if (typeof window === "undefined" || !tenantId) return;
-    const seen = window.localStorage.getItem(wizardSeenKey);
-    if (!seen) {
-      setQzGuideOpen(true);
-    }
+    let active = true;
+    checkQzStatusAndTrust().then((status) => {
+      if (!active) return;
+      if (status.ok && !status.prompted) {
+        markWizardSeen();
+      } else {
+        const seen = window.localStorage.getItem(wizardSeenKey);
+        if (!seen) {
+          setQzGuideOpen(true);
+        }
+      }
+    });
+    return () => { active = false; };
   }, [tenantId, wizardSeenKey]);
 
   const markWizardSeen = () => {
@@ -90,20 +99,37 @@ function SettingsPage() {
     }
   };
 
+  const handleOpenPrinterConfig = async () => {
+    setRetryingQz(true);
+    try {
+      const status = await checkQzStatusAndTrust();
+      if (status.ok && !status.prompted) {
+        markWizardSeen();
+        setPrintersOpen(true);
+      } else {
+        setQzGuideOpen(true);
+      }
+    } finally {
+      setRetryingQz(false);
+    }
+  };
+
   const handleRetryQz = async () => {
     setRetryingQz(true);
     try {
-      const res = await listQzPrintersWithDefault();
-      markWizardSeen();
-      toast.success(`QZ Tray conectado! ${res.printers.length} impressora(s) detectada(s).`);
-      setQzGuideOpen(false);
-      setPrintersOpen(true);
-    } catch (err) {
-      if (err instanceof QzNotRunningError) {
-        toast.error("QZ Tray ainda não foi detectado em execução no computador.");
+      const status = await checkQzStatusAndTrust();
+      if (status.ok && !status.prompted) {
+        markWizardSeen();
+        toast.success(`QZ Tray reconhecido e validado! ${status.printersCount} impressora(s) encontrada(s).`);
+        setQzGuideOpen(false);
+        setPrintersOpen(true);
+      } else if (status.ok && status.prompted) {
+        toast.error("O QZ Tray pediu confirmação manual. Execute o auto-configurador como Administrador.");
       } else {
-        toast.error(err instanceof Error ? err.message : "Erro ao conectar ao QZ Tray");
+        toast.error("QZ Tray ainda não foi detectado em execução no computador.");
       }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao conectar ao QZ Tray");
     } finally {
       setRetryingQz(false);
     }
@@ -333,8 +359,12 @@ function SettingsPage() {
                 <div className="pt-2">
                   <Button
                     className="h-11 px-8 rounded-full font-semibold bg-[#F95716] hover:bg-[#e04b0f] text-white shadow-sm transition-all text-sm sm:text-base"
-                    onClick={() => setQzGuideOpen(true)}
+                    onClick={handleOpenPrinterConfig}
+                    disabled={retryingQz}
                   >
+                    {retryingQz ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : null}
                     Configurar impressora
                   </Button>
                 </div>

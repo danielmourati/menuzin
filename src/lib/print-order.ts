@@ -12,7 +12,7 @@ export async function printOrderViaQz(
   settings: PrinterSettings,
   storeInfo: ReceiptStoreInfo = {},
 ): Promise<{ printer: string }> {
-  const cols = columnsFor(settings.paper_width);
+  const cols = columnsFor(settings.paper_width, settings.font_size, settings.font_family);
   const text = buildReceipt(order, cols, settings, storeInfo);
   const effectivePrinter = getEffectivePrinterName(settings.printer_name, settings.tenant_id);
   return printQzReceipt(effectivePrinter, text, {

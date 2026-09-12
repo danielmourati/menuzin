@@ -107,12 +107,10 @@ export function QzInstallGuide({
             </span>
             <div className="flex-1 space-y-2.5">
               <div className="font-semibold text-foreground text-sm leading-tight">
-                Certificado de Segurança (cert.pem) — Obrigatório para todos os SOs
+                Baixar Certificado e Auto-configurador
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                O arquivo <code className="font-semibold text-foreground">cert.pem</code> é{" "}
-                <strong>imprescindível</strong> para que o QZ Tray reconheça o
-                Menuzin e imprima sem pop-ups de segurança.
+                Baixe o <code className="font-semibold text-foreground">cert.pem</code> (botão 1) e o <code className="font-semibold text-foreground">Auto-configurador .bat</code> (botão 2) na <strong>mesma pasta</strong> do seu computador.
               </p>
 
               <div className="flex flex-wrap items-center gap-2 pt-0.5">
@@ -146,27 +144,10 @@ export function QzInstallGuide({
                 </Button>
               </div>
 
-              {/* Caixa de instrução por SO */}
+              {/* Caixa de instrução Windows */}
               <div className="rounded-2xl border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5 font-sans leading-relaxed">
                 <div>
-                  • <strong>No Windows:</strong> Execute o{" "}
-                  <code className="font-semibold text-foreground">menuzin-qz-setup.bat</code>{" "}
-                  como administrador ou copie o <code className="font-semibold text-foreground">cert.pem</code> para{" "}
-                  <code className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
-                    %PROGRAMDATA%\qz\data\certificates\allowed.pem
-                  </code>.
-                </div>
-                <div>
-                  • <strong>No macOS:</strong> Copie para{" "}
-                  <code className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
-                    /Library/Application Support/qz/data/certificates/allowed.pem
-                  </code>.
-                </div>
-                <div>
-                  • <strong>No Linux:</strong> Copie para{" "}
-                  <code className="text-slate-700 dark:text-slate-300 font-mono text-[11px]">
-                    /etc/qz/data/certificates/allowed.pem
-                  </code>.
+                  • <strong>No Windows:</strong> Certifique-se de baixar ambos os arquivos na <strong>mesma pasta</strong>. Em seguida, clique com o botão direito sobre o arquivo <code className="font-semibold text-foreground">menuzin-qz-setup.bat</code> e selecione <strong>"Executar como administrador"</strong>.
                 </div>
               </div>
             </div>
@@ -182,8 +163,7 @@ export function QzInstallGuide({
                 Volte aqui e clique em <em>Testar de novo</em>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Se ficar verde sem pop-up, está pronto. Pronto para imprimir cupons
-                direto.
+                Assim que a conexão for reconhecida e validada sem pop-ups, a janela de escolha de impressora será aberta automaticamente.
               </p>
             </div>
           </li>
