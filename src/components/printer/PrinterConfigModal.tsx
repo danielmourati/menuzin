@@ -178,17 +178,24 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       const res = await listQzPrintersWithDefault();
       setSystemPrinters(res.printers);
       setQzStatus("connected");
-      if (!silent) toast.success(`${res.printers.length} impressora(s) encontrada(s)`);
+      if (!silent) {
+        if (res.printers.length > 0) {
+          toast.success(`${res.printers.length} impressora(s) instalada(s) encontrada(s) no Windows.`);
+        } else {
+          toast.warning("Nenhuma impressora instalada foi encontrada no Windows.");
+        }
+      }
     } catch (err) {
       setQzStatus("offline");
       if (!silent) {
-        toast.error(
-          err instanceof QzNotRunningError
-            ? "O programa de impressão não está aberto neste computador."
-            : err instanceof Error
-              ? err.message
-              : "Não foi possível encontrar impressoras.",
-        );
+        if (err instanceof QzNotRunningError) {
+          toast.error("O programa de impressão (QZ Tray) não está aberto neste computador.");
+          setGuideOpen(true);
+        } else {
+          toast.error(
+            err instanceof Error ? err.message : "Não foi possível procurar impressoras no Windows.",
+          );
+        }
       }
     } finally {
       setScanning(false);
@@ -291,7 +298,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
   const handleSave = async () => {
     setSaving(true);
     try {
-      if (caixa.printer_name) setDevicePrinter(caixa.printer_name);
+      setDevicePrinter(caixa.printer_name);
       await saveMyPrinterSettings({ data: caixa });
       for (const d of drafts) {
         if (!d.name.trim()) continue;
@@ -324,44 +331,73 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
   const printerSelect = (value: string, onChange: (v: string) => void) => (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Label className="text-sm font-medium">Escolha a impressora</Label>
         <Button
           variant="link"
           size="sm"
-          className="h-auto p-0 text-xs"
-          onClick={() => detect()}
+          className="h-auto p-0 text-xs font-semibold text-primary hover:underline"
+          onClick={() => detect(false)}
           disabled={scanning}
         >
           {scanning ? (
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
           ) : (
-            <RefreshCw className="mr-1 h-3 w-3" />
+            <RefreshCw className="mr-1 h-3.5 w-3.5" />
           )}
           Procurar impressoras
         </Button>
       </div>
-      {systemPrinters.length > 0 ? (
-        <Select value={value || undefined} onValueChange={onChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione a impressora" />
-          </SelectTrigger>
-          <SelectContent>
-            {systemPrinters.map((p) => (
-              <SelectItem key={p.name} value={p.name}>
-                {p.name}
-                {p.isDefault ? " (a mais usada)" : ""}
+
+      <div className="flex gap-2">
+        {systemPrinters.length > 0 ? (
+          <Select
+            value={value || "__none__"}
+            onValueChange={(v) => {
+              const val = v === "__none__" ? "" : v;
+              onChange(val);
+              if (!val) toast.info("Impressora desvinculada.");
+            }}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Selecione a impressora" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__" className="text-muted-foreground italic">
+                Nenhuma impressora (desvinculada)
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : (
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Clique em Procurar impressoras"
-        />
-      )}
+              {systemPrinters.map((p) => (
+                <SelectItem key={p.name} value={p.name}>
+                  {p.name}
+                  {p.isDefault ? " (padrão do Windows)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Clique em 'Procurar impressoras' acima"
+            className="flex-1"
+          />
+        )}
+
+        {value ? (
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
+            onClick={() => {
+              onChange("");
+              toast.info("Impressora desvinculada deste local.");
+            }}
+            title="Excluir / Limpar impressora configurada"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 
@@ -541,11 +577,29 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                 </div>
               ) : isCaixa ? (
                 <div className="space-y-4">
-                  <div className="border-b pb-3">
-                    <h3 className="text-base font-semibold">Caixa (recibo do cliente)</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Impressora usada para o recibo deste computador.
-                    </p>
+                  <div className="flex items-start justify-between gap-3 border-b pb-3">
+                    <div>
+                      <h3 className="text-base font-semibold">Caixa (recibo do cliente)</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Impressora usada para o recibo deste computador.
+                      </p>
+                    </div>
+                    {caixa.printer_name ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:border-destructive/50"
+                        onClick={() => {
+                          setCaixa((p) => ({ ...p, printer_name: "" }));
+                          setDevicePrinter("");
+                          toast.info("Impressora do Caixa desvinculada. Clique em Salvar para confirmar.");
+                        }}
+                        title="Desvincular impressora do Caixa"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Desvincular impressora
+                      </Button>
+                    ) : null}
                   </div>
 
                   {printerSelect(caixa.printer_name, (v) =>
