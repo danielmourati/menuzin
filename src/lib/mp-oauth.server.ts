@@ -5,8 +5,8 @@
 import { encryptToken, decryptToken } from "@/lib/payment-crypto";
 
 const MP_API = "https://api.mercadopago.com";
-// Host global do fluxo de autorização (faz o roteamento por país automaticamente).
-const AUTH_BASE = "https://auth.mercadopago.com/authorization";
+// Host do fluxo de autorização do Mercado Pago Brasil (.com.br evita seleção manual de país)
+const AUTH_BASE = process.env["MP_AUTH_BASE_URL"]?.trim() || "https://auth.mercadopago.com.br/authorization";
 
 export interface MpOAuthConfig {
   clientId: string;
