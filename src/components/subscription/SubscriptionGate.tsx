@@ -39,7 +39,7 @@ export function SubscriptionAlertBanner() {
           <div className="text-xs sm:text-sm">
             <span className="font-bold">Seu período Pro está acabando ({dayText})!</span>{" "}
             <span>
-              Para não perder a impressão automática na cozinha, o painel Kanban e o faturamento, assine o Pro por R$ 79,80.
+              Para não perder a impressão automática na cozinha, o painel visual de pedidos e o faturamento, assine o Pro por R$ 79,80.
             </span>
           </div>
         </div>

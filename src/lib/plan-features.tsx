@@ -215,7 +215,7 @@ export function UpgradeNotice({
   const finalTitle = title ?? `Recurso Exclusivo do Plano ${label}`;
   const finalDescription =
     description ??
-    `Você experimentou este recurso na sua degustação Pro. Para continuar com a impressão automática, o painel Kanban e os relatórios, faça o upgrade por apenas R$ 79,80/mês.`;
+    `Você experimentou este recurso na sua degustação Pro. Para continuar com a impressão automática, o painel visual de pedidos e os relatórios, faça o upgrade por apenas R$ 79,80/mês.`;
   return (
     <div
       className={`rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-500/10 via-amber-500/5 to-orange-600/10 p-6 shadow-sm ${className}`}

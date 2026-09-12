@@ -16,7 +16,7 @@ import { listPlans } from "@/lib/subscriptions.functions";
 import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
 
 const TITLE = "Plataforma de gestão para delivery — Menuzin";
-const DESC = "Gestão Kanban, impressão automática e rastreio em tempo real, sem comissão por pedido. Teste o Menuzin Pro grátis por 14 dias.";
+const DESC = "Painel visual de pedidos, impressão automática e rastreio em tempo real, sem comissão por pedido. Teste o Menuzin Pro grátis por 14 dias.";
 
 const fallbackPlans = [
   {
@@ -31,7 +31,7 @@ const fallbackPlans = [
     name: "Pro",
     price: 79.8,
     description: "Gestão completa, automação e produtos ilimitados para profissionalizar seu delivery.",
-    features: ["Painel Kanban de pedidos", "Impressão automática", "Rastreio para o cliente", "Produtos ilimitados", "Sem taxa por pedido"],
+    features: ["Painel visual de pedidos", "Impressão automática", "Rastreio para o cliente", "Produtos ilimitados", "Sem taxa por pedido"],
   },
 ];
 
@@ -119,7 +119,7 @@ function ComeceAgora() {
                 A experiência de um grande app de delivery, <span className="text-primary">sem pagar comissão por pedido.</span>
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                Gestão de pedidos em Kanban, impressão automática na cozinha e rastreio em tempo real para o cliente. <strong className="text-foreground">Assuma o controle do seu delivery.</strong>
+                Painel visual de pedidos, impressão automática na cozinha e rastreio em tempo real para o cliente. <strong className="text-foreground">Assuma o controle do seu delivery.</strong>
               </p>
               <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
                 <Button size="lg" onClick={openSignup} className="w-full shadow-[var(--shadow-pop)] sm:w-auto">

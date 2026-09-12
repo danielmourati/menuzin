@@ -304,7 +304,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
                     </div>
                     <div>
                       <p className="text-sm font-bold leading-snug">Degustação Total (14 dias PRO)</p>
-                      <p className="text-xs text-white/80">Impressão na cozinha, painel Kanban e relatórios.</p>
+                      <p className="text-xs text-white/80">Impressão na cozinha, painel visual de pedidos e relatórios.</p>
                     </div>
                   </div>
 

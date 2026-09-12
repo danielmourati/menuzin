@@ -84,13 +84,30 @@ export function useAcceptOrderWithKitchenPrint(
     [can, kitchenPrinter, navigate],
   );
 
+export function isOnlinePaymentOrder(order: { payment?: string | null }): boolean {
+  if (!order?.payment) return false;
+  const label = order.payment.toLowerCase();
+  return (
+    label.includes("online") ||
+    label.includes("mercado pago") ||
+    label.includes("mercadopago") ||
+    label.includes("pix_online") ||
+    label.includes("credit_card") ||
+    label.includes("debit_card")
+  );
+}
+
   /**
-   * Aceite automático: aprova o pedido assim que ele chega e manda a comanda
-   * para a cozinha. Falha de impressão nunca impede o aceite.
+   * Aceite automático: aprova o pedido assim que ele chega (ou quando o pagamento online
+   * é confirmado pelo webhook) e manda a comanda para a cozinha.
    */
   const autoAcceptOrder = useCallback(
     async (order: Order) => {
       if (order.status !== "novo") return;
+      // Para pagamentos online, a impressão e aceite automático aguardam confirmação do webhook MP
+      if (isOnlinePaymentOrder(order) && order.paymentStatus !== "approved") {
+        return;
+      }
       try {
         await updateOrderStatus(order.id, "preparo", "Aceito automaticamente");
       } catch (err) {

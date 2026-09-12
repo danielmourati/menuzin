@@ -27,7 +27,7 @@ export const plans = [
     features: [
       "14 dias de teste grátis (Sem pedir cartão)",
       "Tudo do Presença e produtos ilimitados",
-      "Painel de pedidos Kanban (entrega, retirada e salão)",
+      "Painel visual de acompanhamento de pedidos (entrega, retirada e salão)",
       "Impressão automática (cozinha + entrega)",
       "Pagamento online via Pix Mercado Pago",
       "Adicionais avançados, combos e pizza multi-sabor",

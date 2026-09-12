@@ -351,16 +351,12 @@ export function CardCheckout({ amount, publicKey, onSubmit, onSuccess, onCancel 
 
             <div>
               <Label htmlFor="installments">Parcelamento</Label>
-              <Select value={installments} onValueChange={setInstallments}>
+              <Select value="1" disabled>
                 <SelectTrigger id="installments" className="mt-1 h-11 rounded-xl">
-                  <SelectValue placeholder="Selecione as parcelas" />
+                  <SelectValue placeholder="1x de {brl(amount)} (À vista)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1x de {brl(amount)} (Sem juros)</SelectItem>
-                  <SelectItem value="2">2x de {brl(amount / 2)} (Sem juros)</SelectItem>
-                  <SelectItem value="3">3x de {brl(amount / 3)} (Sem juros)</SelectItem>
-                  <SelectItem value="4">4x de {brl((amount * 1.05) / 4)} (Com juros)</SelectItem>
-                  <SelectItem value="6">6x de {brl((amount * 1.08) / 6)} (Com juros)</SelectItem>
+                  <SelectItem value="1">1x de {brl(amount)} (À vista)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

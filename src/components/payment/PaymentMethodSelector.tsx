@@ -83,7 +83,7 @@ export function PaymentMethodSelector({
               method="credit_card"
               icon={<Smartphone className="h-5 w-5" />}
               title="Cartão de Crédito Online"
-              subtitle="Pague agora de forma segura em até 6x"
+              subtitle="Pague agora à vista no cartão de crédito"
               active={selectedMethod === "credit_card"}
             />
           )}
