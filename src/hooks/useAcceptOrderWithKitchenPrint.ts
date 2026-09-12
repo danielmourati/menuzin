@@ -14,6 +14,19 @@ import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 
+export function isOnlinePaymentOrder(order: { payment?: string | null }): boolean {
+  if (!order?.payment) return false;
+  const label = order.payment.toLowerCase();
+  return (
+    label.includes("online") ||
+    label.includes("mercado pago") ||
+    label.includes("mercadopago") ||
+    label.includes("pix_online") ||
+    label.includes("credit_card") ||
+    label.includes("debit_card")
+  );
+}
+
 type UpdateStatusFn = (orderId: string, status: OrderStatus, note?: string) => Promise<unknown>;
 
 /**
@@ -83,19 +96,6 @@ export function useAcceptOrderWithKitchenPrint(
     },
     [can, kitchenPrinter, navigate],
   );
-
-export function isOnlinePaymentOrder(order: { payment?: string | null }): boolean {
-  if (!order?.payment) return false;
-  const label = order.payment.toLowerCase();
-  return (
-    label.includes("online") ||
-    label.includes("mercado pago") ||
-    label.includes("mercadopago") ||
-    label.includes("pix_online") ||
-    label.includes("credit_card") ||
-    label.includes("debit_card")
-  );
-}
 
   /**
    * Aceite automático: aprova o pedido assim que ele chega (ou quando o pagamento online
