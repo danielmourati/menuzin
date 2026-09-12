@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useContext, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type Order,
@@ -13,6 +13,7 @@ import {
   playNotificationSound,
   unlockAudioOnFirstGesture,
 } from "@/lib/order-alert-sound";
+import { AuthContext } from "@/lib/auth-context";
 
 export { playNotificationSound } from "@/lib/order-alert-sound";
 
@@ -60,6 +61,17 @@ function markOrderAsSeen(orderId: string) {
   saveSeenOrderIdToStorage(orderId);
 }
 
+/** Purgar notificações de memória que não pertencem ao tenant ativo atual. */
+function purgeForeignNotifications(storeId: string) {
+  if (!storeId) return;
+  globalNotifications = globalNotifications.filter(
+    (n) => !n.storeId || n.storeId === storeId
+  );
+  if (globalNewOrderAlert && globalNewOrderAlert.storeId && globalNewOrderAlert.storeId !== storeId) {
+    globalNewOrderAlert = null;
+  }
+}
+
 const CLIENT_NAMES = [
   "Guilherme Santos",
   "Beatriz Oliveira",
@@ -71,6 +83,11 @@ const CLIENT_NAMES = [
 
 function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
   if (newOnes.length === 0) return;
+
+  const currentStoreId = newOnes[0]?.storeId;
+  if (currentStoreId) {
+    purgeForeignNotifications(currentStoreId);
+  }
 
   // REGRA ESTRITA: Apenas pedidos com status "novo" (pendentes de aceite)
   // e que NUNCA foram notificados ou vistos anteriormente.
@@ -122,12 +139,28 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
 
 export function useOrdersRealtime() {
   const queryClient = useQueryClient();
+  const authCtx = useContext(AuthContext);
+  const profileTenantId = authCtx?.profile?.tenant_id ?? undefined;
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AdminNotification[]>(globalNotifications);
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(globalNewOrderAlert);
   const [isSimulating, setIsSimulating] = useState(autoSimulationActive);
   const { prefs } = useNotificationPrefs();
   const soundEnabledRef = useRef(prefs.soundEnabled);
+
+  const activeTenantId = orders[0]?.storeId || profileTenantId;
+
+  // Filtrar notificações exclusivamente para o tenant ativo
+  const filteredNotifications = useMemo(() => {
+    if (!activeTenantId) return notifications;
+    return notifications.filter((n) => !n.storeId || n.storeId === activeTenantId);
+  }, [notifications, activeTenantId]);
+
+  const filteredNewOrderAlert = useMemo(() => {
+    if (!activeTenantId || !newOrderAlert?.storeId) return newOrderAlert;
+    return newOrderAlert.storeId === activeTenantId ? newOrderAlert : null;
+  }, [newOrderAlert, activeTenantId]);
 
   useEffect(() => {
     soundEnabledRef.current = prefs.soundEnabled;
@@ -138,6 +171,10 @@ export function useOrdersRealtime() {
     try {
       const res = await listOrdersForMyTenant();
       const ui = res.orders.map((o) => dbOrderToUi(o));
+      const currentStoreId = ui[0]?.storeId;
+      if (currentStoreId) {
+        purgeForeignNotifications(currentStoreId);
+      }
       setOrders(ui);
 
       // Atualiza IDs vistos com pedidos já aceitos / em produção
@@ -166,6 +203,10 @@ export function useOrdersRealtime() {
         if (cancelled) return;
 
         const ui = res.orders.map((o) => dbOrderToUi(o));
+        const currentStoreId = ui[0]?.storeId;
+        if (currentStoreId) {
+          purgeForeignNotifications(currentStoreId);
+        }
 
         // 1. Qualquer pedido que NÃO esteja com status "novo" (já aceito, em preparo, concluído, etc.)
         // é imediatamente marcado como visto para nunca disparar alerta sonoro/visual.
@@ -347,22 +388,27 @@ export function useOrdersRealtime() {
   };
 
   const markAllNotificationsAsRead = () => {
-    globalNotifications = globalNotifications.map((n) => ({
-      ...n,
-      read: true,
-    }));
+    globalNotifications = globalNotifications.map((n) =>
+      !activeTenantId || !n.storeId || n.storeId === activeTenantId ? { ...n, read: true } : n
+    );
     notifyListeners();
   };
 
   const clearNotifications = () => {
-    globalNotifications = [];
+    if (activeTenantId) {
+      globalNotifications = globalNotifications.filter(
+        (n) => n.storeId && n.storeId !== activeTenantId
+      );
+    } else {
+      globalNotifications = [];
+    }
     notifyListeners();
   };
 
   return {
     orders,
-    notifications,
-    newOrderAlert,
+    notifications: filteredNotifications,
+    newOrderAlert: filteredNewOrderAlert,
     isSimulating,
     dismissAlert,
     updateOrderStatus,

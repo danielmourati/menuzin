@@ -132,18 +132,7 @@ function OrdersPage() {
   return (
     <AdminLayout
       title="Gestão de Pedidos"
-      action={
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-1.5 rounded-lg border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
-            <kbd className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold shadow-sm">F2</kbd>
-            <span>Buscar</span>
-            <span className="mx-0.5">•</span>
-            <kbd className="rounded bg-background px-1.5 py-0.5 text-[10px] font-bold shadow-sm">Esc</kbd>
-            <span>Fechar</span>
-          </div>
-          <LiveClock />
-        </div>
-      }
+      action={<LiveClock />}
     >
       <div className="space-y-4">
         {/* Barra de Filtros */}
@@ -156,7 +145,7 @@ function OrdersPage() {
                   ref={searchInputRef}
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="Buscar por cliente ou nº do pedido... (Pressione F2)"
+                  placeholder="Buscar por cliente ou nº do pedido..."
                   className="pl-9 h-10 rounded-xl"
                 />
               </div>

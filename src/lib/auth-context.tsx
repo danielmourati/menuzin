@@ -24,7 +24,7 @@ type AuthState = {
   refresh: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthState | undefined>(undefined);
+export const AuthContext = createContext<AuthState | undefined>(undefined);
 
 async function loadProfileAndRoles(userId: string): Promise<{ profile: Profile | null; roles: AuthRole[] }> {
   const [{ data: profile }, { data: roles }] = await Promise.all([
