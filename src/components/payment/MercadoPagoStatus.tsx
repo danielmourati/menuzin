@@ -44,6 +44,8 @@ interface MercadoPagoStatusProps {
   liveModeSaved?: boolean;
   /** ID da conta MP, para exibir junto do tipo. */
   mpUserId?: string;
+  /** Exibir informações técnicas da aplicação (apenas para superadmin). Default: false. */
+  showTechnicalInfo?: boolean;
 }
 
 export function MercadoPagoStatus({
@@ -61,6 +63,7 @@ export function MercadoPagoStatus({
   accountKind,
   liveModeSaved,
   mpUserId,
+  showTechnicalInfo = false,
 }: MercadoPagoStatusProps) {
   const [testing, setTesting] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -391,7 +394,7 @@ export function MercadoPagoStatus({
                   )}
                 </Button>
 
-                {oauthRedirectUri && (
+                {showTechnicalInfo && oauthRedirectUri && (
                   <div className="pt-1">
                     <TooltipProvider>
                       <Tooltip>
