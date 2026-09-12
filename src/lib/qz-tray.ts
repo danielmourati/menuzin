@@ -492,10 +492,10 @@ export function downloadQzProperties(): void {
  *   - Reinicia o QZ Tray ao final.
  *
  * O caminho legado `override/allowed.pem` (usado na v1) NÃO é lido pelo QZ
- * Tray Community — por isso o prompt continuava aparecendo mesmo executando
+ * Tray Community — por isso o prompt continuava avisando mesmo executando
  * como administrador.
  */
-export const QZ_INSTALLER_VERSION = 4;
+export const QZ_INSTALLER_VERSION = 5;
 export function buildQzWindowsInstaller(certPem: string): string {
   const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
   const certB64 = encodeBase64Utf8(cleanedCert);
@@ -544,11 +544,11 @@ export function buildQzWindowsInstaller(certPem: string): string {
 }
 
 /**
- * Script PowerShell (v4) que:
+ * Script PowerShell (v5) que:
  *   1. Lê o cert.pem (da pasta local do .bat ou do payload base64).
- *   2. Grava `allowed.pem` e `cert.pem` em TODOS os diretórios de configuração do QZ Tray (system-wide, Program Files, e todos perfis em C:\Users).
+ *   2. Grava `override.crt`, `allowed.pem` e `cert.pem` em TODOS os diretórios de configuração do QZ Tray (system-wide, Program Files, e todos os perfis de usuário em C:\Users).
  *   3. Popula `allowed.txt` com '*', menuzin.app, *.menuzin.app, http/https origins e localhost para preencher o "Site Manager" do QZ Tray.
- *   4. Atualiza/cria `qz-tray.properties` com `authcert.override=allowed.pem` em todos os diretórios.
+ *   4. Atualiza/cria `qz-tray.properties` com `authcert.override=override.crt` e `authcert.override=allowed.pem` em todos os diretórios.
  *   5. Grava as chaves de Java Preferences no Registry do Windows.
  *   6. Limpa fingerprints do certificado Menuzin em `blocked.pem`.
  *   7. Reinicia o QZ Tray.
@@ -664,16 +664,16 @@ try {
     try {
       $parent = Split-Path -Parent $filePath
       Ensure-Dir $parent
-      $overrideLine = 'authcert.override=allowed.pem'
+      $overrideLines = @('authcert.override=override.crt', 'authcert.override=allowed.pem')
       if (Test-Path -LiteralPath $filePath) {
         $content = Get-Content -LiteralPath $filePath -Raw -ErrorAction SilentlyContinue
         if ($content -and -not $content.Contains('authcert.override')) {
-          $merged = ($content.TrimEnd() + "\`n" + $overrideLine + "\`n")
+          $merged = ($content.TrimEnd() + "\`n" + ($overrideLines -join "\`n") + "\`n")
           [IO.File]::WriteAllText($filePath, $merged)
           Write-Host ("Properties atualizado: " + $filePath)
         }
       } else {
-        [IO.File]::WriteAllText($filePath, $overrideLine + "\`n")
+        [IO.File]::WriteAllText($filePath, (($overrideLines -join "\`n") + "\`n"))
         Write-Host ("Properties criado: " + $filePath)
       }
     } catch {
@@ -789,8 +789,10 @@ try {
   }
 
   foreach ($dir in $dirsToConfigure) {
+    Write-CertFile (Join-Path $dir 'override.crt')
     Write-CertFile (Join-Path $dir 'allowed.pem')
     Write-CertFile (Join-Path $dir 'cert.pem')
+    Write-CertFile (Join-Path $dir 'override.pem')
     Write-AllowedTxt (Join-Path $dir 'allowed.txt')
     Write-QzProperties (Join-Path $dir 'qz-tray.properties')
     Scrub-BlockedPem (Join-Path $dir 'blocked.pem')
