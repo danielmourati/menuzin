@@ -10,7 +10,10 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
+  Copy,
+  Check,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -60,6 +63,14 @@ export function MercadoPagoStatus({
   mpUserId,
 }: MercadoPagoStatusProps) {
   const [testing, setTesting] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const handleCopyUrl = (url: string) => {
+    void navigator.clipboard.writeText(url);
+    setCopiedUrl(true);
+    toast.success("URL de retorno copiada!");
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
 
   // Manual credentials form
   const [publicKey, setPublicKey] = useState("");
@@ -385,17 +396,34 @@ export function MercadoPagoStatus({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-muted-foreground cursor-pointer transition-colors">
-                            <HelpCircle className="h-3 w-3" /> Informações técnicas da aplicação
+                          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/80 hover:text-foreground cursor-pointer transition-colors font-medium">
+                            <HelpCircle className="h-3.5 w-3.5" /> Informações técnicas da aplicação
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-md p-3 text-xs leading-normal">
-                          <p className="font-semibold text-foreground mb-1">URL de retorno da plataforma:</p>
-                          <code className="block rounded bg-muted px-2 py-1 font-mono text-[11px] break-all select-all">
+                        <TooltipContent
+                          side="top"
+                          align="center"
+                          className="max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-4 text-slate-100 shadow-2xl z-50"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <p className="font-bold text-xs text-slate-100 flex items-center gap-1.5">
+                              <HelpCircle className="h-3.5 w-3.5 text-orange-400" />
+                              URL de retorno da plataforma:
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyUrl(oauthRedirectUri)}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/10 hover:bg-orange-500/20 px-2 py-0.5 rounded-md border border-orange-500/20"
+                            >
+                              {copiedUrl ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                              {copiedUrl ? "Copiada!" : "Copiar"}
+                            </button>
+                          </div>
+                          <code className="block rounded-xl bg-slate-950/90 border border-slate-800/80 px-3 py-2 font-mono text-[11px] text-amber-300/90 break-all select-all shadow-inner">
                             {oauthRedirectUri}
                           </code>
-                          <p className="mt-1 text-[11px] text-muted-foreground">
-                            Deve estar cadastrada em "Redirect URI" no Painel de Desenvolvedores do Mercado Pago (aplicação mestre da plataforma).
+                          <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400">
+                            Deve estar cadastrada em <strong className="text-slate-200 font-semibold">"Redirect URI"</strong> no Painel de Desenvolvedores do Mercado Pago (aplicação mestre da plataforma).
                           </p>
                         </TooltipContent>
                       </Tooltip>
