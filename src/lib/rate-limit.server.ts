@@ -9,20 +9,18 @@ interface RateLimitRecord {
 
 const store = new Map<string, RateLimitRecord>();
 
-// Cleanup stale records every 5 minutes to prevent memory leaks
-if (typeof globalThis !== "undefined") {
-  const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
-  if (!(globalThis as unknown as { _rateLimitCleanupTimer?: unknown })._rateLimitCleanupTimer) {
-    (globalThis as unknown as { _rateLimitCleanupTimer?: unknown })._rateLimitCleanupTimer = setInterval(() => {
-      const now = Date.now();
-      for (const [key, record] of store.entries()) {
-        if (record.blockedUntil && record.blockedUntil < now) {
-          store.delete(key);
-        } else if (now - record.firstAttemptAt > 60 * 60 * 1000 && !record.blockedUntil) {
-          store.delete(key);
-        }
-      }
-    }, CLEANUP_INTERVAL_MS);
+let lastCleanupAt = 0;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+function lazyCleanup(now: number): void {
+  if (now - lastCleanupAt < CLEANUP_INTERVAL_MS) return;
+  lastCleanupAt = now;
+  for (const [key, record] of store.entries()) {
+    if (record.blockedUntil && record.blockedUntil < now) {
+      store.delete(key);
+    } else if (now - record.firstAttemptAt > 60 * 60 * 1000 && !record.blockedUntil) {
+      store.delete(key);
+    }
   }
 }
 
@@ -66,6 +64,7 @@ export interface RateLimitCheckResult {
 export function checkRateLimit(options: RateLimitOptions): RateLimitCheckResult {
   const { key, maxAttempts, windowSeconds } = options;
   const now = Date.now();
+  lazyCleanup(now);
   const record = store.get(key);
 
   if (!record) {
@@ -125,6 +124,7 @@ export function checkRateLimit(options: RateLimitOptions): RateLimitCheckResult 
 export function recordFailedAttempt(options: RateLimitOptions): RateLimitCheckResult {
   const { key, maxAttempts, windowSeconds, blockDurationSeconds } = options;
   const now = Date.now();
+  lazyCleanup(now);
   const windowMs = windowSeconds * 1000;
   const blockMs = (blockDurationSeconds ?? windowSeconds) * 1000;
 
