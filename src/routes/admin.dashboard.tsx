@@ -16,7 +16,7 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
-import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
+import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { OnboardingChecklist } from "@/components/admin/OnboardingChecklist";
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -95,9 +95,9 @@ function DashboardPage() {
     retry: false,
   });
 
-  const { data: printerSettingsData } = useQuery({
-    queryKey: ["admin", "printer-settings"],
-    queryFn: () => getMyPrinterSettings(),
+  const { data: tenantPrintersData } = useQuery({
+    queryKey: ["tenant-printers-indicator"],
+    queryFn: () => listMyTenantPrinters(),
     enabled,
     retry: false,
   });
@@ -111,6 +111,10 @@ function DashboardPage() {
     tenantData &&
       ((tenantData as { delivery_mode?: string }).delivery_mode === "single" ||
         (tenantData as { delivery_mode?: string }).delivery_mode === "neighborhood")
+  );
+
+  const hasPrinter = (tenantPrintersData?.printers ?? []).some(
+    (p) => p.role === "kitchen" && p.is_active && Boolean(p.printer_name?.trim() || p.name?.trim())
   );
 
   const greet = greetingFor(new Date());
@@ -138,7 +142,7 @@ function DashboardPage() {
         <OnboardingChecklist
           hasCategories={(categoriesData?.length ?? 0) > 0}
           hasProducts={(analytics?.productsActive ?? 0) > 0}
-          hasPrinter={Boolean(printerSettingsData?.settings?.printer_name || printerSettingsData?.settings?.auto_connect)}
+          hasPrinter={hasPrinter}
           hasOrders={(analytics?.monthOrdersCount ?? 0) > 0 || (analytics?.todayOrdersCount ?? 0) > 0 || (ordersData?.orders?.length ?? 0) > 0}
           hasDeliveryFees={hasDeliveryFees}
         />
