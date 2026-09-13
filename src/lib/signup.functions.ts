@@ -13,6 +13,7 @@ import { z } from "zod";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { slugify } from "@/lib/utils";
 import { BUSINESS_TYPES } from "@/lib/business-types";
+import { formatErrorMessage } from "@/lib/error-translator";
 
 const SlugSchema = z
   .string()
@@ -77,10 +78,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
     });
     if (authErr || !created?.user) {
       const msg = authErr?.message ?? "Falha ao criar usuário.";
-      if (/already registered|already exists|duplicate/i.test(msg)) {
-        throw new Error("Já existe uma conta com esse e-mail. Faça login para continuar.");
-      }
-      throw new Error(msg);
+      throw new Error(formatErrorMessage(msg, "Falha ao criar usuário. Tente novamente."));
     }
     const userId = created.user.id;
 
@@ -117,7 +115,7 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
     if (tErr || !tenant) {
       // rollback do user auth se falhou
       await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
-      throw new Error(tErr?.message ?? "Falha ao criar loja.");
+      throw new Error(formatErrorMessage(tErr?.message, "Falha ao criar loja. Tente novamente."));
     }
 
     // Calcula 14 dias de trial PRO

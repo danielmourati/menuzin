@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/ui/password-input";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
 import { useNavigate } from "@tanstack/react-router";
+import { formatErrorMessage } from "@/lib/error-translator";
 
 export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
@@ -196,7 +197,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       setPendingEmail(result.email);
       toast.success("Cadastro realizado com sucesso! Verifique seu e-mail.");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(formatErrorMessage(e)),
   });
 
   const resendMut = useMutation({
@@ -210,7 +211,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       if (error) throw new Error(error.message);
     },
     onSuccess: () => toast.success("E-mail de confirmação reenviado."),
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(formatErrorMessage(e)),
   });
 
   const handleFinalSubmit = (e: React.FormEvent) => {

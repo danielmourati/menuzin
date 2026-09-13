@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, AlertTriangle, ShieldAlert } from "lucide-react";
 import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
 import { checkAuthRateLimitFn, recordAuthFailureFn, clearAuthLimitFn } from "@/lib/rate-limit.functions";
+import { formatErrorMessage } from "@/lib/error-translator";
 
 const menuzinLogo = menuzinLogoAsset.url;
 
@@ -129,12 +130,12 @@ function LoginPage() {
         });
         if (!failRecord.allowed) {
           setLockoutSeconds(failRecord.resetInSeconds);
-          toast.error(`Número de tentativas excedido. Tentativas bloqueadas por ${Math.ceil(failRecord.resetInSeconds / 60)} min.`);
+          toast.error(`Número de tentativas excedido. Acesso suspenso por ${Math.ceil(failRecord.resetInSeconds / 60)} min.`);
         } else {
-          toast.error(`Credenciais inválidas. Tentativas restantes: ${failRecord.remainingAttempts}`);
+          toast.error(`E-mail ou senha incorretos. Tentativas restantes: ${failRecord.remainingAttempts}`);
         }
       } catch {
-        toast.error(err instanceof Error ? err.message : "Falha no login");
+        toast.error(formatErrorMessage(err, "E-mail ou senha incorretos. Tente novamente."));
       }
     } finally {
       setSubmitting(false);
