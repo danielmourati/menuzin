@@ -108,6 +108,8 @@ export const signupPresencaTenant = createServerFn({ method: "POST" })
         theme_from: "#FF6A1F",
         theme_to: "#FF9A3C",
         business_types: resolvedTypes,
+        delivery_mode: "none",
+        delivery_fee: 0,
       } as never)
       .select("id, slug")
       .single();

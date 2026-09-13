@@ -12,6 +12,7 @@ import { brl, modeLabel, statusColor, statusLabel } from "@/lib/format";
 import { getMyTenantAnalytics } from "@/lib/analytics.functions";
 import { listOrdersForMyTenant } from "@/lib/orders.functions";
 import { listMyCategories } from "@/lib/catalog-admin.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { PlanUsageCard } from "@/components/admin/PlanUsageCard";
@@ -87,6 +88,13 @@ function DashboardPage() {
     retry: false,
   });
 
+  const { data: tenantData } = useQuery({
+    queryKey: ["admin", "my-tenant"],
+    queryFn: async () => (await getMyTenant({ data: {} })).tenant,
+    enabled,
+    retry: false,
+  });
+
   const { data: printerSettingsData } = useQuery({
     queryKey: ["admin", "printer-settings"],
     queryFn: () => getMyPrinterSettings(),
@@ -98,6 +106,12 @@ function DashboardPage() {
     !!categoriesData &&
     categoriesData.length === 0 &&
     (analytics?.productsActive ?? 0) === 0;
+
+  const hasDeliveryFees = Boolean(
+    tenantData &&
+      ((tenantData as { delivery_mode?: string }).delivery_mode === "single" ||
+        (tenantData as { delivery_mode?: string }).delivery_mode === "neighborhood")
+  );
 
   const greet = greetingFor(new Date());
   // Usa nome completo (até 60 chars) em vez de só o primeiro nome, e trunca apenas se ultrapassar.
@@ -126,6 +140,7 @@ function DashboardPage() {
           hasProducts={(analytics?.productsActive ?? 0) > 0}
           hasPrinter={Boolean(printerSettingsData?.settings?.printer_name || printerSettingsData?.settings?.auto_connect)}
           hasOrders={(analytics?.monthOrdersCount ?? 0) > 0 || (analytics?.todayOrdersCount ?? 0) > 0 || (ordersData?.orders?.length ?? 0) > 0}
+          hasDeliveryFees={hasDeliveryFees}
         />
 
         {catalogEmpty && (

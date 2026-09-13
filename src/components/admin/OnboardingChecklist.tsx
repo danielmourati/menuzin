@@ -10,6 +10,7 @@ type OnboardingProps = {
   hasProducts: boolean;
   hasPrinter: boolean;
   hasOrders: boolean;
+  hasDeliveryFees?: boolean;
 };
 
 const DISMISS_KEY = "menuzin_onboarding_dismissed";
@@ -19,6 +20,7 @@ export function OnboardingChecklist({
   hasProducts,
   hasPrinter,
   hasOrders,
+  hasDeliveryFees = false,
 }: OnboardingProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -42,18 +44,19 @@ export function OnboardingChecklist({
       label: "Cadastrar produtos e categorias no cardápio",
       done: hasCategories && hasProducts,
       href: "/admin/produtos",
+      search: { tutorial: true },
       icon: Package,
     },
     {
       id: "delivery",
       label: "Configurar taxas de entrega e modalidades",
-      done: true, // Já vem pré-configurado por padrão no Menuzin
+      done: Boolean(hasDeliveryFees),
       href: "/admin/taxas-entrega",
       icon: MapPin,
     },
     {
       id: "printer",
-      label: "Configurar impressora da cozinha (opcional)",
+      label: "Configurar impressora da cozinha",
       done: hasPrinter,
       href: "/admin/configuracoes/impressora",
       icon: Printer,
@@ -70,8 +73,8 @@ export function OnboardingChecklist({
   const completedCount = steps.filter((s) => s.done).length;
   const progressPercent = Math.round((completedCount / steps.length) * 100);
 
-  // Se o lojista dispensou ou se já concluiu todos os passos principais
-  if (dismissed || (hasCategories && hasProducts && hasOrders)) {
+  // O card deixa de ser exibido assim que todos os 4 passos forem 100% concluídos ou se for dispensado
+  if (dismissed || completedCount === steps.length) {
     return null;
   }
 
@@ -142,7 +145,7 @@ export function OnboardingChecklist({
                   </div>
                   {!step.done && (
                     <Button asChild size="sm" variant="outline" className="h-7 text-[11px] font-semibold shrink-0">
-                      <Link to={step.href}>Configurar</Link>
+                      <Link to={step.href} search={step.search}>Configurar</Link>
                     </Button>
                   )}
                 </div>

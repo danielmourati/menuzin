@@ -30,6 +30,9 @@ import { getMyTenant } from "@/lib/tenants.functions";
 
 
 export const Route = createFileRoute("/admin/produtos")({
+  validateSearch: (search: Record<string, unknown>): { tutorial?: boolean } => ({
+    tutorial: search?.tutorial === "true" || search?.tutorial === true ? true : undefined,
+  }),
   component: ProductsPage,
 });
 
@@ -77,6 +80,15 @@ function ProductsPage() {
   });
 
 
+
+  const search = Route.useSearch();
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    if (search.tutorial) {
+      setShowTutorial(true);
+    }
+  }, [search.tutorial]);
 
   const [q, setQ] = useState("");
   const [catFilter, setCatFilter] = useState("todas");
@@ -279,34 +291,65 @@ function ProductsPage() {
   return (
     <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
       <div className="space-y-4">
-        <Card><CardContent className="p-4 grid gap-3 md:grid-cols-[1fr_180px_180px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar produto" className="pl-9" />
-          </div>
-          <Select value={catFilter} onValueChange={setCatFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas categorias</SelectItem>
-              {pizzaCatIds.size > 0 && <SelectItem value="__pizza__">🍕 Pizza (todas)</SelectItem>}
-              {categories.filter((c) => c.kind === "pizza").map((c) => (
-                <SelectItem key={c.id} value={c.id}>&nbsp;&nbsp;↳ {c.name}</SelectItem>
-              ))}
-              {categories.filter((c) => c.kind !== "pizza").map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos status</SelectItem>
-              <SelectItem value="disponivel">Disponíveis</SelectItem>
-              <SelectItem value="indisponivel">Indisponíveis</SelectItem>
-              <SelectItem value="destaque">Em destaque</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardContent></Card>
+        <div className="relative">
+          <Card className={showTutorial ? "ring-4 ring-blue-500/80 shadow-2xl relative z-20 border-blue-500" : ""}>
+            <CardContent className="p-4 grid gap-3 md:grid-cols-[1fr_180px_180px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar produto" className="pl-9" />
+              </div>
+              <Select value={catFilter} onValueChange={setCatFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas categorias</SelectItem>
+                  {pizzaCatIds.size > 0 && <SelectItem value="__pizza__">🍕 Pizza (todas)</SelectItem>}
+                  {categories.filter((c) => c.kind === "pizza").map((c) => (
+                    <SelectItem key={c.id} value={c.id}>&nbsp;&nbsp;↳ {c.name}</SelectItem>
+                  ))}
+                  {categories.filter((c) => c.kind !== "pizza").map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos status</SelectItem>
+                  <SelectItem value="disponivel">Disponíveis</SelectItem>
+                  <SelectItem value="indisponivel">Indisponíveis</SelectItem>
+                  <SelectItem value="destaque">Em destaque</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Popover de Modo Tutorial (Estilo Anexo 2 Mercado Livre) */}
+          {showTutorial && (
+            <div className="mt-3 md:mt-0 md:absolute md:-right-80 md:top-0 z-30 w-full md:w-72 p-4 rounded-2xl bg-blue-600 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+              {/* Seta do Balão de Fala em telas médias/grandes */}
+              <div className="hidden md:block absolute -left-2.5 top-6 w-0 h-0 border-y-[8px] border-y-transparent border-r-[10px] border-r-blue-600" />
+              {/* Seta do Balão de Fala em telas pequenas */}
+              <div className="block md:hidden absolute -top-2.5 left-8 w-0 h-0 border-x-[8px] border-x-transparent border-b-[10px] border-b-blue-600" />
+
+              <h4 className="font-extrabold text-sm leading-snug">
+                Cadastre seus produtos e categorias facilmente!
+              </h4>
+              <p className="mt-1.5 text-xs leading-relaxed text-blue-50 font-normal">
+                Organize seu cardápio em categorias (como Bebidas, Lanches e Almoço), busque por nome ou filtre seus produtos por status.
+              </p>
+
+              <div className="mt-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowTutorial(false)}
+                  className="font-extrabold text-xs tracking-wider uppercase text-white hover:underline cursor-pointer bg-blue-700/80 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-all"
+                >
+                  OK, entendi
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="grid gap-3">
           {productsQ.isLoading && (
