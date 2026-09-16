@@ -33,28 +33,28 @@ interface SignupAction {
 
 export function ProductHeroVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-2xl pb-10 pt-4 lg:pb-14">
+    <div className="relative mx-auto w-full max-w-2xl pb-14 pt-2 sm:pb-16 lg:pb-20 px-2 sm:px-4">
       <img
         src={(ordersAsset as Asset).url}
         alt="Painel Menuzin organizando pedidos novos, em preparo e prontos"
         width={1584}
         height={768}
         fetchPriority="high"
-        className="h-auto w-full rounded-lg shadow-[var(--shadow-soft)]"
+        className="h-auto w-full rounded-xl shadow-2xl border border-border/50"
       />
-      <div className="absolute -bottom-1 left-2 w-[31%] min-w-28 max-w-52 drop-shadow-2xl sm:-bottom-3 sm:left-8">
+      <div className="absolute bottom-1 left-3 w-[33%] min-w-28 max-w-56 drop-shadow-2xl sm:bottom-2 sm:left-6 md:left-8">
         <img
           src={(storefrontAsset as Asset).url}
           alt="Cardápio Menuzin no celular do cliente"
           width={430}
           height={868}
           fetchPriority="high"
-          className="h-auto w-full"
+          className="h-auto w-full drop-shadow-xl"
         />
       </div>
-      <div className="absolute bottom-2 right-2 rounded-md border bg-card/95 px-3 py-2 shadow-[var(--shadow-soft)] backdrop-blur-sm sm:bottom-4 sm:right-6">
+      <div className="absolute bottom-3 right-3 rounded-lg border bg-card/95 p-2.5 shadow-lg backdrop-blur-md sm:bottom-4 sm:right-6 sm:px-3.5 sm:py-2.5">
         <p className="text-xs font-bold text-primary sm:text-sm">Operação e cliente conectados</p>
-        <p className="hidden text-xs text-muted-foreground sm:block">Do novo pedido até a entrega.</p>
+        <p className="text-[11px] text-muted-foreground sm:text-xs">Do novo pedido até a entrega.</p>
       </div>
     </div>
   );

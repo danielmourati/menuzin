@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Playbook Técnico & Tutorial - Módulo de Impressão QZ Tray</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 15mm 20mm 15mm;
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Inter', sans-serif;
+        font-size: 8pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      line-height: 1.6;
+      font-size: 9.5pt;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Header & Title Banner */
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+      color: #ffffff;
+      padding: 28px 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border-left: 6px solid #f95716;
+    }
+
+    .header-banner h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+    }
+
+    .header-banner p {
+      font-size: 10pt;
+      margin: 0;
+      color: #cbd5e1;
+      font-weight: 400;
+    }
+
+    .badge-container {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      font-size: 7.5pt;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Headings */
+    h1, h2, h3, h4 {
+      color: #0f172a;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    h2 {
+      font-size: 13.5pt;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      page-break-after: avoid;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background-color: #f95716;
+      border-radius: 2px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      color: #334155;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #334155;
+      text-align: justify;
+    }
+
+    /* Code Blocks */
+    pre, code {
+      font-family: 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
+    }
+
+    code {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 8.5pt;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 8pt;
+      line-height: 1.45;
+      overflow-x: auto;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      border: 1px solid #1e293b;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      padding: 0;
+      border: none;
+      font-size: inherit;
+    }
+
+    /* Callout Alert Boxes */
+    .callout {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin: 14px 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      color: #1e40af;
+    }
+
+    .callout-warning {
+      background-color: #fff7ed;
+      border-left: 4px solid #f97316;
+      color: #9a3412;
+    }
+
+    .callout-success {
+      background-color: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      color: #166534;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border: 1px solid #cbd5e1;
+    }
+
+    th {
+      background-color: #f8fafc;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    /* Diagram Block */
+    .diagram-box {
+      background-color: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 16px;
+      margin: 14px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5pt;
+      line-height: 1.35;
+      color: #0f172a;
+      white-space: pre;
+      overflow-x: auto;
+      page-break-inside: avoid;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 10px;
+      padding-left: 20px;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    /* Page Breaks */
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <h1>Playbook &amp; Tutorial Técnico: Módulo de Impressão QZ Tray</h1>
+    <p>Guia de Arquitetura, Autenticação RSA/X.509 e Checklist de Replicação para Outros Projetos</p>
+    <div class="badge-container">
+      <span class="badge">Versão 2.0</span>
+      <span class="badge">Signed Printing RSA-2048</span>
+      <span class="badge">ESC/POS Thermal</span>
+      <span class="badge">TanStack / Supabase / Node</span>
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <h2>1. Visão Geral e Arquitetura</h2>
+  <p>Em aplicações web de gestão (PDVs, restaurantes, ERPs), enviar impressões térmicas diretamente para impressoras locais sem exibir a janela nativa do navegador (<code>window.print()</code>) é fundamental para a produtividade operacional.</p>
+  <p>O <strong>QZ Tray</strong> (<a href="https://qz.io">https://qz.io</a>) é um serviço multiplataforma (Windows, macOS, Linux) que roda localmente na máquina do cliente como um daemon escutando em WebSockets seguros (<code>wss://localhost:8181</code> ou <code>ws://localhost:8182</code>).</p>
+
+  <div class="callout callout-info">
+    <strong>Modo Assinado (Signed Printing) vs Modo Não Assinado:</strong><br>
+    No modo <em>unsigned</em>, o QZ Tray exibe um pop-up de permissão manual ("Allow / Deny") para o operador a cada impressão. No modo <strong>Assinado (Signed)</strong> implementado neste projeto, registramos um certificado digital X.509 público confiado (<code>cert.pem</code>) no QZ Tray do cliente. A cada impressão, o backend assina digitalmente o payload usando a chave privada RSA. O QZ Tray executa a impressão <strong>100% em segundo plano, com 0 pop-ups.</strong>
+  </div>
+
+  <h3>Fluxo de Comunicação e Segurança</h3>
+  <div class="diagram-box">┌──────────────────────────┐             ┌──────────────────────────┐
+│   Navegador (Frontend)   │             │   Servidor API / Node    │
+└────────────┬─────────────┘             └────────────┬─────────────┘
+             │                                        │
+             │ 1. GET /api/public/qz                  │
+             ├───────────────────────────────────────►│ (Retorna cert.pem público)
+             │◄───────────────────────────────────────┤
+             │                                        │
+             │ 2. Desejando imprimir payload X        │
+             │                                        │
+             │ 3. POST /api/public/qz (Payload + JWT) │
+             ├───────────────────────────────────────►│ 4. Valida Bearer Token JWT
+             │                                        │ 5. Assina X com Chave Privada
+             │◄───────────────────────────────────────┤ (RSA-SHA512)
+             │ 6. Retorna assinatura base64           │
+             │                                        │
+             ▼                                        └──────────────────────────┘
+┌──────────────────────────┐
+│  QZ Tray Local Client    │
+│  (wss://localhost:8181)  │
+└────────────┬─────────────┘
+             │ 7. Valida assinatura contra authcert.override (cert.pem)
+             │ 8. Envia bytes ESC/POS direto via driver de sistema
+             ▼
+┌──────────────────────────┐
+│ Impressora Térmica Local │
+└──────────────────────────┘</div>
+
+  <!-- Section 2 -->
+  <h2>2. Geração e Gestão do Par de Chaves Digital</h2>
+  <p>Para habilitar a assinatura digital, geramos um par de chaves RSA de 2048 bits com certificado autoassinado de 10 anos via OpenSSL:</p>
+  <pre><code>openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes -subj "/CN=SeuApp QZ Impressao"</code></pre>
+  
+  <ul>
+    <li><code>cert.pem</code>: Certificado X.509 Público (instalado na máquina cliente).</li>
+    <li><code>key.pem</code>: Chave Privada RSA (armazenada estritamente nas variáveis de ambiente do servidor).</li>
+  </ul>
+
+  <h3>Variáveis de Ambiente (.env)</h3>
+  <pre><code>QZ_CERT_PEM="-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIU...\n-----END CERTIFICATE-----"
+QZ_PRIVATE_KEY_PEM="-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAz...\n-----END RSA PRIVATE KEY-----"</code></pre>
+
+  <!-- Section 3 -->
+  <h2>3. Backend &amp; Camada de Assinatura (Security Layer)</h2>
+  <p>O servidor backend fornece endpoints dedicados para servimento do certificado e assinatura criptográfica dos payloads de impressão.</p>
+
+  <h3>Endpoint Principal de Assinatura (Node / TanStack Route)</h3>
+  <pre><code>// src/routes/api.public.qz.ts
+import { createFileRoute } from "@tanstack/react-router";
+import { createSign } from "crypto";
+import { getQzConfig } from "@/lib/qz-config.server";
+
+export const Route = createFileRoute("/api/public/qz")({
+  server: {
+    handlers: {
+      GET: async () => {
+        const cfg = getQzConfig();
+        if (!cfg.ok) return json({ cert: "", configured: false, error: cfg.reason });
+        return json({ cert: cfg.cert, configured: true, subjectCN: cfg.subjectCN });
+      },
+      POST: async ({ request }) => {
+        // SEGURANÇA: Exige token de usuário logado para assinar payloads
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
+          return json({ error: "Não autorizado." }, 401);
+        }
+
+        const cfg = getQzConfig();
+        if (!cfg.ok) return json({ signature: "", configured: false, error: cfg.reason });
+
+        const { request: toSign } = await request.json();
+        const signer = createSign("RSA-SHA512");
+        signer.update(toSign);
+        signer.end();
+
+        const signature = signer.sign(cfg.privateKey).toString("base64");
+        return json({ signature, configured: true });
+      },
+    },
+  },
+});</code></pre>
+
+  <div class="page-break"></div>
+
+  <!-- Section 4 -->
+  <h2>4. Frontend &amp; Integração Client-Side (TypeScript)</h2>
+  <p>No frontend, a biblioteca <code>src/lib/qz-tray.ts</code> gerencia o ciclo de vida da conexão WebSocket, injeta os hooks de certificados do SDK e envia comandos térmicos ESC/POS.</p>
+
+  <h3>Configuração dos Promises de Segurança</h3>
+  <pre><code>// src/lib/qz-tray.ts
+function configureSecurity(qz: any) {
+  qz.security.setSignatureAlgorithm?.("SHA512");
+
+  // 1. Fornece o Certificado Público
+  qz.security.setCertificatePromise((resolve, reject) => {
+    fetch("/api/public/qz")
+      .then(res => res.json())
+      .then(data => data.configured ? resolve(data.cert) : reject(new Error(data.error)))
+      .catch(reject);
+  });
+
+  // 2. Solicita a assinatura com o JWT do usuário logado
+  qz.security.setSignaturePromise((toSign) => (resolve, reject) => {
+    getAuthToken().then(token => {
+      fetch("/api/public/qz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ request: toSign })
+      })
+      .then(res => res.json())
+      .then(data => data.configured ? resolve(data.signature) : reject(new Error(data.error)))
+      .catch(reject);
+    });
+  });
+}</code></pre>
+
+  <h3>Envio de Cupom ESC/POS e Corte de Papel</h3>
+  <pre><code>export function getCutSequence(cutType?: "none" | "partial" | "full"): string {
+  if (cutType === "full") return "\x1DV0";
+  if (cutType === "partial") return "\x1DV1";
+  return "";
+}
+
+export async function printQzReceipt(printerName: string, textPayload: string, opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" }) {
+  const qz = await ensureQzConnected();
+  const feed = Math.max(0, opts?.feedLines ?? 3);
+  const cut = getCutSequence(opts?.cutType ?? "full");
+
+  const finalPayload = textPayload + "\n".repeat(feed) + cut;
+  const config = qz.configs.create(printerName, { encoding: "CP860" });
+  await qz.print(config, [finalPayload]);
+}</code></pre>
+
+  <!-- Section 5 -->
+  <h2>5. Auto-Configurador e Instalação na Máquina Cliente</h2>
+  <p>Para que a máquina cliente execute impressões sem popups, o certificado <code>cert.pem</code> deve ser registrado no arquivo <code>qz-tray.properties</code> da máquina local.</p>
+
+  <div class="callout callout-success">
+    <strong>Script Automático Windows (menuzin-qz-setup.bat):</strong><br>
+    O script batch automatiza a cópia do <code>cert.pem</code> para <code>%APPDATA%\qz\cert.pem</code>, acrescenta a regra <code>authcert.override=cert.pem</code> no <code>qz-tray.properties</code> e reinicia o serviço do QZ Tray automaticamente.
+  </div>
+
+  <pre><code>@echo off
+chcp 65001 >nul
+title Configuração do Módulo de Impressão QZ Tray
+
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERRO] Execute este script como ADMINISTRADOR!
+    pause
+    exit /b 1
+)
+
+set "QZ_DIR=%APPDATA%\qz"
+if not exist "%QZ_DIR%" mkdir "%QZ_DIR%"
+
+echo Copiando certificado...
+copy /Y "%~dp0cert.pem" "%QZ_DIR%\cert.pem" >nul
+
+echo Atualizando qz-tray.properties...
+findstr /C:"authcert.override=" "%QZ_DIR%\qz-tray.properties" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo authcert.override=cert.pem>>"%QZ_DIR%\qz-tray.properties"
+)
+
+echo Reiniciando QZ Tray...
+taskkill /IM "qz-tray.exe" /F >nul 2>&1
+start "" "%ProgramFiles%\QZ Tray\qz-tray.exe"
+echo [SUCESSO] QZ Tray configurado com sucesso!
+pause</code></pre>
+
+  <!-- Section 6 -->
+  <h2>6. Guia de Replicação Passo a Passo em Novos Projetos</h2>
+  <ol>
+    <li><strong>Passo 1:</strong> Gerar o par de chaves <code>cert.pem</code> e <code>key.pem</code> via OpenSSL.</li>
+    <li><strong>Passo 2:</strong> Cadastrar <code>QZ_CERT_PEM</code> e <code>QZ_PRIVATE_KEY_PEM</code> nas variáveis de ambiente do novo projeto.</li>
+    <li><strong>Passo 3:</strong> Copiar o módulo de validação (<code>qz-config.server.ts</code>) e as rotas de API (<code>/api/public/qz</code>).</li>
+    <li><strong>Passo 4:</strong> Copiar a biblioteca cliente TypeScript (<code>qz-tray.ts</code>).</li>
+    <li><strong>Passo 5:</strong> Disponibilizar o download do <code>cert.pem</code> e do script <code>setup.bat</code> na área de configurações da aplicação.</li>
+    <li><strong>Passo 6:</strong> Invocação simples via <code>printQzReceipt("NOME_DA_IMPRESSORA", textoCupom)</code>.</li>
+  </ol>
+
+  <!-- Section 7 -->
+  <h2>7. Matriz de Diagnóstico e Resolução de Problemas (Troubleshooting)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Sintoma / Erro</th>
+        <th>Causa Provável</th>
+        <th>Solução</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>QzNotRunningError</code></td>
+        <td>QZ Tray não está aberto no computador do cliente.</td>
+        <td>Abrir o aplicativo QZ Tray na bandeja do Windows e verificar a porta 8181/8182.</td>
+      </tr>
+      <tr>
+        <td>Pop-up "Allow / Deny" aparece a cada impressão</td>
+        <td>Certificado não registrado em <code>qz-tray.properties</code>.</td>
+        <td>Executar o script <code>menuzin-qz-setup.bat</code> como Administrador na máquina cliente.</td>
+      </tr>
+      <tr>
+        <td><code>401 Unauthorized</code></td>
+        <td>Sessão expirada ou sem token Bearer.</td>
+        <td>Garantir que a chamada POST envie o cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.</td>
+      </tr>
+      <tr>
+        <td>Par cert/chave não correspondem</td>
+        <td>Incompatibilidade entre as variáveis de ambiente.</td>
+        <td>Regenerar o par via OpenSSL e atualizar ambas as variáveis no servidor simultaneamente.</td>
+      </tr>
+      <tr>
+        <td>Caracteres acentuados corrompidos</td>
+        <td>Encoding incorreto enviado no payload.</td>
+        <td>Utilizar a opção <code>{ encoding: "CP860" }</code> na criação da config no QZ Tray.</td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>

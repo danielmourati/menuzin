@@ -171,21 +171,21 @@ function Landing() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden">
-        <div className="container mx-auto grid gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 lg:items-center lg:gap-8">
+      <section className="relative overflow-hidden sm:overflow-visible">
+        <div className="container mx-auto grid gap-10 px-4 py-12 sm:py-16 md:py-20 lg:grid-cols-2 lg:items-center lg:gap-8">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border bg-orange-500/10 px-3.5 py-1 text-xs font-bold text-orange-600 dark:text-orange-400 mb-3">
               <Rocket className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
               <span>14 DIAS GRÁTIS DO PLANO PRO LIBERADOS NO CADASTRO</span>
             </div>
-            <h1 className="text-4xl font-bold leading-tight text-balance md:text-6xl">
+            <h1 className="text-4xl font-bold leading-tight text-balance md:text-5xl lg:text-6xl">
               Pare de dividir seu lucro. <span className="text-primary">Fidelize sem comissão.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-muted-foreground text-balance">
+            <p className="mt-5 max-w-xl text-base text-muted-foreground text-balance md:text-lg">
               Use os grandes apps como vitrine para atrair clientes e o Menuzin para fazê-los voltar.
               Receba pedidos no WhatsApp e fique com 100% das vendas.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Button size="lg" className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 font-extrabold text-white shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600" onClick={() => setSignupOpen(true)}>
                 <Rocket className="h-4 w-4" /> Testar 14 Dias Grátis (Plano PRO)
               </Button>
@@ -204,19 +204,19 @@ function Landing() {
             </div>
           </div>
 
-          <div className="relative flex items-center justify-center lg:justify-end">
+          <div className="relative flex items-center justify-center lg:justify-end py-4">
             <div className="pointer-events-none absolute inset-0 -z-10 rounded-[50%] gradient-brand opacity-20 blur-3xl animate-blob-pulse" />
             <img
               src={landingHeroDevices}
               alt="Painel administrativo Menuzin no notebook e cardápio digital no celular"
               width={1536}
               height={1024}
-              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl animate-float-device sm:max-w-lg md:max-w-xl lg:max-w-none lg:w-[620px] xl:w-[720px]"
+              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl animate-float-device sm:max-w-lg md:max-w-xl lg:max-w-2xl"
             />
 
             {/* Floating elements — sem cards/bordas */}
-            <div className="pointer-events-none absolute left-0 top-4 hidden animate-fade-up-in sm:block md:left-2">
-              <div className="flex animate-float-badge-a items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 shadow-xl backdrop-blur-sm dark:bg-card/90">
+            <div className="pointer-events-none absolute left-2 top-2 hidden animate-fade-up-in sm:block md:-left-2 lg:-left-6">
+              <div className="flex animate-float-badge-a items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md dark:bg-card/95 border border-border/40">
                 <div className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary">
                   <ShoppingBag className="h-3.5 w-3.5" />
                 </div>
@@ -227,8 +227,8 @@ function Landing() {
               </div>
             </div>
 
-            <div className="pointer-events-none absolute right-0 top-14 hidden animate-fade-up-in delay-300 sm:block md:right-2">
-              <div className="flex animate-float-badge-b items-center gap-2 rounded-full bg-white/90 px-3 py-1.5 shadow-xl backdrop-blur-sm dark:bg-card/90">
+            <div className="pointer-events-none absolute right-2 top-10 hidden animate-fade-up-in delay-300 sm:block md:-right-2 lg:-right-4">
+              <div className="flex animate-float-badge-b items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md dark:bg-card/95 border border-border/40">
                 <div className="relative">
                   <Bell className="h-4 w-4 animate-bell-swing text-primary" />
                   <span className="absolute -right-1 -top-1 h-2 w-2 animate-ping-soft rounded-full bg-primary ring-2 ring-white dark:ring-card" />
@@ -237,8 +237,8 @@ function Landing() {
               </div>
             </div>
 
-            <div className="pointer-events-none absolute bottom-6 right-0 hidden animate-fade-up-in delay-450 sm:block md:right-2">
-              <div className="flex animate-float-badge-c items-center gap-2 rounded-full bg-[#25D366] px-3 py-1.5 text-white shadow-xl">
+            <div className="pointer-events-none absolute bottom-4 right-2 hidden animate-fade-up-in delay-450 sm:block md:right-0 lg:-right-2">
+              <div className="flex animate-float-badge-c items-center gap-2 rounded-full bg-[#25D366] px-3 py-1.5 text-white shadow-xl border border-white/20">
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-[11px] font-semibold">Pedido enviado ao WhatsApp</span>
               </div>
