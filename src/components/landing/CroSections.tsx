@@ -33,16 +33,16 @@ interface SignupAction {
 
 export function ProductHeroVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-2xl pb-14 pt-2 sm:pb-16 lg:pb-20 px-2 sm:px-4">
+    <div className="relative mx-auto w-full max-w-2xl pb-12 pt-2 sm:pb-14 lg:pb-16 px-2 sm:px-4">
       <img
         src={(ordersAsset as Asset).url}
         alt="Painel Menuzin organizando pedidos novos, em preparo e prontos"
         width={1584}
         height={768}
         fetchPriority="high"
-        className="h-auto w-full rounded-xl shadow-2xl border border-border/50"
+        className="h-auto w-full max-h-[350px] lg:max-h-[400px] xl:max-h-[480px] object-contain rounded-xl shadow-2xl border border-border/50"
       />
-      <div className="absolute bottom-1 left-3 w-[33%] min-w-28 max-w-56 drop-shadow-2xl sm:bottom-2 sm:left-6 md:left-8">
+      <div className="absolute bottom-1 left-3 w-[33%] min-w-28 max-w-48 sm:max-w-56 drop-shadow-2xl sm:bottom-2 sm:left-6 md:left-8">
         <img
           src={(storefrontAsset as Asset).url}
           alt="Cardápio Menuzin no celular do cliente"

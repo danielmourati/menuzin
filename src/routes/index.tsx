@@ -172,20 +172,20 @@ function Landing() {
       </header>
 
       <section className="relative overflow-hidden sm:overflow-visible">
-        <div className="container mx-auto grid gap-10 px-4 py-12 sm:py-16 md:py-20 lg:grid-cols-2 lg:items-center lg:gap-8">
+        <div className="container mx-auto grid gap-6 sm:gap-8 lg:gap-10 px-4 py-8 sm:py-12 md:py-16 lg:py-10 xl:py-16 lg:grid-cols-2 lg:items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border bg-orange-500/10 px-3.5 py-1 text-xs font-bold text-orange-600 dark:text-orange-400 mb-3">
+            <div className="inline-flex items-center gap-2 rounded-full border bg-orange-500/10 px-3 py-0.5 text-xs font-bold text-orange-600 dark:text-orange-400 sm:px-3.5 sm:py-1">
               <Rocket className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
               <span>14 DIAS GRÁTIS DO PLANO PRO LIBERADOS NO CADASTRO</span>
             </div>
-            <h1 className="text-4xl font-bold leading-tight text-balance md:text-5xl lg:text-6xl">
+            <h1 className="mt-2 text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl">
               Pare de dividir seu lucro. <span className="text-primary">Fidelize sem comissão.</span>
             </h1>
-            <p className="mt-5 max-w-xl text-base text-muted-foreground text-balance md:text-lg">
+            <p className="mt-3 sm:mt-4 max-w-xl text-base text-muted-foreground text-balance md:text-lg">
               Use os grandes apps como vitrine para atrair clientes e o Menuzin para fazê-los voltar.
               Receba pedidos no WhatsApp e fique com 100% das vendas.
             </p>
-            <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <div className="mt-5 sm:mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <Button size="lg" className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 font-extrabold text-white shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600" onClick={() => setSignupOpen(true)}>
                 <Rocket className="h-4 w-4" /> Testar 14 Dias Grátis (Plano PRO)
               </Button>
@@ -197,21 +197,21 @@ function Landing() {
                 </Button>
               )}
             </div>
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem pedir cartão</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> 14 dias do Plano PRO</span>
               <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Downgrade grátis automático</span>
             </div>
           </div>
 
-          <div className="relative flex items-center justify-center lg:justify-end py-4">
+          <div className="relative flex items-center justify-center lg:justify-end py-2 sm:py-4">
             <div className="pointer-events-none absolute inset-0 -z-10 rounded-[50%] gradient-brand opacity-20 blur-3xl animate-blob-pulse" />
             <img
               src={landingHeroDevices}
               alt="Painel administrativo Menuzin no notebook e cardápio digital no celular"
               width={1536}
               height={1024}
-              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl animate-float-device sm:max-w-lg md:max-w-xl lg:max-w-2xl"
+              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl animate-float-device sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[380px] lg:max-h-[420px] xl:max-h-[500px]"
             />
 
             {/* Floating elements — sem cards/bordas */}
