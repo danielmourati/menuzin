@@ -75,10 +75,10 @@ export const createOrder = createServerFn({ method: "POST" })
     }
 
 
-    const subtotal = data.items.reduce((s, it) => {
-      const addonsSum = it.addons.reduce((a, x) => a + x.price, 0);
-      return s + it.qty * (it.unit_price + addonsSum);
-    }, 0);
+    // unit_price já inclui tamanho, sabores e adicionais (computeUnitPrice no carrinho).
+    // Os "addons" gravados são apenas o detalhamento do item — não somar de novo.
+    const subtotal = data.items.reduce((s, it) => s + it.qty * it.unit_price, 0);
+
 
     // Re-validate coupon server-side if provided.
     let discountAmount = 0;
