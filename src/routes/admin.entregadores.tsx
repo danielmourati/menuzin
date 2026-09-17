@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Truck, Phone, Edit, Trash2, Loader2, UserCheck, Search, MessageSquare } from "lucide-react";
+import { Plus, Truck, Phone, Edit, Trash2, Loader2, UserCheck, Search, MessageSquare, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { listMyDrivers, upsertDriver, deleteDriver, toggleDriverActive, type DriverRow } from "@/lib/drivers.functions";
 
@@ -121,6 +121,23 @@ function DriversPage() {
       }
     >
       <div className="space-y-6">
+        {data?.tableMissing && (
+          <Card className="border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+            <CardContent className="p-4 flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-xs">
+                <h4 className="font-bold text-sm">Tabela de entregadores pendente no Supabase</h4>
+                <p>
+                  A tabela <code className="font-mono font-semibold">public.drivers</code> ainda não existe no seu banco de dados Supabase.
+                </p>
+                <p className="opacity-90">
+                  Para ativar a criação e salvamento de entregadores, execute o código do arquivo <strong className="underline">supabase/migrations/20260917180000_drivers_table.sql</strong> no <strong>SQL Editor do Supabase</strong>.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Barra de Filtros e Busca */}
         <Card className="shadow-xs border border-border">
           <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">

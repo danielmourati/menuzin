@@ -11,17 +11,31 @@ export const listMyDrivers = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
-    if (!resolved?.tenantId) return { drivers: [] as DriverRow[] };
+    if (!resolved?.tenantId) return { drivers: [] as DriverRow[], tableMissing: false };
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error } = await (supabase as any)
-      .from("drivers")
-      .select("*")
-      .eq("tenant_id", resolved.tenantId)
-      .order("name", { ascending: true });
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("drivers")
+        .select("*")
+        .eq("tenant_id", resolved.tenantId)
+        .order("name", { ascending: true });
 
-    if (error) throw new Error(error.message);
-    return { drivers: (data ?? []) as DriverRow[] };
+      if (error) {
+        if (error.message?.includes("drivers") || error.message?.includes("schema cache") || error.code === "PGRST205") {
+          console.warn("[listMyDrivers] Tabela 'drivers' ausente no schema do Supabase.");
+          return { drivers: [] as DriverRow[], tableMissing: true };
+        }
+        throw new Error(error.message);
+      }
+      return { drivers: (data ?? []) as DriverRow[], tableMissing: false };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("drivers") || msg.includes("schema cache") || msg.includes("PGRST205")) {
+        return { drivers: [] as DriverRow[], tableMissing: true };
+      }
+      throw err;
+    }
   });
 
 const DriverInput = z.object({
@@ -48,26 +62,36 @@ export const upsertDriver = createServerFn({ method: "POST" })
       active: data.active,
     };
 
-    if (data.id) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: updated, error } = await (supabase as any)
-        .from("drivers")
-        .update(payload)
-        .eq("id", data.id)
-        .eq("tenant_id", resolved.tenantId)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return { driver: updated as DriverRow };
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: inserted, error } = await (supabase as any)
-        .from("drivers")
-        .insert(payload)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return { driver: inserted as DriverRow };
+    try {
+      if (data.id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: updated, error } = await (supabase as any)
+          .from("drivers")
+          .update(payload)
+          .eq("id", data.id)
+          .eq("tenant_id", resolved.tenantId)
+          .select()
+          .single();
+        if (error) throw new Error(error.message);
+        return { driver: updated as DriverRow };
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: inserted, error } = await (supabase as any)
+          .from("drivers")
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw new Error(error.message);
+        return { driver: inserted as DriverRow };
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("drivers") || msg.includes("schema cache") || msg.includes("PGRST205")) {
+        throw new Error(
+          "A tabela 'drivers' ainda não foi criada no banco de dados Supabase. Execute o script SQL da migração 20260917180000_drivers_table.sql no painel do Supabase."
+        );
+      }
+      throw err;
     }
   });
 
@@ -83,15 +107,23 @@ export const deleteDriver = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
-      .from("drivers")
-      .delete()
-      .eq("id", data.id)
-      .eq("tenant_id", resolved.tenantId);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("drivers")
+        .delete()
+        .eq("id", data.id)
+        .eq("tenant_id", resolved.tenantId);
 
-    if (error) throw new Error(error.message);
-    return { success: true };
+      if (error) throw new Error(error.message);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("drivers") || msg.includes("schema cache")) {
+        throw new Error("A tabela 'drivers' ainda não foi criada no Supabase.");
+      }
+      throw err;
+    }
   });
 
 const ToggleDriverInput = z.object({
@@ -107,15 +139,23 @@ export const toggleDriverActive = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
-      .from("drivers")
-      .update({ active: data.active })
-      .eq("id", data.id)
-      .eq("tenant_id", resolved.tenantId);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("drivers")
+        .update({ active: data.active })
+        .eq("id", data.id)
+        .eq("tenant_id", resolved.tenantId);
 
-    if (error) throw new Error(error.message);
-    return { success: true };
+      if (error) throw new Error(error.message);
+      return { success: true };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("drivers") || msg.includes("schema cache")) {
+        throw new Error("A tabela 'drivers' ainda não foi criada no Supabase.");
+      }
+      throw err;
+    }
   });
 
 const AssignDriverInput = z.object({
@@ -142,27 +182,35 @@ export const assignDriverToOrder = createServerFn({ method: "POST" })
       updatePayload.status = "saiu_entrega";
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: updatedOrder, error } = await (supabase as any)
-      .from("orders")
-      .update(updatePayload)
-      .eq("id", data.orderId)
-      .eq("tenant_id", resolved.tenantId)
-      .select()
-      .single();
-
-    if (error) throw new Error(error.message);
-
-    // Registra no histórico de status
-    if (data.updateStatusToSaiuEntrega) {
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("order_status_history").insert({
-        order_id: data.orderId,
-        previous_status: "preparo",
-        new_status: "saiu_entrega",
-        note: `Despachado com o entregador: ${data.driverName}`,
-      });
-    }
+      const { data: updatedOrder, error } = await (supabase as any)
+        .from("orders")
+        .update(updatePayload)
+        .eq("id", data.orderId)
+        .eq("tenant_id", resolved.tenantId)
+        .select()
+        .single();
 
-    return { success: true, order: updatedOrder };
+      if (error) throw new Error(error.message);
+
+      // Registra no histórico de status
+      if (data.updateStatusToSaiuEntrega) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).from("order_status_history").insert({
+          order_id: data.orderId,
+          previous_status: "preparo",
+          new_status: "saiu_entrega",
+          note: `Despachado com o entregador: ${data.driverName}`,
+        });
+      }
+
+      return { success: true, order: updatedOrder };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("driver_id") || msg.includes("column") || msg.includes("schema cache")) {
+        throw new Error("A coluna 'driver_id' na tabela 'orders' ainda não foi criada no Supabase.");
+      }
+      throw err;
+    }
   });
