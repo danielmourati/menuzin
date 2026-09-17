@@ -139,7 +139,19 @@ export type Order = {
   cancelledAt?: string;
   cancelReason?: string;
   completedAt?: string;
+  driverId?: string;
+  driverName?: string;
   statusHistory: OrderStatusHistoryEntry[];
+};
+
+export type Driver = {
+  id: string;
+  tenantId: string;
+  name: string;
+  phone: string;
+  vehicle?: string;
+  active: boolean;
+  createdAt: string;
 };
 
 export type AdminNotification = {

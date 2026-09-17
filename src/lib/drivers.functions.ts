@@ -1,0 +1,168 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import type { DbDriver } from "./db-types";
+
+export type DriverRow = DbDriver;
+
+export const listMyDrivers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) return { drivers: [] as DriverRow[] };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from("drivers")
+      .select("*")
+      .eq("tenant_id", resolved.tenantId)
+      .order("name", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return { drivers: (data ?? []) as DriverRow[] };
+  });
+
+const DriverInput = z.object({
+  id: z.string().uuid().nullable().optional(),
+  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  phone: z.string().min(8, "Telefone inválido"),
+  vehicle: z.string().nullable().optional(),
+  active: z.boolean().default(true),
+});
+
+export const upsertDriver = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => DriverInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Loja não configurada");
+
+    const payload = {
+      tenant_id: resolved.tenantId,
+      name: data.name,
+      phone: data.phone,
+      vehicle: data.vehicle || null,
+      active: data.active,
+    };
+
+    if (data.id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: updated, error } = await (supabase as any)
+        .from("drivers")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("tenant_id", resolved.tenantId)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return { driver: updated as DriverRow };
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: inserted, error } = await (supabase as any)
+        .from("drivers")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return { driver: inserted as DriverRow };
+    }
+  });
+
+const DeleteDriverInput = z.object({
+  id: z.string().uuid(),
+});
+
+export const deleteDriver = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => DeleteDriverInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Loja não configurada");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
+      .from("drivers")
+      .delete()
+      .eq("id", data.id)
+      .eq("tenant_id", resolved.tenantId);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+const ToggleDriverInput = z.object({
+  id: z.string().uuid(),
+  active: z.boolean(),
+});
+
+export const toggleDriverActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ToggleDriverInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Loja não configurada");
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
+      .from("drivers")
+      .update({ active: data.active })
+      .eq("id", data.id)
+      .eq("tenant_id", resolved.tenantId);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+
+const AssignDriverInput = z.object({
+  orderId: z.string().uuid(),
+  driverId: z.string().uuid(),
+  driverName: z.string(),
+  updateStatusToSaiuEntrega: z.boolean().default(true),
+});
+
+export const assignDriverToOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => AssignDriverInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Loja não configurada");
+
+    const updatePayload: Record<string, unknown> = {
+      driver_id: data.driverId,
+      driver_name: data.driverName,
+    };
+
+    if (data.updateStatusToSaiuEntrega) {
+      updatePayload.status = "saiu_entrega";
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: updatedOrder, error } = await (supabase as any)
+      .from("orders")
+      .update(updatePayload)
+      .eq("id", data.orderId)
+      .eq("tenant_id", resolved.tenantId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Registra no histórico de status
+    if (data.updateStatusToSaiuEntrega) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("order_status_history").insert({
+        order_id: data.orderId,
+        previous_status: "preparo",
+        new_status: "saiu_entrega",
+        note: `Despachado com o entregador: ${data.driverName}`,
+      });
+    }
+
+    return { success: true, order: updatedOrder };
+  });

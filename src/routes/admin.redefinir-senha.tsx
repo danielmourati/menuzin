@@ -40,7 +40,7 @@ function ResetPasswordPage() {
       const { error } = await supabase.auth.updateUser({ password: pwd });
       if (error) throw error;
       toast.success("Senha alterada com sucesso!");
-      navigate({ to: "/admin/dashboard" });
+      navigate({ to: "/admin/pedidos" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao alterar senha");
     } finally {

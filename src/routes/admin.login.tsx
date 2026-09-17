@@ -79,7 +79,7 @@ function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/dashboard" });
+      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/pedidos" });
     }
   }, [loading, isAuthenticated, isPlatformAdmin, navigate]);
 

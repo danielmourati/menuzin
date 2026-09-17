@@ -13,12 +13,15 @@ import { OrdersStatusGroups } from "@/components/orders/OrdersStatusGroups";
 import { OrdersMobileTabs } from "@/components/orders/OrdersMobileTabs";
 import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
 import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
+import { DispatchOrderModal } from "@/components/orders/DispatchOrderModal";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
+import { assignDriverToOrder } from "@/lib/drivers.functions";
+import type { OrderStatus } from "@/lib/domain-types";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: () => (
@@ -51,10 +54,9 @@ function OrdersPage() {
   const [modeFilter, setModeFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
 
-
-  
   const [detailedOrderId, setDetailedOrderId] = useState<string | null>(null);
   const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
+  const [dispatchOrderId, setDispatchOrderId] = useState<string | null>(null);
 
   // Encontra os dados atualizados das ordens abertas em modal/drawer
   const detailedOrder = useMemo(() => {
@@ -65,7 +67,44 @@ function OrdersPage() {
     return orders.find((o) => o.id === cancellationOrderId) || null;
   }, [orders, cancellationOrderId]);
 
+  const dispatchOrder = useMemo(() => {
+    return orders.find((o) => o.id === dispatchOrderId) || null;
+  }, [orders, dispatchOrderId]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpdateStatus = (orderId: string, status: OrderStatus) => {
+    if (status === "saiu_entrega") {
+      const targetOrder = orders.find((o) => o.id === orderId);
+      if (targetOrder && targetOrder.mode === "entrega") {
+        setDispatchOrderId(orderId);
+        return;
+      }
+    }
+    updateOrderStatus(orderId, status);
+  };
+
+  const dispatchMutation = useMutation({
+    mutationFn: async ({ driverId, driverName, sendWhatsapp }: { driverId: string; driverName: string; sendWhatsapp: boolean }) => {
+      if (!dispatchOrder) return;
+      await assignDriverToOrder({
+        data: {
+          orderId: dispatchOrder.id,
+          driverId,
+          driverName,
+          updateStatusToSaiuEntrega: true,
+        },
+      });
+      await rawUpdateOrderStatus(dispatchOrder.id, "saiu_entrega", `Entregador: ${driverName}`);
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(`Pedido #${dispatchOrder?.number} despachado com ${variables.driverName}!`);
+      setDispatchOrderId(null);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao despachar pedido.");
+    },
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -81,6 +120,8 @@ function OrdersPage() {
           setDetailedOrderId(null);
         } else if (cancellationOrderId) {
           setCancellationOrderId(null);
+        } else if (dispatchOrderId) {
+          setDispatchOrderId(null);
         } else if (q) {
           setQ("");
         }
@@ -89,7 +130,7 @@ function OrdersPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [detailedOrderId, cancellationOrderId, q]);
+  }, [detailedOrderId, cancellationOrderId, dispatchOrderId, q]);
 
   // Listener para eventos customizados de abertura (para o bell/toast)
   useEffect(() => {
@@ -184,7 +225,7 @@ function OrdersPage() {
             onViewDetails={(order) => setDetailedOrderId(order.id)}
             onAccept={acceptOrder}
             onCancel={(order) => setCancellationOrderId(order.id)}
-            onUpdateStatus={updateOrderStatus}
+            onUpdateStatus={handleUpdateStatus}
           />
         </div>
 
@@ -202,15 +243,12 @@ function OrdersPage() {
               onViewDetails={(order) => setDetailedOrderId(order.id)}
               onAccept={acceptOrder}
               onCancel={(order) => setCancellationOrderId(order.id)}
-              onUpdateStatus={updateOrderStatus}
+              onUpdateStatus={handleUpdateStatus}
               autoAcceptEnabled={autoAcceptEnabled}
             />
           )}
         </div>
       </div>
-
-
-
 
       {/* Drawer de Detalhes do Pedido */}
       <OrderDetailsDrawer
@@ -219,7 +257,7 @@ function OrdersPage() {
         onClose={() => setDetailedOrderId(null)}
         onAccept={() => detailedOrder && acceptOrder(detailedOrder.id)}
         onCancel={() => detailedOrder && setCancellationOrderId(detailedOrder.id)}
-        onUpdateStatus={(status) => detailedOrder && updateOrderStatus(detailedOrder.id, status)}
+        onUpdateStatus={(status) => detailedOrder && handleUpdateStatus(detailedOrder.id, status)}
         storeName={tenantName}
       />
 
@@ -233,6 +271,17 @@ function OrdersPage() {
             cancelOrder(cancellationOrder.id, reason, note);
             toast.error(`Pedido #${cancellationOrder.number} cancelado`);
           }
+        }}
+      />
+
+      {/* Modal de Despacho de Pedido com Entregador */}
+      <DispatchOrderModal
+        order={dispatchOrder}
+        isOpen={!!dispatchOrder}
+        onClose={() => setDispatchOrderId(null)}
+        isPending={dispatchMutation.isPending}
+        onConfirmDispatch={(driverId, driverName, sendWhatsapp) => {
+          dispatchMutation.mutate({ driverId, driverName, sendWhatsapp });
         }}
       />
     </AdminLayout>

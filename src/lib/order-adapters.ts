@@ -50,6 +50,8 @@ export function dbOrderToUi(o: DbOrder, history: OrderStatusHistoryEntry[] = [])
     cancelledAt: o.cancelled_at ?? undefined,
     cancelReason: o.cancel_reason ?? undefined,
     completedAt: o.completed_at ?? undefined,
+    driverId: o.driver_id ?? undefined,
+    driverName: o.driver_name ?? undefined,
     statusHistory: history.length > 0 ? history : [{
       id: `init_${o.id}`,
       newStatus: "novo",

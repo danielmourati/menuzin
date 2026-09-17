@@ -40,7 +40,7 @@ function ChangePasswordPage() {
     onSuccess: async () => {
       toast.success("Senha atualizada com sucesso!");
       await refresh();
-      navigate({ to: "/admin/dashboard" });
+      navigate({ to: "/admin/pedidos" });
     },
     onError: (e: Error) => toast.error(e.message),
   });

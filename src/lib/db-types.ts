@@ -217,8 +217,20 @@ export type DbOrder = {
   accepted_at: string | null;
   cancelled_at: string | null;
   completed_at: string | null;
+  driver_id?: string | null;
+  driver_name?: string | null;
   created_at: string;
   items: DbOrderItem[];
+};
+
+export type DbDriver = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  phone: string;
+  vehicle: string | null;
+  active: boolean;
+  created_at: string;
 };
 
 export type DbHistoryRow = {

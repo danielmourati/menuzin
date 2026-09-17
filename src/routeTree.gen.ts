@@ -39,6 +39,7 @@ import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminEntregadoresRouteImport } from './routes/admin.entregadores'
 import { Route as AdminDiretorioRouteImport } from './routes/admin.diretorio'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
@@ -231,6 +232,11 @@ const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminEntregadoresRoute = AdminEntregadoresRouteImport.update({
+  id: '/admin/entregadores',
+  path: '/admin/entregadores',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminDiretorioRoute = AdminDiretorioRouteImport.update({
@@ -486,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/diretorio': typeof AdminDiretorioRoute
+  '/admin/entregadores': typeof AdminEntregadoresRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -712,6 +719,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/diretorio'
+    | '/admin/entregadores'
     | '/admin/login'
     | '/admin/observacoes'
     | '/admin/pedidos'
@@ -786,6 +794,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/diretorio'
+    | '/admin/entregadores'
     | '/admin/login'
     | '/admin/observacoes'
     | '/admin/pedidos'
@@ -860,6 +869,7 @@ export interface FileRouteTypes {
     | '/admin/cupons'
     | '/admin/dashboard'
     | '/admin/diretorio'
+    | '/admin/entregadores'
     | '/admin/login'
     | '/admin/observacoes'
     | '/admin/pedidos'
@@ -931,6 +941,7 @@ export interface RootRouteChildren {
   AdminCuponsRoute: typeof AdminCuponsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDiretorioRoute: typeof AdminDiretorioRoute
+  AdminEntregadoresRoute: typeof AdminEntregadoresRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminObservacoesRoute: typeof AdminObservacoesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
@@ -1185,6 +1196,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/diretorio'
       fullPath: '/admin/diretorio'
       preLoaderRoute: typeof AdminDiretorioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/entregadores': {
+      id: '/admin/entregadores'
+      path: '/admin/entregadores'
+      fullPath: '/admin/entregadores'
+      preLoaderRoute: typeof AdminEntregadoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/dashboard': {
@@ -1579,6 +1597,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminCuponsRoute: AdminCuponsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDiretorioRoute: AdminDiretorioRoute,
+  AdminEntregadoresRoute: AdminEntregadoresRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminObservacoesRoute: AdminObservacoesRoute,
   AdminPedidosRoute: AdminPedidosRoute,

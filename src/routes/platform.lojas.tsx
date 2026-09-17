@@ -68,7 +68,7 @@ function PlatformStores() {
   const accessStore = (id: string) => {
     setActiveTenantId(id);
     qc.invalidateQueries();
-    navigate({ to: "/admin/dashboard" });
+    navigate({ to: "/admin/pedidos" });
   };
   const { isPlatformAdmin, loading: authLoading } = useAuth();
   const { data, isLoading, error } = useQuery({
