@@ -11,9 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Truck, Phone, Edit, Trash2, Loader2, UserCheck, Search, MessageSquare, AlertTriangle } from "lucide-react";
+import { Plus, Truck, Phone, Edit, Trash2, Loader2, UserCheck, Search, MessageSquare, AlertTriangle, Copy, Terminal } from "lucide-react";
 import { toast } from "sonner";
-import { listMyDrivers, upsertDriver, deleteDriver, toggleDriverActive, type DriverRow } from "@/lib/drivers.functions";
+import { listMyDrivers, upsertDriver, deleteDriver, toggleDriverActive, autoSetupDriversTable, type DriverRow } from "@/lib/drivers.functions";
 
 export const Route = createFileRoute("/admin/entregadores")({
   component: () => (
@@ -28,6 +28,8 @@ function DriversPage() {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState<DriverRow | null>(null);
+  const [sqlModalOpen, setSqlModalOpen] = useState(false);
+  const [sqlCode, setSqlCode] = useState("");
 
   // Form states
   const [name, setName] = useState("");
@@ -41,6 +43,19 @@ function DriversPage() {
   });
 
   const drivers = data?.drivers ?? [];
+
+  const autoSetupMutation = useMutation({
+    mutationFn: () => autoSetupDriversTable(),
+    onSuccess: (res) => {
+      if (res.sql) setSqlCode(res.sql);
+      if (res.success) {
+        toast.success(res.message);
+        qc.invalidateQueries({ queryKey: ["my-drivers"] });
+      } else {
+        setSqlModalOpen(true);
+      }
+    },
+  });
 
   const openNewModal = () => {
     setEditingDriver(null);
@@ -123,16 +138,27 @@ function DriversPage() {
       <div className="space-y-6">
         {data?.tableMissing && (
           <Card className="border border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-200">
-            <CardContent className="p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1 text-xs">
-                <h4 className="font-bold text-sm">Tabela de entregadores pendente no Supabase</h4>
-                <p>
-                  A tabela <code className="font-mono font-semibold">public.drivers</code> ainda não existe no seu banco de dados Supabase.
-                </p>
-                <p className="opacity-90">
-                  Para ativar a criação e salvamento de entregadores, execute o código do arquivo <strong className="underline">supabase/migrations/20260917180000_drivers_table.sql</strong> no <strong>SQL Editor do Supabase</strong>.
-                </p>
+            <CardContent className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1 text-xs">
+                  <h4 className="font-bold text-sm">Tabela de entregadores pendente no Supabase</h4>
+                  <p>
+                    A tabela <code className="font-mono font-semibold">public.drivers</code> ainda não existe no seu banco de dados Supabase.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => autoSetupMutation.mutate()}
+                  disabled={autoSetupMutation.isPending}
+                  className="h-9 gap-1.5 text-xs font-semibold bg-background hover:bg-accent"
+                >
+                  {autoSetupMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Terminal className="h-3.5 w-3.5 text-amber-600" />}
+                  Ver Código SQL
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -343,6 +369,56 @@ function DriversPage() {
                 </Button>
               </DialogFooter>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Código SQL */}
+        <Dialog open={sqlModalOpen} onOpenChange={setSqlModalOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Terminal className="h-5 w-5 text-primary" /> Código SQL da Migração
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              <p className="text-xs text-muted-foreground">
+                Copie o script SQL abaixo e cole no <strong>SQL Editor do Supabase</strong> para criar a tabela de entregadores:
+              </p>
+              <div className="relative">
+                <pre className="p-3 bg-zinc-950 text-zinc-100 rounded-xl text-[11px] font-mono overflow-x-auto max-h-60 border border-zinc-800 leading-relaxed">
+                  {sqlCode || `CREATE TABLE IF NOT EXISTS public.drivers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  vehicle TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS driver_id UUID REFERENCES public.drivers(id), ADD COLUMN IF NOT EXISTS driver_name TEXT;
+ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir leitura de entregadores do tenant" ON public.drivers FOR SELECT USING (true);
+CREATE POLICY "Permitir escrita de entregadores do tenant" ON public.drivers FOR ALL USING (true);`}
+                </pre>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2 border-t flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setSqlModalOpen(false)}>
+                Fechar
+              </Button>
+              <Button
+                onClick={() => {
+                  navigator.clipboard.writeText(sqlCode);
+                  toast.success("Código SQL copiado para a área de transferência!");
+                }}
+                className="gap-2 font-semibold"
+              >
+                <Copy className="h-4 w-4" /> Copiar Código SQL
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

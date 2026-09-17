@@ -214,3 +214,82 @@ export const assignDriverToOrder = createServerFn({ method: "POST" })
       throw err;
     }
   });
+
+const DRIVERS_MIGRATION_SQL = `
+CREATE TABLE IF NOT EXISTS public.drivers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  vehicle TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_drivers_tenant_id ON public.drivers(tenant_id);
+
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS driver_id UUID REFERENCES public.drivers(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS driver_name TEXT;
+
+ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'drivers' AND policyname = 'Permitir leitura de entregadores do tenant'
+  ) THEN
+    CREATE POLICY "Permitir leitura de entregadores do tenant" ON public.drivers FOR SELECT USING (true);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'drivers' AND policyname = 'Permitir escrita de entregadores do tenant'
+  ) THEN
+    CREATE POLICY "Permitir escrita de entregadores do tenant" ON public.drivers FOR ALL USING (true);
+  END IF;
+END $$;
+`;
+
+export const autoSetupDriversTable = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    const projectId = process.env.SUPABASE_PROJECT_ID || "fetiqngwjgxajtqjaolb";
+    const serviceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.SUPABASE_ACCESS_TOKEN ||
+      process.env.SUPABASE_SECRET_KEY;
+
+    if (!serviceKey) {
+      return {
+        success: false,
+        sql: DRIVERS_MIGRATION_SQL,
+        message: "Chave do Supabase service_role ausente no ambiente do servidor.",
+      };
+    }
+
+    try {
+      const res = await fetch(`https://api.supabase.com/v1/projects/${projectId}/sql`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: DRIVERS_MIGRATION_SQL }),
+      });
+
+      if (res.ok) {
+        return { success: true, sql: DRIVERS_MIGRATION_SQL, message: "Tabela de entregadores instalada com sucesso no Supabase!" };
+      }
+
+      const errText = await res.text();
+      console.warn("Falha via Supabase Management API:", res.status, errText);
+    } catch (e) {
+      console.warn("Erro ao tentar executar via Management API:", e);
+    }
+
+    return {
+      success: false,
+      sql: DRIVERS_MIGRATION_SQL,
+      message: "Execução automática não suportada pela API REST direta. Use o código SQL fornecido.",
+    };
+  });
