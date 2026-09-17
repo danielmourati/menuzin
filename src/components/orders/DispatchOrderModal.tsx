@@ -223,27 +223,28 @@ export function DispatchOrderModal({
         </div>
 
         {/* Rodapé com botões de ação */}
-        <DialogFooter className="p-4 bg-muted/30 border-t shrink-0 flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
-            Cancelar
-          </Button>
-
-          <Button
-            variant="secondary"
-            onClick={() => handleDispatch(false)}
-            disabled={!selectedDriverId || isPending}
-            className="font-medium"
-          >
-            <PackageCheck className="mr-1.5 h-4 w-4" /> Despachar (sem WhatsApp)
-          </Button>
-
+        <DialogFooter className="p-4 bg-muted/30 border-t shrink-0 flex flex-col gap-2 sm:flex-col sm:space-x-0">
           <Button
             onClick={() => handleDispatch(true)}
             disabled={!selectedDriverId || isPending}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-xs"
           >
-            <MessageSquare className="mr-1.5 h-4 w-4" /> Despachar e Enviar no WhatsApp
+            <MessageSquare className="mr-2 h-4 w-4" /> Despachar e Enviar no WhatsApp
           </Button>
+
+          <div className="flex items-center justify-between gap-2 w-full pt-1 border-t border-border/50">
+            <Button variant="ghost" onClick={onClose} disabled={isPending} className="text-muted-foreground hover:text-foreground">
+              Cancelar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleDispatch(false)}
+              disabled={!selectedDriverId || isPending}
+              className="font-medium text-xs border-border bg-background hover:bg-accent"
+            >
+              <PackageCheck className="mr-1.5 h-3.5 w-3.5" /> Apenas Despachar
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
