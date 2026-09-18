@@ -446,7 +446,6 @@ function ImpersonationBanner() {
 
 function WhatsappUnverifiedBanner() {
   const { isPlatformAdmin, profile } = useAuth();
-  const [modalOpen, setModalOpen] = useState(false);
   const qc = useQueryClient();
 
   const { data } = useQuery({
@@ -463,24 +462,17 @@ function WhatsappUnverifiedBanner() {
         <div className="flex items-center gap-2 truncate">
           <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
           <span className="truncate">
-            <strong>WhatsApp não verificado:</strong> confirme o seu número para garantir a segurança da loja.
+            <strong>WhatsApp não verificado:</strong> confirme o seu número de WhatsApp com o código OTP enviado para liberar o painel da loja.
           </span>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setModalOpen(true)}
-          className="h-7 text-xs font-semibold bg-background border-amber-500/40 hover:bg-amber-500/20 shrink-0"
-        >
-          Validar WhatsApp
-        </Button>
       </div>
 
       <WhatsappOtpModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        isOpen={true}
+        mandatory={true}
         onSuccess={() => {
           qc.invalidateQueries({ queryKey: ["whatsapp-status"] });
+          qc.invalidateQueries({ queryKey: ["my-tenant"] });
         }}
         whatsappNumber={data.whatsapp}
       />

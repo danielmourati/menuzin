@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, MessageSquare, Loader2, ArrowRight, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { sendWhatsappOtp, verifyWhatsappOtp } from "@/lib/otp.functions";
 
 interface WhatsappOtpModalProps {
@@ -28,22 +29,6 @@ export function WhatsappOtpModal({
   const [resendSeconds, setResendSeconds] = useState(60);
   const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
 
-  // Timer de reenviar código (60s)
-  useEffect(() => {
-    if (!isOpen) return;
-    setResendSeconds(60);
-    const interval = setInterval(() => {
-      setResendSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isOpen]);
-
   const sendOtpMutation = useMutation({
     mutationFn: () => sendWhatsappOtp({ data: { whatsapp: whatsappNumber } }),
     onSuccess: (res) => {
@@ -57,6 +42,25 @@ export function WhatsappOtpModal({
       toast.error(err.message || "Erro ao enviar código de verificação.");
     },
   });
+
+  // Timer de reenviar código (60s) e auto-envio ao abrir
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!whatsappLink && !sendOtpMutation.isPending && !sendOtpMutation.isSuccess) {
+      sendOtpMutation.mutate();
+    }
+    setResendSeconds(60);
+    const interval = setInterval(() => {
+      setResendSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isOpen]);
 
   const verifyOtpMutation = useMutation({
     mutationFn: () => verifyWhatsappOtp({ data: { whatsapp: whatsappNumber, code } }),
@@ -80,7 +84,7 @@ export function WhatsappOtpModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !mandatory && onClose?.()}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+      <DialogContent className={cn("sm:max-w-md p-0 overflow-hidden", mandatory && "[&>button]:hidden")}>
         {/* Banner do Modal */}
         <DialogHeader className="p-6 bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-background border-b shrink-0">
           <div className="flex items-center gap-3">
