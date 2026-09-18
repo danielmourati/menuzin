@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 
 const SendOtpInput = z.object({
-  whatsapp: z.string().trim().min(8).max(20).optional(),
+  whatsapp: z.string().trim().optional().or(z.literal("")),
 });
 
 export const sendWhatsappOtp = createServerFn({ method: "POST" })
@@ -93,7 +93,7 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
   });
 
 const VerifyOtpInput = z.object({
-  whatsapp: z.string().trim().min(8).max(20).optional(),
+  whatsapp: z.string().trim().optional().or(z.literal("")),
   code: z.string().trim().length(6, "O código deve conter exatamente 6 dígitos"),
 });
 

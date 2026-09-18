@@ -23,6 +23,39 @@ export function formatErrorMessage(error: unknown, defaultFallback?: string): st
     return defaultFallback || "Não foi possível concluir a operação. Por favor, tente novamente em instantes.";
   }
 
+  // Handle raw Zod JSON error arrays (e.g. '[{"code":"too_small","minimum":8,"path":["whatsapp"]}]')
+  if (/^\s*\[\s*\{.*"code":/s.test(message)) {
+    try {
+      const parsed = JSON.parse(message);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const first = parsed[0];
+        const field = Array.isArray(first.path) && first.path.length > 0 ? first.path[0] : "";
+        const fieldNames: Record<string, string> = {
+          whatsapp: "Número de WhatsApp",
+          email: "E-mail",
+          password: "Senha",
+          code: "Código de verificação",
+          name: "Nome",
+        };
+        const translatedField = fieldNames[String(field)] || String(field) || "campo";
+
+        if (first.message && typeof first.message === "string" && !first.message.includes("{") && /[áàâãéèêíïóôõúüç]/i.test(first.message)) {
+          return first.message;
+        }
+
+        if (first.code === "too_small") {
+          return `O campo ${translatedField} deve conter no mínimo ${first.minimum} caracteres.`;
+        }
+        if (first.code === "too_big") {
+          return `O campo ${translatedField} deve conter no máximo ${first.maximum} caracteres.`;
+        }
+        return `Preencha o campo ${translatedField} corretamente.`;
+      }
+    } catch {
+      /* ignore json parse fail */
+    }
+  }
+
   // 1. E-mail já cadastrado / Usuário existente
   if (
     /already registered|already exists|duplicate key|users_email_key|user with this email/i.test(message)

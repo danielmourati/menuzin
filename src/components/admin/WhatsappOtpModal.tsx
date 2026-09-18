@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, MessageSquare, Loader2, ArrowRight, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatErrorMessage } from "@/lib/error-translator";
 import { sendWhatsappOtp, verifyWhatsappOtp } from "@/lib/otp.functions";
 
 interface WhatsappOtpModalProps {
@@ -30,7 +31,7 @@ export function WhatsappOtpModal({
   const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
 
   const sendOtpMutation = useMutation({
-    mutationFn: () => sendWhatsappOtp({ data: { whatsapp: whatsappNumber } }),
+    mutationFn: () => sendWhatsappOtp({ data: { whatsapp: whatsappNumber || undefined } }),
     onSuccess: (res) => {
       toast.success("Código de verificação gerado!");
       setResendSeconds(60);
@@ -39,7 +40,7 @@ export function WhatsappOtpModal({
       }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao enviar código de verificação.");
+      toast.error(formatErrorMessage(err, "Erro ao enviar código de verificação."));
     },
   });
 
@@ -63,14 +64,14 @@ export function WhatsappOtpModal({
   }, [isOpen]);
 
   const verifyOtpMutation = useMutation({
-    mutationFn: () => verifyWhatsappOtp({ data: { whatsapp: whatsappNumber, code } }),
+    mutationFn: () => verifyWhatsappOtp({ data: { whatsapp: whatsappNumber || undefined, code } }),
     onSuccess: () => {
       toast.success("WhatsApp verificado com sucesso!");
       if (onSuccess) onSuccess();
       if (onClose) onClose();
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Código incorreto ou expirado.");
+      toast.error(formatErrorMessage(err, "Código incorreto ou expirado."));
     },
   });
 
