@@ -196,6 +196,12 @@ export const verifyWhatsappOtp = createServerFn({ method: "POST" })
 export const getWhatsappVerificationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    // Se a trava de verificação via OTP estiver desativada (padrão até configurar a EVOLUTION_API_KEY)
+    const isOtpEnabled = process.env["ENABLE_WHATSAPP_OTP"] === "true";
+    if (!isOtpEnabled) {
+      return { verified: true, whatsapp: "" };
+    }
+
     const { supabase, userId } = context;
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) return { verified: true, whatsapp: "" };
