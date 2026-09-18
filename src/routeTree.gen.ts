@@ -75,6 +75,7 @@ import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.c
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
 import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
+import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
 import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -422,6 +423,12 @@ const AdminConfiguracoesImpressoraRoute =
     path: '/impressora',
     getParentRoute: () => AdminConfiguracoesRoute,
   } as any)
+const AdminConfiguracoesWhatsappRoute =
+  AdminConfiguracoesWhatsappRouteImport.update({
+    id: '/whatsapp',
+    path: '/whatsapp',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
 const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
   id: '/admin/cardapio/novo',
   path: '/admin/cardapio/novo',
@@ -516,6 +523,7 @@ export interface FileRoutesByFullPath {
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
+  '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
@@ -1441,6 +1449,13 @@ declare module '@tanstack/react-router' {
       path: '/impressora'
       fullPath: '/admin/configuracoes/impressora'
       preLoaderRoute: typeof AdminConfiguracoesImpressoraRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/whatsapp': {
+      id: '/admin/configuracoes/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/admin/configuracoes/whatsapp'
+      preLoaderRoute: typeof AdminConfiguracoesWhatsappRouteImport
       parentRoute: typeof AdminConfiguracoesRoute
     }
     '/admin/cardapio/novo': {

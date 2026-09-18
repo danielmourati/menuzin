@@ -183,7 +183,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
         },
       });
 
-      const redirectUrl = `${window.location.origin}/admin/dashboard`;
+      const redirectUrl = `${window.location.origin}/admin/pedidos`;
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: result.email,
@@ -205,7 +205,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
   const resendMut = useMutation({
     mutationFn: async () => {
-      const redirectUrl = `${window.location.origin}/admin/dashboard`;
+      const redirectUrl = `${window.location.origin}/admin/pedidos`;
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: pendingEmail,

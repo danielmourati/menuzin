@@ -205,6 +205,29 @@ export const assignDriverToOrder = createServerFn({ method: "POST" })
         });
       }
 
+      // Tenta notificar o entregador via Evolution API
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: driverRow } = await (supabase as any)
+          .from("drivers")
+          .select("phone")
+          .eq("id", data.driverId)
+          .maybeSingle();
+
+        if (driverRow?.phone) {
+          const { sendEvolutionTextMessage } = await import("@/lib/whatsapp/evolution-client.server");
+          const displayId = updatedOrder?.display_id ?? data.orderId.slice(0, 6);
+          const customerName = updatedOrder?.customer_name ?? "Cliente";
+          const msg = `🛵 *NOVA ENTREGA ATRIBUÍDA - PEDIDO #${displayId}*\n\n👤 Cliente: ${customerName}\n\nVocê foi atribuído a este pedido. Acesse o painel da loja para consultar o endereço e mapa completo de despacho.`;
+          await sendEvolutionTextMessage({
+            number: driverRow.phone,
+            text: msg,
+          });
+        }
+      } catch (evoErr) {
+        console.warn("[assignDriverToOrder] Notificação via Evolution API não enviada (não impeditivo):", evoErr);
+      }
+
       return { success: true, order: updatedOrder };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

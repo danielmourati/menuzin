@@ -82,12 +82,26 @@ export const sendWhatsappOtp = createServerFn({ method: "POST" })
 
     const whatsappLink = `https://wa.me/${phone.startsWith("55") ? phone : `55${phone}`}?text=${encodeURIComponent(message)}`;
 
+    // Tenta envio automático via Evolution API em background
+    let evolutionSent = false;
+    try {
+      const { sendEvolutionTextMessage } = await import("@/lib/whatsapp/evolution-client.server");
+      const evoResult = await sendEvolutionTextMessage({
+        number: phone,
+        text: message,
+      });
+      evolutionSent = evoResult.success;
+    } catch (err) {
+      console.warn("[sendWhatsappOtp] Tentativa de envio via Evolution API falhou, utilizando fallback wa.me:", err);
+    }
+
     return {
       success: true,
       whatsapp: phone,
       expiresAt,
       whatsappLink,
-      // Retorna em ambiente dev para facillitar testes
+      evolutionSent,
+      // Retorna em ambiente dev para facilitar testes
       code: process.env.NODE_ENV !== "production" ? code : undefined,
     };
   });

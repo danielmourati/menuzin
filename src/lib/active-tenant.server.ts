@@ -45,12 +45,24 @@ export async function resolveEffectiveTenantId(
     }
   }
 
-  const { data: profile } = await sb
+  const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("tenant_id")
     .eq("id", userId)
     .maybeSingle();
-  const tenantId = profile?.tenant_id as string | null | undefined;
+  let tenantId = profile?.tenant_id as string | null | undefined;
+
+  // Fallback para user_roles caso o profile ainda não esteja sincronizado
+  if (!tenantId) {
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    tenantId = roleRow?.tenant_id as string | null | undefined;
+  }
+
   if (!tenantId) throw new Error("Usuário sem loja vinculada.");
   return { tenantId, isPlatformAdmin, isImpersonating: false };
 }

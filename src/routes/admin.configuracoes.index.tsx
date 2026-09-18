@@ -233,6 +233,7 @@ function SettingsPage() {
               <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
               <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
               <TabsTrigger value="impressora">Impressora</TabsTrigger>
+              <TabsTrigger value="whatsapp">WhatsApp API</TabsTrigger>
               <TabsTrigger value="entrega">Entrega</TabsTrigger>
               <TabsTrigger value="redes">Redes sociais</TabsTrigger>
               <TabsTrigger value="link">Link público</TabsTrigger>
@@ -381,6 +382,18 @@ function SettingsPage() {
               </div>
             </TabsContent>
 
+            <TabsContent value="whatsapp" className="mt-6 space-y-4">
+              <div className="max-w-2xl mx-auto text-center space-y-4 py-4">
+                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                  Configure a integração com a <strong>Evolution API</strong> para envio automático de OTPs, alertas de pedidos e despacho de entregadores sem risco de banimento.
+                </p>
+                <div className="pt-2">
+                  <Button asChild className="h-11 px-6 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">
+                    <Link to={"/admin/configuracoes/whatsapp" as never}>Configurar WhatsApp API</Link>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
 
             <TabsContent value="entrega" className="mt-6 grid gap-3 md:grid-cols-2">
               <Row label="Aceita entrega" value={form.accepts_delivery} onChange={(v) => set("accepts_delivery", v)} />
