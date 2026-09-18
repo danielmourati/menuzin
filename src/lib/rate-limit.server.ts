@@ -24,9 +24,9 @@ function lazyCleanup(now: number): void {
   }
 }
 
-export function getClientIp(): string {
+export function getClientIp(requestParam?: Request): string {
   try {
-    const request = getRequest();
+    const request = requestParam || getRequest();
     if (!request?.headers) return "127.0.0.1";
     const forwarded = request.headers.get("x-forwarded-for");
     if (forwarded) {
@@ -174,4 +174,17 @@ export function consumeRateLimit(options: RateLimitOptions): RateLimitCheckResul
  */
 export function clearRateLimit(key: string): void {
   store.delete(key);
+}
+
+/**
+ * Navigation anomaly & scraping rate limit protection per IP.
+ * Maximum 120 requests per minute per IP. Blocked for 15 minutes if exceeded.
+ */
+export function checkNavigationAnomalyRateLimit(ip: string): RateLimitCheckResult {
+  return consumeRateLimit({
+    key: `nav_anomaly:${ip}`,
+    maxAttempts: 120,
+    windowSeconds: 60,
+    blockDurationSeconds: 15 * 60,
+  });
 }

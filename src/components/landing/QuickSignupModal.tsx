@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -32,8 +33,7 @@ import { signupPresencaTenant } from "@/lib/signup.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordInput } from "@/components/ui/password-input";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABELS, type BusinessType } from "@/lib/business-types";
-import { useNavigate } from "@tanstack/react-router";
-import { formatErrorMessage } from "@/lib/error-translator";
+import { isDisposableEmail } from "@/lib/disposable-emails";
 
 export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const navigate = useNavigate();
@@ -148,6 +148,9 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
     if (whatsapp.replace(/\D/g, "").length < 10) return toast.error("Informe um WhatsApp válido com DDD.");
     if (!businessName.trim()) return toast.error("Informe o nome do seu negócio.");
     if (!emailValid) return toast.error("Informe um e-mail válido.");
+    if (isDisposableEmail(email)) {
+      return toast.error("Domínios de e-mail temporários não são permitidos. Use um e-mail corporativo ou pessoal real.");
+    }
     if (password.length < 8) return toast.error("A senha deve ter no mínimo 8 caracteres.");
     if (!acceptTerms) return toast.error("Aceite os termos para continuar.");
 
@@ -197,7 +200,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       setPendingEmail(result.email);
       toast.success("Cadastro realizado com sucesso! Verifique seu e-mail.");
     },
-    onError: (e: Error) => toast.error(formatErrorMessage(e)),
+    onError: (e: Error) => toast.error(e.message || "Ocorreu um erro ao realizar o cadastro."),
   });
 
   const resendMut = useMutation({
@@ -211,7 +214,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
       if (error) throw new Error(error.message);
     },
     onSuccess: () => toast.success("E-mail de confirmação reenviado."),
-    onError: (e: Error) => toast.error(formatErrorMessage(e)),
+    onError: (e: Error) => toast.error(e.message || "Ocorreu um erro ao reenviar o e-mail."),
   });
 
   const handleFinalSubmit = (e: React.FormEvent) => {

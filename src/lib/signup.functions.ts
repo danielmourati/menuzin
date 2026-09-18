@@ -15,6 +15,8 @@ import { slugify } from "@/lib/utils";
 import { BUSINESS_TYPES } from "@/lib/business-types";
 import { formatErrorMessage } from "@/lib/error-translator";
 
+import { isDisposableEmail } from "@/lib/disposable-emails";
+
 const SlugSchema = z
   .string()
   .min(3)
@@ -31,7 +33,14 @@ const SignupInput = z.object({
   address: z.string().trim().max(240).optional().default(""),
   neighborhood: z.string().trim().max(80).optional().default(""),
   cep: z.string().trim().max(9).optional().default(""),
-  email: z.string().trim().email().max(160),
+  email: z
+    .string()
+    .trim()
+    .email("E-mail inválido.")
+    .max(160)
+    .refine((e) => !isDisposableEmail(e), {
+      message: "E-mails temporários/descartáveis não são permitidos. Use um e-mail corporativo ou pessoal real.",
+    }),
   password: z.string().min(8).max(72),
   full_name: z.string().trim().max(120).optional().default(""),
   business_type: z.enum(BUSINESS_TYPES).optional().default("restaurante"),

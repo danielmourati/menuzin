@@ -71,5 +71,13 @@ export default defineConfig({
         entities: path.resolve(__dirname, "node_modules/entities"),
       },
     },
+    build: {
+      sourcemap: false,
+      minify: "esbuild",
+      cssMinify: true,
+    },
+    esbuild: {
+      drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
+    },
   },
 });

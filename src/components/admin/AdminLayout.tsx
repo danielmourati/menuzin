@@ -17,6 +17,9 @@ import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
 import { computeStoreOpen } from "@/lib/store-hours";
 import { toast } from "sonner";
 import { PrinterStatusIndicator } from "@/components/admin/PrinterStatusIndicator";
+import { getWhatsappVerificationStatus } from "@/lib/otp.functions";
+import { WhatsappOtpModal } from "@/components/admin/WhatsappOtpModal";
+import { ShieldAlert } from "lucide-react";
 
 
 const sections = [
@@ -362,6 +365,7 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
         <div className="flex flex-1 flex-col min-w-0 h-screen overflow-y-auto">
           <ImpersonationBanner />
           <SubscriptionAlertBanner />
+          <WhatsappUnverifiedBanner />
           <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
@@ -437,6 +441,50 @@ function ImpersonationBanner() {
         <X className="mr-1 h-4 w-4" /> Sair da loja
       </Button>
     </div>
+  );
+}
+
+function WhatsappUnverifiedBanner() {
+  const { isPlatformAdmin, profile } = useAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+  const qc = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ["whatsapp-status", profile?.tenant_id ?? "none"],
+    queryFn: () => getWhatsappVerificationStatus(),
+    enabled: !isPlatformAdmin && !!profile?.tenant_id,
+  });
+
+  if (isPlatformAdmin || !data || data.verified) return null;
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2 border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-xs font-medium text-amber-900 dark:text-amber-200 lg:px-8">
+        <div className="flex items-center gap-2 truncate">
+          <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
+          <span className="truncate">
+            <strong>WhatsApp não verificado:</strong> confirme o seu número para garantir a segurança da loja.
+          </span>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setModalOpen(true)}
+          className="h-7 text-xs font-semibold bg-background border-amber-500/40 hover:bg-amber-500/20 shrink-0"
+        >
+          Validar WhatsApp
+        </Button>
+      </div>
+
+      <WhatsappOtpModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ["whatsapp-status"] });
+        }}
+        whatsappNumber={data.whatsapp}
+      />
+    </>
   );
 }
 
