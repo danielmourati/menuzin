@@ -633,6 +633,51 @@ export type Database = {
           },
         ]
       }
+      drivers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          phone: string
+          tenant_id: string
+          vehicle: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          phone: string
+          tenant_id: string
+          vehicle?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string
+          tenant_id?: string
+          vehicle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "drivers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1227,6 +1272,8 @@ export type Database = {
           delivery_fee_source: string | null
           delivery_neighborhood_snapshot: string | null
           discount_amount: number
+          driver_id: string | null
+          driver_name: string | null
           id: string
           mode: Database["public"]["Enums"]["order_mode"]
           mp_payment_id: string | null
@@ -1260,6 +1307,8 @@ export type Database = {
           delivery_fee_source?: string | null
           delivery_neighborhood_snapshot?: string | null
           discount_amount?: number
+          driver_id?: string | null
+          driver_name?: string | null
           id?: string
           mode: Database["public"]["Enums"]["order_mode"]
           mp_payment_id?: string | null
@@ -1293,6 +1342,8 @@ export type Database = {
           delivery_fee_source?: string | null
           delivery_neighborhood_snapshot?: string | null
           discount_amount?: number
+          driver_id?: string | null
+          driver_name?: string | null
           id?: string
           mode?: Database["public"]["Enums"]["order_mode"]
           mp_payment_id?: string | null
@@ -1317,6 +1368,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
             referencedColumns: ["id"]
           },
           {

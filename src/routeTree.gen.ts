@@ -71,11 +71,11 @@ import { Route as ApiPublicMpOrderWebhookRouteImport } from './routes/api.public
 import { Route as ApiPublicMpOauthCallbackRouteImport } from './routes/api.public.mp-oauth-callback'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
 import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
+import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
 import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
 import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
-import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
 import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
 import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -399,6 +399,12 @@ const ApiPublicGuiaClickRoute = ApiPublicGuiaClickRouteImport.update({
   path: '/api/public/guia-click',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminConfiguracoesWhatsappRoute =
+  AdminConfiguracoesWhatsappRouteImport.update({
+    id: '/whatsapp',
+    path: '/whatsapp',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
 const AdminConfiguracoesPromocaoRoute =
   AdminConfiguracoesPromocaoRouteImport.update({
     id: '/promocao',
@@ -421,12 +427,6 @@ const AdminConfiguracoesImpressoraRoute =
   AdminConfiguracoesImpressoraRouteImport.update({
     id: '/impressora',
     path: '/impressora',
-    getParentRoute: () => AdminConfiguracoesRoute,
-  } as any)
-const AdminConfiguracoesWhatsappRoute =
-  AdminConfiguracoesWhatsappRouteImport.update({
-    id: '/whatsapp',
-    path: '/whatsapp',
     getParentRoute: () => AdminConfiguracoesRoute,
   } as any)
 const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
@@ -523,10 +523,10 @@ export interface FileRoutesByFullPath {
   '/$slug/acompanhar/$orderId': typeof SlugAcompanharOrderIdRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/configuracoes/impressora': typeof AdminConfiguracoesImpressoraRoute
-  '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
@@ -575,6 +575,7 @@ export interface FileRoutesByTo {
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/diretorio': typeof AdminDiretorioRoute
+  '/admin/entregadores': typeof AdminEntregadoresRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -600,6 +601,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
@@ -650,6 +652,7 @@ export interface FileRoutesById {
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/diretorio': typeof AdminDiretorioRoute
+  '/admin/entregadores': typeof AdminEntregadoresRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
@@ -676,6 +679,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/pagamentos': typeof AdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
+  '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
@@ -754,6 +758,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/admin/configuracoes/whatsapp'
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
@@ -828,6 +833,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/admin/configuracoes/whatsapp'
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
@@ -904,6 +910,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
+    | '/admin/configuracoes/whatsapp'
     | '/api/public/guia-click'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
@@ -1199,18 +1206,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/diretorio': {
-      id: '/admin/diretorio'
-      path: '/admin/diretorio'
-      fullPath: '/admin/diretorio'
-      preLoaderRoute: typeof AdminDiretorioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin/entregadores': {
       id: '/admin/entregadores'
       path: '/admin/entregadores'
       fullPath: '/admin/entregadores'
       preLoaderRoute: typeof AdminEntregadoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/diretorio': {
+      id: '/admin/diretorio'
+      path: '/admin/diretorio'
+      fullPath: '/admin/diretorio'
+      preLoaderRoute: typeof AdminDiretorioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/dashboard': {
@@ -1423,6 +1430,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicGuiaClickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/configuracoes/whatsapp': {
+      id: '/admin/configuracoes/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/admin/configuracoes/whatsapp'
+      preLoaderRoute: typeof AdminConfiguracoesWhatsappRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
     '/admin/configuracoes/promocao': {
       id: '/admin/configuracoes/promocao'
       path: '/promocao'
@@ -1449,13 +1463,6 @@ declare module '@tanstack/react-router' {
       path: '/impressora'
       fullPath: '/admin/configuracoes/impressora'
       preLoaderRoute: typeof AdminConfiguracoesImpressoraRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
-    }
-    '/admin/configuracoes/whatsapp': {
-      id: '/admin/configuracoes/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/admin/configuracoes/whatsapp'
-      preLoaderRoute: typeof AdminConfiguracoesWhatsappRouteImport
       parentRoute: typeof AdminConfiguracoesRoute
     }
     '/admin/cardapio/novo': {
@@ -1542,6 +1549,7 @@ interface AdminConfiguracoesRouteChildren {
   AdminConfiguracoesPagamentosRoute: typeof AdminConfiguracoesPagamentosRoute
   AdminConfiguracoesPedidosRoute: typeof AdminConfiguracoesPedidosRoute
   AdminConfiguracoesPromocaoRoute: typeof AdminConfiguracoesPromocaoRoute
+  AdminConfiguracoesWhatsappRoute: typeof AdminConfiguracoesWhatsappRoute
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
 }
 
@@ -1550,6 +1558,7 @@ const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
   AdminConfiguracoesPagamentosRoute: AdminConfiguracoesPagamentosRoute,
   AdminConfiguracoesPedidosRoute: AdminConfiguracoesPedidosRoute,
   AdminConfiguracoesPromocaoRoute: AdminConfiguracoesPromocaoRoute,
+  AdminConfiguracoesWhatsappRoute: AdminConfiguracoesWhatsappRoute,
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
 }
 
