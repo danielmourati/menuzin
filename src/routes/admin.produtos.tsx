@@ -600,7 +600,7 @@ function ProductsPage() {
       {/* Main Product Create/Edit Dialog */}
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
-          className="max-h-[90vh] max-w-2xl overflow-y-auto"
+          className="max-h-[92vh] max-w-5xl overflow-y-auto"
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -623,258 +623,301 @@ function ProductsPage() {
             />
           )}
           {editing && !isPizzaCategory && (
-            <Tabs defaultValue="geral">
-              <TabsList className={`grid w-full ${isPizzaria ? "grid-cols-3" : "grid-cols-2"}`}>
-                <TabsTrigger value="geral">Geral</TabsTrigger>
-                <TabsTrigger value="adicionais">
-                  Observações & Adicionais
-                  {selectedGroupIds.length > 0 && (
-                    <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px] font-extrabold bg-primary/20 text-primary">
-                      {selectedGroupIds.length}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                {isPizzaria && <TabsTrigger value="tamanhos" disabled={!editing.id}>Tamanhos</TabsTrigger>}
-              </TabsList>
+            <div className="space-y-4 pt-1">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {/* LADO ESQUERDO: Dados do Produto */}
+                <div className="space-y-3.5 rounded-xl border p-4 bg-muted/10">
+                  <h4 className="font-semibold text-sm text-foreground flex items-center gap-1.5 border-b pb-2">
+                    <Package className="h-4 w-4 text-primary" /> Dados Principais
+                  </h4>
 
-              <TabsContent value="geral" className="mt-4 space-y-3">
-                <div><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" /></div>
-                <div><Label>Categoria</Label>
-                  <Select value={editing.category_id ?? ""} onValueChange={(v) => {
-                    const cat = categories.find((c) => c.id === v);
-                    setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
-                  }}>
-                    <SelectTrigger className="mt-1.5"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {categories.filter((c) => c.kind !== "pizza").map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                      {pizzaCatIds.size > 0 && (
-                        <>
-                          <div className="px-2 pt-2 pb-1 text-xs font-semibold text-muted-foreground">🍕 Pizza</div>
-                          {categories.filter((c) => c.kind === "pizza").map((c) => (
-                            <SelectItem key={c.id} value={c.id}>&nbsp;&nbsp;↳ {c.name}</SelectItem>
-                          ))}
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
-                <ImageUploader
-                  label="Foto do produto"
-                  value={editing.image_url}
-                  onChange={(url) => setEditing({ ...editing, image_url: url })}
-                  folder="produtos"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Preço base</Label><CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1.5" /></div>
-                  <div><Label>Preço promo (opcional)</Label><CurrencyInput value={editing.promo_price ?? 0} onChange={(v) => setEditing({ ...editing, promo_price: v > 0 ? v : null })} className="mt-1.5" /></div>
-                </div>
-                <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 25 min" /></div>
-                <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
-                <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
-                <div className="flex items-center justify-between rounded-xl border p-3"><Label>🔥 Mais vendido</Label><Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} /></div>
-                <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
-                <DialogFooter className="pt-3">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
-                  <Button onClick={save} disabled={saveMut.isPending}>
-                    {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-                  </Button>
-                </DialogFooter>
-              </TabsContent>
-
-              <TabsContent value="adicionais" className="mt-4 space-y-4">
-                {/* Grupos de Observação */}
-                <div className="rounded-xl border p-4 bg-card space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                        <MessageSquare className="h-4 w-4 text-primary" /> Grupos de Observação
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Perguntas ou opções personalizadas que o cliente escolhe (ex: Ponto da carne, Sem salada).
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs gap-1"
-                      onClick={() => openInlineGroupModal("observacao")}
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Criar novo grupo
-                    </Button>
+                  <div>
+                    <Label className="text-xs font-semibold">Nome do Produto</Label>
+                    <Input
+                      value={editing.name}
+                      onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                      className="mt-1"
+                      placeholder="Ex: X-Salada Bacon"
+                    />
                   </div>
 
-                  {obsGroups.length === 0 ? (
-                    <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
-                      <p className="text-xs text-muted-foreground font-medium">Nenhum grupo de observações cadastrado ainda.</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Ponto da carne", "Remover ingredientes".</p>
+                  <div>
+                    <Label className="text-xs font-semibold">Categoria</Label>
+                    <Select
+                      value={editing.category_id ?? ""}
+                      onValueChange={(v) => {
+                        const cat = categories.find((c) => c.id === v);
+                        setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
+                      }}
+                    >
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+                      <SelectContent>
+                        {categories.filter((c) => c.kind !== "pizza").map((c) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                        {pizzaCatIds.size > 0 && (
+                          <>
+                            <div className="px-2 pt-2 pb-1 text-xs font-semibold text-muted-foreground">🍕 Pizza</div>
+                            {categories.filter((c) => c.kind === "pizza").map((c) => (
+                              <SelectItem key={c.id} value={c.id}>&nbsp;&nbsp;↳ {c.name}</SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">Descrição</Label>
+                    <Textarea
+                      value={editing.description}
+                      onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                      className="mt-1 text-xs"
+                      rows={3}
+                      placeholder="Ex: Pão brioche, hambúrguer 160g, queijo prato, alface, tomate..."
+                    />
+                  </div>
+
+                  <ImageUploader
+                    label="Foto do produto"
+                    value={editing.image_url}
+                    onChange={(url) => setEditing({ ...editing, image_url: url })}
+                    folder="produtos"
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-semibold">Preço base</Label>
+                      <CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Preço promo (opcional)</Label>
+                      <CurrencyInput value={editing.promo_price ?? 0} onChange={(v) => setEditing({ ...editing, promo_price: v > 0 ? v : null })} className="mt-1" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">Tempo de preparo</Label>
+                    <Input
+                      value={editing.prep_time ?? ""}
+                      onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })}
+                      className="mt-1"
+                      placeholder="Ex: 25 min"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">Disponível</Label>
+                      <Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">Em destaque</Label>
+                      <Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">🔥 Mais vendido</Label>
+                      <Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">Aceita observação</Label>
+                      <Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} />
+                    </div>
+                  </div>
+
+                  {isPizzaria && currentProduct && (
+                    <div className="border-t pt-3 mt-2">
+                      <h4 className="font-semibold text-xs text-muted-foreground mb-2">Tamanhos (Pizzaria)</h4>
+                      <SizesEditor
+                        productId={currentProduct.id}
+                        sizes={currentProduct.sizes ?? []}
+                        onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "products"] })}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* LADO DIREITO: Observações e Complementos */}
+                <div className="space-y-4">
+                  {/* Grupos de Observação */}
+                  <div className="rounded-xl border p-4 bg-card space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                          <MessageSquare className="h-4 w-4 text-primary" /> Grupos de Observação
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Perguntas/opções que o cliente escolhe (ex: Ponto da carne).
+                        </p>
+                      </div>
                       <Button
                         type="button"
                         size="sm"
-                        variant="secondary"
-                        className="mt-2.5 h-7 text-xs gap-1"
+                        variant="outline"
+                        className="h-8 text-xs gap-1 shrink-0"
                         onClick={() => openInlineGroupModal("observacao")}
                       >
-                        <Plus className="h-3 w-3" /> + Cadastrar primeiro grupo
+                        <Plus className="h-3.5 w-3.5" /> Criar novo grupo
                       </Button>
                     </div>
-                  ) : (
-                    <div className="grid gap-2 pt-1">
-                      {obsGroups.map((g) => {
-                        const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
-                        const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
-                        const optionsText = g.options.map((o) => o.name).join(", ");
-                        return (
-                          <label
-                            key={g.id}
-                            className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
-                              isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
-                            }`}
-                          >
-                            <Checkbox
-                              checked={isChecked}
-                              disabled={isCategoryTarget}
-                              onCheckedChange={(v) => {
-                                if (isCategoryTarget) return;
-                                setSelectedGroupIds((prev) =>
-                                  v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
-                                );
-                              }}
-                              className="mt-0.5"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">{g.name}</span>
-                                {g.required ? (
-                                  <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="h-4 text-[10px] px-1 text-muted-foreground">Opcional</Badge>
-                                )}
-                                {isCategoryTarget && (
-                                  <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+
+                    {obsGroups.length === 0 ? (
+                      <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
+                        <p className="text-xs text-muted-foreground font-medium">Nenhum grupo de observações cadastrado ainda.</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Ponto da carne", "Remover ingredientes".</p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="mt-2.5 h-7 text-xs gap-1"
+                          onClick={() => openInlineGroupModal("observacao")}
+                        >
+                          <Plus className="h-3 w-3" /> + Cadastrar primeiro grupo
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
+                        {obsGroups.map((g) => {
+                          const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
+                          const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
+                          const optionsText = g.options.map((o) => o.name).join(", ");
+                          return (
+                            <label
+                              key={g.id}
+                              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
+                                isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                              }`}
+                            >
+                              <Checkbox
+                                checked={isChecked}
+                                disabled={isCategoryTarget}
+                                onCheckedChange={(v) => {
+                                  if (isCategoryTarget) return;
+                                  setSelectedGroupIds((prev) =>
+                                    v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
+                                  );
+                                }}
+                                className="mt-0.5"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm">{g.name}</span>
+                                  {g.required ? (
+                                    <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="h-4 text-[10px] px-1 text-muted-foreground">Opcional</Badge>
+                                  )}
+                                  {isCategoryTarget && (
+                                    <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+                                  )}
+                                </div>
+                                {optionsText && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    Opções: {optionsText}
+                                  </p>
                                 )}
                               </div>
-                              {optionsText && (
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                  Opções: {optionsText}
-                                </p>
-                              )}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* Subcategorias de Adicionais */}
-                <div className="rounded-xl border p-4 bg-card space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                        <Layers className="h-4 w-4 text-primary" /> Subcategorias de Adicionais
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Itens complementares que o cliente pode adicionar ao comprar este produto.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 text-xs gap-1"
-                      onClick={() => openInlineGroupModal("adicional")}
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Criar nova subcategoria
-                    </Button>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  {addonSubcats.length === 0 ? (
-                    <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
-                      <p className="text-xs text-muted-foreground font-medium">Nenhuma subcategoria de adicionais cadastrada ainda.</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Molhos Extras", "Bebidas 2L", "Acompanhamentos".</p>
+                  {/* Subcategorias de Adicionais */}
+                  <div className="rounded-xl border p-4 bg-card space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                          <Layers className="h-4 w-4 text-primary" /> Subcategorias de Adicionais
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Itens complementares cobrados que o cliente pode adicionar.
+                        </p>
+                      </div>
                       <Button
                         type="button"
                         size="sm"
-                        variant="secondary"
-                        className="mt-2.5 h-7 text-xs gap-1"
+                        variant="outline"
+                        className="h-8 text-xs gap-1 shrink-0"
                         onClick={() => openInlineGroupModal("adicional")}
                       >
-                        <Plus className="h-3 w-3" /> + Cadastrar primeira subcategoria
+                        <Plus className="h-3.5 w-3.5" /> Criar nova subcategoria
                       </Button>
                     </div>
-                  ) : (
-                    <div className="grid gap-2 pt-1">
-                      {addonSubcats.map((g) => {
-                        const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
-                        const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
-                        const optionsSummary = g.options
-                          .map((o) => `${o.name} (${o.price > 0 ? brl(o.price) : "Grátis"})`)
-                          .join(", ");
-                        return (
-                          <label
-                            key={g.id}
-                            className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
-                              isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
-                            }`}
-                          >
-                            <Checkbox
-                              checked={isChecked}
-                              disabled={isCategoryTarget}
-                              onCheckedChange={(v) => {
-                                if (isCategoryTarget) return;
-                                setSelectedGroupIds((prev) =>
-                                  v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
-                                );
-                              }}
-                              className="mt-0.5"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">{g.name}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({g.min_select} a {g.max_select} itens)
-                                </span>
-                                {isCategoryTarget && (
-                                  <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+
+                    {addonSubcats.length === 0 ? (
+                      <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
+                        <p className="text-xs text-muted-foreground font-medium">Nenhuma subcategoria de adicionais cadastrada ainda.</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Molhos Extras", "Bebidas 2L", "Acompanhamentos".</p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="mt-2.5 h-7 text-xs gap-1"
+                          onClick={() => openInlineGroupModal("adicional")}
+                        >
+                          <Plus className="h-3 w-3" /> + Cadastrar primeira subcategoria
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
+                        {addonSubcats.map((g) => {
+                          const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
+                          const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
+                          const optionsSummary = g.options
+                            .map((o) => `${o.name} (${o.price > 0 ? brl(o.price) : "Grátis"})`)
+                            .join(", ");
+                          return (
+                            <label
+                              key={g.id}
+                              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
+                                isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                              }`}
+                            >
+                              <Checkbox
+                                checked={isChecked}
+                                disabled={isCategoryTarget}
+                                onCheckedChange={(v) => {
+                                  if (isCategoryTarget) return;
+                                  setSelectedGroupIds((prev) =>
+                                    v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
+                                  );
+                                }}
+                                className="mt-0.5"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-sm">{g.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({g.min_select} a {g.max_select} itens)
+                                  </span>
+                                  {isCategoryTarget && (
+                                    <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+                                  )}
+                                </div>
+                                {optionsSummary && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    Itens: {optionsSummary}
+                                  </p>
                                 )}
                               </div>
-                              {optionsSummary && (
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                  Itens: {optionsSummary}
-                                </p>
-                              )}
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <DialogFooter className="pt-3">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
-                  <Button onClick={save} disabled={saveMut.isPending}>
-                    {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-                  </Button>
-                </DialogFooter>
-              </TabsContent>
-
-              {isPizzaria && (
-                <TabsContent value="tamanhos" className="mt-4">
-                  {currentProduct && (
-                    <SizesEditor
-                      productId={currentProduct.id}
-                      sizes={currentProduct.sizes ?? []}
-                      onChanged={() => qc.invalidateQueries({ queryKey: ["admin", "products"] })}
-                    />
-                  )}
-                </TabsContent>
-              )}
-            </Tabs>
+              <DialogFooter className="pt-3 border-t mt-4">
+                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button onClick={save} disabled={saveMut.isPending} className="px-6">
+                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Produto"}
+                </Button>
+              </DialogFooter>
+            </div>
           )}
         </DialogContent>
       </Dialog>
