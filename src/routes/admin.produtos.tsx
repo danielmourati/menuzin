@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import {
   listMyCategories, listMyProducts, saveProduct, deleteProduct, toggleProductAvailable,
   saveProductSize, deleteProductSize, saveProductFlavor, deleteProductFlavor,
-  listCategoryPizzaConfig,
+  listCategoryPizzaConfig, listAddonGroups, saveAddonGroup, saveAddonOption, setAddonGroupTargets,
 } from "@/lib/catalog-admin.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
 
@@ -78,8 +78,12 @@ function ProductsPage() {
     enabled: hasTenant,
     retry: false,
   });
-
-
+  const addonGroupsQ = useQuery({
+    queryKey: ["admin", "addon-groups"],
+    queryFn: async () => (await listAddonGroups()).groups,
+    enabled: hasTenant,
+    retry: false,
+  });
 
   const search = Route.useSearch();
   const [showTutorial, setShowTutorial] = useState(false);
@@ -95,9 +99,27 @@ function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [editing, setEditing] = useState<Editing | null>(null);
   const [open, setOpen] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+
+  // States for inline creation of observation/addon groups
+  const [inlineGroupOpen, setInlineGroupOpen] = useState(false);
+  const [inlineGroupKind, setInlineGroupKind] = useState<"observacao" | "adicional">("observacao");
+  const [inlineGroupName, setInlineGroupName] = useState("");
+  const [inlineGroupRequired, setInlineGroupRequired] = useState(false);
+  const [inlineGroupMin, setInlineGroupMin] = useState(0);
+  const [inlineGroupMax, setInlineGroupMax] = useState(1);
+  const [inlineOptions, setInlineOptions] = useState<{ name: string; price: number }[]>([]);
+  const [newOptName, setNewOptName] = useState("");
+  const [newOptPrice, setNewOptPrice] = useState(0);
+  const [isSavingInline, setIsSavingInline] = useState(false);
 
   const products = productsQ.data ?? [];
   const categories = categoriesQ.data ?? [];
+  const addonGroups = addonGroupsQ.data ?? [];
+
+  const obsGroups = useMemo(() => addonGroups.filter((g) => g.kind === "observacao"), [addonGroups]);
+  const addonSubcats = useMemo(() => addonGroups.filter((g) => g.kind === "adicional"), [addonGroups]);
+
   const currentProduct = useMemo(
     () => (editing?.id ? products.find((p) => p.id === editing.id) ?? null : null),
     [products, editing?.id],
@@ -128,14 +150,6 @@ function ProductsPage() {
     setSelectedProductIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedProductIds.length === filtered.length) {
-      setSelectedProductIds([]);
-    } else {
-      setSelectedProductIds(filtered.map((p) => p.id));
-    }
   };
 
   const handleBatchToggleAvailable = async (available: boolean) => {
@@ -176,13 +190,36 @@ function ProductsPage() {
   };
 
   const saveMut = useMutation({
-    mutationFn: (input: Editing) => {
-      // Força type='pizza' se a categoria for de pizza
+    mutationFn: async (input: Editing) => {
       const payload: Editing = isPizzaCategory ? { ...input, type: "pizza" } : input;
-      return saveProduct({ data: payload });
+      const res = await saveProduct({ data: payload });
+      const pid = res.id;
+
+      // Synchronize addon group targets for selected/unselected groups
+      for (const g of addonGroups) {
+        const isTargeted = selectedGroupIds.includes(g.id);
+        const currentCategoryIds = g.targets.filter((t) => t.category_id).map((t) => t.category_id as string);
+        const currentProductIds = g.targets.filter((t) => t.product_id).map((t) => t.product_id as string);
+        const hasProduct = currentProductIds.includes(pid);
+
+        if (isTargeted && !hasProduct) {
+          const nextPids = [...currentProductIds, pid];
+          await setAddonGroupTargets({
+            data: { group_id: g.id, category_ids: currentCategoryIds, product_ids: nextPids },
+          });
+        } else if (!isTargeted && hasProduct) {
+          const nextPids = currentProductIds.filter((id) => id !== pid);
+          await setAddonGroupTargets({
+            data: { group_id: g.id, category_ids: currentCategoryIds, product_ids: nextPids },
+          });
+        }
+      }
+
+      return res;
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
       toast.success("Produto salvo");
       if (editing && !editing.id) setEditing({ ...editing, id: res.id });
     },
@@ -206,7 +243,6 @@ function ProductsPage() {
   const navigate = useNavigate();
   const openNew = () => {
     if (categories.length === 0) {
-      // Sem categorias → assistente guiado (cria categoria e produto no fluxo).
       navigate({ to: "/admin/cardapio/novo" });
       return;
     }
@@ -218,7 +254,85 @@ function ProductsPage() {
       listed_as_flavor: categories[0]?.kind === "pizza" ? null : null,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     });
+    setSelectedGroupIds([]);
     setOpen(true);
+  };
+
+  const openEditProduct = (p: typeof products[number]) => {
+    setEditing({
+      id: p.id, name: p.name, description: p.description ?? "",
+      category_id: p.category_id, price: Number(p.price),
+      promo_price: p.promo_price != null ? Number(p.promo_price) : null,
+      image_url: p.image_url ?? "", available: p.available, featured: p.featured, bestseller: (p as { bestseller?: boolean }).bestseller ?? false,
+      prep_time: p.prep_time ?? null, sort_order: p.sort_order,
+      type: (p.type ?? "standard") as "standard" | "pizza",
+      max_flavors: p.max_flavors ?? null,
+      allow_observations: p.allow_observations ?? true,
+      listed_as_flavor: (p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? null,
+      free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
+      free_gift_ref_id: p.free_gift_ref_id ?? null,
+      free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
+    });
+    const initialGroupIds = addonGroups
+      .filter((g) => g.targets.some((t) => t.product_id === p.id))
+      .map((g) => g.id);
+    setSelectedGroupIds(initialGroupIds);
+    setOpen(true);
+  };
+
+  const openInlineGroupModal = (kind: "observacao" | "adicional") => {
+    setInlineGroupKind(kind);
+    setInlineGroupName("");
+    setInlineGroupRequired(kind === "observacao");
+    setInlineGroupMin(kind === "observacao" ? 1 : 0);
+    setInlineGroupMax(kind === "observacao" ? 1 : 5);
+    setInlineOptions([]);
+    setNewOptName("");
+    setNewOptPrice(0);
+    setInlineGroupOpen(true);
+  };
+
+  const handleSaveInlineGroup = async () => {
+    if (!inlineGroupName.trim()) {
+      toast.error("Nome do grupo é obrigatório");
+      return;
+    }
+    try {
+      setIsSavingInline(true);
+      const resGroup = await saveAddonGroup({
+        data: {
+          name: inlineGroupName.trim(),
+          kind: inlineGroupKind,
+          required: inlineGroupRequired,
+          min_select: inlineGroupMin,
+          max_select: inlineGroupMax,
+          active: true,
+          sort_order: 0,
+        },
+      });
+
+      for (let i = 0; i < inlineOptions.length; i++) {
+        const opt = inlineOptions[i];
+        await saveAddonOption({
+          data: {
+            group_id: resGroup.id,
+            name: opt.name,
+            price: opt.price,
+            active: true,
+            sort_order: i,
+          },
+        });
+      }
+
+      await qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      setSelectedGroupIds((prev) => [...prev, resGroup.id]);
+      toast.success(`${inlineGroupKind === "observacao" ? "Grupo de observação" : "Subcategoria de adicionais"} criado e vinculado!`);
+      setInlineGroupOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao criar grupo.");
+    } finally {
+      setIsSavingInline(false);
+    }
   };
 
   const save = () => {
@@ -323,12 +437,9 @@ function ProductsPage() {
             </CardContent>
           </Card>
 
-          {/* Popover de Modo Tutorial (Estilo Anexo 2 Mercado Livre) */}
           {showTutorial && (
             <div className="mt-3 md:mt-0 md:absolute md:-right-80 md:top-0 z-30 w-full md:w-72 p-4 rounded-2xl bg-blue-600 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-              {/* Seta do Balão de Fala em telas médias/grandes */}
               <div className="hidden md:block absolute -left-2.5 top-6 w-0 h-0 border-y-[8px] border-y-transparent border-r-[10px] border-r-blue-600" />
-              {/* Seta do Balão de Fala em telas pequenas */}
               <div className="block md:hidden absolute -top-2.5 left-8 w-0 h-0 border-x-[8px] border-x-transparent border-b-[10px] border-b-blue-600" />
 
               <h4 className="font-extrabold text-sm leading-snug">
@@ -361,7 +472,24 @@ function ProductsPage() {
             <Card><CardContent className="p-10 text-center text-destructive">{(productsQ.error as Error).message}</CardContent></Card>
           )}
           {!productsQ.isLoading && filtered.length === 0 && (
-            <Card><CardContent className="p-10 text-center text-muted-foreground">Nenhum produto.</CardContent></Card>
+            <Card className="border-dashed">
+              <CardContent className="p-10 text-center">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                  <Package className="h-7 w-7" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold">Nenhum produto cadastrado</h3>
+                <p className="mt-1 text-sm text-muted-foreground max-w-sm mx-auto">
+                  {q || catFilter !== "todas" || statusFilter !== "todos"
+                    ? "Nenhum produto encontrado para os filtros selecionados."
+                    : "Cadastre os pratos, bebidas ou sobremesas da sua loja para montar seu cardápio digital."}
+                </p>
+                <div className="mt-5 flex justify-center gap-2">
+                  <Button onClick={openNew} className="h-11 px-6">
+                    <Plus className="mr-1.5 h-4 w-4" /> Cadastrar primeiro produto
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
           {filtered.map((p, idx) => {
             const isSelected = selectedProductIds.includes(p.id);
@@ -412,23 +540,9 @@ function ProductsPage() {
                   >
                     <LinkIcon className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => {
-                    setEditing({
-                      id: p.id, name: p.name, description: p.description ?? "",
-                      category_id: p.category_id, price: Number(p.price),
-                      promo_price: p.promo_price != null ? Number(p.promo_price) : null,
-                      image_url: p.image_url ?? "", available: p.available, featured: p.featured, bestseller: (p as { bestseller?: boolean }).bestseller ?? false,
-                      prep_time: p.prep_time ?? null, sort_order: p.sort_order,
-                      type: (p.type ?? "standard") as "standard" | "pizza",
-                      max_flavors: p.max_flavors ?? null,
-                      allow_observations: p.allow_observations ?? true,
-                      listed_as_flavor: (p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? null,
-                      free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
-                      free_gift_ref_id: p.free_gift_ref_id ?? null,
-                      free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
-                    });
-                    setOpen(true);
-                  }}><Edit2 className="h-4 w-4" /></Button>
+                  <Button size="icon" variant="ghost" onClick={() => openEditProduct(p)}>
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
                   <Switch checked={p.available} onCheckedChange={(v) => toggleMut.mutate({ id: p.id, available: v })} />
                   <Button size="icon" variant="ghost" className="text-destructive"
                     onClick={async () => { if (await confirmDialog({ title: `Excluir "${p.name}"?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(p.id); }}>
@@ -483,6 +597,7 @@ function ProductsPage() {
         </div>
       )}
 
+      {/* Main Product Create/Edit Dialog */}
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           className="max-h-[90vh] max-w-2xl overflow-y-auto"
@@ -509,13 +624,18 @@ function ProductsPage() {
           )}
           {editing && !isPizzaCategory && (
             <Tabs defaultValue="geral">
-              {isPizzaria && (
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="geral">Geral</TabsTrigger>
-                  <TabsTrigger value="tamanhos" disabled={!editing.id}>Tamanhos</TabsTrigger>
-                </TabsList>
-              )}
-
+              <TabsList className={`grid w-full ${isPizzaria ? "grid-cols-3" : "grid-cols-2"}`}>
+                <TabsTrigger value="geral">Geral</TabsTrigger>
+                <TabsTrigger value="adicionais">
+                  Observações & Adicionais
+                  {selectedGroupIds.length > 0 && (
+                    <Badge variant="secondary" className="ml-1.5 h-4 px-1.5 text-[10px] font-extrabold bg-primary/20 text-primary">
+                      {selectedGroupIds.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                {isPizzaria && <TabsTrigger value="tamanhos" disabled={!editing.id}>Tamanhos</TabsTrigger>}
+              </TabsList>
 
               <TabsContent value="geral" className="mt-4 space-y-3">
                 <div><Label>Nome</Label><Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" /></div>
@@ -564,6 +684,185 @@ function ProductsPage() {
                 </DialogFooter>
               </TabsContent>
 
+              <TabsContent value="adicionais" className="mt-4 space-y-4">
+                {/* Grupos de Observação */}
+                <div className="rounded-xl border p-4 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                        <MessageSquare className="h-4 w-4 text-primary" /> Grupos de Observação
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Perguntas ou opções personalizadas que o cliente escolhe (ex: Ponto da carne, Sem salada).
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => openInlineGroupModal("observacao")}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Criar novo grupo
+                    </Button>
+                  </div>
+
+                  {obsGroups.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
+                      <p className="text-xs text-muted-foreground font-medium">Nenhum grupo de observações cadastrado ainda.</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Ponto da carne", "Remover ingredientes".</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="mt-2.5 h-7 text-xs gap-1"
+                        onClick={() => openInlineGroupModal("observacao")}
+                      >
+                        <Plus className="h-3 w-3" /> + Cadastrar primeiro grupo
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2 pt-1">
+                      {obsGroups.map((g) => {
+                        const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
+                        const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
+                        const optionsText = g.options.map((o) => o.name).join(", ");
+                        return (
+                          <label
+                            key={g.id}
+                            className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
+                              isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={isChecked}
+                              disabled={isCategoryTarget}
+                              onCheckedChange={(v) => {
+                                if (isCategoryTarget) return;
+                                setSelectedGroupIds((prev) =>
+                                  v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
+                                );
+                              }}
+                              className="mt-0.5"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">{g.name}</span>
+                                {g.required ? (
+                                  <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="h-4 text-[10px] px-1 text-muted-foreground">Opcional</Badge>
+                                )}
+                                {isCategoryTarget && (
+                                  <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+                                )}
+                              </div>
+                              {optionsText && (
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  Opções: {optionsText}
+                                </p>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Subcategorias de Adicionais */}
+                <div className="rounded-xl border p-4 bg-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                        <Layers className="h-4 w-4 text-primary" /> Subcategorias de Adicionais
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Itens complementares que o cliente pode adicionar ao comprar este produto.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => openInlineGroupModal("adicional")}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Criar nova subcategoria
+                    </Button>
+                  </div>
+
+                  {addonSubcats.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
+                      <p className="text-xs text-muted-foreground font-medium">Nenhuma subcategoria de adicionais cadastrada ainda.</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Molhos Extras", "Bebidas 2L", "Acompanhamentos".</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="mt-2.5 h-7 text-xs gap-1"
+                        onClick={() => openInlineGroupModal("adicional")}
+                      >
+                        <Plus className="h-3 w-3" /> + Cadastrar primeira subcategoria
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid gap-2 pt-1">
+                      {addonSubcats.map((g) => {
+                        const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
+                        const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
+                        const optionsSummary = g.options
+                          .map((o) => `${o.name} (${o.price > 0 ? brl(o.price) : "Grátis"})`)
+                          .join(", ");
+                        return (
+                          <label
+                            key={g.id}
+                            className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
+                              isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={isChecked}
+                              disabled={isCategoryTarget}
+                              onCheckedChange={(v) => {
+                                if (isCategoryTarget) return;
+                                setSelectedGroupIds((prev) =>
+                                  v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
+                                );
+                              }}
+                              className="mt-0.5"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm">{g.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({g.min_select} a {g.max_select} itens)
+                                </span>
+                                {isCategoryTarget && (
+                                  <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+                                )}
+                              </div>
+                              {optionsSummary && (
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  Itens: {optionsSummary}
+                                </p>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="pt-3">
+                  <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+                  <Button onClick={save} disabled={saveMut.isPending}>
+                    {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                  </Button>
+                </DialogFooter>
+              </TabsContent>
+
               {isPizzaria && (
                 <TabsContent value="tamanhos" className="mt-4">
                   {currentProduct && (
@@ -576,8 +875,136 @@ function ProductsPage() {
                 </TabsContent>
               )}
             </Tabs>
-
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Inline Modal for quick creation of Observation Groups or Addon Subcategories */}
+      <Dialog open={inlineGroupOpen} onOpenChange={setInlineGroupOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {inlineGroupKind === "observacao" ? "Novo Grupo de Observação" : "Nova Subcategoria de Adicionais"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div>
+              <Label className="text-xs font-semibold">Nome do Grupo</Label>
+              <Input
+                value={inlineGroupName}
+                onChange={(e) => setInlineGroupName(e.target.value)}
+                placeholder={inlineGroupKind === "observacao" ? "Ex: Ponto da carne" : "Ex: Molhos Extras"}
+                className="mt-1"
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border p-3">
+              <div>
+                <Label className="text-xs font-semibold">Preenchimento Obrigatório</Label>
+                <p className="text-[11px] text-muted-foreground">O cliente deve escolher ao menos 1 item.</p>
+              </div>
+              <Switch
+                checked={inlineGroupRequired}
+                onCheckedChange={(v) => {
+                  setInlineGroupRequired(v);
+                  if (v && inlineGroupMin === 0) setInlineGroupMin(1);
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Mínimo de escolhas</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={inlineGroupMin}
+                  onChange={(e) => setInlineGroupMin(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Máximo de escolhas</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={inlineGroupMax}
+                  onChange={(e) => setInlineGroupMax(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Options list inside inline modal */}
+            <div className="space-y-2 border-t pt-3">
+              <Label className="text-xs font-semibold">Opções do Grupo</Label>
+              {inlineOptions.length === 0 && (
+                <p className="text-xs text-muted-foreground italic">Nenhuma opção adicionada ainda.</p>
+              )}
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                {inlineOptions.map((opt, idx) => (
+                  <div key={idx} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-xs bg-muted/30">
+                    <span className="font-medium">{opt.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-semibold">{opt.price > 0 ? brl(opt.price) : "Grátis"}</span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive"
+                        onClick={() => setInlineOptions((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-end gap-2 pt-1">
+                <div className="flex-1">
+                  <Input
+                    value={newOptName}
+                    onChange={(e) => setNewOptName(e.target.value)}
+                    placeholder={inlineGroupKind === "observacao" ? "Ex: Ao ponto" : "Ex: Molho Especial"}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {inlineGroupKind === "adicional" && (
+                  <div className="w-24">
+                    <CurrencyInput
+                      value={newOptPrice}
+                      onChange={(v) => setNewOptPrice(v)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 text-xs gap-1"
+                  onClick={() => {
+                    if (!newOptName.trim()) return;
+                    setInlineOptions((prev) => [...prev, { name: newOptName.trim(), price: inlineGroupKind === "observacao" ? 0 : newOptPrice }]);
+                    setNewOptName("");
+                    setNewOptPrice(0);
+                  }}
+                  disabled={!newOptName.trim()}
+                >
+                  <Plus className="h-3 w-3" /> Adicionar
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setInlineGroupOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleSaveInlineGroup} disabled={isSavingInline || !inlineGroupName.trim()}>
+              {isSavingInline ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Criar e Vincular"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AdminLayout>

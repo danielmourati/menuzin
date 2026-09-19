@@ -201,10 +201,20 @@ function AdicionaisPage() {
           </CardContent></Card>
         )}
         {!groupsQ.isLoading && groups.length === 0 && (
-          <Card><CardContent className="p-10 text-center text-muted-foreground">
-            <Layers className="mx-auto mb-2 h-8 w-8 opacity-50" />
-            Nenhuma subcategoria criada ainda.
-          </CardContent></Card>
+          <Card className="border-dashed border-2">
+            <CardContent className="p-10 text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+                <Layers className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-base text-foreground mb-1">Nenhuma subcategoria de adicionais criada ainda</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mb-4">
+                Crie subcategorias para oferecer ingredientes extras, molhos, bebidas ou adicionais cobrados à parte no seu cardápio.
+              </p>
+              <Button onClick={() => openNew()} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+                <Plus className="h-4 w-4" /> Cadastrar primeira subcategoria
+              </Button>
+            </CardContent>
+          </Card>
         )}
         {groups.map((g, idx) => {
           const cats = g.targets.filter((t) => t.category_id).map((t) => catName.get(t.category_id as string)).filter(Boolean) as string[];

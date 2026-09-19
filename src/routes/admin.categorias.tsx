@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Loader2, Pizza, UtensilsCrossed, Settings2, Tag } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Pizza, UtensilsCrossed, Settings2, Tag, FolderTree } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
@@ -117,7 +117,18 @@ function CategoriesPage() {
           )}
           {error && <p className="p-8 text-center text-destructive">{(error as Error).message}</p>}
           {!isLoading && !error && list.length === 0 && (
-            <p className="p-8 text-center text-muted-foreground">Nenhuma categoria.</p>
+            <div className="p-10 text-center flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+                <FolderTree className="h-6 w-6" />
+              </div>
+              <h3 className="font-bold text-base text-foreground mb-1">Nenhuma categoria criada ainda</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mb-4">
+                Organize seu cardápio em seções como Lanches, Bebidas e Sobremesas para facilitar a navegação do seu cliente.
+              </p>
+              <Button onClick={() => setPickerOpen(true)} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
+                <Plus className="h-4 w-4" /> Criar primeira categoria
+              </Button>
+            </div>
           )}
           <ul className="divide-y">
             {list.map((c, idx) => (
