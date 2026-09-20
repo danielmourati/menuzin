@@ -35,6 +35,8 @@ export const Route = createFileRoute("/admin/adicionais")({
 });
 
 
+type DraftOption = { id?: string; name: string; price: number };
+
 type GroupDraft = {
   id?: string;
   name: string;
@@ -46,9 +48,8 @@ type GroupDraft = {
   sort_order: number;
   category_ids: string[];
   product_ids: string[];
+  options: DraftOption[];
 };
-
-type OptionDraft = { name: string; price: number };
 
 const moneyBR = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -57,13 +58,12 @@ function emptyDraft(): GroupDraft {
   return {
     name: "", description: "", required: false,
     min_select: 0, max_select: 10, active: true, sort_order: 0,
-    category_ids: [], product_ids: [],
+    category_ids: [], product_ids: [], options: [],
   };
 }
 
 function AdicionaisPage() {
   const qc = useQueryClient();
-  
 
   const groupsQ = useQuery({
     queryKey: ["admin", "addon-groups"],
@@ -96,11 +96,14 @@ function AdicionaisPage() {
 
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<GroupDraft | null>(null);
-  const [newOption, setNewOption] = useState<OptionDraft>({ name: "", price: 0 });
+  const [newOption, setNewOption] = useState<DraftOption>({ name: "", price: 0 });
+  const [catSearch, setCatSearch] = useState("");
+  const [prodSearch, setProdSearch] = useState("");
   const optInputRef = useRef<HTMLInputElement>(null);
 
   const saveMut = useMutation({
     mutationFn: async (d: GroupDraft) => {
+      // 1. Save group
       const res = await saveAddonGroup({
         data: {
           id: d.id, name: d.name, description: d.description,
@@ -109,15 +112,34 @@ function AdicionaisPage() {
           active: d.active, sort_order: d.sort_order,
         },
       });
+
+      // 2. Save targets
       await setAddonGroupTargets({
         data: { group_id: res.id, category_ids: d.category_ids, product_ids: d.product_ids },
       });
+
+      // 3. Save any new options that haven't been saved to DB yet
+      for (let i = 0; i < d.options.length; i++) {
+        const opt = d.options[i];
+        if (!opt.id) {
+          await saveAddonOption({
+            data: {
+              group_id: res.id,
+              name: opt.name,
+              price: opt.price,
+              active: true,
+              sort_order: i,
+            },
+          });
+        }
+      }
+
       return res;
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      toast.success("Subcategoria salva");
-      if (draft && !draft.id) setDraft({ ...draft, id: res.id });
+      toast.success("Subcategoria de adicionais salva com sucesso!");
+      setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -132,31 +154,11 @@ function AdicionaisPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const addOptionMut = useMutation({
-    mutationFn: (input: { group_id: string; name: string; price: number; sort_order: number }) =>
-      saveAddonOption({
-        data: {
-          group_id: input.group_id, name: input.name, price: input.price,
-          active: true, sort_order: input.sort_order,
-        },
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      setNewOption({ name: "", price: 0 });
-      setTimeout(() => optInputRef.current?.focus(), 50);
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const delOptionMut = useMutation({
-    mutationFn: (id: string) => deleteAddonOption({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const openNew = () => {
     setDraft(emptyDraft());
     setNewOption({ name: "", price: 0 });
+    setCatSearch("");
+    setProdSearch("");
     setOpen(true);
   };
 
@@ -172,14 +174,71 @@ function AdicionaisPage() {
       sort_order: g.sort_order,
       category_ids: g.targets.filter((t) => t.category_id).map((t) => t.category_id as string),
       product_ids: g.targets.filter((t) => t.product_id).map((t) => t.product_id as string),
+      options: g.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
     });
     setNewOption({ name: "", price: 0 });
+    setCatSearch("");
+    setProdSearch("");
     setOpen(true);
   };
 
-  const currentGroup = useMemo(
-    () => (draft?.id ? groups.find((g) => g.id === draft.id) ?? null : null),
-    [groups, draft?.id],
+  const handleAddOption = async () => {
+    if (!newOption.name.trim() || !draft) return;
+    const optName = newOption.name.trim();
+    const optPrice = newOption.price;
+
+    if (draft.id) {
+      try {
+        const res = await saveAddonOption({
+          data: {
+            group_id: draft.id,
+            name: optName,
+            price: optPrice,
+            active: true,
+            sort_order: draft.options.length,
+          },
+        });
+        setDraft((prev) =>
+          prev ? { ...prev, options: [...prev.options, { id: res.id, name: optName, price: optPrice }] } : prev
+        );
+        qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao adicionar opção");
+        return;
+      }
+    } else {
+      setDraft((prev) =>
+        prev ? { ...prev, options: [...prev.options, { name: optName, price: optPrice }] } : prev
+      );
+    }
+
+    setNewOption({ name: "", price: 0 });
+    setTimeout(() => optInputRef.current?.focus(), 50);
+  };
+
+  const handleRemoveOption = async (index: number, optId?: string) => {
+    if (optId) {
+      try {
+        await deleteAddonOption({ data: { id: optId } });
+        qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao remover opção");
+        return;
+      }
+    }
+    setDraft((prev) =>
+      prev ? { ...prev, options: prev.options.filter((_, i) => i !== index) } : prev
+    );
+  };
+
+  const filteredCategories = useMemo(
+    () => categories.filter((c) => c.name.toLowerCase().includes(catSearch.toLowerCase())),
+    [categories, catSearch]
+  );
+
+  const filteredProducts = useMemo(
+    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.toLowerCase())),
+    [products, prodSearch]
   );
 
   return (
@@ -265,219 +324,288 @@ function AdicionaisPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-4xl sm:max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{draft?.id ? "Editar subcategoria" : "Nova subcategoria de adicionais"}</DialogTitle>
+            <DialogTitle>{draft?.id ? "Editar subcategoria de adicionais" : "Nova subcategoria de adicionais"}</DialogTitle>
           </DialogHeader>
           {draft && (
             <div className="space-y-4">
-              <div>
-                <Label>Nome da subcategoria</Label>
-                <Input
-                  value={draft.name}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className="mt-1.5"
-                  placeholder="Ex.: Adicionais de Arroz, Saladas, Bebidas extras"
-                />
-              </div>
-
-              <div>
-                <Label>Instruções para o cliente (opcional)</Label>
-                <Textarea
-                  value={draft.description}
-                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  className="mt-1.5"
-                  placeholder="Ex.: Escolha porções extras para acompanhar"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-3 flex items-center justify-between rounded-xl border p-3">
-                  <Label>Obrigatório</Label>
-                  <Switch
-                    checked={draft.required}
-                    onCheckedChange={(v) => setDraft({ ...draft, required: v, min_select: v && draft.min_select < 1 ? 1 : draft.min_select })}
-                  />
-                </div>
-                <div>
-                  <Label>Mínimo</Label>
-                  <Input
-                    type="number" min={0} max={20}
-                    value={draft.min_select}
-                    onChange={(e) => setDraft({ ...draft, min_select: Math.max(0, Number(e.target.value) || 0) })}
-                    className="mt-1.5"
-                  />
-                </div>
-                <div>
-                  <Label>Máximo</Label>
-                  <Input
-                    type="number" min={1} max={20}
-                    value={draft.max_select}
-                    onChange={(e) => setDraft({ ...draft, max_select: Math.max(1, Number(e.target.value) || 1) })}
-                    className="mt-1.5"
-                  />
-                </div>
-                <div>
-                  <Label>Ordem</Label>
-                  <Input
-                    type="number" min={0}
-                    value={draft.sort_order}
-                    onChange={(e) => setDraft({ ...draft, sort_order: Math.max(0, Number(e.target.value) || 0) })}
-                    className="mt-1.5"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label>Aplicar a categorias</Label>
-                <div className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-xl border p-2">
-                  {categories.length === 0 && (
-                    <p className="px-2 py-1 text-sm text-muted-foreground">Sem categorias cadastradas.</p>
-                  )}
-                  {categories.map((c) => {
-                    const checked = draft.category_ids.includes(c.id as string);
-                    return (
-                      <label key={c.id as string} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() =>
-                            setDraft({
-                              ...draft,
-                              category_ids: checked
-                                ? draft.category_ids.filter((x) => x !== c.id)
-                                : [...draft.category_ids, c.id as string],
-                            })
-                          }
-                        />
-                        {c.name}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <Label>Aplicar a produtos específicos (opcional)</Label>
-                <div className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-xl border p-2">
-                  {products.length === 0 && (
-                    <p className="px-2 py-1 text-sm text-muted-foreground">Sem produtos cadastrados.</p>
-                  )}
-                  {products.map((p) => {
-                    const checked = draft.product_ids.includes(p.id as string);
-                    return (
-                      <label key={p.id as string} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-muted">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() =>
-                            setDraft({
-                              ...draft,
-                              product_ids: checked
-                                ? draft.product_ids.filter((x) => x !== p.id)
-                                : [...draft.product_ids, p.id as string],
-                            })
-                          }
-                        />
-                        {p.name}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between rounded-xl border p-3">
-                <Label>Ativa</Label>
-                <Switch
-                  checked={draft.active}
-                  onCheckedChange={(v) => setDraft({ ...draft, active: v })}
-                />
-              </div>
-
-              {draft.id && currentGroup && (
-                <div className="rounded-xl border p-3">
-                  <p className="mb-2 font-semibold">Opções da subcategoria</p>
-                  {currentGroup.options.length === 0 && (
-                    <p className="text-sm text-muted-foreground">Adicione opções com nome e preço.</p>
-                  )}
-                  <div className="space-y-2">
-                    {currentGroup.options.map((o) => (
-                      <div key={o.id} className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
-                        <span className="text-sm">{o.name}</span>
-                        <div className="flex items-center gap-2">
-                          {o.price > 0 && (
-                            <Badge variant="default" className="font-medium">{moneyBR(o.price)}</Badge>
-                          )}
-                          <Button
-                            size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                            onClick={() => delOptionMut.mutate(o.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 grid grid-cols-[1fr_140px_auto] gap-2">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* COLUNA ESQUERDA: Dados Gerais e Cadastro de Adicionais */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm border-b pb-2 text-foreground">1. Cadastro da Subcategoria &amp; Adicionais</h4>
+                  
+                  <div>
+                    <Label className="text-xs font-semibold">Nome da subcategoria</Label>
                     <Input
-                      ref={optInputRef}
-                      value={newOption.name}
-                      onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
-                      placeholder="Ex.: Arroz branco P"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newOption.name.trim() && draft.id) {
-                          e.preventDefault();
-                          addOptionMut.mutate({
-                            group_id: draft.id, name: newOption.name.trim(),
-                            price: newOption.price,
-                            sort_order: currentGroup.options.length,
-                          });
-                        }
-                      }}
+                      value={draft.name}
+                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                      className="mt-1"
+                      placeholder="Ex.: Adicionais de Arroz, Molhos, Bebidas extras"
                     />
-                    <CurrencyInput
-                      value={newOption.price}
-                      onChange={(v) => setNewOption({ ...newOption, price: v })}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newOption.name.trim() && draft.id) {
-                          e.preventDefault();
-                          addOptionMut.mutate({
-                            group_id: draft.id, name: newOption.name.trim(),
-                            price: newOption.price,
-                            sort_order: currentGroup.options.length,
-                          });
-                        }
-                      }}
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">Instruções para o cliente (opcional)</Label>
+                    <Textarea
+                      value={draft.description}
+                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                      className="mt-1"
+                      placeholder="Ex.: Escolha porções extras para acompanhar"
+                      rows={2}
                     />
-                    <Button
-                      onClick={() => {
-                        if (!draft.id || !newOption.name.trim()) return;
-                        addOptionMut.mutate({
-                          group_id: draft.id, name: newOption.name.trim(),
-                          price: newOption.price,
-                          sort_order: currentGroup.options.length,
-                        });
-                      }}
-                      disabled={addOptionMut.isPending || !newOption.name.trim()}
-                    >
-                      {addOptionMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    </Button>
+                  </div>
+
+                  <div className="rounded-xl border p-3 space-y-3 bg-muted/10">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-xs font-semibold">Obrigatório</Label>
+                        <p className="text-[11px] text-muted-foreground">Exige escolha do cliente</p>
+                      </div>
+                      <Switch
+                        checked={draft.required}
+                        onCheckedChange={(v) => setDraft({ ...draft, required: v, min_select: v && draft.min_select < 1 ? 1 : draft.min_select })}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-[11px]">Mínimo</Label>
+                        <Input
+                          type="number" min={0} max={20}
+                          value={draft.min_select}
+                          onChange={(e) => setDraft({ ...draft, min_select: Math.max(0, Number(e.target.value) || 0) })}
+                          className="mt-0.5 h-8 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px]">Máximo</Label>
+                        <Input
+                          type="number" min={1} max={20}
+                          value={draft.max_select}
+                          onChange={(e) => setDraft({ ...draft, max_select: Math.max(1, Number(e.target.value) || 1) })}
+                          className="mt-0.5 h-8 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px]">Ordem</Label>
+                        <Input
+                          type="number" min={0}
+                          value={draft.sort_order}
+                          onChange={(e) => setDraft({ ...draft, sort_order: Math.max(0, Number(e.target.value) || 0) })}
+                          className="mt-0.5 h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <Label className="text-xs font-semibold">Subcategoria ativa</Label>
+                      <Switch
+                        checked={draft.active}
+                        onCheckedChange={(v) => setDraft({ ...draft, active: v })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Cadastro de Adicionais (Opções) */}
+                  <div className="rounded-xl border p-3.5 space-y-3 bg-background shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <Label className="font-semibold text-sm">Itens de Adicionais</Label>
+                      <Badge variant="outline">{draft.options.length} item(ns)</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Informe a descrição e o valor do adicional.
+                    </p>
+
+                    {draft.options.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic bg-muted/20 p-2.5 rounded-md text-center">
+                        Nenhum adicional adicionado ainda. Cadastre abaixo.
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {draft.options.map((o, idx) => (
+                          <div key={o.id || idx} className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-1.5">
+                            <span className="text-xs font-medium">{o.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={o.price > 0 ? "default" : "secondary"} className="text-[11px]">
+                                {o.price > 0 ? moneyBR(o.price) : "Grátis"}
+                              </Badge>
+                              {o.id && (
+                                <ReorderButtons
+                                  entity="addonOption"
+                                  id={o.id}
+                                  invalidateKeys={[["admin", "addon-groups"]]}
+                                  isFirst={idx === 0}
+                                  isLast={idx === draft.options.length - 1}
+                                />
+                              )}
+                              <Button
+                                size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                                onClick={() => handleRemoveOption(idx, o.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-[1fr_130px_auto] gap-2 pt-1">
+                      <Input
+                        ref={optInputRef}
+                        value={newOption.name}
+                        onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
+                        placeholder="Ex.: Queijo extra, Molho especial"
+                        className="h-9 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddOption();
+                          }
+                        }}
+                      />
+                      <CurrencyInput
+                        value={newOption.price}
+                        onChange={(v) => setNewOption({ ...newOption, price: v })}
+                        className="h-9 text-xs"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddOption();
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleAddOption}
+                        disabled={!newOption.name.trim()}
+                        size="sm"
+                        className="h-9 px-3 gap-1"
+                      >
+                        <Plus className="h-4 w-4" /> Adicionar
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              <DialogFooter>
+                {/* COLUNA DIREITA: Vincular a Categorias e Produtos */}
+                <div className="space-y-4 lg:border-l lg:pl-6">
+                  <h4 className="font-semibold text-sm border-b pb-2 text-foreground">2. Vincular a Categorias ou Produtos</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha em quais categorias ou produtos específicos esta subcategoria de adicionais vai aparecer.
+                  </p>
+
+                  {/* Categorias */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <Label className="text-xs font-semibold">Aplicar a categorias</Label>
+                      {draft.category_ids.length > 0 && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {draft.category_ids.length} selecionada(s)
+                        </Badge>
+                      )}
+                    </div>
+                    {categories.length > 5 && (
+                      <Input
+                        value={catSearch}
+                        onChange={(e) => setCatSearch(e.target.value)}
+                        placeholder="Buscar categoria..."
+                        className="mb-1.5 h-7 text-xs"
+                      />
+                    )}
+                    <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border p-2 bg-muted/10">
+                      {categories.length === 0 && (
+                        <p className="px-2 py-2 text-xs text-muted-foreground text-center">Nenhuma categoria cadastrada.</p>
+                      )}
+                      {filteredCategories.map((c) => {
+                        const checked = draft.category_ids.includes(c.id as string);
+                        return (
+                          <label key={c.id as string} className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() =>
+                                  setDraft({
+                                    ...draft,
+                                    category_ids: checked
+                                      ? draft.category_ids.filter((x) => x !== c.id)
+                                      : [...draft.category_ids, c.id as string],
+                                  })
+                                }
+                              />
+                              <span className={checked ? "font-semibold text-foreground" : "text-muted-foreground"}>{c.name}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Produtos específicos */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <Label className="text-xs font-semibold">Aplicar a produtos específicos (opcional)</Label>
+                      {draft.product_ids.length > 0 && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          {draft.product_ids.length} selecionado(s)
+                        </Badge>
+                      )}
+                    </div>
+                    {products.length > 5 && (
+                      <Input
+                        value={prodSearch}
+                        onChange={(e) => setProdSearch(e.target.value)}
+                        placeholder="Buscar produto..."
+                        className="mb-1.5 h-7 text-xs"
+                      />
+                    )}
+                    <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border p-2 bg-muted/10">
+                      {products.length === 0 && (
+                        <p className="px-2 py-2 text-xs text-muted-foreground text-center">Nenhum produto cadastrado.</p>
+                      )}
+                      {filteredProducts.map((p) => {
+                        const checked = draft.product_ids.includes(p.id as string);
+                        return (
+                          <label key={p.id as string} className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs hover:bg-muted/50 transition-colors">
+                            <span className="flex items-center gap-2">
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() =>
+                                  setDraft({
+                                    ...draft,
+                                    product_ids: checked
+                                      ? draft.product_ids.filter((x) => x !== p.id)
+                                      : [...draft.product_ids, p.id as string],
+                                  })
+                                }
+                              />
+                              <span className={checked ? "font-semibold text-foreground" : "text-muted-foreground"}>{p.name}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-3 border-t flex items-center justify-end gap-2">
                 <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
                 <Button
                   onClick={() => draft && saveMut.mutate(draft)}
                   disabled={saveMut.isPending || !draft.name.trim()}
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (draft.id ? "Salvar" : "Continuar")}
+                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
                 </Button>
               </DialogFooter>
             </div>
           )}
         </DialogContent>
       </Dialog>
-      
+
     </AdminLayout>
   );
 }
+

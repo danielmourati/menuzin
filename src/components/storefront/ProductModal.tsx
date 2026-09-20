@@ -214,11 +214,32 @@ export function ProductModal({
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
   const total = (basePrice + addonsSum + groupSum + doughSum + crustSum) * qty;
 
-  const allGroups = product.addonGroups ?? [];
-  const adicionalGroups = allGroups.filter((g) => g.kind !== "observacao");
-  const observacaoGroups = allGroups.filter((g) => g.kind === "observacao");
+  const allGroups = useMemo(
+    () => (product.addonGroups ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+    [product.addonGroups]
+  );
+  const adicionalGroups = useMemo(
+    () => allGroups.filter((g) => g.kind !== "observacao"),
+    [allGroups]
+  );
+  const observacaoGroups = useMemo(
+    () => allGroups.filter((g) => g.kind === "observacao"),
+    [allGroups]
+  );
   // Legacy fallback: only show product.addons if no addonGroups defined
   const showLegacyAddons = adicionalGroups.length === 0 && (product.addons?.length ?? 0) > 0;
+
+  const [activeAccordionValues, setActiveAccordionValues] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open && product) {
+      // Default expand all required groups
+      const requiredGroupIds = (product.addonGroups ?? [])
+        .filter((g) => g.required)
+        .map((g) => g.id);
+      setActiveAccordionValues(requiredGroupIds);
+    }
+  }, [open, product]);
 
   // Validação
   const pizzaValidations: string[] = [];
@@ -252,10 +273,21 @@ export function ProductModal({
   const onAdd = () => {
     setHasAttemptedSubmit(true);
 
-    if (!canAdd) {
-      toast.error(validations[0] ?? "Selecione as opções obrigatórias", {
-        description: "Preencha os campos destacados em vermelho para continuar.",
-      });
+    if (!canAdd || (showPizzaExtras && pizzaDoughs.length > 0 && !selectedDough) || (showPizzaExtras && crustMode === "customer_choice" && !selectedCrust)) {
+      // Auto expand any invalid group accordions
+      const invalidGroupIds = (product.addonGroups ?? [])
+        .filter((g) => {
+          const selectedCount = (groupSelections[g.id] ?? []).length;
+          const minRequired = g.required ? Math.max(1, g.minSelect || 0) : Math.max(0, g.minSelect || 0);
+          return selectedCount < minRequired;
+        })
+        .map((g) => g.id);
+
+      if (invalidGroupIds.length > 0) {
+        setActiveAccordionValues((prev) => Array.from(new Set([...prev, ...invalidGroupIds])));
+      }
+
+      // Smooth scroll into view of the first invalid component
       setTimeout(() => {
         const firstInvalid = scrollRef.current?.querySelector('[data-invalid="true"]');
         if (firstInvalid) {
@@ -264,26 +296,7 @@ export function ProductModal({
       }, 50);
       return;
     }
-    if (showPizzaExtras && pizzaDoughs.length > 0 && !selectedDough) {
-      toast.error("Escolha a massa da pizza");
-      setTimeout(() => {
-        const firstInvalid = scrollRef.current?.querySelector('[data-invalid="true"]');
-        if (firstInvalid) {
-          firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 50);
-      return;
-    }
-    if (showPizzaExtras && crustMode === "customer_choice" && !selectedCrust) {
-      toast.error("Escolha sua borda grátis");
-      setTimeout(() => {
-        const firstInvalid = scrollRef.current?.querySelector('[data-invalid="true"]');
-        if (firstInvalid) {
-          firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-      }, 50);
-      return;
-    }
+
     const extras: ProductAddon[] = [];
     if (isPizzaCategory && selectedPizzaSize) {
       extras.push({ id: `psize-${selectedPizzaSize.id}`, name: `Tamanho: ${selectedPizzaSize.name}`, price: 0 });
@@ -358,8 +371,7 @@ export function ProductModal({
         )}
 
 
-        {/* Camada 3: chrome (recolher/voltar) + badge da loja — envolvido em div
-            para não cair no seletor [&>button]:hidden do DialogContent. */}
+        {/* Camada 3: chrome (recolher/voltar) + badge da loja */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
           <div className="pointer-events-auto absolute left-3 top-3">
             <Button
@@ -611,7 +623,7 @@ export function ProductModal({
                   const isFixed = crustMode === "fixed" && fixedFreeCrust?.id === c.id;
                   const isCustomerChoice = crustMode === "customer_choice";
                   const showGratis = isFixed || isCustomerChoice;
-                  const disabled = crustMode === "fixed" && !isFixed; // não deveria aparecer, mas garante
+                  const disabled = crustMode === "fixed" && !isFixed;
                   return (
                     <label
                       key={c.id}
@@ -641,9 +653,12 @@ export function ProductModal({
           {/* Observações estruturadas (ponto da carne, tipo de arroz, etc.) — sempre antes dos adicionais */}
           {observacaoGroups.length > 0 && (
             <Section title="Observações">
-              <Accordion type="single" collapsible className="space-y-2">
+              <Accordion type="multiple" value={activeAccordionValues} onValueChange={setActiveAccordionValues} className="space-y-2">
                 {observacaoGroups.map((g) => {
-                  const activeOptions = g.options.filter((o) => o.price >= 0);
+                  const activeOptions = g.options
+                    .filter((o) => o.price >= 0)
+                    .slice()
+                    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
                   if (activeOptions.length === 0) return null;
                   const isRadio = g.maxSelect <= 1;
                   const hint = isRadio
@@ -655,23 +670,43 @@ export function ProductModal({
                   const selectedNames = activeOptions
                     .filter((o) => selectedIds.includes(o.id))
                     .map((o) => o.name);
+                  const minRequired = g.required ? Math.max(1, g.minSelect || 0) : Math.max(0, g.minSelect || 0);
+                  const isInvalidGroup = hasAttemptedSubmit && selectedIds.length < minRequired;
+
                   return (
-                    <AccordionItem key={g.id} value={g.id} className="overflow-hidden rounded-xl border bg-card transition-colors data-[state=open]:border-[#FDE8DE]">
+                    <AccordionItem
+                      key={g.id}
+                      value={g.id}
+                      data-invalid={isInvalidGroup ? "true" : undefined}
+                      className={`overflow-hidden rounded-xl border transition-all ${
+                        isInvalidGroup
+                          ? "border-2 border-destructive bg-destructive/5 ring-2 ring-destructive/20"
+                          : "bg-card data-[state=open]:border-[#FDE8DE]"
+                      }`}
+                    >
                       <AccordionTrigger className="px-3 py-3 hover:no-underline">
                         <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-sm font-semibold">{g.name}</span>
+                            <span className={`text-sm font-semibold ${isInvalidGroup ? "text-destructive" : ""}`}>{g.name}</span>
                             {g.required && (
-                              <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-                                Obrigatório
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                                isInvalidGroup
+                                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                                  : "bg-destructive/10 text-destructive"
+                              }`}>
+                                {isInvalidGroup ? "⚠️ Escolha Obrigatória" : "Obrigatório"}
                               </span>
                             )}
                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                               {hint}
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            {selectedNames.length > 0 ? selectedNames.join(", ") : "Toque para escolher"}
+                          <span className={`text-xs ${isInvalidGroup ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            {isInvalidGroup
+                              ? `⚠️ Escolha no mínimo ${minRequired} opção(ões)`
+                              : selectedNames.length > 0
+                                ? selectedNames.join(", ")
+                                : "Toque para escolher"}
                           </span>
                         </div>
                       </AccordionTrigger>
@@ -687,7 +722,9 @@ export function ProductModal({
                                 type="button"
                                 key={`${g.id}-${o.id}`}
                                 onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                                className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
+                                className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${
+                                  checked ? "border-primary/60 bg-primary/5" : ""
+                                }`}
                               >
                                 <div className="flex items-center gap-3">
                                   {isRadio ? (
@@ -716,111 +753,107 @@ export function ProductModal({
 
 
 
-          {/* Adicionais — agrupados por subcategoria no vilaboemia, flat nos demais */}
+          {/* Adicionais agrupados por subcategoria */}
           {adicionalGroups.length > 0 && (
-            tenantSlug === "vilaboemia" ? (
-              <Section title="Adicionais">
-                <Accordion type="single" collapsible className="space-y-2">
-                  {adicionalGroups.map((g) => {
-                    const activeOptions = g.options.filter((o) => o.price >= 0);
-                    if (activeOptions.length === 0) return null;
-                    const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
-                    const hint = g.maxSelect <= 0
-                      ? undefined
-                      : isRadio
-                        ? "Escolha 1 opção"
-                        : g.maxSelect === g.minSelect
-                          ? `Escolha ${g.maxSelect}`
-                          : `Escolha até ${g.maxSelect}`;
-                    const selectedIds = groupSelections[g.id] ?? [];
-                    const selectedCount = selectedIds.length;
-                    return (
-                      <AccordionItem key={g.id} value={g.id} className="overflow-hidden rounded-xl border bg-card transition-colors data-[state=open]:border-[#FDE8DE]">
-                        <AccordionTrigger className="px-3 py-3 hover:no-underline">
-                          <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-sm font-semibold">{g.name}</span>
-                              {g.required && (
-                                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-                                  Obrigatório
-                                </span>
-                              )}
-                              {hint && (
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                                  {hint}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {selectedCount > 0 ? `${selectedCount} selecionado${selectedCount > 1 ? "s" : ""}` : "Toque para escolher"}
-                            </span>
+            <Section title="Adicionais">
+              <Accordion type="multiple" value={activeAccordionValues} onValueChange={setActiveAccordionValues} className="space-y-2">
+                {adicionalGroups.map((g) => {
+                  const activeOptions = g.options
+                    .filter((o) => o.price >= 0)
+                    .slice()
+                    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+                  if (activeOptions.length === 0) return null;
+                  const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
+                  const hint = g.maxSelect <= 0
+                    ? undefined
+                    : isRadio
+                      ? "Escolha 1 opção"
+                      : g.maxSelect === g.minSelect
+                        ? `Escolha ${g.maxSelect}`
+                        : `Escolha até ${g.maxSelect}`;
+                  const selectedIds = groupSelections[g.id] ?? [];
+                  const selectedCount = selectedIds.length;
+                  const minRequired = g.required ? Math.max(1, g.minSelect || 0) : Math.max(0, g.minSelect || 0);
+                  const isInvalidGroup = hasAttemptedSubmit && selectedCount < minRequired;
+
+                  return (
+                    <AccordionItem
+                      key={g.id}
+                      value={g.id}
+                      data-invalid={isInvalidGroup ? "true" : undefined}
+                      className={`overflow-hidden rounded-xl border transition-all ${
+                        isInvalidGroup
+                          ? "border-2 border-destructive bg-destructive/5 ring-2 ring-destructive/20"
+                          : "bg-card data-[state=open]:border-[#FDE8DE]"
+                      }`}
+                    >
+                      <AccordionTrigger className="px-3 py-3 hover:no-underline">
+                        <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`text-sm font-semibold ${isInvalidGroup ? "text-destructive" : ""}`}>{g.name}</span>
+                            {g.required && (
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                                isInvalidGroup
+                                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                                  : "bg-destructive/10 text-destructive"
+                              }`}>
+                                {isInvalidGroup ? "⚠️ Escolha Obrigatória" : "Obrigatório"}
+                              </span>
+                            )}
+                            {hint && (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                {hint}
+                              </span>
+                            )}
                           </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="px-3 pb-3">
-                          {g.description && (
-                            <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
-                          )}
-                          <div className="space-y-2">
-                            {activeOptions.map((o) => {
-                              const checked = isOptionSelected(g, o);
-                              return (
-                                <button
-                                  type="button"
-                                  key={`${g.id}-${o.id}`}
-                                  onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                                  className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${checked ? "border-primary/60 bg-primary/5" : ""}`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    {isRadio ? (
-                                      <span className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}>
-                                        {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                                      </span>
-                                    ) : (
-                                      <Checkbox checked={checked} />
-                                    )}
-                                    <span className="text-sm">{o.name}</span>
-                                  </div>
-                                  {o.price > 0 && (
-                                    <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
+                          <span className={`text-xs ${isInvalidGroup ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                            {isInvalidGroup
+                              ? `⚠️ Escolha no mínimo ${minRequired} opção(ões)`
+                              : selectedCount > 0
+                                ? `${selectedCount} selecionado${selectedCount > 1 ? "s" : ""}`
+                                : "Toque para escolher"}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-3 pb-3">
+                        {g.description && (
+                          <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
+                        )}
+                        <div className="space-y-2">
+                          {activeOptions.map((o) => {
+                            const checked = isOptionSelected(g, o);
+                            return (
+                              <button
+                                type="button"
+                                key={`${g.id}-${o.id}`}
+                                onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
+                                className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${
+                                  checked ? "border-primary/60 bg-primary/5" : ""
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  {isRadio ? (
+                                    <span className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}>
+                                      {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                                    </span>
+                                  ) : (
+                                    <Checkbox checked={checked} />
                                   )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    );
-                  })}
-                </Accordion>
-              </Section>
-            ) : (
-              <Section title="Adicionais">
-                <div className="mt-2 space-y-2">
-                  {adicionalGroups.flatMap((g) =>
-                    g.options.map((o) => {
-                      const checked = isOptionSelected(g, o);
-                      return (
-                        <label
-                          key={`${g.id}-${o.id}`}
-                          className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                            />
-                            <span className="text-sm">{o.name}</span>
-                          </div>
-                          {o.price > 0 && (
-                            <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
-                          )}
-                        </label>
-                      );
-                    }),
-                  )}
-                </div>
-              </Section>
-            )
+                                  <span className="text-sm">{o.name}</span>
+                                </div>
+                                {o.price > 0 && (
+                                  <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            </Section>
           )}
 
 
@@ -863,8 +896,10 @@ export function ProductModal({
 
 
         <div className="shrink-0 border-t bg-card px-4 py-3">
-          {validations.length > 0 && (
-            <p className="mb-2 text-center text-xs font-medium text-destructive">{validations[0]}</p>
+          {hasAttemptedSubmit && validations.length > 0 && (
+            <p className="mb-2 text-center text-xs font-bold text-destructive bg-destructive/10 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 animate-pulse">
+              <span>⚠️</span> Por favor, preencha os campos destacados em vermelho acima para continuar.
+            </p>
           )}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 rounded-lg bg-muted px-2 py-1">
@@ -886,7 +921,7 @@ export function ProductModal({
               }`}
               onClick={onAdd}
             >
-              Adicionar
+              {!canAdd && hasAttemptedSubmit ? "Ver opções" : "Adicionar"}
             </Button>
           </div>
         </div>
@@ -911,25 +946,37 @@ function Section({
   return (
     <div
       data-invalid={isInvalid ? "true" : undefined}
-      className={`mt-6 rounded-2xl p-2 transition-all ${
-        isInvalid ? "border border-destructive/50 bg-destructive/5 ring-2 ring-destructive/20" : ""
+      className={`mt-6 rounded-2xl p-3 transition-all ${
+        isInvalid ? "border-2 border-destructive bg-destructive/5 ring-4 ring-destructive/10" : ""
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="text-base font-bold flex items-center">
-          {title}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <h4 className="text-base font-bold flex items-center gap-2">
+          <span className={isInvalid ? "text-destructive font-bold" : ""}>{title}</span>
           {required && (
             <Badge
               variant={isInvalid ? "destructive" : "secondary"}
-              className="ml-2 text-[10px] uppercase font-bold tracking-wider"
+              className={`text-[10px] uppercase font-bold tracking-wider ${
+                isInvalid ? "bg-destructive text-destructive-foreground animate-pulse" : ""
+              }`}
             >
-              {isInvalid ? "Selecione para continuar" : "Obrigatório"}
+              {isInvalid ? "⚠️ Escolha Obrigatória" : "Obrigatório"}
             </Badge>
           )}
         </h4>
-        {hint && <span className={`text-xs ${isInvalid ? "text-destructive font-medium" : "text-muted-foreground"}`}>{hint}</span>}
+        {hint && (
+          <span className={`text-xs ${isInvalid ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+            {hint}
+          </span>
+        )}
       </div>
+      {isInvalid && (
+        <p className="mb-2 text-xs font-semibold text-destructive flex items-center gap-1">
+          <span>⚠️</span> Selecione as opções necessárias para continuar.
+        </p>
+      )}
       {children}
     </div>
   );
 }
+
