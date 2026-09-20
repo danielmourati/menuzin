@@ -166,14 +166,9 @@ export function ProductModal({
     [allGroups]
   );
   const [activeAccordionValues, setActiveAccordionValues] = useState<string[]>([]);
-
   useEffect(() => {
     if (open && product) {
-      // Default expand all required groups
-      const requiredGroupIds = (product.addonGroups ?? [])
-        .filter((g) => g.required)
-        .map((g) => g.id);
-      setActiveAccordionValues(requiredGroupIds);
+      setActiveAccordionValues([]);
     }
   }, [open, product]);
 
@@ -648,114 +643,11 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Observações estruturadas (ponto da carne, tipo de arroz, etc.) — sempre antes dos adicionais */}
-          {observacaoGroups.length > 0 && (
-            <Section title="Observações">
-              <Accordion type="multiple" value={activeAccordionValues} onValueChange={setActiveAccordionValues} className="space-y-2">
-                {observacaoGroups.map((g) => {
-                  const activeOptions = g.options
-                    .filter((o) => o.price >= 0)
-                    .slice()
-                    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-                  if (activeOptions.length === 0) return null;
-                  const isRadio = g.maxSelect <= 1;
-                  const hint = isRadio
-                    ? "Escolha 1 opção"
-                    : g.maxSelect === g.minSelect
-                      ? `Escolha ${g.maxSelect}`
-                      : `Escolha até ${g.maxSelect}`;
-                  const selectedIds = groupSelections[g.id] ?? [];
-                  const selectedNames = activeOptions
-                    .filter((o) => selectedIds.includes(o.id))
-                    .map((o) => o.name);
-                  const minRequired = g.required ? Math.max(1, g.minSelect || 0) : Math.max(0, g.minSelect || 0);
-                  const isInvalidGroup = hasAttemptedSubmit && selectedIds.length < minRequired;
-
-                  return (
-                    <AccordionItem
-                      key={g.id}
-                      value={g.id}
-                      data-invalid={isInvalidGroup ? "true" : undefined}
-                      className={`overflow-hidden rounded-xl border transition-all ${
-                        isInvalidGroup
-                          ? "border-2 border-destructive bg-destructive/5 ring-2 ring-destructive/20"
-                          : "bg-card data-[state=open]:border-[#FDE8DE]"
-                      }`}
-                    >
-                      <AccordionTrigger className="px-3 py-3 hover:no-underline">
-                        <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`text-sm font-semibold ${isInvalidGroup ? "text-destructive" : ""}`}>{g.name}</span>
-                            {g.required && (
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                                isInvalidGroup
-                                  ? "bg-destructive text-destructive-foreground animate-pulse"
-                                  : "bg-destructive/10 text-destructive"
-                              }`}>
-                                {isInvalidGroup ? "⚠️ Escolha Obrigatória" : "Obrigatório"}
-                              </span>
-                            )}
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                              {hint}
-                            </span>
-                          </div>
-                          <span className={`text-xs ${isInvalidGroup ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                            {isInvalidGroup
-                              ? `⚠️ Escolha no mínimo ${minRequired} opção(ões)`
-                              : selectedNames.length > 0
-                                ? selectedNames.join(", ")
-                                : "Toque para escolher"}
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-3 pb-3">
-                        {g.description && (
-                          <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
-                        )}
-                        <div className="space-y-2">
-                          {activeOptions.map((o) => {
-                            const checked = isOptionSelected(g, o);
-                            return (
-                              <button
-                                type="button"
-                                key={`${g.id}-${o.id}`}
-                                onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                                className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${
-                                  checked ? "border-primary/60 bg-primary/5" : ""
-                                }`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  {isRadio ? (
-                                    <span className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}>
-                                      {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                                    </span>
-                                  ) : (
-                                    <Checkbox checked={checked} />
-                                  )}
-                                  <span className="text-sm">{o.name}</span>
-                                </div>
-                                {o.price > 0 && (
-                                  <span className="text-sm font-semibold text-primary">+ {brl(o.price)}</span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            </Section>
-          )}
-
-
-
-          {/* Adicionais agrupados por subcategoria */}
-          {adicionalGroups.length > 0 && (
-            <Section title="Adicionais">
-              <Accordion type="multiple" value={activeAccordionValues} onValueChange={setActiveAccordionValues} className="space-y-2">
-                {adicionalGroups.map((g) => {
+          {/* Grupos de observações e complementos/adicionais unificados em faixa cinza (estilo Aiqfome) */}
+          {allGroups.length > 0 && (
+            <div className="mt-4 space-y-3">
+              <Accordion type="multiple" value={activeAccordionValues} onValueChange={setActiveAccordionValues} className="space-y-3">
+                {allGroups.map((g) => {
                   const activeOptions = g.options
                     .filter((o) => o.price >= 0)
                     .slice()
@@ -771,6 +663,9 @@ export function ProductModal({
                         : `Escolha até ${g.maxSelect}`;
                   const selectedIds = groupSelections[g.id] ?? [];
                   const selectedCount = selectedIds.length;
+                  const selectedNames = activeOptions
+                    .filter((o) => selectedIds.includes(o.id))
+                    .map((o) => o.name);
                   const minRequired = g.required ? Math.max(1, g.minSelect || 0) : Math.max(0, g.minSelect || 0);
                   const isInvalidGroup = hasAttemptedSubmit && selectedCount < minRequired;
 
@@ -779,18 +674,22 @@ export function ProductModal({
                       key={g.id}
                       value={g.id}
                       data-invalid={isInvalidGroup ? "true" : undefined}
-                      className={`overflow-hidden rounded-xl border transition-all ${
+                      className={`overflow-hidden rounded-2xl border transition-all ${
                         isInvalidGroup
                           ? "border-2 border-destructive bg-destructive/5 ring-2 ring-destructive/20"
-                          : "bg-card data-[state=open]:border-[#FDE8DE]"
+                          : "border-border/60 bg-card shadow-xs"
                       }`}
                     >
-                      <AccordionTrigger className="px-3 py-3 hover:no-underline">
+                      <AccordionTrigger className={`px-4 py-3.5 hover:no-underline transition-colors ${
+                        isInvalidGroup
+                          ? "bg-destructive/10"
+                          : "bg-muted/70 hover:bg-muted/90 dark:bg-muted/50"
+                      }`}>
                         <div className="flex flex-1 flex-col items-start gap-1 pr-2 text-left">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`text-sm font-semibold ${isInvalidGroup ? "text-destructive" : ""}`}>{g.name}</span>
+                            <span className={`text-sm font-bold ${isInvalidGroup ? "text-destructive" : "text-foreground"}`}>{g.name}</span>
                             {g.required && (
-                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                              <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                                 isInvalidGroup
                                   ? "bg-destructive text-destructive-foreground animate-pulse"
                                   : "bg-destructive/10 text-destructive"
@@ -799,7 +698,7 @@ export function ProductModal({
                               </span>
                             )}
                             {hint && (
-                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                              <span className="rounded-md bg-background/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground border border-border/40">
                                 {hint}
                               </span>
                             )}
@@ -808,12 +707,12 @@ export function ProductModal({
                             {isInvalidGroup
                               ? `⚠️ Escolha no mínimo ${minRequired} opção(ões)`
                               : selectedCount > 0
-                                ? `${selectedCount} selecionado${selectedCount > 1 ? "s" : ""}`
+                                ? (selectedNames.length > 0 ? selectedNames.join(", ") : `${selectedCount} selecionado(s)`)
                                 : "Toque para escolher"}
                           </span>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="px-3 pb-3">
+                      <AccordionContent className="p-3 pt-3 bg-card border-t border-border/40">
                         {g.description && (
                           <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
                         )}
@@ -825,14 +724,16 @@ export function ProductModal({
                                 type="button"
                                 key={`${g.id}-${o.id}`}
                                 onClick={() => toggleGroupOption(g.id, o.id, g.maxSelect)}
-                                className={`flex w-full cursor-pointer items-center justify-between rounded-xl border bg-card p-3 text-left transition hover:border-primary/40 ${
-                                  checked ? "border-primary/60 bg-primary/5" : ""
+                                className={`flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition ${
+                                  checked
+                                    ? "border-primary/60 bg-primary/5 font-medium"
+                                    : "border-border/60 bg-card hover:bg-muted/30"
                                 }`}
                               >
                                 <div className="flex items-center gap-3">
                                   {isRadio ? (
-                                    <span className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary" : "border-muted-foreground/30"}`}>
-                                      {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                                    <span className={`grid h-5 w-5 place-items-center rounded-full border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                                      {checked && <span className="h-2 w-2 rounded-full bg-white" />}
                                     </span>
                                   ) : (
                                     <Checkbox checked={checked} />
@@ -851,7 +752,7 @@ export function ProductModal({
                   );
                 })}
               </Accordion>
-            </Section>
+            </div>
           )}
 
 

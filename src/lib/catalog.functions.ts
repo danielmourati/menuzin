@@ -73,7 +73,7 @@ export const getCatalog = createServerFn({ method: "POST" })
       isTenantBlocked(tenantId),
       supabaseAdmin.from("categories").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order"),
       supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).order("sort_order"),
-      supabaseAdmin.from("addon_groups").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order"),
+      supabaseAdmin.from("addon_groups").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     ]);
 
     let rating_avg = null;
@@ -192,12 +192,14 @@ export const getCatalog = createServerFn({ method: "POST" })
       flavorsByProduct.set(f.product_id, arr);
     }
 
+    const groupIndexMap = new Map<string, number>(groups.map((g, idx) => [g.id, idx]));
+
     const prods: DbProduct[] = prodList.map((p) => ({
       ...p,
       addons: addonsByProduct.get(p.id) ?? [],
       sizes: sizesByProduct.get(p.id) ?? [],
       flavors: flavorsByProduct.get(p.id) ?? [],
-      addonGroups: (groupsByProduct.get(p.id) ?? []).sort((a, b) => a.sort_order - b.sort_order),
+      addonGroups: (groupsByProduct.get(p.id) ?? []).sort((a, b) => (groupIndexMap.get(a.id) ?? 0) - (groupIndexMap.get(b.id) ?? 0)),
       category: p.category_id ? catNameById.get(p.category_id) ?? "" : "",
     }));
 
