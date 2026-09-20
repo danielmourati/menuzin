@@ -170,7 +170,7 @@ export function ProductModal({
     if (open && product) {
       setActiveAccordionValues([]);
     }
-  }, [open, product]);
+  }, [open, product?.id]);
 
   if (!product) return null;
 
@@ -646,7 +646,7 @@ export function ProductModal({
           {/* Grupos de observações e complementos/adicionais unificados em faixa cinza (estilo Aiqfome) */}
           {allGroups.length > 0 && (
             <div className="mt-4 space-y-3">
-              <Accordion type="multiple" value={activeAccordionValues} onValueChange={setActiveAccordionValues} className="space-y-3">
+              <Accordion type="multiple" value={activeAccordionValues} onValueChange={(val) => setActiveAccordionValues(Array.isArray(val) ? val : [val])} className="space-y-3">
                 {allGroups.map((g) => {
                   const activeOptions = g.options
                     .filter((o) => o.price >= 0)
