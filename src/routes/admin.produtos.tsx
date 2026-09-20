@@ -264,7 +264,11 @@ function ProductsPage() {
       listed_as_flavor: categories[0]?.kind === "pizza" ? null : null,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     });
-    setSelectedGroupIds([]);
+    const defaultCatId = categories[0]?.id ?? null;
+    const initialGroupIds = addonGroups
+      .filter((g) => defaultCatId && g.targets.some((t) => t.category_id === defaultCatId))
+      .map((g) => g.id);
+    setSelectedGroupIds(initialGroupIds);
     setOpen(true);
   };
 
@@ -284,7 +288,7 @@ function ProductsPage() {
       free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
     });
     const initialGroupIds = addonGroups
-      .filter((g) => g.targets.some((t) => t.product_id === p.id))
+      .filter((g) => g.targets.some((t) => t.product_id === p.id || (p.category_id && t.category_id === p.category_id)))
       .map((g) => g.id);
     setSelectedGroupIds(initialGroupIds);
     setOpen(true);
@@ -336,7 +340,7 @@ function ProductsPage() {
 
       await qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
       setSelectedGroupIds((prev) => [...prev, resGroup.id]);
-      toast.success(`${inlineGroupKind === "observacao" ? "Grupo de observação" : "Subcategoria de adicionais"} criado e vinculado!`);
+      toast.success(`${inlineGroupKind === "observacao" ? "Grupo de observação" : "Categoria de adicionais"} criada e vinculada!`);
       setInlineGroupOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao criar grupo.");
@@ -789,7 +793,7 @@ function ProductsPage() {
                       <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
                         {obsGroups.map((g) => {
                           const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
-                          const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
+                          const isChecked = selectedGroupIds.includes(g.id);
                           const optionsText = g.options.map((o) => o.name).join(", ");
                           return (
                             <label
@@ -800,9 +804,7 @@ function ProductsPage() {
                             >
                               <Checkbox
                                 checked={isChecked}
-                                disabled={isCategoryTarget}
                                 onCheckedChange={(v) => {
-                                  if (isCategoryTarget) return;
                                   setSelectedGroupIds((prev) =>
                                     v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
                                   );
@@ -834,12 +836,12 @@ function ProductsPage() {
                     )}
                   </div>
 
-                  {/* Subcategorias de Adicionais */}
+                  {/* Categorias de Adicionais */}
                   <div className="rounded-xl border p-4 bg-card space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                          <Layers className="h-4 w-4 text-primary" /> Subcategorias de Adicionais
+                          <Layers className="h-4 w-4 text-primary" /> Categorias de Adicionais
                         </h4>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Itens complementares cobrados que o cliente pode adicionar.
@@ -852,13 +854,13 @@ function ProductsPage() {
                         className="h-8 text-xs gap-1 shrink-0"
                         onClick={() => openInlineGroupModal("adicional")}
                       >
-                        <Plus className="h-3.5 w-3.5" /> Criar nova subcategoria
+                        <Plus className="h-3.5 w-3.5" /> Criar nova categoria
                       </Button>
                     </div>
 
                     {addonSubcats.length === 0 ? (
                       <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
-                        <p className="text-xs text-muted-foreground font-medium">Nenhuma subcategoria de adicionais cadastrada ainda.</p>
+                        <p className="text-xs text-muted-foreground font-medium">Nenhuma categoria de adicionais cadastrada ainda.</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Molhos Extras", "Bebidas 2L", "Acompanhamentos".</p>
                         <Button
                           type="button"
@@ -867,14 +869,14 @@ function ProductsPage() {
                           className="mt-2.5 h-7 text-xs gap-1"
                           onClick={() => openInlineGroupModal("adicional")}
                         >
-                          <Plus className="h-3 w-3" /> + Cadastrar primeira subcategoria
+                          <Plus className="h-3 w-3" /> + Cadastrar primeira categoria
                         </Button>
                       </div>
                     ) : (
                       <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
                         {addonSubcats.map((g) => {
                           const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
-                          const isChecked = selectedGroupIds.includes(g.id) || isCategoryTarget;
+                          const isChecked = selectedGroupIds.includes(g.id);
                           const optionsSummary = g.options
                             .map((o) => `${o.name} (${o.price > 0 ? brl(o.price) : "Grátis"})`)
                             .join(", ");
@@ -887,9 +889,7 @@ function ProductsPage() {
                             >
                               <Checkbox
                                 checked={isChecked}
-                                disabled={isCategoryTarget}
                                 onCheckedChange={(v) => {
-                                  if (isCategoryTarget) return;
                                   setSelectedGroupIds((prev) =>
                                     v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
                                   );
@@ -937,7 +937,7 @@ function ProductsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {inlineGroupKind === "observacao" ? "Novo Grupo de Observação" : "Nova Subcategoria de Adicionais"}
+              {inlineGroupKind === "observacao" ? "Novo Grupo de Observação" : "Nova Categoria de Adicionais"}
             </DialogTitle>
           </DialogHeader>
 
