@@ -93,7 +93,14 @@ export function DispatchOrderModal({
   };
 
   const handleDispatch = (sendWhatsapp: boolean) => {
-    if (!selectedDriverId || !selectedDriver) return;
+    if (!selectedDriverId) return;
+
+    if (selectedDriverId === "__none__") {
+      onConfirmDispatch("__none__", "Sem Entregador", false);
+      return;
+    }
+
+    if (!selectedDriver) return;
 
     if (sendWhatsapp) {
       const url = generateWhatsappUrl();
@@ -134,33 +141,24 @@ export function DispatchOrderModal({
               </Button>
             </div>
 
-            {drivers.length === 0 ? (
-              <div className="rounded-xl border border-warning/50 bg-warning/10 p-3 text-xs text-warning-foreground flex items-center gap-2.5">
-                <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
-                <div>
-                  Nenhum entregador ativo cadastrado.{" "}
-                  <a href="/admin/entregadores" target="_blank" rel="noopener noreferrer" className="font-bold underline">
-                    Cadastrar entregador agora
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-                <SelectTrigger className="h-11 rounded-xl text-sm font-semibold border-input bg-card">
-                  <SelectValue placeholder="Selecione um entregador..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id} className="py-2.5">
-                      <div className="flex items-center justify-between w-full gap-4">
-                        <span className="font-medium text-foreground">{d.name}</span>
-                        <span className="text-xs text-muted-foreground">{d.vehicle || "Moto"} · {d.phone}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+              <SelectTrigger className="h-11 rounded-xl text-sm font-semibold border-input bg-card">
+                <SelectValue placeholder="Selecione um entregador..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="py-2.5 font-semibold text-muted-foreground">
+                  🚫 [Sem Entregador]
+                </SelectItem>
+                {drivers.map((d) => (
+                  <SelectItem key={d.id} value={d.id} className="py-2.5">
+                    <div className="flex items-center justify-between w-full gap-4">
+                      <span className="font-medium text-foreground">{d.name}</span>
+                      <span className="text-xs text-muted-foreground">{d.vehicle || "Moto"} · {d.phone}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Destaque das Informações de Entrega */}

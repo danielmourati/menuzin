@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,6 +97,7 @@ function AdicionaisPage() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<GroupDraft | null>(null);
   const [newOption, setNewOption] = useState<OptionDraft>({ name: "", price: 0 });
+  const optInputRef = useRef<HTMLInputElement>(null);
 
   const saveMut = useMutation({
     mutationFn: async (d: GroupDraft) => {
@@ -142,6 +143,7 @@ function AdicionaisPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
       setNewOption({ name: "", price: 0 });
+      setTimeout(() => optInputRef.current?.focus(), 50);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -416,13 +418,34 @@ function AdicionaisPage() {
                   </div>
                   <div className="mt-3 grid grid-cols-[1fr_140px_auto] gap-2">
                     <Input
+                      ref={optInputRef}
                       value={newOption.name}
                       onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
                       placeholder="Ex.: Arroz branco P"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newOption.name.trim() && draft.id) {
+                          e.preventDefault();
+                          addOptionMut.mutate({
+                            group_id: draft.id, name: newOption.name.trim(),
+                            price: newOption.price,
+                            sort_order: currentGroup.options.length,
+                          });
+                        }
+                      }}
                     />
                     <CurrencyInput
                       value={newOption.price}
                       onChange={(v) => setNewOption({ ...newOption, price: v })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newOption.name.trim() && draft.id) {
+                          e.preventDefault();
+                          addOptionMut.mutate({
+                            group_id: draft.id, name: newOption.name.trim(),
+                            price: newOption.price,
+                            sort_order: currentGroup.options.length,
+                          });
+                        }
+                      }}
                     />
                     <Button
                       onClick={() => {

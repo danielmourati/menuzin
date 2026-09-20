@@ -1,6 +1,6 @@
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,6 +112,15 @@ function ProductsPage() {
   const [newOptName, setNewOptName] = useState("");
   const [newOptPrice, setNewOptPrice] = useState(0);
   const [isSavingInline, setIsSavingInline] = useState(false);
+  const inlineOptInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAddInlineOpt = () => {
+    if (!newOptName.trim()) return;
+    setInlineOptions((prev) => [...prev, { name: newOptName.trim(), price: newOptPrice }]);
+    setNewOptName("");
+    setNewOptPrice(0);
+    setTimeout(() => inlineOptInputRef.current?.focus(), 50);
+  };
 
   const products = productsQ.data ?? [];
   const categories = categoriesQ.data ?? [];
@@ -220,8 +229,9 @@ function ProductsPage() {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      toast.success("Produto salvo");
-      if (editing && !editing.id) setEditing({ ...editing, id: res.id });
+      toast.success("Produto salvo com sucesso!");
+      setOpen(false);
+      setEditing(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -1008,32 +1018,38 @@ function ProductsPage() {
               <div className="flex items-end gap-2 pt-1">
                 <div className="flex-1">
                   <Input
+                    ref={inlineOptInputRef}
                     value={newOptName}
                     onChange={(e) => setNewOptName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddInlineOpt();
+                      }
+                    }}
                     placeholder={inlineGroupKind === "observacao" ? "Ex: Ao ponto" : "Ex: Molho Especial"}
                     className="h-8 text-xs"
                   />
                 </div>
-                {inlineGroupKind === "adicional" && (
-                  <div className="w-24">
-                    <CurrencyInput
-                      value={newOptPrice}
-                      onChange={(v) => setNewOptPrice(v)}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                )}
+                <div className="w-24">
+                  <CurrencyInput
+                    value={newOptPrice}
+                    onChange={(v) => setNewOptPrice(v)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddInlineOpt();
+                      }
+                    }}
+                    className="h-8 text-xs"
+                  />
+                </div>
                 <Button
                   type="button"
                   size="sm"
                   variant="secondary"
                   className="h-8 text-xs gap-1"
-                  onClick={() => {
-                    if (!newOptName.trim()) return;
-                    setInlineOptions((prev) => [...prev, { name: newOptName.trim(), price: inlineGroupKind === "observacao" ? 0 : newOptPrice }]);
-                    setNewOptName("");
-                    setNewOptPrice(0);
-                  }}
+                  onClick={handleAddInlineOpt}
                   disabled={!newOptName.trim()}
                 >
                   <Plus className="h-3 w-3" /> Adicionar
