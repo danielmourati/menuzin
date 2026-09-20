@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -113,6 +113,20 @@ function ProductsPage() {
   const [newOptPrice, setNewOptPrice] = useState(0);
   const [isSavingInline, setIsSavingInline] = useState(false);
   const inlineOptInputRef = useRef<HTMLInputElement>(null);
+  const obsScrollRef = useRef<HTMLDivElement>(null);
+  const addSubcatScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollObs = (dir: "left" | "right") => {
+    if (obsScrollRef.current) {
+      obsScrollRef.current.scrollBy({ left: dir === "left" ? -280 : 280, behavior: "smooth" });
+    }
+  };
+
+  const scrollAddSubcat = (dir: "left" | "right") => {
+    if (addSubcatScrollRef.current) {
+      addSubcatScrollRef.current.scrollBy({ left: dir === "left" ? -280 : 280, behavior: "smooth" });
+    }
+  };
 
   const handleAddInlineOpt = () => {
     if (!newOptName.trim()) return;
@@ -764,15 +778,41 @@ function ProductsPage() {
                           Perguntas/opções que o cliente escolhe (ex: Ponto da carne).
                         </p>
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs gap-1 shrink-0"
-                        onClick={() => openInlineGroupModal("observacao")}
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Criar novo grupo
-                      </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {obsGroups.length > 1 && (
+                          <div className="flex items-center gap-0.5 border rounded-lg p-0.5 bg-muted/40 mr-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => scrollObs("left")}
+                              title="Anterior"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => scrollObs("right")}
+                              title="Próximo"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs gap-1"
+                          onClick={() => openInlineGroupModal("observacao")}
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Criar novo grupo
+                        </Button>
+                      </div>
                     </div>
 
                     {obsGroups.length === 0 ? (
@@ -790,7 +830,10 @@ function ProductsPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
+                      <div
+                        ref={obsScrollRef}
+                        className="flex gap-2.5 pt-1 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2.5 pr-1 select-none scrollbar-thin"
+                      >
                         {obsGroups.map((g) => {
                           const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
                           const isChecked = selectedGroupIds.includes(g.id);
@@ -798,8 +841,8 @@ function ProductsPage() {
                           return (
                             <label
                               key={g.id}
-                              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
-                                isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                              className={`snap-start shrink-0 min-w-[260px] max-w-[310px] flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/60 hover:shadow-md ${
+                                isChecked ? "border-primary/60 bg-primary/5 shadow-sm" : "bg-background"
                               }`}
                             >
                               <Checkbox
@@ -812,8 +855,8 @@ function ProductsPage() {
                                 className="mt-0.5"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-sm">{g.name}</span>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-semibold text-sm leading-snug">{g.name}</span>
                                   {g.required ? (
                                     <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
                                   ) : (
@@ -824,7 +867,7 @@ function ProductsPage() {
                                   )}
                                 </div>
                                 {optionsText && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                     Opções: {optionsText}
                                   </p>
                                 )}
@@ -847,15 +890,41 @@ function ProductsPage() {
                           Itens complementares cobrados que o cliente pode adicionar.
                         </p>
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs gap-1 shrink-0"
-                        onClick={() => openInlineGroupModal("adicional")}
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Criar nova categoria
-                      </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {addonSubcats.length > 1 && (
+                          <div className="flex items-center gap-0.5 border rounded-lg p-0.5 bg-muted/40 mr-1">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => scrollAddSubcat("left")}
+                              title="Anterior"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => scrollAddSubcat("right")}
+                              title="Próximo"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-xs gap-1"
+                          onClick={() => openInlineGroupModal("adicional")}
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Criar nova categoria
+                        </Button>
+                      </div>
                     </div>
 
                     {addonSubcats.length === 0 ? (
@@ -873,7 +942,10 @@ function ProductsPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
+                      <div
+                        ref={addSubcatScrollRef}
+                        className="flex gap-2.5 pt-1 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2.5 pr-1 select-none scrollbar-thin"
+                      >
                         {addonSubcats.map((g) => {
                           const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
                           const isChecked = selectedGroupIds.includes(g.id);
@@ -883,8 +955,8 @@ function ProductsPage() {
                           return (
                             <label
                               key={g.id}
-                              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
-                                isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                              className={`snap-start shrink-0 min-w-[260px] max-w-[310px] flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/60 hover:shadow-md ${
+                                isChecked ? "border-primary/60 bg-primary/5 shadow-sm" : "bg-background"
                               }`}
                             >
                               <Checkbox
@@ -897,9 +969,9 @@ function ProductsPage() {
                                 className="mt-0.5"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-sm">{g.name}</span>
-                                  <span className="text-xs text-muted-foreground">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-semibold text-sm leading-snug">{g.name}</span>
+                                  <span className="text-xs text-muted-foreground font-medium">
                                     ({g.min_select} a {g.max_select} itens)
                                   </span>
                                   {isCategoryTarget && (
@@ -907,7 +979,7 @@ function ProductsPage() {
                                   )}
                                 </div>
                                 {optionsSummary && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                     Itens: {optionsSummary}
                                   </p>
                                 )}
