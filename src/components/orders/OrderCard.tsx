@@ -118,65 +118,110 @@ export function OrderCard({
         </div>
       </div>
 
-      {/* RESUMO ITENS */}
-      <div className="px-4 pl-5 pt-2">
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          <span className="font-semibold text-foreground/80">{order.items.length} {order.items.length === 1 ? "item" : "itens"}: </span>
-          {order.items.map((i) => `${i.qty}x ${i.name}`).join(" · ")}
-        </p>
+      {/* RESUMO DOS ITENS */}
+      <div className="px-4 pl-5 pt-2.5">
+        <div className="bg-muted/30 border border-border/50 rounded-xl p-2.5 text-xs text-foreground/90 space-y-1">
+          <div className="font-bold text-[11px] text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+            <span>{order.items.length} {order.items.length === 1 ? "Item" : "Itens"} do pedido</span>
+          </div>
+          <div className="space-y-1 font-medium text-xs leading-snug max-h-24 overflow-y-auto pr-0.5">
+            {order.items.map((it, idx) => (
+              <div key={idx} className="flex justify-between items-start gap-1">
+                <span className="truncate">
+                  <strong className="text-foreground font-bold">{it.qty}x</strong> {it.name}
+                </span>
+                <span className="text-[11px] text-muted-foreground shrink-0">{brl(it.unitPrice * it.qty)}</span>
+              </div>
+            ))}
+          </div>
+          {order.note && (
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 pt-1 border-t border-border/40 italic truncate">
+              Obs: {order.note}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* TOTAL + PAGAMENTO */}
-      <div className="px-4 pl-5 pt-3 flex items-end justify-between gap-2">
+      <div className="px-4 pl-5 pt-2.5 flex items-end justify-between gap-2">
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-bold">Total</p>
           <p className="font-extrabold text-lg text-foreground leading-none">{brl(order.total)}</p>
         </div>
-        <div className="text-right flex flex-col items-end gap-1">
-          <span className="text-[10px] text-muted-foreground truncate max-w-[140px]">{order.payment || "—"}</span>
-          <PaymentStatusBadge status={order.paymentStatus} className="text-[9px] px-1 py-0 h-4" />
+        <div className="text-right flex flex-col items-end gap-0.5">
+          <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[140px]">{order.payment || "—"}</span>
+          <PaymentStatusBadge status={order.paymentStatus} className="text-[9px] px-1.5 py-0.5 h-4" />
         </div>
       </div>
 
-      {/* AÇÕES */}
-      <div className="mt-3 px-3 pb-3 pl-4 flex items-center gap-2 border-t bg-muted/20 pt-3">
-        {isNew ? (
-          /* Pedidos novos: apenas "Ler pedido" prominente. Demais ações dentro do modal. */
-          <Button
-            size="lg"
-            onClick={onViewDetails}
-            className="flex-1 h-11 text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Ler pedido
-          </Button>
-        ) : (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onViewDetails}
-              className="flex-1 h-9 text-xs font-semibold"
-            >
-              <Eye className="h-3.5 w-3.5 mr-1.5" />
-              Abrir
-            </Button>
-
-            {primaryCta && (
+      {/* AÇÕES (2 Linhas Organizadas) */}
+      <div className="mt-3 px-3 pb-3 pl-4 space-y-2 border-t bg-muted/15 pt-2.5">
+        {/* Linha 1: Ações de Status do Pedido */}
+        <div className="flex items-center gap-2">
+          {isNew ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onViewDetails}
+                className="flex-1 h-9 text-xs font-semibold rounded-xl"
+              >
+                <Eye className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                Abrir
+              </Button>
               <Button
                 size="sm"
-                onClick={(e) => { e.stopPropagation(); primaryCta.action(); }}
-                className={`flex-1 h-9 text-xs font-semibold ${primaryCta.className}`}
+                onClick={(e) => { e.stopPropagation(); onAccept(); }}
+                className="flex-1 h-9 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs"
               >
-                <primaryCta.icon className="h-3.5 w-3.5 mr-1.5" />
-                {primaryCta.label}
+                <Check className="h-3.5 w-3.5 mr-1.5" />
+                Aceitar
               </Button>
-            )}
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onViewDetails}
+                className="flex-1 h-9 text-xs font-semibold rounded-xl"
+              >
+                <Eye className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                Abrir
+              </Button>
 
-            <PrintOrderButton order={order} size="icon" className="h-9 w-9 shrink-0" paperWidth={paperWidth} />
-            <PrintKitchenButton order={order} size="icon" className="h-9 w-9 shrink-0" />
-          </>
-        )}
+              {primaryCta && (
+                <Button
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); primaryCta.action(); }}
+                  className={`flex-1 h-9 text-xs font-semibold rounded-xl ${primaryCta.className}`}
+                >
+                  <primaryCta.icon className="h-3.5 w-3.5 mr-1.5" />
+                  {primaryCta.label}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Linha 2: Botões de Impressão (Imp. Pedido + Imp. Cozinha) */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <PrintOrderButton
+            order={order}
+            variant="outline"
+            size="sm"
+            label="Imp. Pedido"
+            className="flex-1 h-8 text-[11px] font-semibold rounded-lg justify-center border-border/80 bg-background hover:bg-accent"
+            paperWidth={paperWidth}
+          />
+          <PrintKitchenButton
+            order={order}
+            variant="outline"
+            size="sm"
+            label="Imp. Cozinha"
+            className="flex-1 h-8 text-[11px] font-semibold rounded-lg justify-center border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400"
+          />
+        </div>
       </div>
     </div>
   );

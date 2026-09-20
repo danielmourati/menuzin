@@ -22,6 +22,7 @@ interface PrintOrderButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   variant?: "default" | "outline" | "secondary" | "ghost";
   className?: string;
+  label?: string;
 }
 
 export function PrintOrderButton({
@@ -32,6 +33,7 @@ export function PrintOrderButton({
   size = "default",
   variant = "outline",
   className = "",
+  label,
 }: PrintOrderButtonProps) {
   const { isAuthenticated } = useAuth();
   const [printing, setPrinting] = useState(false);
@@ -103,21 +105,23 @@ export function PrintOrderButton({
     }
   };
 
+  const finalLabel = label ?? "Imprimir pedido completo";
+
   return (
     <Button
       variant={variant}
       size={size}
       className={className}
-      title="Imprimir pedido"
+      title={finalLabel}
       onClick={handlePrint}
       disabled={printing}
     >
       {printing ? (
-        <Loader2 className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"} />
+        <Loader2 className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-1.5 h-3.5 w-3.5 animate-spin"} />
       ) : (
-        <Printer className={size === "icon" ? "h-3.5 w-3.5 text-foreground/70" : "mr-2 h-4 w-4 text-foreground/70"} />
+        <Printer className={size === "icon" ? "h-3.5 w-3.5 text-foreground/70" : "mr-1.5 h-3.5 w-3.5 text-foreground/70"} />
       )}
-      {size !== "icon" && (printing ? "Imprimindo..." : "Imprimir pedido completo")}
+      {size !== "icon" && (printing ? "Imprimindo..." : finalLabel)}
     </Button>
   );
 }
