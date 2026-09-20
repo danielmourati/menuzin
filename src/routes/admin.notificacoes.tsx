@@ -12,13 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Send, Users, Ticket, Smartphone, CheckCircle, AlertTriangle, Trash2, Loader2, Plus, RefreshCw, ShoppingBag, ExternalLink } from "lucide-react";
+import { Bell, Send, Users, Ticket, Smartphone, AlertTriangle, Trash2, Loader2, Plus, RefreshCw, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { getPushStatsAdmin, createPushCampaign, dispatchPushCampaignNow, deletePushCampaign } from "@/lib/push-campaigns.functions";
 import { listMyCoupons } from "@/lib/coupons.functions";
 import { formatDateTime } from "@/lib/format";
 
-export const Route = createFileRoute("/admin/marketing/notificacoes")({
+export const Route = createFileRoute("/admin/notificacoes")({
   component: () => (
     <PlanGate min="pro" title="Notificações Push" featureLabel="Envio de Notificações Push para Clientes">
       <PushNotificationsPage />

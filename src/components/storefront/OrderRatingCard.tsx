@@ -22,14 +22,12 @@ export function OrderRatingCard({ orderId }: Props) {
 
   const [stars, setStars] = useState(0);
   const [hover, setHover] = useState(0);
-  const [nps, setNps] = useState<number | null>(null);
   const [comment, setComment] = useState("");
 
   // pré-popula com avaliação existente, se houver
   useEffect(() => {
     if (data?.rating) {
       setStars(data.rating.stars);
-      setNps(data.rating.nps ?? null);
       setComment(data.rating.comment ?? "");
     }
   }, [data?.rating]);
@@ -37,7 +35,7 @@ export function OrderRatingCard({ orderId }: Props) {
   const mut = useMutation({
     mutationFn: () =>
       submitOrderRating({
-        data: { order_id: orderId, stars, nps: nps ?? null, comment },
+        data: { order_id: orderId, stars, nps: null, comment },
       }),
     onSuccess: (res) => {
       if (res.alreadyRated) {
@@ -84,29 +82,6 @@ export function OrderRatingCard({ orderId }: Props) {
               </button>
             );
           })}
-        </div>
-
-        <div>
-          <Label className="text-xs text-muted-foreground">
-            De 0 a 10, o quanto você indicaria esta loja para um amigo? (opcional)
-          </Label>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {Array.from({ length: 11 }, (_, i) => i).map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => !already && setNps(nps === n ? null : n)}
-                disabled={already}
-                className={`h-9 min-w-[36px] rounded-md border text-sm font-semibold transition disabled:opacity-70 ${
-                  nps === n
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card hover:border-primary/60"
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div>

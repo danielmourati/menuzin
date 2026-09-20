@@ -38,6 +38,7 @@ import { Route as AdminRecuperarSenhaRouteImport } from './routes/admin.recupera
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
+import { Route as AdminNotificacoesRouteImport } from './routes/admin.notificacoes'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminEntregadoresRouteImport } from './routes/admin.entregadores'
 import { Route as AdminDiretorioRouteImport } from './routes/admin.diretorio'
@@ -228,6 +229,11 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
 const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
   id: '/admin/observacoes',
   path: '/admin/observacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminNotificacoesRoute = AdminNotificacoesRouteImport.update({
+  id: '/admin/notificacoes',
+  path: '/admin/notificacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -501,6 +507,7 @@ export interface FileRoutesByFullPath {
   '/admin/diretorio': typeof AdminDiretorioRoute
   '/admin/entregadores': typeof AdminEntregadoresRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/notificacoes': typeof AdminNotificacoesRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -577,6 +584,7 @@ export interface FileRoutesByTo {
   '/admin/diretorio': typeof AdminDiretorioRoute
   '/admin/entregadores': typeof AdminEntregadoresRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/notificacoes': typeof AdminNotificacoesRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -654,6 +662,7 @@ export interface FileRoutesById {
   '/admin/diretorio': typeof AdminDiretorioRoute
   '/admin/entregadores': typeof AdminEntregadoresRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/notificacoes': typeof AdminNotificacoesRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
@@ -733,6 +742,7 @@ export interface FileRouteTypes {
     | '/admin/diretorio'
     | '/admin/entregadores'
     | '/admin/login'
+    | '/admin/notificacoes'
     | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -809,6 +819,7 @@ export interface FileRouteTypes {
     | '/admin/diretorio'
     | '/admin/entregadores'
     | '/admin/login'
+    | '/admin/notificacoes'
     | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -885,6 +896,7 @@ export interface FileRouteTypes {
     | '/admin/diretorio'
     | '/admin/entregadores'
     | '/admin/login'
+    | '/admin/notificacoes'
     | '/admin/observacoes'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -958,6 +970,7 @@ export interface RootRouteChildren {
   AdminDiretorioRoute: typeof AdminDiretorioRoute
   AdminEntregadoresRoute: typeof AdminEntregadoresRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminNotificacoesRoute: typeof AdminNotificacoesRoute
   AdminObservacoesRoute: typeof AdminObservacoesRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
@@ -1197,6 +1210,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/observacoes'
       fullPath: '/admin/observacoes'
       preLoaderRoute: typeof AdminObservacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/notificacoes': {
+      id: '/admin/notificacoes'
+      path: '/admin/notificacoes'
+      fullPath: '/admin/notificacoes'
+      preLoaderRoute: typeof AdminNotificacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -1623,6 +1643,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminDiretorioRoute: AdminDiretorioRoute,
   AdminEntregadoresRoute: AdminEntregadoresRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminNotificacoesRoute: AdminNotificacoesRoute,
   AdminObservacoesRoute: AdminObservacoesRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
