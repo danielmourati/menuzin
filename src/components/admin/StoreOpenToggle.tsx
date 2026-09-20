@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Store, StoreIcon, Loader2, Power, PowerOff } from "lucide-react";
 import { updateMyTenant } from "@/lib/tenants.functions";
+import { broadcastStoreSync } from "@/lib/store-realtime";
 import { toast } from "sonner";
 
 type OpenMode = "auto" | "open" | "closed";
@@ -19,7 +20,12 @@ export function StoreOpenToggle({ openMode, isOpen, disabled }: StoreOpenToggleP
   const mutation = useMutation({
     mutationFn: (next: OpenMode) => updateMyTenant({ data: { open_mode: next } }),
     onSuccess: (_d, next) => {
+      broadcastStoreSync({
+        type: "TENANT_STATUS_CHANGED",
+        openMode: next,
+      });
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
+      qc.invalidateQueries({ queryKey: ["catalog"] });
       toast.success(next === "open" ? "Loja aberta para pedidos" : "Loja fechada");
     },
     onError: (e: Error) => toast.error(e.message || "Falha ao atualizar status da loja"),

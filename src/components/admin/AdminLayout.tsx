@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { useActiveTenantId, clearActiveTenant } from "@/lib/active-tenant";
 import { computeStoreOpen } from "@/lib/store-hours";
+import { broadcastStoreSync } from "@/lib/store-realtime";
 import { toast } from "sonner";
 import { PrinterStatusIndicator } from "@/components/admin/PrinterStatusIndicator";
 import { getWhatsappVerificationStatus } from "@/lib/otp.functions";
@@ -500,6 +501,11 @@ function StoreOpenToggle() {
     mutationFn: (open_mode: "auto" | "open" | "closed") =>
       updateMyTenant({ data: { open_mode } }),
     onSuccess: (_r, mode) => {
+      broadcastStoreSync({
+        type: "TENANT_STATUS_CHANGED",
+        tenantId: tenant?.id,
+        openMode: mode,
+      });
       toast.success(
         mode === "auto"
           ? "Voltou ao modo automático pelo horário"
@@ -508,6 +514,7 @@ function StoreOpenToggle() {
             : "Atendimento forçado FECHADO",
       );
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
+      qc.invalidateQueries({ queryKey: ["catalog"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -515,9 +522,9 @@ function StoreOpenToggle() {
   if (!canToggle) return null;
 
   const status = computeStoreOpen({
-    openMode: (tenant as { open_mode?: "auto" | "open" | "closed" }).open_mode,
-    hoursSchedule: (tenant as { hours_schedule?: unknown }).hours_schedule,
-    legacyOpen: tenant.open,
+    openMode: (tenant as { open_mode?: "auto" | "open" | "closed" })?.open_mode,
+    hoursSchedule: (tenant as { hours_schedule?: unknown })?.hours_schedule,
+    legacyOpen: tenant?.open,
   });
   const mode = status.mode;
   const open = status.open;

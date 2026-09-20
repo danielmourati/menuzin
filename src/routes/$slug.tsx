@@ -46,6 +46,7 @@ import { getCatalog } from "@/lib/catalog.functions";
 import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters";
 import type { Product, Tenant, Category } from "@/lib/domain-types";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
+import { useStorefrontRealtime } from "@/lib/store-realtime";
 
 const STORE_SLUG_PATTERN = /^[a-z0-9-]+$/;
 const isCatalogSlug = (slug: string) => STORE_SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.has(slug);
@@ -168,6 +169,8 @@ function StoreRoute() {
 
 function StorefrontRoute({ slug }: { slug: string }) {
   const { data, isLoading } = useQuery(catalogQueryOptions(slug));
+
+  useStorefrontRealtime(slug, data?.tenant?.id);
 
   if (isLoading && !data) return <StorefrontSkeleton />;
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;

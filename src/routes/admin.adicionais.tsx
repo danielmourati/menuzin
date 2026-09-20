@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Loader2, Layers, Lock, CheckCircle2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Layers, Lock, CheckCircle2, Sparkles } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
@@ -250,6 +250,87 @@ function AdicionaisPage() {
     );
   };
 
+  // Coleta opções já salvas em todos os grupos da loja para reaproveitamento inteligente
+  const savedOptionsMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const g of allGroups) {
+      for (const o of g.options) {
+        if (o.name && !map.has(o.name.trim())) {
+          map.set(o.name.trim(), o.price);
+        }
+      }
+    }
+    return map;
+  }, [allGroups]);
+
+  const savedOptionsList = useMemo(
+    () => Array.from(savedOptionsMap.entries()).map(([name, price]) => ({ name, price })),
+    [savedOptionsMap]
+  );
+
+  const handleOptionNameChange = (val: string) => {
+    const trimmed = val.trim();
+    const existingPrice = savedOptionsMap.get(trimmed);
+    if (existingPrice !== undefined && newOption.price === 0) {
+      setNewOption({ name: val, price: existingPrice });
+    } else {
+      setNewOption({ ...newOption, name: val });
+    }
+  };
+
+  const handleImportFromGroup = (sourceGroupId: string) => {
+    const sourceGroup = allGroups.find((g) => g.id === sourceGroupId);
+    if (!sourceGroup || !draft) return;
+    const existingNames = new Set(draft.options.map((o) => o.name.toLowerCase().trim()));
+    const toAdd = sourceGroup.options
+      .filter((o) => !existingNames.has(o.name.toLowerCase().trim()))
+      .map((o) => ({ name: o.name, price: o.price }));
+
+    if (toAdd.length === 0) {
+      toast.info("Todas as opções dessa categoria já foram adicionadas.");
+      return;
+    }
+
+    setDraft({
+      ...draft,
+      options: [...draft.options, ...toAdd],
+    });
+    toast.success(`${toAdd.length} adicional(ais) importado(s) de "${sourceGroup.name}"!`);
+  };
+
+  const handleQuickAddOption = async (optName: string, optPrice: number) => {
+    if (!draft) return;
+    if (draft.options.some((o) => o.name.toLowerCase().trim() === optName.toLowerCase().trim())) {
+      toast.info("Este adicional já está na lista.");
+      return;
+    }
+
+    if (draft.id) {
+      try {
+        const res = await saveAddonOption({
+          data: {
+            group_id: draft.id,
+            name: optName,
+            price: optPrice,
+            active: true,
+            sort_order: draft.options.length,
+          },
+        });
+        setDraft((prev) =>
+          prev ? { ...prev, options: [...prev.options, { id: res.id, name: optName, price: optPrice }] } : prev
+        );
+        qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+        toast.success(`"${optName}" adicionado!`);
+      } catch (e: any) {
+        toast.error(e?.message || "Erro ao adicionar opção");
+      }
+    } else {
+      setDraft((prev) =>
+        prev ? { ...prev, options: [...prev.options, { name: optName, price: optPrice }] } : prev
+      );
+    }
+  };
+
   const filteredCategories = useMemo(
     () => categories.filter((c) => c.name.toLowerCase().includes(catSearch.toLowerCase())),
     [categories, catSearch]
@@ -469,6 +550,31 @@ function AdicionaisPage() {
                       Informe a descrição e o valor do adicional.
                     </p>
 
+                    {/* Importar de categoria existente */}
+                    {allGroups.length > 0 && draft.id && (
+                      <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/40 text-xs">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span className="text-muted-foreground whitespace-nowrap">Copiar de:</span>
+                        <select
+                          className="h-7 text-xs bg-background border rounded px-2 w-full text-foreground"
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleImportFromGroup(e.target.value);
+                              e.target.value = "";
+                            }
+                          }}
+                        >
+                          <option value="" disabled>Selecione uma categoria cadastrada...</option>
+                          {allGroups.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name} ({g.options.length} itens)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     {draft.options.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic bg-muted/20 p-2.5 rounded-md text-center">
                         Nenhum adicional adicionado ainda. Cadastre abaixo.
@@ -503,11 +609,21 @@ function AdicionaisPage() {
                       </div>
                     )}
 
+                    {/* Datalist com opções/adicionais já cadastrados */}
+                    <datalist id="saved-adicionais-options-list">
+                      {savedOptionsList.map((so) => (
+                        <option key={so.name} value={so.name}>
+                          {so.price > 0 ? moneyBR(so.price) : "Grátis"}
+                        </option>
+                      ))}
+                    </datalist>
+
                     <div className="grid grid-cols-[1fr_130px_auto] gap-2 pt-1">
                       <Input
                         ref={optInputRef}
+                        list="saved-adicionais-options-list"
                         value={newOption.name}
-                        onChange={(e) => setNewOption({ ...newOption, name: e.target.value })}
+                        onChange={(e) => handleOptionNameChange(e.target.value)}
                         placeholder="Ex.: Queijo extra, Molho especial"
                         className="h-9 text-xs"
                         onKeyDown={(e) => {
@@ -538,6 +654,31 @@ function AdicionaisPage() {
                         <Plus className="h-4 w-4" /> Adicionar
                       </Button>
                     </div>
+
+                    {/* Chips de sugestões rápidas de adicionais já salvos */}
+                    {savedOptionsList.length > 0 && draft.id && (
+                      <div className="space-y-1 pt-1.5 border-t border-dashed">
+                        <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-amber-500" /> Clique para adicionar itens salvos da loja:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                          {savedOptionsList
+                            .filter((so) => !draft.options.some((o) => o.name.toLowerCase().trim() === so.name.toLowerCase().trim()))
+                            .map((so) => (
+                              <button
+                                key={so.name}
+                                type="button"
+                                onClick={() => handleQuickAddOption(so.name, so.price)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] bg-background hover:bg-muted font-medium transition-colors border-muted-foreground/20 text-foreground"
+                              >
+                                <Plus className="h-2.5 w-2.5" />
+                                <span>{so.name}</span>
+                                {so.price > 0 && <span className="text-muted-foreground font-normal">({moneyBR(so.price)})</span>}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
