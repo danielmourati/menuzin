@@ -430,7 +430,7 @@ function AdicionaisPage() {
           </DialogHeader>
           {draft && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* COLUNA ESQUERDA: Dados Gerais e Cadastro de Adicionais */}
                 <div className="space-y-4">
                   {/* Card 1: Dados da Categoria de Adicionais */}
@@ -683,7 +683,7 @@ function AdicionaisPage() {
                 </div>
 
                 {/* COLUNA DIREITA: Vincular a Categorias e Produtos */}
-                <div className={`space-y-4 lg:border-l lg:pl-6 transition-all ${
+                <div className={`space-y-4 lg:border-l lg:pl-6 transition-all lg:sticky lg:top-0 ${
                   !draft.id ? "opacity-50 pointer-events-none select-none" : ""
                 }`}>
                   <h4 className="font-semibold text-sm border-b pb-2 text-foreground">2. Vincular a Categorias ou Produtos</h4>

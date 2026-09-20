@@ -437,7 +437,7 @@ function ObservacoesPage() {
           </DialogHeader>
           {draft && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* COLUNA ESQUERDA: Dados do Grupo & Opções */}
                 <div className="space-y-4">
                   <div className="rounded-xl border p-4 space-y-3 bg-background shadow-sm">
@@ -684,7 +684,7 @@ function ObservacoesPage() {
                 </div>
 
                 {/* COLUNA DIREITA: Vincular a Categorias e Produtos */}
-                <div className={`space-y-4 lg:border-l lg:pl-6 transition-all ${!draft.id ? "opacity-50 pointer-events-none select-none" : ""}`}>
+                <div className={`space-y-4 lg:border-l lg:pl-6 transition-all lg:sticky lg:top-0 ${!draft.id ? "opacity-50 pointer-events-none select-none" : ""}`}>
                   <div className="flex items-center gap-2 border-b pb-2">
                     {!draft.id && <Lock className="h-4 w-4 text-muted-foreground" />}
                     <h4 className="font-semibold text-sm text-foreground">2. Vincular a Categorias ou Produtos</h4>
