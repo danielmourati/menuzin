@@ -165,10 +165,10 @@ export function ProductModal({
     () => allGroups.filter((g) => g.kind === "observacao"),
     [allGroups]
   );
-  const [activeAccordionValues, setActiveAccordionValues] = useState<string[]>([]);
+  const [activeAccordionValue, setActiveAccordionValue] = useState<string | undefined>(undefined);
   useEffect(() => {
     if (open && product) {
-      setActiveAccordionValues([]);
+      setActiveAccordionValue(undefined);
     }
   }, [open, product?.id]);
 
@@ -277,7 +277,7 @@ export function ProductModal({
         .map((g) => g.id);
 
       if (invalidGroupIds.length > 0) {
-        setActiveAccordionValues((prev) => Array.from(new Set([...prev, ...invalidGroupIds])));
+        setActiveAccordionValue(invalidGroupIds[0]);
       }
 
       // Smooth scroll into view of the first invalid component
@@ -646,7 +646,7 @@ export function ProductModal({
           {/* Grupos de observações e complementos/adicionais unificados em faixa cinza (estilo Aiqfome) */}
           {allGroups.length > 0 && (
             <div className="mt-4 space-y-3">
-              <Accordion type="multiple" value={activeAccordionValues} onValueChange={(val) => setActiveAccordionValues(Array.isArray(val) ? val : [val])} className="space-y-3">
+              <Accordion type="single" collapsible value={activeAccordionValue ?? ""} onValueChange={(val) => setActiveAccordionValue(val || undefined)} className="space-y-3">
                 {allGroups.map((g) => {
                   const activeOptions = g.options
                     .filter((o) => o.price >= 0)
