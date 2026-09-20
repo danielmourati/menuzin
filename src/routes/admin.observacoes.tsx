@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Loader2, Layers } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Layers, Lock } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
@@ -99,6 +99,26 @@ function ObservacoesPage() {
   const [catSearch, setCatSearch] = useState("");
   const [prodSearch, setProdSearch] = useState("");
   const optInputRef = useRef<HTMLInputElement>(null);
+
+  const saveGroupOnlyMut = useMutation({
+    mutationFn: async (d: GroupDraft) => {
+      const res = await saveAddonGroup({
+        data: {
+          id: d.id, name: d.name, description: d.description,
+          kind: "observacao", required: d.required,
+          min_select: d.min_select, max_select: d.max_select,
+          active: d.active, sort_order: d.sort_order,
+        },
+      });
+      return res;
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      toast.success(draft?.id ? "Dados do grupo atualizados!" : "Grupo criado com sucesso! Agora cadastre as opções e vínculos abaixo.");
+      setDraft((prev) => (prev ? { ...prev, id: res.id } : prev));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const saveMut = useMutation({
     mutationFn: async (d: GroupDraft) => {
@@ -250,7 +270,7 @@ function ObservacoesPage() {
       }
     >
       <p className="mb-3 text-sm text-muted-foreground">
-        Crie subcategorias de observação (ex.: "Escolha o arroz", "Ponto da carne") com
+        Crie grupos de observação (ex.: "Escolha o arroz", "Ponto da carne") com
         opções, regras de obrigatoriedade e aplicação por categoria ou produto.
       </p>
 
@@ -268,7 +288,7 @@ function ObservacoesPage() {
               </div>
               <h3 className="font-bold text-base text-foreground mb-1">Nenhum grupo de observações cadastrado ainda</h3>
               <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                Crie subcategorias de observação (ex.: "Ponto da carne", "Escolha o molho", "Sem cebola") com opções e regras de escolha.
+                Crie grupos de observação (ex.: "Ponto da carne", "Escolha o molho", "Sem cebola") com opções e regras de escolha.
               </p>
               <Button onClick={() => openNew()} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
                 <Plus className="h-4 w-4" /> Cadastrar primeiro grupo
@@ -340,80 +360,116 @@ function ObservacoesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* COLUNA ESQUERDA: Dados do Grupo & Opções */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-sm border-b pb-2 text-foreground">1. Cadastro do Grupo &amp; Opções</h4>
+                  <div className="rounded-xl border p-4 space-y-3 bg-background shadow-sm">
+                    <h4 className="font-semibold text-sm border-b pb-2 text-foreground">1. Dados do Grupo de Observações</h4>
 
-                  <div>
-                    <Label className="text-xs font-semibold">Nome do grupo</Label>
-                    <Input
-                      value={draft.name}
-                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                      className="mt-1"
-                      placeholder="Ex.: Ponto da carne, Escolha o molho"
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs font-semibold">Instrução para o cliente (opcional)</Label>
-                    <Textarea
-                      value={draft.description}
-                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                      className="mt-1"
-                      placeholder="Ex.: Como você prefere sua carne?"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="rounded-xl border p-3 space-y-3 bg-muted/10">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-xs font-semibold">Obrigatório</Label>
-                        <p className="text-[11px] text-muted-foreground">O cliente deve escolher ao menos 1 item</p>
-                      </div>
-                      <Switch
-                        checked={draft.required}
-                        onCheckedChange={(v) => setDraft({ ...draft, required: v, min_select: v ? Math.max(1, draft.min_select) : 0 })}
+                    <div>
+                      <Label className="text-xs font-semibold">Nome do grupo</Label>
+                      <Input
+                        value={draft.name}
+                        onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                        className="mt-1"
+                        placeholder="Ex.: Ponto da carne, Escolha o molho"
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-[11px]">Mínimo de escolhas</Label>
-                        <Input
-                          type="number" min={0}
-                          value={draft.min_select}
-                          onChange={(e) => setDraft({ ...draft, min_select: Number(e.target.value) })}
-                          className="mt-0.5 h-8 text-xs"
+                    <div>
+                      <Label className="text-xs font-semibold">Instrução para o cliente (opcional)</Label>
+                      <Textarea
+                        value={draft.description}
+                        onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                        className="mt-1"
+                        placeholder="Ex.: Como você prefere sua carne?"
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="rounded-xl border p-3 space-y-3 bg-muted/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs font-semibold">Obrigatório</Label>
+                          <p className="text-[11px] text-muted-foreground">O cliente deve escolher ao menos 1 item</p>
+                        </div>
+                        <Switch
+                          checked={draft.required}
+                          onCheckedChange={(v) => setDraft({ ...draft, required: v, min_select: v ? Math.max(1, draft.min_select) : 0 })}
                         />
                       </div>
-                      <div>
-                        <Label className="text-[11px]">Máximo de escolhas</Label>
-                        <Input
-                          type="number" min={1}
-                          value={draft.max_select}
-                          onChange={(e) => setDraft({ ...draft, max_select: Number(e.target.value) })}
-                          className="mt-0.5 h-8 text-xs"
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-[11px]">Mínimo de escolhas</Label>
+                          <Input
+                            type="number" min={0}
+                            value={draft.min_select}
+                            onChange={(e) => setDraft({ ...draft, min_select: Number(e.target.value) })}
+                            className="mt-0.5 h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[11px]">Máximo de escolhas</Label>
+                          <Input
+                            type="number" min={1}
+                            value={draft.max_select}
+                            onChange={(e) => setDraft({ ...draft, max_select: Number(e.target.value) })}
+                            className="mt-0.5 h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t">
+                        <Label className="text-xs font-semibold">Grupo ativo</Label>
+                        <Switch
+                          checked={draft.active}
+                          onCheckedChange={(v) => setDraft({ ...draft, active: v })}
                         />
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t">
-                      <Label className="text-xs font-semibold">Grupo ativo</Label>
-                      <Switch
-                        checked={draft.active}
-                        onCheckedChange={(v) => setDraft({ ...draft, active: v })}
-                      />
-                    </div>
+                    {!draft.id ? (
+                      <Button
+                        type="button"
+                        onClick={() => draft && saveGroupOnlyMut.mutate(draft)}
+                        disabled={saveGroupOnlyMut.isPending || !draft.name.trim()}
+                        className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm"
+                      >
+                        {saveGroupOnlyMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar e Criar Grupo"}
+                      </Button>
+                    ) : (
+                      <div className="flex items-center justify-between text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <span className="font-medium">✓ Grupo salvo. Opções e vínculos liberados abaixo.</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => draft && saveGroupOnlyMut.mutate(draft)}
+                          disabled={saveGroupOnlyMut.isPending}
+                          className="h-7 text-xs px-2 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-100"
+                        >
+                          {saveGroupOnlyMut.isPending ? "Atualizando..." : "Atualizar dados"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Cadastro de Opções de Observação */}
-                  <div className="rounded-xl border p-3.5 space-y-3 bg-background shadow-sm">
+                  <div className={`rounded-xl border p-3.5 space-y-3 bg-background shadow-sm transition-all ${!draft.id ? "opacity-50 pointer-events-none select-none" : ""}`}>
                     <div className="flex items-center justify-between">
-                      <Label className="font-semibold text-sm">Opções de Observação</Label>
+                      <div className="flex items-center gap-1.5">
+                        {!draft.id && <Lock className="h-4 w-4 text-muted-foreground" />}
+                        <Label className="font-semibold text-sm">Opções de Observação</Label>
+                      </div>
                       <Badge variant="outline">{draft.options.length} opção(ões)</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Cadastre as opções (ex.: "Bem passado", "Ao ponto") e se houver valor adicional.
-                    </p>
+                    {!draft.id ? (
+                      <p className="text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-950/40 p-2 rounded-md border border-amber-200">
+                        🔒 Salve o Grupo de Observações acima para liberar o cadastro de opções.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Cadastre as opções (ex.: "Bem passado", "Ao ponto") e se houver valor adicional.
+                      </p>
+                    )}
 
                     {draft.options.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic bg-muted/20 p-2.5 rounded-md text-center">
@@ -488,11 +544,20 @@ function ObservacoesPage() {
                 </div>
 
                 {/* COLUNA DIREITA: Vincular a Categorias e Produtos */}
-                <div className="space-y-4 lg:border-l lg:pl-6">
-                  <h4 className="font-semibold text-sm border-b pb-2 text-foreground">2. Vincular a Categorias ou Produtos</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Escolha em quais categorias ou produtos específicos este grupo de observações vai aparecer.
-                  </p>
+                <div className={`space-y-4 lg:border-l lg:pl-6 transition-all ${!draft.id ? "opacity-50 pointer-events-none select-none" : ""}`}>
+                  <div className="flex items-center gap-2 border-b pb-2">
+                    {!draft.id && <Lock className="h-4 w-4 text-muted-foreground" />}
+                    <h4 className="font-semibold text-sm text-foreground">2. Vincular a Categorias ou Produtos</h4>
+                  </div>
+                  {!draft.id ? (
+                    <p className="text-xs text-amber-600 font-medium bg-amber-50 dark:bg-amber-950/40 p-2 rounded-md border border-amber-200">
+                      🔒 Salve o Grupo de Observações para liberar o vínculo com categorias e produtos.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Escolha em quais categorias ou produtos específicos este grupo de observações vai aparecer.
+                    </p>
+                  )}
 
                   {/* Categorias */}
                   <div>
@@ -593,9 +658,9 @@ function ObservacoesPage() {
                 <Button
                   onClick={() => draft && saveMut.mutate(draft)}
                   disabled={saveMut.isPending || !draft.name.trim()}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
                 >
-                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar e Concluir"}
                 </Button>
               </DialogFooter>
             </div>

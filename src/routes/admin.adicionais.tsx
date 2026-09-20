@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Loader2, Layers } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Layers, Lock, CheckCircle2 } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
@@ -101,6 +101,26 @@ function AdicionaisPage() {
   const [prodSearch, setProdSearch] = useState("");
   const optInputRef = useRef<HTMLInputElement>(null);
 
+  const saveCategoryOnlyMut = useMutation({
+    mutationFn: async (d: GroupDraft) => {
+      const res = await saveAddonGroup({
+        data: {
+          id: d.id, name: d.name, description: d.description,
+          kind: "adicional", required: d.required,
+          min_select: d.min_select, max_select: d.max_select,
+          active: d.active, sort_order: d.sort_order,
+        },
+      });
+      return res;
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      toast.success(draft?.id ? "Dados da categoria atualizados!" : "Categoria salva com sucesso! Agora cadastre os itens e vínculos abaixo.");
+      setDraft((prev) => (prev ? { ...prev, id: res.id } : prev));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const saveMut = useMutation({
     mutationFn: async (d: GroupDraft) => {
       // 1. Save group
@@ -138,7 +158,7 @@ function AdicionaisPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      toast.success("Subcategoria de adicionais salva com sucesso!");
+      toast.success("Categoria de adicionais concluída e salva com sucesso!");
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -148,7 +168,7 @@ function AdicionaisPage() {
     mutationFn: (id: string) => deleteAddonGroup({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      toast.success("Subcategoria excluída");
+      toast.success("Categoria de adicionais excluída");
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -246,13 +266,13 @@ function AdicionaisPage() {
       title="Adicionais"
       action={
         <Button onClick={openNew}>
-          <Plus className="mr-1 h-4 w-4" /> Nova subcategoria
+          <Plus className="mr-1 h-4 w-4" /> Nova categoria de adicionais
         </Button>
       }
     >
       <p className="mb-3 text-sm text-muted-foreground">
-        Organize os adicionais em subcategorias (ex.: "Adicionais de Arroz", "Saladas",
-        "Bebidas extras") para facilitar a visualização do cliente no celular.
+        Cadastre e organize os adicionais em categorias de adicionais (ex.: "Adicionais de Arroz", "Saladas",
+        "Bebidas extras") para facilitar a seleção do cliente no cardápio digital.
       </p>
 
       <div className="space-y-3">
@@ -267,12 +287,12 @@ function AdicionaisPage() {
               <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
                 <Layers className="h-6 w-6" />
               </div>
-              <h3 className="font-bold text-base text-foreground mb-1">Nenhuma subcategoria de adicionais criada ainda</h3>
+              <h3 className="font-bold text-base text-foreground mb-1">Nenhuma categoria de adicionais criada ainda</h3>
               <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                Crie subcategorias para oferecer ingredientes extras, molhos, bebidas ou adicionais cobrados à parte no seu cardápio.
+                Crie categorias para oferecer ingredientes extras, molhos, bebidas ou adicionais cobrados à parte no seu cardápio.
               </p>
               <Button onClick={() => openNew()} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-sm">
-                <Plus className="h-4 w-4" /> Cadastrar primeira subcategoria
+                <Plus className="h-4 w-4" /> Cadastrar primeira categoria de adicionais
               </Button>
             </CardContent>
           </Card>
@@ -312,7 +332,7 @@ function AdicionaisPage() {
                   </Button>
                   <Button
                     size="icon" variant="ghost" className="text-destructive"
-                    onClick={async () => { if (await confirmDialog({ title: `Excluir subcategoria "${g.name}"?`, variant: "destructive", confirmText: "Excluir" })) delGroupMut.mutate(g.id); }}
+                    onClick={async () => { if (await confirmDialog({ title: `Excluir categoria "${g.name}"?`, variant: "destructive", confirmText: "Excluir" })) delGroupMut.mutate(g.id); }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -326,89 +346,122 @@ function AdicionaisPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] max-w-4xl sm:max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{draft?.id ? "Editar subcategoria de adicionais" : "Nova subcategoria de adicionais"}</DialogTitle>
+            <DialogTitle>{draft?.id ? "Editar categoria de adicionais" : "Nova categoria de adicionais"}</DialogTitle>
           </DialogHeader>
           {draft && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* COLUNA ESQUERDA: Dados Gerais e Cadastro de Adicionais */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-sm border-b pb-2 text-foreground">1. Cadastro da Subcategoria &amp; Adicionais</h4>
-                  
-                  <div>
-                    <Label className="text-xs font-semibold">Nome da subcategoria</Label>
-                    <Input
-                      value={draft.name}
-                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                      className="mt-1"
-                      placeholder="Ex.: Adicionais de Arroz, Molhos, Bebidas extras"
-                    />
-                  </div>
+                  {/* Card 1: Dados da Categoria de Adicionais */}
+                  <div className="rounded-xl border p-4 space-y-3.5 bg-background shadow-sm">
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                        1. Dados da Categoria de Adicionais
+                        {draft.id && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                      </h4>
+                      {draft.id && <Badge variant="secondary" className="text-[10px]">Salvo</Badge>}
+                    </div>
 
-                  <div>
-                    <Label className="text-xs font-semibold">Instruções para o cliente (opcional)</Label>
-                    <Textarea
-                      value={draft.description}
-                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                      className="mt-1"
-                      placeholder="Ex.: Escolha porções extras para acompanhar"
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="rounded-xl border p-3 space-y-3 bg-muted/10">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-xs font-semibold">Obrigatório</Label>
-                        <p className="text-[11px] text-muted-foreground">Exige escolha do cliente</p>
-                      </div>
-                      <Switch
-                        checked={draft.required}
-                        onCheckedChange={(v) => setDraft({ ...draft, required: v, min_select: v && draft.min_select < 1 ? 1 : draft.min_select })}
+                    <div>
+                      <Label className="text-xs font-semibold">Nome da categoria</Label>
+                      <Input
+                        value={draft.name}
+                        onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                        className="mt-1"
+                        placeholder="Ex.: Adicionais de Arroz, Molhos, Bebidas extras"
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="text-[11px]">Mínimo</Label>
-                        <Input
-                          type="number" min={0} max={20}
-                          value={draft.min_select}
-                          onChange={(e) => setDraft({ ...draft, min_select: Math.max(0, Number(e.target.value) || 0) })}
-                          className="mt-0.5 h-8 text-xs"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[11px]">Máximo</Label>
-                        <Input
-                          type="number" min={1} max={20}
-                          value={draft.max_select}
-                          onChange={(e) => setDraft({ ...draft, max_select: Math.max(1, Number(e.target.value) || 1) })}
-                          className="mt-0.5 h-8 text-xs"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[11px]">Ordem</Label>
-                        <Input
-                          type="number" min={0}
-                          value={draft.sort_order}
-                          onChange={(e) => setDraft({ ...draft, sort_order: Math.max(0, Number(e.target.value) || 0) })}
-                          className="mt-0.5 h-8 text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1 border-t">
-                      <Label className="text-xs font-semibold">Subcategoria ativa</Label>
-                      <Switch
-                        checked={draft.active}
-                        onCheckedChange={(v) => setDraft({ ...draft, active: v })}
+                    <div>
+                      <Label className="text-xs font-semibold">Instruções para o cliente (opcional)</Label>
+                      <Textarea
+                        value={draft.description}
+                        onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                        className="mt-1"
+                        placeholder="Ex.: Escolha porções extras para acompanhar"
+                        rows={2}
                       />
                     </div>
+
+                    <div className="rounded-xl border p-3 space-y-3 bg-muted/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs font-semibold">Obrigatório</Label>
+                          <p className="text-[11px] text-muted-foreground">Exige escolha do cliente</p>
+                        </div>
+                        <Switch
+                          checked={draft.required}
+                          onCheckedChange={(v) => setDraft({ ...draft, required: v, min_select: v && draft.min_select < 1 ? 1 : draft.min_select })}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-[11px]">Mínimo</Label>
+                          <Input
+                            type="number" min={0} max={20}
+                            value={draft.min_select}
+                            onChange={(e) => setDraft({ ...draft, min_select: Math.max(0, Number(e.target.value) || 0) })}
+                            className="mt-0.5 h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[11px]">Máximo</Label>
+                          <Input
+                            type="number" min={1} max={20}
+                            value={draft.max_select}
+                            onChange={(e) => setDraft({ ...draft, max_select: Math.max(1, Number(e.target.value) || 1) })}
+                            className="mt-0.5 h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[11px]">Ordem</Label>
+                          <Input
+                            type="number" min={0}
+                            value={draft.sort_order}
+                            onChange={(e) => setDraft({ ...draft, sort_order: Math.max(0, Number(e.target.value) || 0) })}
+                            className="mt-0.5 h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 border-t">
+                        <Label className="text-xs font-semibold">Categoria ativa</Label>
+                        <Switch
+                          checked={draft.active}
+                          onCheckedChange={(v) => setDraft({ ...draft, active: v })}
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      type="button"
+                      onClick={() => draft && saveCategoryOnlyMut.mutate(draft)}
+                      disabled={saveCategoryOnlyMut.isPending || !draft.name.trim()}
+                      className="w-full gap-2 font-semibold shadow-sm"
+                      variant={draft.id ? "outline" : "default"}
+                    >
+                      {saveCategoryOnlyMut.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : draft.id ? (
+                        "Atualizar Dados da Categoria"
+                      ) : (
+                        "Salvar e Criar Categoria"
+                      )}
+                    </Button>
                   </div>
 
-                  {/* Cadastro de Adicionais (Opções) */}
-                  <div className="rounded-xl border p-3.5 space-y-3 bg-background shadow-sm">
+                  {/* Card 2: Cadastro de Adicionais (Opções) */}
+                  <div className={`rounded-xl border p-3.5 space-y-3 bg-background shadow-sm transition-all ${
+                    !draft.id ? "opacity-50 pointer-events-none select-none border-dashed bg-muted/20" : ""
+                  }`}>
+                    {!draft.id && (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-700 font-semibold flex items-center gap-2">
+                        <Lock className="h-4 w-4 shrink-0 text-amber-600" />
+                        <span>Salve a Categoria acima para liberar o cadastro de itens.</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <Label className="font-semibold text-sm">Itens de Adicionais</Label>
                       <Badge variant="outline">{draft.options.length} item(ns)</Badge>
@@ -490,16 +543,25 @@ function AdicionaisPage() {
                 </div>
 
                 {/* COLUNA DIREITA: Vincular a Categorias e Produtos */}
-                <div className="space-y-4 lg:border-l lg:pl-6">
+                <div className={`space-y-4 lg:border-l lg:pl-6 transition-all ${
+                  !draft.id ? "opacity-50 pointer-events-none select-none" : ""
+                }`}>
                   <h4 className="font-semibold text-sm border-b pb-2 text-foreground">2. Vincular a Categorias ou Produtos</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Escolha em quais categorias ou produtos específicos esta subcategoria de adicionais vai aparecer.
-                  </p>
+                  {!draft.id ? (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 font-semibold flex items-center gap-2">
+                      <Lock className="h-4 w-4 shrink-0 text-amber-600" />
+                      <span>Salve a Categoria de Adicionais à esquerda para liberar os vínculos.</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Escolha em quais categorias de produtos ou produtos específicos esta categoria de adicionais vai aparecer.
+                    </p>
+                  )}
 
-                  {/* Categorias */}
+                  {/* Categorias de Produtos */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <Label className="text-xs font-semibold">Aplicar a categorias</Label>
+                      <Label className="text-xs font-semibold">Aplicar a categorias de produtos</Label>
                       {draft.category_ids.length > 0 && (
                         <Badge variant="secondary" className="text-[10px]">
                           {draft.category_ids.length} selecionada(s)
@@ -510,7 +572,7 @@ function AdicionaisPage() {
                       <Input
                         value={catSearch}
                         onChange={(e) => setCatSearch(e.target.value)}
-                        placeholder="Buscar categoria..."
+                        placeholder="Buscar categoria de produto..."
                         className="mb-1.5 h-7 text-xs"
                       />
                     )}
@@ -594,10 +656,10 @@ function AdicionaisPage() {
                 <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
                 <Button
                   onClick={() => draft && saveMut.mutate(draft)}
-                  disabled={saveMut.isPending || !draft.name.trim()}
+                  disabled={saveMut.isPending || !draft.name.trim() || !draft.id}
                   className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar e Concluir"}
                 </Button>
               </DialogFooter>
             </div>
@@ -608,4 +670,5 @@ function AdicionaisPage() {
     </AdminLayout>
   );
 }
+
 
