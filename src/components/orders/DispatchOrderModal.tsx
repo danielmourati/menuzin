@@ -36,13 +36,15 @@ export function DispatchOrderModal({
 
   const drivers = (data?.drivers ?? []).filter((d) => d.active);
 
-  // Seleciona o primeiro por padrão quando a modal abre
+  // Seleciona o entregador do pedido ou default para o primeiro entregador ativo
   useEffect(() => {
-    if (isOpen && drivers.length > 0) {
+    if (isOpen) {
       if (order?.driverId && drivers.some((d) => d.id === order.driverId)) {
         setSelectedDriverId(order.driverId);
-      } else {
+      } else if (drivers.length > 0) {
         setSelectedDriverId(drivers[0].id);
+      } else {
+        setSelectedDriverId("__none__");
       }
     }
   }, [isOpen, drivers, order?.driverId]);

@@ -160,8 +160,8 @@ export const toggleDriverActive = createServerFn({ method: "POST" })
 
 const AssignDriverInput = z.object({
   orderId: z.string().uuid(),
-  driverId: z.string().uuid(),
-  driverName: z.string(),
+  driverId: z.string().nullable().optional(),
+  driverName: z.string().nullable().optional(),
   updateStatusToSaiuEntrega: z.boolean().default(true),
 });
 
@@ -173,9 +173,13 @@ export const assignDriverToOrder = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
+    const isNoneDriver = !data.driverId || data.driverId === "__none__";
+    const driverIdVal = isNoneDriver ? null : data.driverId;
+    const driverNameVal = isNoneDriver ? null : (data.driverName || null);
+
     const updatePayload: Record<string, unknown> = {
-      driver_id: data.driverId,
-      driver_name: data.driverName,
+      driver_id: driverIdVal,
+      driver_name: driverNameVal,
     };
 
     if (data.updateStatusToSaiuEntrega) {
@@ -201,31 +205,35 @@ export const assignDriverToOrder = createServerFn({ method: "POST" })
           order_id: data.orderId,
           previous_status: "preparo",
           new_status: "saiu_entrega",
-          note: `Despachado com o entregador: ${data.driverName}`,
+          note: isNoneDriver
+            ? "Despachado (Sem Entregador)"
+            : `Despachado com o entregador: ${driverNameVal}`,
         });
       }
 
-      // Tenta notificar o entregador via Evolution API
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: driverRow } = await (supabase as any)
-          .from("drivers")
-          .select("phone")
-          .eq("id", data.driverId)
-          .maybeSingle();
+      // Tenta notificar o entregador via Evolution API se for um entregador válido
+      if (driverIdVal) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: driverRow } = await (supabase as any)
+            .from("drivers")
+            .select("phone")
+            .eq("id", driverIdVal)
+            .maybeSingle();
 
-        if (driverRow?.phone) {
-          const { sendEvolutionTextMessage } = await import("@/lib/whatsapp/evolution-client.server");
-          const displayId = updatedOrder?.display_id ?? data.orderId.slice(0, 6);
-          const customerName = updatedOrder?.customer_name ?? "Cliente";
-          const msg = `🛵 *NOVA ENTREGA ATRIBUÍDA - PEDIDO #${displayId}*\n\n👤 Cliente: ${customerName}\n\nVocê foi atribuído a este pedido. Acesse o painel da loja para consultar o endereço e mapa completo de despacho.`;
-          await sendEvolutionTextMessage({
-            number: driverRow.phone,
-            text: msg,
-          });
+          if (driverRow?.phone) {
+            const { sendEvolutionTextMessage } = await import("@/lib/whatsapp/evolution-client.server");
+            const displayId = updatedOrder?.display_id ?? data.orderId.slice(0, 6);
+            const customerName = updatedOrder?.customer_name ?? "Cliente";
+            const msg = `🛵 *NOVA ENTREGA ATRIBUÍDA - PEDIDO #${displayId}*\n\n👤 Cliente: ${customerName}\n\nVocê foi atribuído a este pedido. Acesse o painel da loja para consultar o endereço e mapa completo de despacho.`;
+            await sendEvolutionTextMessage({
+              number: driverRow.phone,
+              text: msg,
+            });
+          }
+        } catch (evoErr) {
+          console.warn("[assignDriverToOrder] Notificação via Evolution API não enviada (não impeditivo):", evoErr);
         }
-      } catch (evoErr) {
-        console.warn("[assignDriverToOrder] Notificação via Evolution API não enviada (não impeditivo):", evoErr);
       }
 
       return { success: true, order: updatedOrder };

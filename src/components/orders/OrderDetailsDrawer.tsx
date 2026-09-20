@@ -19,7 +19,7 @@ import { OrderStatusActions } from "./OrderStatusActions";
 import { WhatsAppOrderActions } from "./WhatsAppOrderActions";
 import { PrintOrderButton } from "./PrintOrderButton";
 import { PrintKitchenButton } from "./PrintKitchenButton";
-import { MapPin, Phone, Clipboard, Check, Utensils, Calendar, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Clipboard, Check, Utensils, Calendar, MessageCircle, Truck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -249,6 +249,13 @@ export function OrderDetailsDrawer({
                   <div className="flex items-center gap-2 text-primary pt-2 border-t border-dashed font-semibold">
                     <Utensils className="h-4 w-4 shrink-0" />
                     <span>Consumir no local: {order.table}</span>
+                  </div>
+                )}
+
+                {order.driverName && (
+                  <div className="flex items-center gap-2 text-muted-foreground pt-2 border-t border-dashed">
+                    <Truck className="h-4 w-4 shrink-0 text-blue-500" />
+                    <span>Entregador: <strong className="text-foreground font-semibold">{order.driverName}</strong></span>
                   </div>
                 )}
 

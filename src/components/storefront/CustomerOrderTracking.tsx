@@ -7,7 +7,7 @@ import { OrderStatusTimeline } from "../orders/OrderStatusTimeline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, ArrowLeft, ShoppingBag, MapPin, Utensils, Clock, Loader2 } from "lucide-react";
+import { MessageCircle, ArrowLeft, ShoppingBag, MapPin, Utensils, Clock, Loader2, Truck } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
 import { OrderStatusBadge, PaymentStatusBadge } from "../orders/OrderStatusBadge";
@@ -133,6 +133,22 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
             <div className="border-t pt-4">
               <OrderStatusTimeline order={order} audience="customer" orientation="horizontal" />
             </div>
+
+            {order.driverName && (
+              <div className="mt-4 flex items-center gap-3 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/80 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 shadow-xs">
+                <div className="h-10 w-10 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 text-xl font-bold">
+                  🛵
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
+                    Entregador Responsável
+                  </span>
+                  <span className="font-extrabold text-base text-foreground">
+                    {order.driverName}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
