@@ -153,6 +153,30 @@ export function ProductModal({
     return out;
   }, [product, groupSelections]);
 
+  const allGroups = useMemo(
+    () => ((product?.addonGroups ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    [product?.addonGroups]
+  );
+  const adicionalGroups = useMemo(
+    () => allGroups.filter((g) => g.kind !== "observacao"),
+    [allGroups]
+  );
+  const observacaoGroups = useMemo(
+    () => allGroups.filter((g) => g.kind === "observacao"),
+    [allGroups]
+  );
+  const [activeAccordionValues, setActiveAccordionValues] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open && product) {
+      // Default expand all required groups
+      const requiredGroupIds = (product.addonGroups ?? [])
+        .filter((g) => g.required)
+        .map((g) => g.id);
+      setActiveAccordionValues(requiredGroupIds);
+    }
+  }, [open, product]);
+
   if (!product) return null;
 
   const isPizza = product.type === "pizza";
@@ -188,8 +212,6 @@ export function ProductModal({
     : 0;
   
 
-
-
   // --- Standard mode (legacy sizes/flavors on product) ---
   const maxFlavors = product.maxFlavors ?? 1;
   const selectedSize: ProductSize | undefined = !isPizzaCategory ? product.sizes?.find((s) => s.id === sizeId) : undefined;
@@ -214,32 +236,8 @@ export function ProductModal({
   const groupSum = groupOptionsSelected.reduce((s, o) => s + o.price, 0);
   const total = (basePrice + addonsSum + groupSum + doughSum + crustSum) * qty;
 
-  const allGroups = useMemo(
-    () => (product.addonGroups ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
-    [product.addonGroups]
-  );
-  const adicionalGroups = useMemo(
-    () => allGroups.filter((g) => g.kind !== "observacao"),
-    [allGroups]
-  );
-  const observacaoGroups = useMemo(
-    () => allGroups.filter((g) => g.kind === "observacao"),
-    [allGroups]
-  );
   // Legacy fallback: only show product.addons if no addonGroups defined
   const showLegacyAddons = adicionalGroups.length === 0 && (product.addons?.length ?? 0) > 0;
-
-  const [activeAccordionValues, setActiveAccordionValues] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (open && product) {
-      // Default expand all required groups
-      const requiredGroupIds = (product.addonGroups ?? [])
-        .filter((g) => g.required)
-        .map((g) => g.id);
-      setActiveAccordionValues(requiredGroupIds);
-    }
-  }, [open, product]);
 
   // Validação
   const pizzaValidations: string[] = [];

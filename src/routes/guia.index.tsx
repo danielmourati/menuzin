@@ -103,6 +103,28 @@ function GuiaHome() {
   const { data: storesData, isLoading: storesLoading } = useQuery(storesQO);
   const { data: home, isLoading: homeLoading } = useQuery(homeQO);
 
+  const { location, needsLocation } = useGuiaLocation();
+  const [cepOpen, setCepOpen] = useState(false);
+  useEffect(() => {
+    if (needsLocation) setCepOpen(true);
+  }, [needsLocation]);
+
+  const [vertical, setVertical] = useState<"restaurantes" | "mercados" | "conveniencias">("restaurantes");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [storesView, setStoresView] = useState<"grid" | "list">("list");
+  const [topStoresAll, setTopStoresAll] = useState(false);
+  const [featuredAll, setFeaturedAll] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const allStores = storesData?.stores ?? [];
+  const availableVerticals = useMemo(() => VERTICALS.filter((v) =>
+    v.id === "restaurantes" ? true : allStores.some((s) => s.vertical === v.id),
+  ), [allStores]);
+
+  useEffect(() => {
+    if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
+  }, [availableVerticals, vertical]);
+
   if ((catsLoading || featLoading || storesLoading || homeLoading) && (!catsData || !featData || !storesData || !home)) {
     return <GuiaHomeSkeleton />;
   }
@@ -112,7 +134,6 @@ function GuiaHome() {
   }
 
   const featured = featData.items;
-  const allStores = storesData.stores;
 
   const byKind = (kind: GuiaSlot["kind"]) => home.slots.filter((s) => s.kind === kind && s.active);
   const heroSlots = byKind("hero");
@@ -142,29 +163,6 @@ function GuiaHome() {
           sortOrder: i,
         }))
   ).filter((c) => countOf(c.slug) > 0);
-
-
-
-  const { location, needsLocation } = useGuiaLocation();
-  const [cepOpen, setCepOpen] = useState(false);
-  useEffect(() => {
-    if (needsLocation) setCepOpen(true);
-  }, [needsLocation]);
-
-  const [vertical, setVertical] = useState<"restaurantes" | "mercados" | "conveniencias">("restaurantes");
-  const [searchOpen, setSearchOpen] = useState(false);
-
-  // Só mostra os chips de vertical que realmente existem no banco.
-  const availableVerticals = useMemo(() => VERTICALS.filter((v) =>
-    v.id === "restaurantes" ? true : allStores.some((s) => s.vertical === v.id),
-  ), [allStores]);
-  useEffect(() => {
-    if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
-  }, [availableVerticals, vertical]);
-  const [storesView, setStoresView] = useState<"grid" | "list">("list");
-  const [topStoresAll, setTopStoresAll] = useState(false);
-  const [featuredAll, setFeaturedAll] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   const verticalStores = allStores.filter((s) => s.vertical === vertical);
   const filteredStores = categoryFilter
