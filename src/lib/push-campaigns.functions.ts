@@ -73,6 +73,14 @@ export const getPushStatsAdmin = createServerFn({ method: "POST" })
 
       if (campErr) throw campErr;
 
+      // Lista dos assinantes inscritos
+      const { data: subscribers } = await (supabase as any)
+        .from("push_subscriptions")
+        .select("id, customer_phone, user_agent, created_at, last_active_at")
+        .eq("tenant_id", resolved.tenantId)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
       const campList = campaigns ?? [];
       const totalSentMessages = campList.reduce((acc: number, c: any) => acc + (c.sent_count || 0), 0);
       const totalSuccessMessages = campList.reduce((acc: number, c: any) => acc + (c.success_count || 0), 0);
@@ -82,6 +90,7 @@ export const getPushStatsAdmin = createServerFn({ method: "POST" })
         totalSentMessages,
         totalSuccessMessages,
         campaigns: campList,
+        subscribers: subscribers ?? [],
       };
     } catch (err: any) {
       const msg = err?.message || String(err);

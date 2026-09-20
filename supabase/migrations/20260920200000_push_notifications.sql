@@ -55,7 +55,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'push_policies' AND policyname = 'Permitir leitura e escrita de push campaigns'
+    SELECT 1 FROM pg_policies WHERE tablename = 'push_campaigns' AND policyname = 'Permitir leitura e escrita de push campaigns'
   ) THEN
     CREATE POLICY "Permitir leitura e escrita de push campaigns" ON public.push_campaigns FOR ALL USING (true);
   END IF;

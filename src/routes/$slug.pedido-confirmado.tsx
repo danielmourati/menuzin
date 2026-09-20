@@ -10,6 +10,7 @@ import { dbOrderToUi, dbHistoryToUi } from "@/lib/order-adapters";
 import { dbTenantToUi } from "@/lib/db-adapters";
 import { useCustomerOrder } from "@/hooks/useCustomerOrder";
 import { parseAddonLabel } from "@/lib/product-selection";
+import { PushPermissionBanner } from "@/components/storefront/PushPermissionBanner";
 import type { Order } from "@/lib/domain-types";
 
 export const Route = createFileRoute("/$slug/pedido-confirmado")({
@@ -166,6 +167,10 @@ function ConfirmedPage() {
               </Link>
             </Button>
           </div>
+        </div>
+
+        <div className="mt-6">
+          <PushPermissionBanner tenantSlug={slug} tenantName={tenant.name} customerPhone={order.whatsapp} />
         </div>
       </div>
     </div>

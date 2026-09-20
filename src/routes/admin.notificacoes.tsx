@@ -522,6 +522,76 @@ function PushNotificationsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* LISTA DE INSCRITOS DO TENANT */}
+        <Card className="shadow-xs border border-border">
+          <CardHeader className="bg-muted/20 border-b border-border pb-4">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" /> Clientes & Dispositivos Inscritos ({subscriberCount})
+            </CardTitle>
+            <CardDescription>
+              Lista dos aparelhos e clientes que autorizaram receber notificações push da sua loja.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {statsLoading ? (
+              <div className="py-12 flex items-center justify-center text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" /> Carregando inscritos...
+              </div>
+            ) : (statsData?.subscribers ?? []).length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground space-y-2">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground/40" />
+                <p className="text-base font-medium">Nenhum cliente inscrito no momento.</p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Quando os clientes acessarem seu catálogo no celular ou confirmarem um pedido, um aviso solicitará a permissão de notificações para envio de promoções e cupons.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Telefone / Cliente</TableHead>
+                      <TableHead>Navegador / Dispositivo</TableHead>
+                      <TableHead>Data de Inscrição</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {statsData.subscribers.map((sub: any) => (
+                      <TableRow key={sub.id}>
+                        <TableCell className="font-semibold text-sm">
+                          {sub.customer_phone ? (
+                            <span className="text-foreground">{sub.customer_phone}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs">Não vinculado a pedido (Visitante)</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-xs truncate" title={sub.user_agent}>
+                          {sub.user_agent ? (
+                            sub.user_agent.includes("iPhone") || sub.user_agent.includes("iPad") ? "📱 iOS Mobile" :
+                            sub.user_agent.includes("Android") ? "📱 Android Mobile" :
+                            sub.user_agent.includes("Chrome") ? "💻 Chrome Browser" :
+                            sub.user_agent.includes("Firefox") ? "💻 Firefox Browser" :
+                            "📱 Navegador Web"
+                          ) : "Dispositivo Web"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground font-medium">
+                          {formatDateTime(sub.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px]">
+                            Push Ativo
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );
