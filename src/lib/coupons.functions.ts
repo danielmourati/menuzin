@@ -41,6 +41,14 @@ export const listMyCoupons = createServerFn({ method: "POST" })
     return { coupons: (data ?? []) as unknown as CouponRow[] };
   });
 
+const NullableDateSchema = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((val) => {
+    if (!val || typeof val !== "string" || val.trim() === "") return null;
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  });
+
 const UpsertInput = z.object({
   id: z.string().uuid().nullable().optional(),
   code: CodeSchema,
@@ -48,8 +56,8 @@ const UpsertInput = z.object({
   discount_value: z.number().positive().max(99999),
   min_order_total: z.number().min(0).max(999999).default(0),
   max_uses: z.number().int().positive().max(1_000_000).nullable().optional(),
-  valid_from: z.string().datetime().nullable().optional(),
-  valid_until: z.string().datetime().nullable().optional(),
+  valid_from: NullableDateSchema,
+  valid_until: NullableDateSchema,
   active: z.boolean().default(true),
 });
 

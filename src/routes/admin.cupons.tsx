@@ -58,12 +58,14 @@ const empty = (): Editing => ({
 function toDatetimeLocal(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 function fromDatetimeLocal(v: string): string | null {
   if (!v) return null;
-  return new Date(v).toISOString();
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 function CouponsPage() {
@@ -140,7 +142,12 @@ function CouponsPage() {
     if (editing.discount_type === "percent" && editing.discount_value > 100) {
       return toast.error("Percentual máximo é 100%");
     }
-    saveMut.mutate(editing);
+    const payload: Editing = {
+      ...editing,
+      valid_from: editing.valid_from ? fromDatetimeLocal(toDatetimeLocal(editing.valid_from)) : null,
+      valid_until: editing.valid_until ? fromDatetimeLocal(toDatetimeLocal(editing.valid_until)) : null,
+    };
+    saveMut.mutate(payload);
   };
 
   return (
