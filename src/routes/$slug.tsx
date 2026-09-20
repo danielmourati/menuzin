@@ -36,6 +36,7 @@ import { brl } from "@/lib/format";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { PromoModal } from "@/components/storefront/PromoModal";
+import { PushPermissionBanner } from "@/components/storefront/PushPermissionBanner";
 import { getActivePromoModal } from "@/lib/promo-modal.functions";
 import { useQuery } from "@tanstack/react-query";
 import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
@@ -822,6 +823,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         tenant={tenant}
         storeOpen={storeOpen}
       />
+      <PushPermissionBanner tenantSlug={tenant.slug} tenantName={tenant.name} />
     </div>
 
   );

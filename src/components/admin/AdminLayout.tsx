@@ -45,9 +45,10 @@ const sections = [
     ],
   },
   {
-    label: "Vendas",
+    label: "Vendas & Marketing",
     items: [
       { to: "/admin/cupons", label: "Cupons e Promoções", icon: Ticket },
+      { to: "/admin/marketing/notificacoes", label: "Notificações Push", icon: Bell },
       { to: "/admin/taxas-entrega", label: "Taxas de entrega", icon: MapPin },
       { to: "/admin/diretorio", label: "Guia Menuzin", icon: Compass },
     ],
