@@ -138,20 +138,19 @@ function AdicionaisPage() {
         data: { group_id: res.id, category_ids: d.category_ids, product_ids: d.product_ids },
       });
 
-      // 3. Save any new options that haven't been saved to DB yet
+      // 3. Save all options ensuring exact sort_order (0, 1, 2...)
       for (let i = 0; i < d.options.length; i++) {
         const opt = d.options[i];
-        if (!opt.id) {
-          await saveAddonOption({
-            data: {
-              group_id: res.id,
-              name: opt.name,
-              price: opt.price,
-              active: true,
-              sort_order: i,
-            },
-          });
-        }
+        await saveAddonOption({
+          data: {
+            id: opt.id,
+            group_id: res.id,
+            name: opt.name,
+            price: opt.price,
+            active: true,
+            sort_order: i,
+          },
+        });
       }
 
       return res;
@@ -194,7 +193,7 @@ function AdicionaisPage() {
       sort_order: g.sort_order,
       category_ids: g.targets.filter((t) => t.category_id).map((t) => t.category_id as string),
       product_ids: g.targets.filter((t) => t.product_id).map((t) => t.product_id as string),
-      options: g.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
+      options: g.options.map((o) => ({ id: o.id, name: o.name, price: o.price, sort_order: o.sort_order })),
     });
     setNewOption({ name: "", price: 0 });
     setCatSearch("");

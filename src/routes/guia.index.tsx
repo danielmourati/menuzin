@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, queryOptions } from "@tanstack/react-query";
 import { useEffect, useRef, useState, useMemo } from "react";
 import {
   listCategories,
@@ -98,10 +98,19 @@ const VERTICALS: { id: "restaurantes" | "mercados" | "conveniencias"; label: str
 ];
 
 function GuiaHome() {
-  const { data: catsData } = useSuspenseQuery(categoriesQO);
-  const { data: featData } = useSuspenseQuery(featuredQO);
-  const { data: storesData } = useSuspenseQuery(storesQO);
-  const { data: home } = useSuspenseQuery(homeQO);
+  const { data: catsData, isLoading: catsLoading } = useQuery(categoriesQO);
+  const { data: featData, isLoading: featLoading } = useQuery(featuredQO);
+  const { data: storesData, isLoading: storesLoading } = useQuery(storesQO);
+  const { data: home, isLoading: homeLoading } = useQuery(homeQO);
+
+  if ((catsLoading || featLoading || storesLoading || homeLoading) && (!catsData || !featData || !storesData || !home)) {
+    return <GuiaHomeSkeleton />;
+  }
+
+  if (!catsData || !featData || !storesData || !home) {
+    return <GuiaHomeSkeleton />;
+  }
+
   const featured = featData.items;
   const allStores = storesData.stores;
 

@@ -133,10 +133,11 @@ function AuthStateInvalidator() {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
           queryClient.removeQueries();
-        } else {
-          queryClient.invalidateQueries();
+          router.invalidate();
+        } else if (event === "SIGNED_IN") {
+          queryClient.invalidateQueries({ queryKey: ["admin"] });
+          router.invalidate();
         }
-        router.invalidate();
       });
       return () => subscription.unsubscribe();
     } catch (err) {

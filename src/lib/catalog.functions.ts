@@ -122,7 +122,7 @@ export const getCatalog = createServerFn({ method: "POST" })
         ? supabaseAdmin.from("product_addons").select("*").in("product_id", prodIds).order("sort_order")
         : Promise.resolve({ data: [] }),
       groupIds.length
-        ? supabaseAdmin.from("addon_options").select("*").in("group_id", groupIds).eq("active", true).order("sort_order")
+        ? supabaseAdmin.from("addon_options").select("*").in("group_id", groupIds).eq("active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true })
         : Promise.resolve({ data: [] }),
       groupIds.length
         ? supabaseAdmin.from("addon_group_targets").select("*").in("group_id", groupIds)

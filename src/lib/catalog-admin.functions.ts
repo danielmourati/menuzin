@@ -895,24 +895,32 @@ export const reorderCatalogItem = createServerFn({ method: "POST" })
       currentSort = Number((row as { sort_order: number }).sort_order ?? 0);
     }
 
-    // Busca o vizinho na direção desejada (próximo sort_order acima/abaixo).
-    const neighborQuery = sbAny(sb)
+    // Busca todos os itens do mesmo escopo ordenados por sort_order e criacao
+    const { data: allItems, error: aErr } = await sbAny(sb)
       .from(table)
       .select("id, sort_order")
-      .eq(scopeFilter.column, scopeFilter.value);
-    const neighborRes = data.direction === "up"
-      ? await neighborQuery.lt("sort_order", currentSort).order("sort_order", { ascending: false }).limit(1)
-      : await neighborQuery.gt("sort_order", currentSort).order("sort_order", { ascending: true }).limit(1);
-    if (neighborRes.error) throw new Error(neighborRes.error.message);
-    const neighbor = (neighborRes.data ?? [])[0] as { id: string; sort_order: number } | undefined;
-    if (!neighbor) return { ok: true, swapped: false };
+      .eq(scopeFilter.column, scopeFilter.value)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (aErr || !allItems) throw new Error("Erro ao consultar itens para reordenação.");
 
-    // Swap atômico — duas updates.
-    const [u1, u2] = await Promise.all([
-      sbAny(sb).from(table).update({ sort_order: neighbor.sort_order }).eq("id", data.id),
-      sbAny(sb).from(table).update({ sort_order: currentSort }).eq("id", neighbor.id),
-    ]);
-    if (u1.error) throw new Error(u1.error.message);
-    if (u2.error) throw new Error(u2.error.message);
+    const items = allItems as { id: string; sort_order: number }[];
+    const idx = items.findIndex((item) => item.id === data.id);
+    if (idx === -1) return { ok: true, swapped: false };
+
+    const targetIdx = data.direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= items.length) return { ok: true, swapped: false };
+
+    // Swap no array local
+    const temp = items[idx];
+    items[idx] = items[targetIdx];
+    items[targetIdx] = temp;
+
+    // Atualização sequencial no banco garantindo sort_order distinto (0, 1, 2, 3...)
+    await Promise.all(
+      items.map((item, i) =>
+        sbAny(sb).from(table).update({ sort_order: i }).eq("id", item.id)
+      )
+    );
     return { ok: true, swapped: true };
   });

@@ -155,7 +155,10 @@ export const Route = createFileRoute("/$slug")({
 function StoreRoute() {
   const { slug } = Route.useParams();
   const isStorefront = useRouterState({
-    select: (state) => state.location.pathname === `/${slug}`,
+    select: (state) => {
+      const cleanPath = state.location.pathname.replace(/\/$/, "");
+      return cleanPath === `/${slug}` || cleanPath === `/loja/${slug}`;
+    },
   });
 
   if (!isStorefront) return <Outlet />;
@@ -164,8 +167,9 @@ function StoreRoute() {
 }
 
 function StorefrontRoute({ slug }: { slug: string }) {
-  const { data } = useSuspenseQuery(catalogQueryOptions(slug));
+  const { data, isLoading } = useQuery(catalogQueryOptions(slug));
 
+  if (isLoading && !data) return <StorefrontSkeleton />;
   if (!data || !data.tenant) return <StoreNotFound slug={slug} />;
   if (data.blocked) return <StoreUnavailable name={data.tenant.name} />;
   return <StorePage tenant={data.tenant} categories={data.categories} products={data.products} pizzaSizes={data.pizzaSizes ?? []} pizzaDoughs={data.pizzaDoughs ?? []} pizzaCrusts={data.pizzaCrusts ?? []} />;
