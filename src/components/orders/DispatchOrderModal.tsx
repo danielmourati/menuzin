@@ -37,11 +37,13 @@ export function DispatchOrderModal({
 
   const drivers = (data?.drivers ?? []).filter((d) => d.active);
 
-  // Seleciona o entregador do pedido ou default para o primeiro entregador ativo
+  const isNoneDriver = selectedDriverId === "__none__";
+
+  // Seleciona o entregador ao abrir o modal ou ao mudar de pedido
   useEffect(() => {
     if (isOpen) {
-      if (selectedDriverId && drivers.some((d) => d.id === selectedDriverId)) {
-        // Mantém a seleção atual se for válida (ex: recém criado)
+      // Se a seleção atual já for válida (inclusive __none__ ou novo entregador criado), mantém
+      if (selectedDriverId === "__none__" || (selectedDriverId && drivers.some((d) => d.id === selectedDriverId))) {
         return;
       }
       if (order?.driverId && drivers.some((d) => d.id === order.driverId)) {
@@ -51,8 +53,10 @@ export function DispatchOrderModal({
       } else {
         setSelectedDriverId("__none__");
       }
+    } else {
+      setSelectedDriverId("");
     }
-  }, [isOpen, drivers, order?.driverId]);
+  }, [isOpen, order?.id, drivers]);
 
   if (!order) return null;
 
@@ -102,7 +106,7 @@ export function DispatchOrderModal({
   const handleDispatch = (sendWhatsapp: boolean) => {
     if (!selectedDriverId) return;
 
-    if (selectedDriverId === "__none__") {
+    if (isNoneDriver) {
       onConfirmDispatch("__none__", "Sem Entregador", false);
       return;
     }
@@ -250,27 +254,46 @@ export function DispatchOrderModal({
 
           {/* Rodapé com botões de ação */}
           <DialogFooter className="p-4 bg-muted/30 border-t shrink-0 flex flex-col gap-2 sm:flex-col sm:space-x-0">
-            <Button
-              onClick={() => handleDispatch(true)}
-              disabled={!selectedDriverId || isPending}
-              className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-xs"
-            >
-              <MessageSquare className="mr-2 h-4 w-4" /> Despachar e Enviar no WhatsApp
-            </Button>
+            {isNoneDriver ? (
+              <>
+                <Button
+                  onClick={() => handleDispatch(false)}
+                  disabled={!selectedDriverId || isPending}
+                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-xs"
+                >
+                  <PackageCheck className="mr-2 h-4 w-4" /> Despachar Pedido (Sem Entregador)
+                </Button>
+                <div className="flex items-center justify-end gap-2 w-full pt-1 border-t border-border/50">
+                  <Button variant="ghost" onClick={onClose} disabled={isPending} className="text-muted-foreground hover:text-foreground">
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={() => handleDispatch(true)}
+                  disabled={!selectedDriverId || isPending}
+                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-xs"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" /> Despachar e Enviar no WhatsApp
+                </Button>
 
-            <div className="flex items-center justify-between gap-2 w-full pt-1 border-t border-border/50">
-              <Button variant="ghost" onClick={onClose} disabled={isPending} className="text-muted-foreground hover:text-foreground">
-                Cancelar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleDispatch(false)}
-                disabled={!selectedDriverId || isPending}
-                className="font-medium text-xs border-border bg-background hover:bg-accent"
-              >
-                <PackageCheck className="mr-1.5 h-3.5 w-3.5" /> Apenas Despachar
-              </Button>
-            </div>
+                <div className="flex items-center justify-between gap-2 w-full pt-1 border-t border-border/50">
+                  <Button variant="ghost" onClick={onClose} disabled={isPending} className="text-muted-foreground hover:text-foreground">
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDispatch(false)}
+                    disabled={!selectedDriverId || isPending}
+                    className="font-medium text-xs border-border bg-background hover:bg-accent"
+                  >
+                    <PackageCheck className="mr-1.5 h-3.5 w-3.5" /> Apenas Despachar
+                  </Button>
+                </div>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
