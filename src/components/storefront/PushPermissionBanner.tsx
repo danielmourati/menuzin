@@ -104,11 +104,22 @@ export function PushPermissionBanner({
     }
   };
 
+  const isIOS = typeof window !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+
+  const handleSubscribeClick = () => {
+    if (isIOS && !window.matchMedia("(display-mode: standalone)").matches) {
+      setShowIOSGuide(true);
+      return;
+    }
+    handleSubscribe();
+  };
+
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
-      <div className="relative rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-md p-4 shadow-xl ring-1 ring-primary/20">
+    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-[100] animate-in fade-in slide-in-from-top-5 duration-300">
+      <div className="relative rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-md p-4 shadow-2xl ring-1 ring-primary/20">
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted/50 transition-colors"
@@ -117,7 +128,33 @@ export function PushPermissionBanner({
           <X className="h-4 w-4" />
         </button>
 
-        {subscribed ? (
+        {showIOSGuide ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-primary font-bold text-sm">
+              <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500" />
+              <span>Como ativar no iPhone (iOS):</span>
+            </div>
+            <div className="rounded-xl bg-muted/50 p-3 text-xs space-y-2 text-foreground">
+              <p className="flex items-center gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-[11px] grid place-items-center">1</span>
+                <span>Toque no botão <strong>Compartilhar 📤</strong> no Safari.</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-[11px] grid place-items-center">2</span>
+                <span>Selecione <strong>&quot;Adicionar à Tela de Início&quot; ➕</strong>.</span>
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary/20 text-primary font-bold text-[11px] grid place-items-center">3</span>
+                <span>Abra a loja pelo ícone criado na tela de início!</span>
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-1 border-t">
+              <Button size="sm" variant="outline" onClick={() => setShowIOSGuide(false)} className="h-8 text-xs font-medium">
+                Entendi
+              </Button>
+            </div>
+          </div>
+        ) : subscribed ? (
           <div className="flex items-center gap-3 py-1">
             <CheckCircle2 className="h-6 w-6 text-emerald-500 shrink-0" />
             <div>
@@ -153,7 +190,7 @@ export function PushPermissionBanner({
               </Button>
               <Button
                 size="sm"
-                onClick={handleSubscribe}
+                onClick={handleSubscribeClick}
                 disabled={subscribing}
                 className="h-8 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl gap-1.5 shadow-xs"
               >
