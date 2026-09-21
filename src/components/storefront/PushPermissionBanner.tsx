@@ -18,7 +18,42 @@ function urlBase64ToUint8Array(base64String: string) {
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
-  return outputArray;
+}
+
+async function autoRenewPushSubscription(tenantSlug: string, customerPhone?: string | null) {
+  try {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    const reg = await navigator.serviceWorker.register("/sw-push.js", { scope: "/" });
+    await navigator.serviceWorker.ready;
+
+    const { publicKey } = await getVapidPublicKey();
+    if (!publicKey) return;
+
+    let sub = await reg.pushManager.getSubscription();
+
+    // Re-inscreve para garantir que o endpoint e a chave VAPID estejam sincronizados com o servidor
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    const jsonSub = sub.toJSON();
+    if (jsonSub.endpoint && jsonSub.keys?.p256dh && jsonSub.keys?.auth) {
+      await subscribeCustomerPush({
+        data: {
+          tenantSlug,
+          endpoint: jsonSub.endpoint,
+          p256dh: jsonSub.keys.p256dh,
+          auth: jsonSub.keys.auth,
+          customerPhone: customerPhone || null,
+          userAgent: navigator.userAgent,
+        },
+      });
+    }
+  } catch (err) {
+    console.warn("[PushAutoRenew] Erro ao renovar assinatura:", err);
+  }
 }
 
 export function PushPermissionBanner({
@@ -34,7 +69,12 @@ export function PushPermissionBanner({
     // Verifica se o navegador suporta Web Push
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if (Notification.permission === "granted") return; // Já inscrito/permitido
+    
+    if (Notification.permission === "granted") {
+      // Se já permitido, renova silenciosamente o token com a chave VAPID atual do servidor
+      autoRenewPushSubscription(tenantSlug, customerPhone);
+      return;
+    }
     if (Notification.permission === "denied") return; // Bloqueado pelo usuário
 
     const dismissedUntil = localStorage.getItem(`menuzin_push_dismiss_${tenantSlug}`);
@@ -43,7 +83,7 @@ export function PushPermissionBanner({
     // Mostra o banner após 3.5 segundos de navegação
     const timer = setTimeout(() => setShow(true), 3500);
     return () => clearTimeout(timer);
-  }, [tenantSlug]);
+  }, [tenantSlug, customerPhone]);
 
   const handleDismiss = () => {
     setShow(false);

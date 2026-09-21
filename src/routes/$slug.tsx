@@ -37,6 +37,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { PromoModal } from "@/components/storefront/PromoModal";
 import { PushPermissionBanner } from "@/components/storefront/PushPermissionBanner";
+import { PwaInstallBanner } from "@/components/storefront/PwaInstallBanner";
 import { getActivePromoModal } from "@/lib/promo-modal.functions";
 import { useQuery } from "@tanstack/react-query";
 import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
@@ -824,6 +825,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         storeOpen={storeOpen}
       />
       <PushPermissionBanner tenantSlug={tenant.slug} tenantName={tenant.name} />
+      <PwaInstallBanner tenantSlug={tenant.slug} tenantName={tenant.name} />
     </div>
 
   );
