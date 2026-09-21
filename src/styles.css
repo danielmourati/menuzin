@@ -280,3 +280,52 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Animações de Abertura do App (Splash Screen PWA) */
+@keyframes splashPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.7) translateY(16px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes splashText {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashProgress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-splash-pop {
+  animation: splashPop 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-splash-text {
+  animation: splashText 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+}
+
+.animate-splash-progress {
+  animation: splashProgress 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+

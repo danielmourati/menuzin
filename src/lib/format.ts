@@ -173,3 +173,25 @@ export function whatsappOrderMessage(
   };
   return msgs[type] ?? "";
 }
+
+/** Gera URL clicável para o WhatsApp do cliente */
+export function whatsappLink(phone: string, text?: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "#";
+  const fullPhone = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+  const query = text ? `?text=${encodeURIComponent(text)}` : "";
+  return `https://wa.me/${fullPhone}${query}`;
+}
+
+/** Formata número de telefone brasileiro para exibição legível (ex: (86) 99442-2827) */
+export function formatPhoneNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
+

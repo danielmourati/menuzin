@@ -13,11 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Send, Users, Ticket, Smartphone, AlertTriangle, Trash2, Loader2, Plus, RefreshCw, ShoppingBag, RotateCw, Pencil } from "lucide-react";
+import { Bell, Send, Users, Ticket, Smartphone, AlertTriangle, Trash2, Loader2, Plus, RefreshCw, ShoppingBag, RotateCw, Pencil, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getPushStatsAdmin, createPushCampaign, dispatchPushCampaignNow, deletePushCampaign } from "@/lib/push-campaigns.functions";
+import { getPushStatsAdmin, createPushCampaign, dispatchPushCampaignNow, deletePushCampaign, deletePushSubscription } from "@/lib/push-campaigns.functions";
 import { listMyCoupons } from "@/lib/coupons.functions";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatPhoneNumber, whatsappLink } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/notificacoes")({
   component: () => (
@@ -104,6 +104,18 @@ function PushNotificationsPage() {
     },
     onError: (err: Error) => {
       toast.error(err.message || "Erro ao remover campanha.");
+    },
+  });
+
+  const deleteSubMut = useMutation({
+    mutationFn: (subscriptionId: string) =>
+      deletePushSubscription({ data: { subscriptionId } }),
+    onSuccess: () => {
+      toast.success("Dispositivo/assinatura removido com sucesso.");
+      qc.invalidateQueries({ queryKey: ["push-stats-admin"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao remover assinatura.");
     },
   });
 
@@ -685,37 +697,86 @@ function PushNotificationsPage() {
                       <TableHead>Navegador / Dispositivo</TableHead>
                       <TableHead>Data de Inscrição</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ação</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(statsData?.subscribers ?? []).map((sub: any) => (
-                      <TableRow key={sub.id}>
-                        <TableCell className="font-semibold text-sm">
-                          {sub.customer_phone ? (
-                            <span className="text-foreground">{sub.customer_phone}</span>
-                          ) : (
-                            <span className="text-muted-foreground italic text-xs">Não vinculado a pedido (Visitante)</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground max-w-xs truncate" title={sub.user_agent}>
-                          {sub.user_agent ? (
-                            sub.user_agent.includes("iPhone") || sub.user_agent.includes("iPad") ? "📱 iOS Mobile" :
-                            sub.user_agent.includes("Android") ? "📱 Android Mobile" :
-                            sub.user_agent.includes("Chrome") ? "💻 Chrome Browser" :
-                            sub.user_agent.includes("Firefox") ? "💻 Firefox Browser" :
-                            "📱 Navegador Web"
-                          ) : "Dispositivo Web"}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground font-medium">
-                          {formatDateTime(sub.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px]">
-                            Push Ativo
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {(statsData?.subscribers ?? []).map((sub: any) => {
+                      const clientLabel = sub.customer_name
+                        ? `${sub.customer_name} (${formatPhoneNumber(sub.customer_phone)})`
+                        : sub.customer_phone
+                        ? formatPhoneNumber(sub.customer_phone)
+                        : "dispositivo visitante";
+
+                      return (
+                        <TableRow key={sub.id}>
+                          <TableCell>
+                            {sub.customer_phone ? (
+                              <div className="space-y-1">
+                                {sub.customer_name && (
+                                  <p className="font-bold text-sm text-foreground leading-tight">
+                                    {sub.customer_name}
+                                  </p>
+                                )}
+                                <a
+                                  href={whatsappLink(sub.customer_phone, "Olá! Falamos da sua loja no Menuzin.")}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline hover:text-emerald-700 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 transition-colors"
+                                  title="Abrir conversa no WhatsApp"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5 fill-emerald-500/20 text-emerald-600 shrink-0" />
+                                  <span>{formatPhoneNumber(sub.customer_phone)}</span>
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground italic text-xs">Não vinculado a pedido (Visitante)</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-xs truncate" title={sub.user_agent}>
+                            {sub.user_agent ? (
+                              sub.user_agent.includes("iPhone") || sub.user_agent.includes("iPad") ? "📱 iOS Mobile" :
+                              sub.user_agent.includes("Android") ? "📱 Android Mobile" :
+                              sub.user_agent.includes("Chrome") ? "💻 Chrome Browser" :
+                              sub.user_agent.includes("Firefox") ? "💻 Firefox Browser" :
+                              "📱 Navegador Web"
+                            ) : "Dispositivo Web"}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-medium">
+                            {formatDateTime(sub.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px]">
+                              Push Ativo
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={async () => {
+                                if (
+                                  await confirmDialog({
+                                    title: `Remover assinatura de "${clientLabel}"?`,
+                                    description: "Este dispositivo deixará de receber notificações push da sua loja.",
+                                    confirmText: "Remover Dispositivo",
+                                    cancelText: "Cancelar",
+                                    variant: "destructive",
+                                  })
+                                ) {
+                                  deleteSubMut.mutate(sub.id);
+                                }
+                              }}
+                              disabled={deleteSubMut.isPending}
+                              title="Remover assinatura/dispositivo"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

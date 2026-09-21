@@ -17,6 +17,7 @@ import { PrintServerProvider } from "../lib/print-server-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { ConfirmDialogHost } from "@/hooks/useConfirm";
+import { AppSplashScreen } from "@/components/storefront/AppSplashScreen";
 
 
 function NotFoundComponent() {
@@ -156,6 +157,7 @@ function RootComponent() {
         <AuthStateInvalidator />
         <PrintServerProvider>
           <CartProvider>
+            <AppSplashScreen />
             <Outlet />
             <Toaster position="top-center" richColors />
             <ConfirmDialogHost />

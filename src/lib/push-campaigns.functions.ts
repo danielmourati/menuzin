@@ -56,14 +56,6 @@ export const getPushStatsAdmin = createServerFn({ method: "POST" })
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
     try {
-      // Total de assinantes ativos no tenant
-      const { count: subscriberCount, error: subErr } = await (supabase as any)
-        .from("push_subscriptions")
-        .select("id", { count: "exact", head: true })
-        .eq("tenant_id", resolved.tenantId);
-
-      if (subErr) throw subErr;
-
       // Histórico de campanhas
       const { data: campaigns, error: campErr } = await (supabase as any)
         .from("push_campaigns")
@@ -73,24 +65,90 @@ export const getPushStatsAdmin = createServerFn({ method: "POST" })
 
       if (campErr) throw campErr;
 
-      // Lista dos assinantes inscritos
-      const { data: subscribers } = await (supabase as any)
+      // Lista de todos os assinantes inscritos
+      const { data: rawSubscribers } = await (supabase as any)
         .from("push_subscriptions")
-        .select("id, customer_phone, user_agent, created_at, last_active_at")
+        .select("id, endpoint, customer_phone, user_agent, created_at, last_active_at")
         .eq("tenant_id", resolved.tenantId)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .order("created_at", { ascending: false });
+
+      const allSubs = rawSubscribers ?? [];
+
+      // Identifica e deduplica assinantes (por endpoint e por customer_phone + user_agent)
+      const seenEndpoints = new Set<string>();
+      const seenPhoneAgents = new Set<string>();
+      const uniqueSubscribers: typeof allSubs = [];
+      const duplicateIdsToDelete: string[] = [];
+
+      for (const sub of allSubs) {
+        const deviceType = sub.user_agent
+          ? sub.user_agent.includes("iPhone") || sub.user_agent.includes("iPad") ? "ios" :
+            sub.user_agent.includes("Android") ? "android" : "desktop"
+          : "web";
+
+        const phoneAgentKey = sub.customer_phone ? `${sub.customer_phone}_${deviceType}` : null;
+
+        if (seenEndpoints.has(sub.endpoint)) {
+          duplicateIdsToDelete.push(sub.id);
+        } else if (phoneAgentKey && seenPhoneAgents.has(phoneAgentKey)) {
+          duplicateIdsToDelete.push(sub.id);
+        } else {
+          seenEndpoints.add(sub.endpoint);
+          if (phoneAgentKey) seenPhoneAgents.add(phoneAgentKey);
+          uniqueSubscribers.push(sub);
+        }
+      }
+
+      // Limpeza automática em background de assinaturas duplicadas
+      if (duplicateIdsToDelete.length > 0) {
+        (supabaseAdmin as any)
+          .from("push_subscriptions")
+          .delete()
+          .in("id", duplicateIdsToDelete)
+          .then(({ error }: any) => {
+            if (error) console.error("[DeduplicatePush] Erro ao deletar duplicados:", error);
+          });
+      }
+
+      // Busca os nomes dos clientes na tabela de pedidos (orders)
+      const phones = uniqueSubscribers
+        .map((s: any) => s.customer_phone)
+        .filter((p: string | null): p is string => Boolean(p));
+
+      const phoneToNameMap: Record<string, string> = {};
+
+      if (phones.length > 0) {
+        const { data: ordersData } = await (supabase as any)
+          .from("orders")
+          .select("whatsapp, customer_name, created_at")
+          .eq("tenant_id", resolved.tenantId)
+          .in("whatsapp", phones)
+          .order("created_at", { ascending: false });
+
+        if (ordersData) {
+          for (const order of ordersData) {
+            if (order.whatsapp && order.customer_name && order.customer_name.trim() && !phoneToNameMap[order.whatsapp]) {
+              phoneToNameMap[order.whatsapp] = order.customer_name.trim();
+            }
+          }
+        }
+      }
+
+      const subscribers = uniqueSubscribers.map((sub: any) => ({
+        ...sub,
+        customer_name: sub.customer_phone ? phoneToNameMap[sub.customer_phone] || null : null,
+      }));
 
       const campList = campaigns ?? [];
       const totalSentMessages = campList.reduce((acc: number, c: any) => acc + (c.sent_count || 0), 0);
       const totalSuccessMessages = campList.reduce((acc: number, c: any) => acc + (c.success_count || 0), 0);
 
       return {
-        subscriberCount: subscriberCount ?? 0,
+        subscriberCount: subscribers.length,
         totalSentMessages,
         totalSuccessMessages,
         campaigns: campList,
-        subscribers: subscribers ?? [],
+        subscribers,
       };
     } catch (err: any) {
       const msg = err?.message || String(err);
@@ -101,6 +159,7 @@ export const getPushStatsAdmin = createServerFn({ method: "POST" })
           totalSentMessages: 0,
           totalSuccessMessages: 0,
           campaigns: [],
+          subscribers: [],
         };
       }
       throw err;
@@ -176,7 +235,6 @@ export const dispatchPushCampaignNow = createServerFn({ method: "POST" })
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
     const result = await sendPushCampaignServer(data.campaignId, resolved.tenantId);
-    // result.success já é a contagem de envios bem-sucedidos (number)
     return { ok: true, ...result };
   });
 
@@ -202,3 +260,27 @@ export const deletePushCampaign = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { success: true };
   });
+
+const DeleteSubInput = z.object({
+  subscriptionId: z.string().uuid(),
+});
+
+// Endpoint Admin: Excluir uma assinatura de dispositivo
+export const deletePushSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => DeleteSubInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Loja não configurada");
+
+    const { error } = await (supabase as any)
+      .from("push_subscriptions")
+      .delete()
+      .eq("id", data.subscriptionId)
+      .eq("tenant_id", resolved.tenantId);
+
+    if (error) throw new Error(error.message);
+    return { success: true };
+  });
+

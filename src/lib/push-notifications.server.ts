@@ -55,6 +55,8 @@ export async function savePushSubscriptionServer(input: SavePushSubInput) {
     .eq("endpoint", input.endpoint)
     .maybeSingle();
 
+  let savedRow: any = null;
+
   if (existing) {
     const { data, error } = await (supabaseAdmin as any)
       .from("push_subscriptions")
@@ -64,7 +66,7 @@ export async function savePushSubscriptionServer(input: SavePushSubInput) {
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+    savedRow = data;
   } else {
     const { data, error } = await (supabaseAdmin as any)
       .from("push_subscriptions")
@@ -73,8 +75,33 @@ export async function savePushSubscriptionServer(input: SavePushSubInput) {
       .single();
 
     if (error) throw new Error(error.message);
-    return data;
+    savedRow = data;
   }
+
+  // Limpeza de assinaturas duplicadas em background
+  if (savedRow?.id) {
+    try {
+      await (supabaseAdmin as any)
+        .from("push_subscriptions")
+        .delete()
+        .eq("tenant_id", input.tenantId)
+        .eq("endpoint", input.endpoint)
+        .neq("id", savedRow.id);
+
+      if (input.customerPhone) {
+        await (supabaseAdmin as any)
+          .from("push_subscriptions")
+          .delete()
+          .eq("tenant_id", input.tenantId)
+          .eq("customer_phone", input.customerPhone)
+          .neq("id", savedRow.id);
+      }
+    } catch (e) {
+      console.warn("[PushSub] Aviso ao remover duplicados:", e);
+    }
+  }
+
+  return savedRow;
 }
 
 export type PushMessagePayload = {
