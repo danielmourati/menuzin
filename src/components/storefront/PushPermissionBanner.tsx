@@ -18,6 +18,7 @@ function urlBase64ToUint8Array(base64String: string) {
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
+  return outputArray;
 }
 
 async function autoRenewPushSubscription(tenantSlug: string, customerPhone?: string | null) {
@@ -30,12 +31,16 @@ async function autoRenewPushSubscription(tenantSlug: string, customerPhone?: str
     const { publicKey } = await getVapidPublicKey();
     if (!publicKey) return;
 
-    let sub = await reg.pushManager.getSubscription();
+    // Cancela assinatura antiga para forçar o navegador a gerar um novo token com a chave VAPID válida
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      await existing.unsubscribe();
+    }
 
-    // Re-inscreve para garantir que o endpoint e a chave VAPID estejam sincronizados com o servidor
-    sub = await reg.pushManager.subscribe({
+    const applicationServerKey = urlBase64ToUint8Array(publicKey);
+    const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
+      applicationServerKey,
     });
 
     const jsonSub = sub.toJSON();
@@ -110,10 +115,17 @@ export function PushPermissionBanner({
       const { publicKey } = await getVapidPublicKey();
       if (!publicKey) throw new Error("Chave de push indisponível.");
 
+      // Cancela assinatura legada para forçar nova inscrição VAPID válida
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) {
+        await existing.unsubscribe();
+      }
+
       // 4. Cria a assinatura no navegador via PushManager
+      const applicationServerKey = urlBase64ToUint8Array(publicKey);
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        applicationServerKey,
       });
 
       const jsonSub = sub.toJSON();
