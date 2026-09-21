@@ -688,7 +688,7 @@ function PushNotificationsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {statsData.subscribers.map((sub: any) => (
+                    {(statsData?.subscribers ?? []).map((sub: any) => (
                       <TableRow key={sub.id}>
                         <TableCell className="font-semibold text-sm">
                           {sub.customer_phone ? (

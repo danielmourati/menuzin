@@ -154,13 +154,27 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
   let failedCount = 0;
   const expiredIds: string[] = [];
 
+  // Busca o código do cupom vinculado à campanha (se houver) para o botão "Ver Cupom"
+  let couponCode: string | null = null;
+  if (campaign.coupon_id) {
+    const { data: couponRow } = await (supabaseAdmin as any)
+      .from("coupons")
+      .select("code")
+      .eq("id", campaign.coupon_id)
+      .maybeSingle();
+    couponCode = couponRow?.code ?? null;
+  }
+
   const pushPayload: PushMessagePayload = {
     title: campaign.title,
     body: campaign.body,
     icon: campaign.icon_url,
     image: campaign.image_url,
     url: campaign.url,
+    coupon: couponCode,
   };
+
+  const payloadStr = JSON.stringify(pushPayload);
 
   const pushOptions = {
     vapidDetails: {
