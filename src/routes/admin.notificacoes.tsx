@@ -80,8 +80,8 @@ function PushNotificationsPage() {
     onSuccess: (res) => {
       if (res.failed > 0 && res.success === 0) {
         toast.error(
-          `Disparo realizado, mas ${res.failed} assinatura(s) foram recusadas pelo servidor de push. Peça ao cliente para reativar as notificações no navegador.`,
-          { duration: 6000 }
+          `Disparo realizado, mas ${res.failed} assinatura(s) foram recusadas pelo servidor de push. Peça ao cliente para reativar as notificações no navegador.${(res as { lastError?: string | null }).lastError ? ` Detalhe: ${String((res as { lastError?: string | null }).lastError).slice(0, 180)}` : ""}`,
+          { duration: 8000 }
         );
       } else {
         toast.success(
@@ -688,7 +688,7 @@ function PushNotificationsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {statsData.subscribers.map((sub: any) => (
+                    {(statsData?.subscribers ?? []).map((sub: any) => (
                       <TableRow key={sub.id}>
                         <TableCell className="font-semibold text-sm">
                           {sub.customer_phone ? (

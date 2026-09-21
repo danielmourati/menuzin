@@ -176,7 +176,8 @@ export const dispatchPushCampaignNow = createServerFn({ method: "POST" })
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
     const result = await sendPushCampaignServer(data.campaignId, resolved.tenantId);
-    return { success: true, ...result };
+    // result.success já é a contagem de envios bem-sucedidos (number)
+    return { ok: true, ...result };
   });
 
 const DeleteCampaignInput = z.object({
