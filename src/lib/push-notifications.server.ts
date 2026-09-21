@@ -1,14 +1,14 @@
 import webpush from "web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-// Fallback VAPID keys so push functionality works out of the box
+// Fallback VAPID keys generated with web-push (ECDSA P-256)
 // In production, set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in environment variables
 const VAPID_PUBLIC_KEY =
   process.env.VAPID_PUBLIC_KEY ||
-  "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgD8R6_N8_b4eJ2w4vR-Z9cE8wN2dK3vV-n3_E-s-S0vw";
+  "BLbgHeSYq0jq6GZpesgNPAk94rxfvGDQnW1WgAefzi-nDsq7sX26i8fGmKYnGgdZZIAujtrKjjmLskY1n0QVmJo";
 const VAPID_PRIVATE_KEY =
   process.env.VAPID_PRIVATE_KEY ||
-  "n6x0D_tK8b_6m4tN-c40-n3-s-S0vwBEl62iUYgUivxI";
+  "43P2oW-ma60ZjCmKm8IYIAYarMyTQqqmCQ043VJUaVc";
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:suporte@menuzin.app";
 
 try {

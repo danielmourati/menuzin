@@ -117,9 +117,54 @@ function PushNotificationsPage() {
         setTitle(`🔥 Cupom ${found.code}: Desconto especial para você!`);
       }
       if (!body) {
-        setTitle(`🔥 Cupom ${found.code}: Desconto especial para você!`);
         setBody(`Use o cupom ${found.code} no seu carrinho e aproveite essa oferta imperdível hoje.`);
       }
+    }
+  };
+
+  const handleSimulateLocalPush = async () => {
+    if (typeof window === "undefined") return;
+
+    if (!("Notification" in window)) {
+      toast.error("Seu navegador atual não possui suporte nativo a Notificações Web.");
+      return;
+    }
+
+    try {
+      let perm = Notification.permission;
+      if (perm !== "granted") {
+        perm = await Notification.requestPermission();
+      }
+
+      if (perm !== "granted") {
+        toast.error("Permissão de notificação não foi concedida no seu navegador.");
+        return;
+      }
+
+      const notifTitle = title || "🔥 Teste de Notificação Push!";
+      const notifBody = body || "Esta é uma simulação de notificação enviada para o seu dispositivo.";
+
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration("/sw-push.js") || await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          await reg.showNotification(notifTitle, {
+            body: notifBody,
+            icon: "/icon-192.png",
+            data: { url: window.location.href },
+          });
+          toast.success("Notificação enviada com sucesso para o seu navegador!");
+          return;
+        }
+      }
+
+      new Notification(notifTitle, {
+        body: notifBody,
+        icon: "/icon-192.png",
+      });
+      toast.success("Notificação enviada com sucesso!");
+    } catch (err: any) {
+      console.error("[SimulatePush] Erro:", err);
+      toast.error(err.message || "Não foi possível disparar a notificação.");
     }
   };
 
@@ -392,6 +437,26 @@ function PushNotificationsPage() {
                           </span>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 space-y-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleSimulateLocalPush}
+                      className="w-full h-10 rounded-xl text-xs font-bold gap-2 border border-border"
+                    >
+                      <Bell className="h-3.5 w-3.5 text-primary" /> Testar Notificação Neste Navegador
+                    </Button>
+
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed space-y-1">
+                      <p className="font-bold flex items-center gap-1 text-amber-700 dark:text-amber-300">
+                        📱 Observação sobre iPhone / iOS:
+                      </p>
+                      <p>
+                        No iOS (iPhone/iPad), a Apple exige iOS 16.4+ e que o cliente adicione o site à <strong>Tela de Início</strong> (via menu Compartilhar do Safari ou Chrome) para autorizar notificações push em segundo plano.
+                      </p>
                     </div>
                   </div>
                 </div>
