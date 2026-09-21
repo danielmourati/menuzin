@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { confirmDialog } from "@/hooks/useConfirm";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { PlanGate } from "@/components/subscription/PlanGate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -277,8 +278,16 @@ function DriversPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => {
-                                  if (confirm(`Deseja realmente remover ${driver.name}?`)) {
+                                onClick={async () => {
+                                  if (
+                                    await confirmDialog({
+                                      title: `Remover entregador "${driver.name}"?`,
+                                      description: "O entregador será removido da lista e desvinculado dos pedidos.",
+                                      confirmText: "Remover Entregador",
+                                      cancelText: "Cancelar",
+                                      variant: "destructive",
+                                    })
+                                  ) {
                                     deleteMutation.mutate(driver.id);
                                   }
                                 }}

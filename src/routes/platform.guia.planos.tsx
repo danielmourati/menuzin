@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { confirmDialog } from "@/hooks/useConfirm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,8 +195,16 @@ function PlatformGuiaPlanosPage() {
                       size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        if (confirm(`Deseja excluir o plano "${plan.name}"?`)) {
+                      onClick={async () => {
+                        if (
+                          await confirmDialog({
+                            title: `Excluir o plano "${plan.name}"?`,
+                            description: "Esta ação removerá o plano das opções disponíveis no diretório.",
+                            confirmText: "Excluir Plano",
+                            cancelText: "Cancelar",
+                            variant: "destructive",
+                          })
+                        ) {
                           deleteMut.mutate(plan.id);
                         }
                       }}

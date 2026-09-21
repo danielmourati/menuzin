@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { confirmDialog } from "@/hooks/useConfirm";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { PlanGate } from "@/components/subscription/PlanGate";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Send, Users, Ticket, Smartphone, AlertTriangle, Trash2, Loader2, Plus, RefreshCw, ShoppingBag } from "lucide-react";
+import { Bell, Send, Users, Ticket, Smartphone, AlertTriangle, Trash2, Loader2, Plus, RefreshCw, ShoppingBag, RotateCw, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getPushStatsAdmin, createPushCampaign, dispatchPushCampaignNow, deletePushCampaign } from "@/lib/push-campaigns.functions";
 import { listMyCoupons } from "@/lib/coupons.functions";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/admin/notificacoes")({
 function PushNotificationsPage() {
   const qc = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form states
   const [title, setTitle] = useState("");
@@ -53,6 +55,7 @@ function PushNotificationsPage() {
     mutationFn: () =>
       createPushCampaign({
         data: {
+          id: editingId,
           title,
           body,
           couponId,
@@ -61,13 +64,13 @@ function PushNotificationsPage() {
         },
       }),
     onSuccess: () => {
-      toast.success("Notificação salva no rascunho!");
+      toast.success(editingId ? "Notificação atualizada com sucesso!" : "Notificação salva no rascunho!");
       qc.invalidateQueries({ queryKey: ["push-stats-admin"] });
       resetForm();
       setIsCreating(false);
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar campanha de notificação.");
+      toast.error(err.message || "Erro ao salvar campanha de notificação.");
     },
   });
 
@@ -105,11 +108,25 @@ function PushNotificationsPage() {
   });
 
   const resetForm = () => {
+    setEditingId(null);
     setTitle("");
     setBody("");
     setCouponId(null);
     setTargetType("all");
     setCustomUrl("");
+  };
+
+  const handleEditCampaign = (camp: any) => {
+    setEditingId(camp.id);
+    setTitle(camp.title || "");
+    setBody(camp.body || "");
+    setCouponId(camp.coupon_id || null);
+    setTargetType(camp.target_type || "all");
+    setCustomUrl(camp.url || "");
+    setIsCreating(true);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const handleCouponSelect = (id: string) => {
@@ -260,7 +277,7 @@ function PushNotificationsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" /> Nova Notificação Push
+                    <Bell className="h-5 w-5 text-primary" /> {editingId ? "Editar Notificação Push" : "Nova Notificação Push"}
                   </CardTitle>
                   <CardDescription>
                     Configure a mensagem que será enviada diretamente aos celulares dos seus clientes.
@@ -559,7 +576,7 @@ function PushNotificationsPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              {isDraft && (
+                              {isDraft ? (
                                 <Button
                                   size="sm"
                                   onClick={() => dispatchMut.mutate(camp.id)}
@@ -569,12 +586,53 @@ function PushNotificationsPage() {
                                   {dispatchMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                                   Disparar
                                 </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    if (
+                                      await confirmDialog({
+                                        title: `Reenviar a notificação "${camp.title}"?`,
+                                        description: `Esta mensagem será disparada novamente para os ${subscriberCount} clientes/dispositivos inscritos na sua loja.`,
+                                        confirmText: "Reenviar Notificação",
+                                        cancelText: "Cancelar",
+                                      })
+                                    ) {
+                                      dispatchMut.mutate(camp.id);
+                                    }
+                                  }}
+                                  disabled={dispatchMut.isPending}
+                                  className="h-8 gap-1 text-xs font-semibold border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+                                >
+                                  {dispatchMut.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}
+                                  Reenviar
+                                </Button>
                               )}
+
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => {
-                                  if (confirm(`Excluir notificação "${camp.title}"?`)) {
+                                onClick={() => handleEditCampaign(camp)}
+                                title="Editar notificação"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={async () => {
+                                  if (
+                                    await confirmDialog({
+                                      title: `Excluir notificação "${camp.title}"?`,
+                                      description: "Esta ação é permanente e a notificação será removida do histórico.",
+                                      confirmText: "Excluir Notificação",
+                                      cancelText: "Cancelar",
+                                      variant: "destructive",
+                                    })
+                                  ) {
                                     deleteMut.mutate(camp.id);
                                   }
                                 }}

@@ -108,6 +108,7 @@ export const getPushStatsAdmin = createServerFn({ method: "POST" })
   });
 
 const CreateCampaignInput = z.object({
+  id: z.string().uuid().optional().nullable(),
   title: z.string().min(3, "Título muito curto"),
   body: z.string().min(5, "Mensagem muito curta"),
   iconUrl: z.string().optional().nullable(),
@@ -117,7 +118,7 @@ const CreateCampaignInput = z.object({
   targetType: z.enum(["all", "customers_with_orders"]).default("all"),
 });
 
-// Endpoint Admin: Criar nova campanha de push
+// Endpoint Admin: Criar ou atualizar campanha de push
 export const createPushCampaign = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => CreateCampaignInput.parse(d))
@@ -137,6 +138,19 @@ export const createPushCampaign = createServerFn({ method: "POST" })
       target_type: data.targetType,
       status: "draft",
     };
+
+    if (data.id) {
+      const { data: updated, error } = await (supabase as any)
+        .from("push_campaigns")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("tenant_id", resolved.tenantId)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+      return { campaign: updated };
+    }
 
     const { data: inserted, error } = await (supabase as any)
       .from("push_campaigns")
