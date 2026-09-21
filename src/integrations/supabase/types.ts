@@ -1981,6 +1981,152 @@ export type Database = {
           },
         ]
       }
+      push_campaigns: {
+        Row: {
+          body: string
+          coupon_id: string | null
+          created_at: string
+          failed_count: number
+          icon_url: string | null
+          id: string
+          image_url: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          sent_count: number
+          status: string
+          success_count: number
+          target_type: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          body: string
+          coupon_id?: string | null
+          created_at?: string
+          failed_count?: number
+          icon_url?: string | null
+          id?: string
+          image_url?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          success_count?: number
+          target_type?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          body?: string
+          coupon_id?: string | null
+          created_at?: string
+          failed_count?: number
+          icon_url?: string | null
+          id?: string
+          image_url?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          success_count?: number
+          target_type?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_campaigns_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "push_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          customer_id: string | null
+          customer_phone: string | null
+          endpoint: string
+          id: string
+          last_active_at: string
+          p256dh: string
+          tenant_id: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          endpoint: string
+          id?: string
+          last_active_at?: string
+          p256dh: string
+          tenant_id: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          customer_id?: string | null
+          customer_phone?: string | null
+          endpoint?: string
+          id?: string
+          last_active_at?: string
+          p256dh?: string
+          tenant_id?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_payment_settings: {
         Row: {
           card_on_delivery_enabled: boolean
