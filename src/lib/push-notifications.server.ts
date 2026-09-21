@@ -162,7 +162,16 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
     url: campaign.url,
   };
 
-  const payloadStr = JSON.stringify(pushPayload);
+  const pushOptions = {
+    vapidDetails: {
+      subject: VAPID_SUBJECT,
+      publicKey: VAPID_PUBLIC_KEY,
+      privateKey: VAPID_PRIVATE_KEY,
+    },
+    TTL: 86400,
+  };
+
+  let lastError: string | null = null;
 
   // Dispara as notificações concorrentemente em lotes
   await Promise.all(
@@ -176,15 +185,16 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
       };
 
       try {
-        await webpush.sendNotification(pushSubscription, payloadStr);
+        await webpush.sendNotification(pushSubscription, payloadStr, pushOptions);
         successCount++;
       } catch (err: any) {
         failedCount++;
+        lastError = err?.body || err?.message || String(err);
+        console.error(`[PushSend] Erro ao enviar para ${sub.endpoint.slice(0, 35)}:`, lastError, err);
         // Se a assinatura expirou ou o navegador desinstalou o app (404/410), marca para remover
         if (err.statusCode === 404 || err.statusCode === 410) {
           expiredIds.push(sub.id);
         }
-        console.warn(`[PushSend] Falha para endpoint ${sub.endpoint.slice(0, 30)}:`, err.message);
       }
     })
   );
@@ -210,5 +220,5 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
     })
     .eq("id", campaignId);
 
-  return { total, success: successCount, failed: failedCount };
+  return { total, success: successCount, failed: failedCount, lastError };
 }

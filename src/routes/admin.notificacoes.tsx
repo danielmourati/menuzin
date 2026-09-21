@@ -75,9 +75,16 @@ function PushNotificationsPage() {
     mutationFn: (campaignId: string) =>
       dispatchPushCampaignNow({ data: { campaignId } }),
     onSuccess: (res) => {
-      toast.success(
-        `Envio concluído! ${res.success} mensagem(ns) entregue(s) com sucesso de ${res.total} tentativas.`
-      );
+      if (res.failed > 0 && res.success === 0) {
+        toast.error(
+          `Disparo realizado, mas ${res.failed} assinatura(s) foram recusadas pelo servidor de push. Peça ao cliente para reativar as notificações no navegador.`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success(
+          `Envio concluído! ${res.success} mensagem(ns) entregue(s) com sucesso de ${res.total} tentativas.`
+        );
+      }
       qc.invalidateQueries({ queryKey: ["push-stats-admin"] });
     },
     onError: (err: Error) => {

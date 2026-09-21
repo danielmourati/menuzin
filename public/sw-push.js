@@ -1,33 +1,43 @@
 /* Service Worker para Web Push Notifications — Menuzin Delivery */
 
 self.addEventListener('push', function (event) {
-  if (!event.data) return;
-
-  try {
-    const data = event.data.json();
-    const title = data.title || 'Novidade na loja! 🛵';
-    const options = {
-      body: data.body || 'Confira as promoções e cupons do dia.',
-      icon: data.icon || '/icon-192.png',
-      badge: '/icon-192.png',
-      image: data.image || null,
-      data: {
-        url: data.url || '/',
-        coupon: data.coupon || null,
-      },
-      vibrate: [100, 50, 100],
-      actions: data.coupon ? [
-        { action: 'open_store', title: '🏷️ Ver Cupom' },
-        { action: 'close', title: 'Fechar' }
-      ] : [
-        { action: 'open_store', title: '🛍️ Abrir Loja' }
-      ]
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch (err) {
-    console.error('[SW Push] Erro ao processar payload push:', err);
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      try {
+        data = { title: 'Novidade na loja! 🛵', body: event.data.text() };
+      } catch (e2) {
+        data = { title: 'Novidade na loja! 🛵', body: 'Você tem uma nova oferta exclusiva.' };
+      }
+    }
+  } else {
+    data = { title: 'Novidade na loja! 🛵', body: 'Confira as promoções e cupons do dia.' };
   }
+
+  const title = data.title || 'Novidade na loja! 🛵';
+  const options = {
+    body: data.body || 'Confira as promoções e cupons do dia.',
+    icon: data.icon || '/icon-192.png',
+    badge: '/icon-192.png',
+    image: data.image || null,
+    tag: 'menuzin-campaign-' + Date.now(),
+    renotify: true,
+    data: {
+      url: data.url || '/',
+      coupon: data.coupon || null,
+    },
+    vibrate: [200, 100, 200],
+    actions: data.coupon ? [
+      { action: 'open_store', title: '🏷️ Ver Cupom' },
+      { action: 'close', title: 'Fechar' }
+    ] : [
+      { action: 'open_store', title: '🛍️ Abrir Loja' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', function (event) {
