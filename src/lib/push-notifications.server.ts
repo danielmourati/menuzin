@@ -154,6 +154,28 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
   let failedCount = 0;
   const expiredIds: string[] = [];
 
+  // Busca a loja e o slug para garantir que o clique redirecione exatamente para a loja do tenant
+  const { data: tenantRow } = await (supabaseAdmin as any)
+    .from("tenants")
+    .select("slug, name")
+    .eq("id", tenantId)
+    .maybeSingle();
+
+  const tenantSlug = tenantRow?.slug || "";
+  let targetUrl = tenantSlug ? `/${tenantSlug}` : "/";
+
+  if (campaign.url && campaign.url.trim() !== "") {
+    const rawUrl = campaign.url.trim();
+    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+      targetUrl = rawUrl;
+    } else if (tenantSlug) {
+      const cleanPath = rawUrl.startsWith("/") ? rawUrl.slice(1) : rawUrl;
+      targetUrl = cleanPath ? `/${tenantSlug}/${cleanPath}` : `/${tenantSlug}`;
+    } else {
+      targetUrl = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+    }
+  }
+
   // Busca o código do cupom vinculado à campanha (se houver) para o botão "Ver Cupom"
   let couponCode: string | null = null;
   if (campaign.coupon_id) {
@@ -168,9 +190,9 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
   const pushPayload: PushMessagePayload = {
     title: campaign.title,
     body: campaign.body,
-    icon: campaign.icon_url,
+    icon: campaign.icon_url || "/icon-192.png",
     image: campaign.image_url,
-    url: campaign.url,
+    url: targetUrl,
     coupon: couponCode,
   };
 
