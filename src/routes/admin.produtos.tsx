@@ -209,18 +209,41 @@ function ProductsPage() {
         const isTargeted = selectedGroupIds.includes(g.id);
         const currentCategoryIds = g.targets.filter((t) => t.category_id).map((t) => t.category_id as string);
         const currentProductIds = g.targets.filter((t) => t.product_id).map((t) => t.product_id as string);
-        const hasProduct = currentProductIds.includes(pid);
+        const catId = payload.category_id;
+        const targetsCategory = catId ? currentCategoryIds.includes(catId) : false;
+        const targetsProduct = currentProductIds.includes(pid);
+        const currentlyHasGroup = targetsCategory || targetsProduct;
 
-        if (isTargeted && !hasProduct) {
-          const nextPids = [...currentProductIds, pid];
-          await setAddonGroupTargets({
-            data: { group_id: g.id, category_ids: currentCategoryIds, product_ids: nextPids },
-          });
-        } else if (!isTargeted && hasProduct) {
-          const nextPids = currentProductIds.filter((id) => id !== pid);
-          await setAddonGroupTargets({
-            data: { group_id: g.id, category_ids: currentCategoryIds, product_ids: nextPids },
-          });
+        if (isTargeted) {
+          if (!currentlyHasGroup) {
+            // Group is checked but not currently targeted -> add pid to product_ids
+            const nextPids = Array.from(new Set([...currentProductIds, pid]));
+            await setAddonGroupTargets({
+              data: { group_id: g.id, category_ids: currentCategoryIds, product_ids: nextPids },
+            });
+          }
+        } else {
+          if (currentlyHasGroup) {
+            // Group is unchecked but currently targeted -> remove target for pid
+            let nextCatIds = [...currentCategoryIds];
+            let nextPids = [...currentProductIds];
+
+            if (targetsProduct) {
+              nextPids = nextPids.filter((id) => id !== pid);
+            }
+            if (targetsCategory && catId) {
+              // Unbundle category target into specific product targets for all other products in this category
+              nextCatIds = nextCatIds.filter((id) => id !== catId);
+              const otherProductsInCat = products
+                .filter((p) => p.category_id === catId && p.id !== pid)
+                .map((p) => p.id);
+              nextPids = Array.from(new Set([...nextPids, ...otherProductsInCat]));
+            }
+
+            await setAddonGroupTargets({
+              data: { group_id: g.id, category_ids: nextCatIds, product_ids: nextPids },
+            });
+          }
         }
       }
 
@@ -796,20 +819,23 @@ function ProductsPage() {
                           const isChecked = selectedGroupIds.includes(g.id);
                           const optionsText = g.options.map((o) => o.name).join(", ");
                           return (
-                            <label
+                            <div
                               key={g.id}
+                              onClick={() => {
+                                setSelectedGroupIds((prev) =>
+                                  prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
+                                );
+                              }}
                               className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
                                 isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
                               }`}
                             >
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={(v) => {
-                                  setSelectedGroupIds((prev) =>
-                                    v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
-                                  );
+                                onCheckedChange={() => {
+                                  // Handled by parent container click
                                 }}
-                                className="mt-0.5"
+                                className="mt-0.5 pointer-events-none"
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
@@ -829,7 +855,7 @@ function ProductsPage() {
                                   </p>
                                 )}
                               </div>
-                            </label>
+                            </div>
                           );
                         })}
                       </div>
@@ -881,20 +907,23 @@ function ProductsPage() {
                             .map((o) => `${o.name} (${o.price > 0 ? brl(o.price) : "Grátis"})`)
                             .join(", ");
                           return (
-                            <label
+                            <div
                               key={g.id}
+                              onClick={() => {
+                                setSelectedGroupIds((prev) =>
+                                  prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
+                                );
+                              }}
                               className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
                                 isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
                               }`}
                             >
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={(v) => {
-                                  setSelectedGroupIds((prev) =>
-                                    v ? [...prev, g.id] : prev.filter((id) => id !== g.id)
-                                  );
+                                onCheckedChange={() => {
+                                  // Handled by parent container click
                                 }}
-                                className="mt-0.5"
+                                className="mt-0.5 pointer-events-none"
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
@@ -912,7 +941,7 @@ function ProductsPage() {
                                   </p>
                                 )}
                               </div>
-                            </label>
+                            </div>
                           );
                         })}
                       </div>
