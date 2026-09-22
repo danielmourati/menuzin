@@ -248,16 +248,110 @@ export function ProductModal({
     : validateSelection({ product, sizeId, flavorIds, groupSelections });
   const canAdd = validations.length === 0 && product.available;
 
+  const scrollToNextSection = (targetId: string) => {
+    setTimeout(() => {
+      if (!scrollRef.current) return;
+      if (targetId.startsWith("group-")) {
+        const groupId = targetId.replace("group-", "");
+        setActiveAccordionValue(groupId);
+      }
+      const el = scrollRef.current.querySelector(
+        `[data-scroll-target="${targetId}"], [data-group-id="${targetId.replace("group-", "")}"]`
+      );
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 80);
+  };
+
+  const handleSelectSize = (v: string) => {
+    setSizeId(v);
+    const nextSize = visiblePizzaSizes.find((s) => s.id === v);
+    const productIsListed = pizzaFlavors.some((f) => f.id === product?.id);
+    if (nextSize && !requiresExplicitFlavorSelection(nextSize.maxFlavors) && productIsListed && product) {
+      setFlavorIds([product.id]);
+    } else {
+      setFlavorIds([]);
+    }
+
+    const nextTarget = isPizzaCategory && requiresExplicitFlavorSelection(nextSize?.maxFlavors ?? 1)
+      ? "flavors"
+      : (showPizzaExtras && pizzaDoughs.length > 0 ? "dough" : (showPizzaExtras && visibleCrusts.length > 0 ? "crust" : (allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart")));
+    scrollToNextSection(nextTarget);
+  };
+
+  const handleSelectStandardSize = (v: string) => {
+    setSizeId(v);
+    const nextTarget = allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart";
+    scrollToNextSection(nextTarget);
+  };
+
+  const handleSelectDough = (v: string) => {
+    setDoughId(v);
+    const nextTarget = showPizzaExtras && visibleCrusts.length > 0
+      ? "crust"
+      : (allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart");
+    scrollToNextSection(nextTarget);
+  };
+
+  const handleSelectCrust = (v: string) => {
+    setCrustId(v);
+    const nextTarget = allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart";
+    scrollToNextSection(nextTarget);
+  };
+
   const toggleFlavor = (f: ProductFlavor) => {
     setFlavorIds((prev) => toggleFlavorId(prev, f.id, maxFlavors));
   };
 
   const togglePizzaFlavor = (id: string) => {
-    setFlavorIds((prev) => toggleFlavorId(prev, id, pizzaMaxFlavors));
+    setFlavorIds((prev) => {
+      const next = toggleFlavorId(prev, id, pizzaMaxFlavors);
+      if (prev.length < pizzaMaxFlavors && next.length === pizzaMaxFlavors) {
+        const nextTarget = showPizzaExtras && pizzaDoughs.length > 0
+          ? "dough"
+          : (showPizzaExtras && visibleCrusts.length > 0 ? "crust" : (allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart"));
+        scrollToNextSection(nextTarget);
+      }
+      return next;
+    });
   };
 
   const toggleGroupOption = (groupId: string, optId: string, maxSelect: number) => {
-    setGroupSelections((prev) => ({ ...prev, [groupId]: toggleGroupOptionId(prev[groupId], optId, maxSelect) }));
+    setGroupSelections((prev) => {
+      const prevGroupSelected = prev[groupId] ?? [];
+      const nextGroupSelected = toggleGroupOptionId(prevGroupSelected, optId, maxSelect);
+      const newSelections = { ...prev, [groupId]: nextGroupSelected };
+
+      const g = allGroups.find((item) => item.id === groupId);
+      if (g) {
+        const minRequired = g.required ? Math.max(1, g.minSelect || 0) : Math.max(0, g.minSelect || 0);
+        const targetCount = minRequired > 0 ? minRequired : (g.maxSelect > 0 ? g.maxSelect : 1);
+        const wasCompleted = prevGroupSelected.length >= targetCount;
+        const isNowCompleted = nextGroupSelected.length >= targetCount;
+
+        if (!wasCompleted && isNowCompleted) {
+          const currentIdx = allGroups.findIndex((item) => item.id === groupId);
+          const remainingGroups = allGroups.slice(currentIdx + 1);
+          const nextIncomplete = remainingGroups.find((item) => {
+            const activeOpts = item.options.filter((o) => o.price >= 0);
+            if (activeOpts.length === 0) return false;
+            const sel = (newSelections[item.id] ?? []).length;
+            const minReq = item.required ? Math.max(1, item.minSelect || 0) : Math.max(0, item.minSelect || 0);
+            const tgt = minReq > 0 ? minReq : (item.maxSelect > 0 ? item.maxSelect : 1);
+            return sel < tgt;
+          });
+
+          if (nextIncomplete) {
+            scrollToNextSection(`group-${nextIncomplete.id}`);
+          } else {
+            scrollToNextSection("add-to-cart");
+          }
+        }
+      }
+
+      return newSelections;
+    });
   };
 
   const isOptionSelected = (g: AddonGroup, o: AddonOption) =>
@@ -441,17 +535,8 @@ export function ProductModal({
 
           {/* Tamanhos (pizza-category) */}
           {isPizzaCategory && visiblePizzaSizes.length > 0 && (
-            <Section title="Tamanho" required isInvalid={hasAttemptedSubmit && !selectedPizzaSize}>
-              <RadioGroup value={sizeId ?? ""} onValueChange={(v) => {
-                setSizeId(v);
-                const nextSize = visiblePizzaSizes.find((s) => s.id === v);
-                const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
-                if (nextSize && !requiresExplicitFlavorSelection(nextSize.maxFlavors) && productIsListed) {
-                  setFlavorIds([product.id]);
-                } else {
-                  setFlavorIds([]);
-                }
-              }} className="mt-2 space-y-2">
+            <Section id="size" title="Tamanho" required isInvalid={hasAttemptedSubmit && !selectedPizzaSize}>
+              <RadioGroup value={sizeId ?? ""} onValueChange={handleSelectSize} className="mt-2 space-y-2">
                 {visiblePizzaSizes.map((s) => {
                   const prices = pizzaFlavors
                     .map((f) => positivePizzaFlavorPrice(f, s.id))
@@ -478,8 +563,8 @@ export function ProductModal({
 
           {/* Tamanhos (standard) */}
           {!isPizzaCategory && product.sizes && product.sizes.length > 0 && (
-            <Section title="Tamanho" required isInvalid={hasAttemptedSubmit && !sizeId}>
-              <RadioGroup value={sizeId ?? ""} onValueChange={setSizeId} className="mt-2 space-y-2">
+            <Section id="size" title="Tamanho" required isInvalid={hasAttemptedSubmit && !sizeId}>
+              <RadioGroup value={sizeId ?? ""} onValueChange={handleSelectStandardSize} className="mt-2 space-y-2">
                 {product.sizes.map((s) => (
                   <label key={s.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
@@ -496,6 +581,7 @@ export function ProductModal({
           {/* Sabores (pizza-category — siblings). Oculto quando o tamanho aceita só 1 sabor. */}
           {isPizzaCategory && availablePizzaFlavors.length > 0 && requiresExplicitFlavorSelection(pizzaMaxFlavors) && (
             <Section
+              id="flavors"
               title="Sabores"
               required
               isInvalid={hasAttemptedSubmit && selectedPizzaFlavors.length < pizzaMaxFlavors}
@@ -545,6 +631,7 @@ export function ProductModal({
           {/* Sabores (pizza) */}
           {!isPizzaCategory && isPizza && product.flavors && product.flavors.length > 0 && (
             <Section
+              id="flavors"
               title={`Sabores`}
               required
               isInvalid={hasAttemptedSubmit && flavorIds.length < 1}
@@ -574,8 +661,8 @@ export function ProductModal({
 
           {/* Massa da pizza (categoria pizza) */}
           {showPizzaExtras && pizzaDoughs.length > 0 && (
-            <Section title="Massa" required isInvalid={hasAttemptedSubmit && !selectedDough}>
-              <RadioGroup value={doughId ?? ""} onValueChange={setDoughId} className="mt-2 space-y-2">
+            <Section id="dough" title="Massa" required isInvalid={hasAttemptedSubmit && !selectedDough}>
+              <RadioGroup value={doughId ?? ""} onValueChange={handleSelectDough} className="mt-2 space-y-2">
                 {pizzaDoughs.map((d) => (
                   <label key={d.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
@@ -592,6 +679,7 @@ export function ProductModal({
           {/* Borda (categoria pizza) — comportamento varia conforme freeCrustMode */}
           {showPizzaExtras && visibleCrusts.length > 0 && (
             <Section
+              id="crust"
               title="Borda"
               required={crustMode === "customer_choice"}
               isInvalid={hasAttemptedSubmit && crustMode === "customer_choice" && !selectedCrust}
@@ -607,7 +695,7 @@ export function ProductModal({
                 {crustMode === "none" && (
                   <label className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
                     <div className="flex items-center gap-3">
-                      <input type="radio" name="crust" checked={!crustId} onChange={() => setCrustId(null)} />
+                      <input type="radio" name="crust" checked={!crustId} onChange={() => handleSelectCrust("")} />
                       <span className="text-sm">Sem borda</span>
                     </div>
                   </label>
@@ -629,7 +717,7 @@ export function ProductModal({
                           type="radio"
                           name="crust"
                           checked={crustId === c.id}
-                          onChange={() => setCrustId(c.id)}
+                          onChange={() => handleSelectCrust(c.id)}
                           disabled={disabled || isFixed}
                         />
                         <span className="text-sm font-medium">{c.name}</span>
@@ -794,7 +882,7 @@ export function ProductModal({
         </div>
 
 
-        <div className="shrink-0 border-t bg-card px-4 py-3">
+        <div data-scroll-target="add-to-cart" className="shrink-0 border-t bg-card px-4 py-3">
           {hasAttemptedSubmit && validations.length > 0 && (
             <p className="mb-2 text-center text-xs font-bold text-destructive bg-destructive/10 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 animate-pulse">
               <span>⚠️</span> Por favor, preencha os campos destacados em vermelho acima para continuar.
@@ -830,12 +918,14 @@ export function ProductModal({
 }
 
 function Section({
+  id,
   title,
   hint,
   required,
   isInvalid,
   children,
 }: {
+  id?: string;
   title: string;
   hint?: string;
   required?: boolean;
@@ -844,6 +934,7 @@ function Section({
 }) {
   return (
     <div
+      data-scroll-target={id}
       data-invalid={isInvalid ? "true" : undefined}
       className={`mt-6 rounded-2xl p-3 transition-all ${
         isInvalid ? "border-2 border-destructive bg-destructive/5 ring-4 ring-destructive/10" : ""

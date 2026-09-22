@@ -84,8 +84,11 @@ export const Route = createFileRoute("/$slug")({
   }),
   loader: ({ context, params }) => {
     if (!isCatalogSlug(params.slug)) return null;
+    const existing = context.queryClient.getQueryData(catalogQueryOptions(params.slug).queryKey);
+    if (existing) return existing;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
   },
+  pendingMs: 300,
   pendingComponent: StorefrontSkeleton,
   head: ({ params, loaderData }) => {
     const tenant = loaderData?.tenant ?? null;
@@ -170,7 +173,10 @@ function StoreRoute() {
 }
 
 function StorefrontRoute({ slug }: { slug: string }) {
-  const { data, isLoading } = useQuery(catalogQueryOptions(slug));
+  const { data, isLoading } = useQuery({
+    ...catalogQueryOptions(slug),
+    placeholderData: (prev) => prev,
+  });
 
   useStorefrontRealtime(slug, data?.tenant?.id);
 
