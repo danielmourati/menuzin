@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -25,6 +25,7 @@ import {
   listMyCategories, listMyProducts, saveProduct, deleteProduct, toggleProductAvailable,
   saveProductSize, deleteProductSize, saveProductFlavor, deleteProductFlavor,
   listCategoryPizzaConfig, listAddonGroups, saveAddonGroup, saveAddonOption, setAddonGroupTargets,
+  deleteAddonGroup, deleteAddonOption,
 } from "@/lib/catalog-admin.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
 
@@ -101,14 +102,16 @@ function ProductsPage() {
   const [open, setOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
-  // States for inline creation of observation/addon groups
+  // States for inline creation/editing of observation/addon groups
   const [inlineGroupOpen, setInlineGroupOpen] = useState(false);
+  const [inlineGroupId, setInlineGroupId] = useState<string | null>(null);
   const [inlineGroupKind, setInlineGroupKind] = useState<"observacao" | "adicional">("observacao");
   const [inlineGroupName, setInlineGroupName] = useState("");
   const [inlineGroupRequired, setInlineGroupRequired] = useState(false);
   const [inlineGroupMin, setInlineGroupMin] = useState(0);
   const [inlineGroupMax, setInlineGroupMax] = useState(1);
-  const [inlineOptions, setInlineOptions] = useState<{ name: string; price: number }[]>([]);
+  const [inlineOptions, setInlineOptions] = useState<{ id?: string; name: string; price: number }[]>([]);
+  const [deletedOptionIds, setDeletedOptionIds] = useState<string[]>([]);
   const [newOptName, setNewOptName] = useState("");
   const [newOptPrice, setNewOptPrice] = useState(0);
   const [isSavingInline, setIsSavingInline] = useState(false);
@@ -120,6 +123,26 @@ function ProductsPage() {
     setNewOptName("");
     setNewOptPrice(0);
     setTimeout(() => inlineOptInputRef.current?.focus(), 50);
+  };
+
+  const handleMoveInlineOpt = (index: number, direction: "up" | "down") => {
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= inlineOptions.length) return;
+    setInlineOptions((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[targetIdx];
+      next[targetIdx] = temp;
+      return next;
+    });
+  };
+
+  const handleRemoveInlineOpt = (index: number) => {
+    const opt = inlineOptions[index];
+    if (opt?.id) {
+      setDeletedOptionIds((prev) => [...prev, opt.id!]);
+    }
+    setInlineOptions((prev) => prev.filter((_, i) => i !== index));
   };
 
   const products = productsQ.data ?? [];
@@ -318,15 +341,51 @@ function ProductsPage() {
   };
 
   const openInlineGroupModal = (kind: "observacao" | "adicional") => {
+    setInlineGroupId(null);
     setInlineGroupKind(kind);
     setInlineGroupName("");
     setInlineGroupRequired(kind === "observacao");
     setInlineGroupMin(kind === "observacao" ? 1 : 0);
     setInlineGroupMax(kind === "observacao" ? 1 : 5);
     setInlineOptions([]);
+    setDeletedOptionIds([]);
     setNewOptName("");
     setNewOptPrice(0);
     setInlineGroupOpen(true);
+  };
+
+  const openEditInlineGroupModal = (g: typeof addonGroups[number]) => {
+    setInlineGroupId(g.id);
+    setInlineGroupKind(g.kind as "observacao" | "adicional");
+    setInlineGroupName(g.name);
+    setInlineGroupRequired(g.required);
+    setInlineGroupMin(g.min_select);
+    setInlineGroupMax(g.max_select);
+    setInlineOptions(g.options.map((o) => ({ id: o.id, name: o.name, price: Number(o.price) })));
+    setDeletedOptionIds([]);
+    setNewOptName("");
+    setNewOptPrice(0);
+    setInlineGroupOpen(true);
+  };
+
+  const handleDeleteGroup = async (groupId: string, groupName: string) => {
+    const ok = await confirmDialog({
+      title: `Excluir "${groupName}"?`,
+      description: "Esta ação excluirá permanentemente este grupo e suas opções de todos os produtos.",
+      confirmText: "Excluir grupo",
+      cancelText: "Cancelar",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteAddonGroup({ data: { id: groupId } });
+      setSelectedGroupIds((prev) => prev.filter((id) => id !== groupId));
+      await qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      toast.success("Grupo excluído com sucesso.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir grupo.");
+    }
   };
 
   const handleSaveInlineGroup = async () => {
@@ -338,20 +397,28 @@ function ProductsPage() {
       setIsSavingInline(true);
       const resGroup = await saveAddonGroup({
         data: {
+          id: inlineGroupId ?? undefined,
           name: inlineGroupName.trim(),
           kind: inlineGroupKind,
           required: inlineGroupRequired,
           min_select: inlineGroupMin,
           max_select: inlineGroupMax,
           active: true,
-          sort_order: 0,
+          sort_order: inlineGroupId
+            ? (addonGroups.find((g) => g.id === inlineGroupId)?.sort_order ?? 0)
+            : addonGroups.length,
         },
       });
+
+      for (const delId of deletedOptionIds) {
+        await deleteAddonOption({ data: { id: delId } });
+      }
 
       for (let i = 0; i < inlineOptions.length; i++) {
         const opt = inlineOptions[i];
         await saveAddonOption({
           data: {
+            id: opt.id,
             group_id: resGroup.id,
             name: opt.name,
             price: opt.price,
@@ -362,11 +429,15 @@ function ProductsPage() {
       }
 
       await qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      setSelectedGroupIds((prev) => [...prev, resGroup.id]);
-      toast.success(`${inlineGroupKind === "observacao" ? "Grupo de observação" : "Categoria de adicionais"} criada e vinculada!`);
+      setSelectedGroupIds((prev) => (prev.includes(resGroup.id) ? prev : [...prev, resGroup.id]));
+      toast.success(
+        inlineGroupId
+          ? "Grupo atualizado com sucesso!"
+          : `${inlineGroupKind === "observacao" ? "Grupo de observação" : "Categoria de adicionais"} criada e vinculada!`
+      );
       setInlineGroupOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao criar grupo.");
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar grupo.");
     } finally {
       setIsSavingInline(false);
     }
@@ -814,7 +885,7 @@ function ProductsPage() {
                       </div>
                     ) : (
                       <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
-                        {obsGroups.map((g) => {
+                        {obsGroups.map((g, idx) => {
                           const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
                           const isChecked = selectedGroupIds.includes(g.id);
                           const optionsText = g.options.map((o) => o.name).join(", ");
@@ -826,19 +897,26 @@ function ProductsPage() {
                                   prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
                                 );
                               }}
-                              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
+                              className={`flex items-center gap-2.5 rounded-xl border p-2.5 cursor-pointer transition-all hover:border-primary/50 ${
                                 isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
                               }`}
                             >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ReorderButtons
+                                  entity="addonGroup"
+                                  id={g.id}
+                                  invalidateKeys={[["admin", "addon-groups"]]}
+                                  isFirst={idx === 0}
+                                  isLast={idx === obsGroups.length - 1}
+                                />
+                              </div>
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={() => {
-                                  // Handled by parent container click
-                                }}
+                                onCheckedChange={() => {}}
                                 className="mt-0.5 pointer-events-none"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   <span className="font-semibold text-sm">{g.name}</span>
                                   {g.required ? (
                                     <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
@@ -854,6 +932,28 @@ function ProductsPage() {
                                     Opções: {optionsText}
                                   </p>
                                 )}
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  title="Editar grupo"
+                                  onClick={() => openEditInlineGroupModal(g)}
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  title="Excluir grupo"
+                                  onClick={() => handleDeleteGroup(g.id, g.name)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
                               </div>
                             </div>
                           );
@@ -900,7 +1000,7 @@ function ProductsPage() {
                       </div>
                     ) : (
                       <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
-                        {addonSubcats.map((g) => {
+                        {addonSubcats.map((g, idx) => {
                           const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
                           const isChecked = selectedGroupIds.includes(g.id);
                           const optionsSummary = g.options
@@ -914,19 +1014,26 @@ function ProductsPage() {
                                   prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
                                 );
                               }}
-                              className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-all hover:border-primary/50 ${
+                              className={`flex items-center gap-2.5 rounded-xl border p-2.5 cursor-pointer transition-all hover:border-primary/50 ${
                                 isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
                               }`}
                             >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ReorderButtons
+                                  entity="addonGroup"
+                                  id={g.id}
+                                  invalidateKeys={[["admin", "addon-groups"]]}
+                                  isFirst={idx === 0}
+                                  isLast={idx === addonSubcats.length - 1}
+                                />
+                              </div>
                               <Checkbox
                                 checked={isChecked}
-                                onCheckedChange={() => {
-                                  // Handled by parent container click
-                                }}
+                                onCheckedChange={() => {}}
                                 className="mt-0.5 pointer-events-none"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   <span className="font-semibold text-sm">{g.name}</span>
                                   <span className="text-xs text-muted-foreground">
                                     ({g.min_select} a {g.max_select} itens)
@@ -940,6 +1047,28 @@ function ProductsPage() {
                                     Itens: {optionsSummary}
                                   </p>
                                 )}
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  title="Editar categoria de adicionais"
+                                  onClick={() => openEditInlineGroupModal(g)}
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  title="Excluir categoria de adicionais"
+                                  onClick={() => handleDeleteGroup(g.id, g.name)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
                               </div>
                             </div>
                           );
@@ -961,12 +1090,12 @@ function ProductsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Inline Modal for quick creation of Observation Groups or Addon Subcategories */}
+      {/* Inline Modal for creation/editing of Observation Groups or Addon Subcategories */}
       <Dialog open={inlineGroupOpen} onOpenChange={setInlineGroupOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {inlineGroupKind === "observacao" ? "Novo Grupo de Observação" : "Nova Categoria de Adicionais"}
+              {inlineGroupId ? "Editar" : "Novo"} {inlineGroupKind === "observacao" ? "Grupo de Observação" : "Categoria de Adicionais"}
             </DialogTitle>
           </DialogHeader>
 
@@ -1024,18 +1153,41 @@ function ProductsPage() {
               {inlineOptions.length === 0 && (
                 <p className="text-xs text-muted-foreground italic">Nenhuma opção adicionada ainda.</p>
               )}
-              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                 {inlineOptions.map((opt, idx) => (
-                  <div key={idx} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-xs bg-muted/30">
+                  <div key={opt.id || idx} className="flex items-center justify-between rounded-lg border px-3 py-1.5 text-xs bg-muted/30">
                     <span className="font-medium">{opt.name}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <span className="text-muted-foreground font-semibold">{opt.price > 0 ? brl(opt.price) : "Grátis"}</span>
                       <Button
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="h-6 w-6 text-destructive"
-                        onClick={() => setInlineOptions((prev) => prev.filter((_, i) => i !== idx))}
+                        className="h-6 w-6"
+                        disabled={idx === 0}
+                        title="Mover opção para cima"
+                        onClick={() => handleMoveInlineOpt(idx, "up")}
+                      >
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        disabled={idx === inlineOptions.length - 1}
+                        title="Mover opção para baixo"
+                        onClick={() => handleMoveInlineOpt(idx, "down")}
+                      >
+                        <ArrowDown className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                        title="Excluir opção"
+                        onClick={() => handleRemoveInlineOpt(idx)}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -1090,7 +1242,7 @@ function ProductsPage() {
           <DialogFooter className="pt-2">
             <Button variant="outline" size="sm" onClick={() => setInlineGroupOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleSaveInlineGroup} disabled={isSavingInline || !inlineGroupName.trim()}>
-              {isSavingInline ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Criar e Vincular"}
+              {isSavingInline ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (inlineGroupId ? "Salvar Alterações" : "Criar e Vincular")}
             </Button>
           </DialogFooter>
         </DialogContent>
