@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MessageSquare, ShieldCheck, CheckCircle2, XCircle, RefreshCw, Send, Zap } from "lucide-react";
+import { Loader2, MessageSquare, ShieldCheck, CheckCircle2, XCircle, RefreshCw, Send, Zap, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getEvolutionConfigStatus, sendEvolutionTestMessage } from "@/lib/whatsapp/whatsapp-config.functions";
 import { maskPhone } from "@/lib/masks";
@@ -94,37 +94,41 @@ function WhatsappSettingsPage() {
           </Button>
         </div>
 
+        {/* Banner de Aviso de Manutenção Provisória */}
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1 text-xs">
+              <h4 className="font-bold text-amber-900 dark:text-amber-200 text-sm">
+                Módulo Desabilitado Provisoriamente
+              </h4>
+              <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
+                A integração via WhatsApp API (Evolution API) está temporariamente suspensa para melhorias de infraestrutura.
+                O envio automático de OTPs e notificações por API direta está desabilitado. O sistema continuará operando com fallback manual via links <code className="font-mono bg-amber-500/20 px-1 rounded">wa.me</code> quando necessário.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Card de Status da Instância */}
-        <Card className="border-emerald-500/30 overflow-hidden">
-          <CardHeader className="bg-emerald-500/10 border-b border-emerald-500/20 py-4">
+        <Card className="border-amber-500/30 overflow-hidden">
+          <CardHeader className="bg-amber-500/10 border-b border-amber-500/20 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-6 w-6" />
                 </div>
                 <div>
                   <CardTitle className="text-base font-bold">Status da Instância Evolution API</CardTitle>
                   <CardDescription className="text-xs">
-                    Instância em execução no servidor de mensageria
+                    Instância de mensageria em manutenção
                   </CardDescription>
                 </div>
               </div>
 
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : isConnected ? (
-                <Badge className="bg-emerald-600 text-white font-bold gap-1 px-3 py-1 text-xs">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Conectado (Open)
-                </Badge>
-              ) : connectionState === "connecting" ? (
-                <Badge variant="outline" className="border-amber-500 text-amber-600 gap-1 px-3 py-1 text-xs">
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Conectando...
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="gap-1 px-3 py-1 text-xs font-bold">
-                  <XCircle className="h-3.5 w-3.5" /> Desconectado / Off
-                </Badge>
-              )}
+              <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-300 bg-amber-500/10 gap-1 px-3 py-1 text-xs font-bold">
+                <XCircle className="h-3.5 w-3.5 text-amber-600" /> Desabilitado Provisoriamente
+              </Badge>
             </div>
           </CardHeader>
 
@@ -136,36 +140,36 @@ function WhatsappSettingsPage() {
               </div>
 
               <div className="p-3 rounded-xl bg-muted/40 border space-y-1">
-                <span className="text-muted-foreground font-medium">Chave de API (Key):</span>
-                <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400">
-                  {status?.hasApiKey ? "✔ Configurada no Servidor" : "❌ Não configurada"}
+                <span className="text-muted-foreground font-medium">Status API:</span>
+                <p className="font-bold text-sm text-amber-600 dark:text-amber-400">
+                  ⏸ Pausado Provisoriamente
                 </p>
               </div>
 
               <div className="p-3 rounded-xl bg-muted/40 border space-y-1">
                 <span className="text-muted-foreground font-medium">Fallback (Plano B):</span>
                 <p className="font-bold text-sm text-blue-600 dark:text-blue-400">
-                  ✔ Ativado (Link wa.me)
+                  ✔ Ativo (Link wa.me)
                 </p>
               </div>
             </div>
 
             {status?.error && (
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-900 dark:text-amber-200">
-                <strong>Observação de Conexão:</strong> {status.error}
+                <strong>Observação:</strong> {status.error}
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Card de Disparo de Teste */}
-        <Card>
+        <Card className="opacity-75">
           <CardHeader>
             <CardTitle className="text-base font-bold flex items-center gap-2">
-              <Send className="h-4 w-4 text-primary" /> Enviar Mensagem de Teste
+              <Send className="h-4 w-4 text-muted-foreground" /> Enviar Mensagem de Teste (Indisponível)
             </CardTitle>
             <CardDescription className="text-xs">
-              Dispare uma mensagem de teste para verificar se o seu WhatsApp está recebendo normalmente.
+              O disparo de mensagens de teste está desabilitado enquanto o módulo estiver em manutenção.
             </CardDescription>
           </CardHeader>
 
@@ -181,7 +185,7 @@ function WhatsappSettingsPage() {
                   value={testNumber}
                   onChange={(e) => setTestNumber(maskPhone(e.target.value))}
                   className="h-11 rounded-xl bg-background max-w-sm"
-                  required
+                  disabled
                 />
               </div>
 
@@ -194,43 +198,34 @@ function WhatsappSettingsPage() {
                   value={testMessage}
                   onChange={(e) => setTestMessage(e.target.value)}
                   className="rounded-xl bg-background min-h-[90px]"
-                  required
+                  disabled
                 />
               </div>
 
               <Button
                 type="submit"
-                disabled={sendTestMutation.isPending || !isConnected}
-                className="h-11 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs"
+                disabled
+                className="h-11 px-6 bg-muted text-muted-foreground font-bold rounded-xl cursor-not-allowed"
               >
-                {sendTestMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" /> Enviar Teste via Evolution API
-                  </>
-                )}
+                <Send className="mr-2 h-4 w-4" /> Módulo Indisponível
               </Button>
             </form>
           </CardContent>
         </Card>
 
         {/* Card Informativo Anti-Banimento */}
-        <Card className="bg-gradient-to-r from-emerald-500/5 via-background to-background border-emerald-500/30">
+        <Card className="bg-muted/30 border-muted">
           <CardContent className="p-5 flex items-start gap-4">
-            <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+            <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
               <Zap className="h-5 w-5" />
             </div>
             <div className="space-y-1 text-xs">
               <h4 className="font-bold text-sm text-foreground">
-                Proteção Anti-Banimento e Humanização Ativadas
+                Manutenção Preventiva
               </h4>
               <p className="text-muted-foreground leading-relaxed">
-                Todas as mensagens enviadas pela Evolution API no Menuzin aplicam simulação de digitação humana (
-                <code className="text-emerald-600 font-bold">presence: composing</code>) e atraso randômico inteligente (
-                <code className="text-emerald-600 font-bold">delay: 1.5s - 2.5s</code>) para garantir 100% de segurança contra bloqueios.
+                Assim que a manutenção for concluída, a simulação de digitação humana (
+                <code className="text-amber-600 font-bold">presence: composing</code>) e o atraso randômico inteligente voltarão a operar automaticamente.
               </p>
             </div>
           </CardContent>

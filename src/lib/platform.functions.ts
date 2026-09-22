@@ -22,6 +22,7 @@ export type PlatformStoreRow = {
   slug: string;
   city: string;
   state: string;
+  whatsapp?: string;
   status: string;
   plan: string;
   active: boolean;
@@ -38,7 +39,7 @@ export const listPlatformStores = createServerFn({ method: "POST" })
     await ensurePlatformAdmin(context.userId);
 
     const { data: tenants, error: tErr } = await supabaseAdmin
-      .from("tenants").select("id, name, slug, city, state, status, plan, active, created_at, business_types")
+      .from("tenants").select("id, name, slug, city, state, whatsapp, status, plan, active, created_at, business_types")
       .order("created_at", { ascending: false });
     if (tErr) throw new Error(tErr.message);
 
@@ -63,6 +64,7 @@ export const listPlatformStores = createServerFn({ method: "POST" })
         slug: t.slug as string,
         city: t.city as string,
         state: t.state as string,
+        whatsapp: (t.whatsapp as string) ?? "",
         status: t.status as string,
         plan: t.plan as string,
         active: t.active as boolean,

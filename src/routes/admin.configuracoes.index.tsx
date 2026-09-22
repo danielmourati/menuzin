@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
@@ -233,7 +234,9 @@ function SettingsPage() {
               <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
               <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
               <TabsTrigger value="impressora">Impressora</TabsTrigger>
-              <TabsTrigger value="whatsapp">WhatsApp API</TabsTrigger>
+              <TabsTrigger value="whatsapp">
+                WhatsApp API <Badge variant="secondary" className="ml-1.5 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Desabilitado</Badge>
+              </TabsTrigger>
               <TabsTrigger value="entrega">Entrega</TabsTrigger>
               <TabsTrigger value="redes">Redes sociais</TabsTrigger>
               <TabsTrigger value="link">Link público</TabsTrigger>
@@ -383,13 +386,22 @@ function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="whatsapp" className="mt-6 space-y-4">
-              <div className="max-w-2xl mx-auto text-center space-y-4 py-4">
-                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                  Configure a integração com a <strong>Evolution API</strong> para envio automático de OTPs, alertas de pedidos e despacho de entregadores sem risco de banimento.
-                </p>
-                <div className="pt-2">
-                  <Button asChild className="h-11 px-6 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">
-                    <Link to={"/admin/configuracoes/whatsapp" as never}>Configurar WhatsApp API</Link>
+              <div className="max-w-xl mx-auto text-center space-y-4 py-8 rounded-2xl border border-dashed bg-muted/20 p-6">
+                <div className="mx-auto h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-base text-foreground">Módulo Temporariamente Desabilitado</h3>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    A integração com a <strong>WhatsApp API (Evolution API)</strong> foi desabilitada temporariamente para manutenção preventiva e melhorias de servidor.
+                  </p>
+                </div>
+                <div className="pt-2 flex flex-col items-center gap-2">
+                  <Badge variant="outline" className="border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/5 px-3 py-1 text-xs font-semibold">
+                    Status: Desabilitado Provisoriamente
+                  </Badge>
+                  <Button asChild variant="outline" size="sm" className="mt-2 text-xs rounded-xl">
+                    <Link to={"/admin/configuracoes/whatsapp" as never}>Ver Detalhes do Status</Link>
                   </Button>
                 </div>
               </div>

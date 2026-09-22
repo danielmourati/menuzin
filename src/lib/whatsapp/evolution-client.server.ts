@@ -1,6 +1,8 @@
 // Server-side module for Evolution API (WhatsApp REST API v1/v2) integration.
 // Handles message dispatch, typing presence simulation, humanized delays, and instance status health checks.
 
+const EVOLUTION_DISABLED = true;
+
 export interface SendEvolutionMessageOptions {
   number: string;
   text: string;
@@ -49,6 +51,13 @@ export function formatWhatsappNumber(phone: string): string {
 export async function sendEvolutionTextMessage(
   options: SendEvolutionMessageOptions,
 ): Promise<EvolutionResponse> {
+  if (EVOLUTION_DISABLED) {
+    return {
+      success: false,
+      error: "Módulo da WhatsApp API temporariamente desabilitado para manutenção.",
+    };
+  }
+
   const { apiUrl, apiKey, instance } = getEvolutionEnv();
 
   const formattedNumber = formatWhatsappNumber(options.number);
@@ -115,7 +124,18 @@ export async function sendEvolutionTextMessage(
  * Consulta o status atual de conexão da instância da Evolution API.
  */
 export async function checkEvolutionConnectionState(): Promise<EvolutionConnectionStatus> {
-  const { apiUrl, apiKey, instance } = getEvolutionEnv();
+  const { instance } = getEvolutionEnv();
+
+  if (EVOLUTION_DISABLED) {
+    return {
+      connected: false,
+      state: "close",
+      instanceName: instance,
+      error: "Módulo da WhatsApp API temporariamente desabilitado para manutenção.",
+    };
+  }
+
+  const { apiUrl, apiKey } = getEvolutionEnv();
 
   if (!apiUrl || !apiKey) {
     return {

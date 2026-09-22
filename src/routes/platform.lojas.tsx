@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Eye, ExternalLink, Loader2, Pencil, Trash2, Wand2 } from "lucide-react";
+import { Eye, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   listPlatformStores,
@@ -40,8 +40,6 @@ import {
   adminDeleteTenant,
   adminGetTenantOwner,
   adminUpdateTenantOwner,
-  adminApplyTenantTemplate,
-  adminApplyTemplateToAll,
   type PlatformStoreRow,
 } from "@/lib/platform.functions";
 import { listPlans } from "@/lib/subscriptions.functions";
@@ -91,27 +89,7 @@ function PlatformStores() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const applyOneMut = useMutation({
-    mutationFn: (id: string) => adminApplyTenantTemplate({ data: { tenant_id: id } }),
-    onSuccess: (r) => {
-      toast.success(
-        `Padronizado com base em ${r.template_slug}. ${r.updated_fields.length} campo(s), ${r.created.length} registro(s) novos.`,
-      );
-      qc.invalidateQueries({ queryKey: ["platform"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
-  const applyAllMut = useMutation({
-    mutationFn: () => adminApplyTemplateToAll(),
-    onSuccess: (r) => {
-      const ok = r.results.filter((x) => x.ok).length;
-      const fail = r.results.length - ok;
-      toast.success(`Padronização concluída: ${ok} ok${fail ? `, ${fail} com erro` : ""}.`);
-      qc.invalidateQueries({ queryKey: ["platform"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
 
   return (
     <PlatformLayout title="Lojas">
@@ -120,15 +98,6 @@ function PlatformStores() {
           {stores.length} estabelecimentos cadastrados
         </p>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => applyAllMut.mutate()}
-            disabled={applyAllMut.isPending}
-            title="Aplica o template padrão (burgerprime/vilaboemia) em todas as lojas, sem sobrescrever dados existentes"
-          >
-            <Wand2 className="mr-2 h-4 w-4" />
-            {applyAllMut.isPending ? "Padronizando..." : "Padronizar todas"}
-          </Button>
           <Button asChild>
             <Link to="/platform/tenants/novo">+ Novo estabelecimento</Link>
           </Button>
@@ -173,7 +142,8 @@ function PlatformStores() {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {s.city}
-                      {s.state ? `/${s.state}` : ""} · /{s.slug} · cadastrada em{" "}
+                      {s.state ? `/${s.state}` : ""} · /{s.slug}
+                      {s.whatsapp ? ` · Tel/WA: ${s.whatsapp}` : ""} · cadastrada em{" "}
                       {new Date(s.created_at).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
@@ -190,15 +160,7 @@ function PlatformStores() {
                     <Button size="icon" variant="outline" title="Acessar painel desta loja" onClick={() => accessStore(s.id)}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      title="Aplicar template padrão (não sobrescreve)"
-                      onClick={() => applyOneMut.mutate(s.id)}
-                      disabled={applyOneMut.isPending}
-                    >
-                      <Wand2 className="h-4 w-4" />
-                    </Button>
+
                     <Button size="icon" variant="outline" title="Editar" onClick={() => setEditing(s)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -271,6 +233,7 @@ function EditTenantDialog({
 }) {
   const [name, setName] = useState(store.name);
   const [slug, setSlug] = useState(store.slug);
+  const [whatsapp, setWhatsapp] = useState(store.whatsapp ?? "");
   const [city, setCity] = useState(store.city ?? "");
   const [state, setState] = useState(store.state ?? "");
   const [plan, setPlan] = useState<TenantPlan>(normalizePlan(store.plan));
@@ -287,6 +250,7 @@ function EditTenantDialog({
           id: store.id,
           name,
           slug,
+          whatsapp,
           city,
           state,
           plan,
@@ -325,6 +289,17 @@ function EditTenantDialog({
             />
             <p className="mt-1 text-xs text-muted-foreground">
               menuzin.com.br/<span className="font-mono">{slug}</span>
+            </p>
+          </div>
+          <div>
+            <Label>Contato / WhatsApp de cadastro (auto-cadastro)</Label>
+            <Input
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              placeholder="5586999999999"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Número de telefone registrado no cadastro/auto-cadastro do estabelecimento.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
