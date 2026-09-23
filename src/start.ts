@@ -6,6 +6,10 @@ import { attachActiveTenant } from "@/lib/active-tenant-attacher";
 import { getClientIp, checkNavigationAnomalyRateLimit } from "./lib/rate-limit.server";
 
 const rateLimitMiddleware = createMiddleware().server(async ({ next, request }) => {
+  const url = new URL(request.url);
+  if (url.pathname.startsWith("/lovable/")) {
+    return next();
+  }
   const ip = getClientIp(request);
   const result = checkNavigationAnomalyRateLimit(ip);
   if (!result.allowed) {

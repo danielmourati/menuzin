@@ -18,7 +18,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "menuzin"
+const SITE_NAME = "Menuzin | Cardápio online carrinho checkout e pedidos direto no WhatsApp"
 const ROOT_DOMAIN = "menuzin.app"
 
 // Sample data for preview mode ONLY (not used in actual email sending).
