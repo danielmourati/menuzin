@@ -235,6 +235,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [cartOpen, setCartOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [visibleCat, setVisibleCat] = useState<string>("Todos");
+  const [isScrolled, setIsScrolled] = useState(false);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal } = useCart();
@@ -374,20 +375,23 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     return out;
   }, [filtered, activeCat, categories]);
 
-  // Scroll spy: destaca automaticamente o chip da categoria visível
+  // Scroll spy: destaca automaticamente o chip da categoria visível e ativa o mini-cabeçalho da loja no scroll
   useEffect(() => {
-    if (activeCat !== "Todos") return;
     if (typeof window === "undefined") return;
 
     const onScroll = () => {
+      const scrolled = window.scrollY > 130;
+      setIsScrolled((prev) => (prev !== scrolled ? scrolled : prev));
+
+      if (activeCat !== "Todos") return;
+
       if (window.scrollY < 250) {
         setVisibleCat((prev) => (prev !== "Todos" ? "Todos" : prev));
         return;
       }
 
       // Se o usuário rolou até o limite inferior da página (fim do scroll)
-      // garantimos que a última seção seja ativada, pois ela nunca alcançaria
-      // a linha de gatilho superior se não houver conteúdo suficiente abaixo dela.
+      // garantimos que a última seção seja ativada.
       const isAtBottom =
         window.innerHeight + Math.round(window.scrollY) >=
         document.documentElement.scrollHeight - 10;
@@ -402,14 +406,12 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       }
 
       // Altura do cabeçalho sticky + um pequeno respiro
-      const TRIGGER_OFFSET = 140;
+      const TRIGGER_OFFSET = scrolled ? 190 : 140;
       let foundKey: string | null = null;
 
       // Itera pelas seções para achar qual está cruzando a linha de gatilho
       for (const [key, el] of sectionRefs.current.entries()) {
         const rect = el.getBoundingClientRect();
-        // A seção se torna ativa quando o topo dela cruza o gatilho,
-        // e continua ativa até que o fundo dela (último item) passe da linha.
         if (rect.top <= TRIGGER_OFFSET + 20 && rect.bottom > TRIGGER_OFFSET) {
           foundKey = key;
           break;
@@ -618,10 +620,59 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </div>
         )}
 
-        {/* Barra sticky: categorias + toggle grid/lista (só quando há produtos) */}
+        {/* Barra sticky: minicabeçalho da loja no scroll + categorias (só quando há produtos) */}
         {products.length > 0 && (
-          <div className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <div className="flex items-center gap-2">
+          <div
+            className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 shadow-xs backdrop-blur supports-[backdrop-filter]:bg-background/85 transition-all duration-200"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
+            {/* Minicabeçalho fixado com informações da loja ao scrollar */}
+            {isScrolled && (
+              <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <button
+                  type="button"
+                  onClick={() => setAboutOpen(true)}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left active:opacity-80"
+                >
+                  <div className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
+                    {tenant.logoUrl ? (
+                      <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold">{tenant.logoLetter}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold leading-tight">{tenant.name}</p>
+                    <p className={`flex items-center gap-1 text-[10px] font-semibold ${storeOpen ? "text-success" : "text-destructive"}`}>
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
+                      {storeOpen ? "Aberta" : "Fechada"}
+                    </p>
+                  </div>
+                </button>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen((v) => !v)}
+                    aria-label="Buscar produtos"
+                    className="grid h-8 w-8 place-items-center rounded-full bg-muted/80 text-foreground transition active:scale-95"
+                  >
+                    {searchOpen ? <XIcon className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen(true)}
+                    aria-label="Abrir menu"
+                    className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground transition active:scale-95"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Carrossel de categorias */}
+            <div className="flex items-center gap-2 px-4 py-2">
               <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
                 <div className="flex gap-2">
                   {chips.map((c) => {
@@ -646,16 +697,17 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                             const target = sectionRefs.current.get(c.key);
                             if (target) {
                               setVisibleCat(c.key);
-                              // Usa o mesmo offset de 140px da lógica do scroll spy
-                              const y = target.getBoundingClientRect().top + window.scrollY - 140;
+                              const offset = isScrolled ? 190 : 140;
+                              const y = target.getBoundingClientRect().top + window.scrollY - offset;
                               window.scrollTo({ top: y, behavior: "smooth" });
                               return;
                             }
                           }
                           setActiveCat(c.key);
                         }}
-                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
-                          }`}
+                        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          active ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:border-primary/40"
+                        }`}
                       >
                         <Icon className={`h-4 w-4 ${active ? "" : "text-primary"}`} />
                         {c.label}
