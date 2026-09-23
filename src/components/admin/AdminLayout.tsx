@@ -368,7 +368,7 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
           <ImpersonationBanner />
           <SubscriptionAlertBanner />
           <WhatsappUnverifiedBanner />
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-card/80 px-4 backdrop-blur lg:px-8">
+          <header className="sticky top-0 z-20 flex items-center gap-2 border-b bg-card/80 px-4 py-2 backdrop-blur lg:px-8 min-h-14" style={{ paddingTop: "calc(0.5rem + env(safe-area-inset-top, 0px))" }}>
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden"><Menu className="h-5 w-5" /></Button>

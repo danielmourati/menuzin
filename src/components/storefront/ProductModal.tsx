@@ -460,7 +460,7 @@ export function ProductModal({
 
         {/* Camada 3: chrome (recolher/voltar) + badge da loja */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
-          <div className="pointer-events-auto absolute left-3 top-3">
+          <div className="pointer-events-auto absolute left-3" style={{ top: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}>
             <Button
               size="icon" variant="default"
               onClick={() => onOpenChange(false)}
@@ -472,7 +472,7 @@ export function ProductModal({
           </div>
 
           {tenantInfo && (
-            <div className="pointer-events-auto absolute right-3 top-3 flex max-w-[62%] items-center gap-2 rounded-full bg-white/95 py-1.5 pl-1.5 pr-3 shadow-lg ring-1 ring-black/10">
+            <div className="pointer-events-auto absolute right-3 flex max-w-[62%] items-center gap-2 rounded-full bg-white/95 py-1.5 pl-1.5 pr-3 shadow-lg ring-1 ring-black/10" style={{ top: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}>
               {tenantInfo.logoUrl ? (
                 <img src={tenantInfo.logoUrl} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
               ) : (

@@ -70,7 +70,7 @@ function ConfirmedPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-lg px-4 py-10">
+      <div className="container mx-auto max-w-lg px-4 py-10" style={{ paddingTop: "calc(2.5rem + env(safe-area-inset-top, 0px))" }}>
         <div className="rounded-3xl border bg-card p-6 text-center shadow-[var(--shadow-soft)]">
           <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success/15 text-success">
             <CheckCircle2 className="h-9 w-9" />

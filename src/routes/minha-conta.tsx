@@ -93,7 +93,7 @@ function MinhaConta() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
           <Button asChild variant="ghost" size="icon" className="rounded-xl">
             <Link to="/guia">

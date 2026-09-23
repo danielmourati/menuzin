@@ -94,7 +94,7 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
       <h1 className="sr-only">
         Acompanhamento do pedido #{order.number} — {tenant.name}
       </h1>
-      <div className="gradient-brand text-primary-foreground py-6 px-4 shadow-sm">
+      <div className="gradient-brand text-primary-foreground py-6 px-4 shadow-sm" style={{ paddingTop: "calc(1.5rem + env(safe-area-inset-top, 0px))" }}>
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             {tenant.logoUrl ? (

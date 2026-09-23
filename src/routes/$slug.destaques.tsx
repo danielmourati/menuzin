@@ -44,7 +44,7 @@ export function FeaturedList({
 
   return (
     <div className="min-h-screen bg-background pb-12">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-card/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b bg-card/95 px-4 py-3 backdrop-blur" style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}>
         <Link
           to="/$slug"
           params={{ slug }}
