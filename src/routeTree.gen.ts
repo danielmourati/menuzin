@@ -64,6 +64,7 @@ import { Route as PlatformGuiaSecoesRouteImport } from './routes/platform.guia.s
 import { Route as PlatformGuiaPlanosRouteImport } from './routes/platform.guia.planos'
 import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
 import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
 import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
@@ -362,6 +363,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaSlugPedidoConfirmadoRoute =
   LojaSlugPedidoConfirmadoRouteImport.update({
     id: '/pedido-confirmado',
@@ -542,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/planos': typeof PlatformGuiaPlanosRoute
@@ -618,6 +625,7 @@ export interface FileRoutesByTo {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/planos': typeof PlatformGuiaPlanosRoute
@@ -697,6 +705,7 @@ export interface FileRoutesById {
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
   '/loja/$slug/pedido-confirmado': typeof LojaSlugPedidoConfirmadoRoute
+  '/lovable/email/events': typeof LovableEmailEventsRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/platform/guia/categorias': typeof PlatformGuiaCategoriasRoute
   '/platform/guia/planos': typeof PlatformGuiaPlanosRoute
@@ -777,6 +786,7 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/platform/guia/categorias'
     | '/platform/guia/planos'
@@ -853,6 +863,7 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/platform/guia/categorias'
     | '/platform/guia/planos'
@@ -931,6 +942,7 @@ export interface FileRouteTypes {
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
     | '/loja/$slug/pedido-confirmado'
+    | '/lovable/email/events'
     | '/lovable/email/suppression'
     | '/platform/guia/categorias'
     | '/platform/guia/planos'
@@ -998,6 +1010,7 @@ export interface RootRouteChildren {
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
+  LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -1394,6 +1407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/$slug/pedido-confirmado': {
       id: '/loja/$slug/pedido-confirmado'
       path: '/pedido-confirmado'
@@ -1671,6 +1691,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
+  LovableEmailEventsRoute: LovableEmailEventsRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
