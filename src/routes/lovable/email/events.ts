@@ -13,16 +13,16 @@ export const Route = createFileRoute("/lovable/email/events")({
         const handler = createEmailWebhookHandler({
           apiKey,
           on: {
-            // Placeholder handlers — replace each log with the feature's reaction.
-            // Throw on failure so the delivery is retried.
+            // Registro interno do desfecho da entrega (histórico em email_send_log).
+            // A supressão em si é aplicada pela Lovable no momento do envio.
             'email.bounced': async (event) => {
-              console.log('Email bounced', { event_id: event.event_id })
+              await logDeliveryEvent('bounced', event.event_id, event.data.recipient)
             },
             'email.complaint': async (event) => {
-              console.log('Email complaint', { event_id: event.event_id })
+              await logDeliveryEvent('complained', event.event_id, event.data.recipient)
             },
             'email.unsubscribed': async (event) => {
-              console.log('Email unsubscribed', { event_id: event.event_id })
+              await logDeliveryEvent('suppressed', event.event_id, event.data.recipient)
             },
           },
         })
