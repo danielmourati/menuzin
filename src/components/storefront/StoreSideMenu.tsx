@@ -21,7 +21,10 @@ export function StoreSideMenu({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex w-[85%] max-w-sm flex-col p-0 sm:w-96">
         {/* Header */}
-        <div className="flex items-center gap-3 border-b p-4">
+        <div
+          className="flex items-center gap-3 border-b px-4 pb-4"
+          style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
             {tenant.logoUrl ? (
               <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />

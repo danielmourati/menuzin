@@ -4,11 +4,14 @@ export function StorefrontSkeleton() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Imagem de Capa (Cover Photo) */}
-      <div className="relative w-full h-40 md:h-56 bg-muted/60 overflow-hidden">
+      <div
+        className="relative w-full min-h-[11rem] md:min-h-[14rem] bg-muted/60 overflow-hidden"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <Skeleton className="h-full w-full rounded-none" />
 
         {/* Botões do cabeçalho */}
-        <div className="container mx-auto max-w-3xl px-4 pt-4 flex items-center justify-between relative z-10">
+        <div className="container mx-auto max-w-3xl px-4 pt-3 pb-4 flex items-center justify-between relative z-10">
           <Skeleton className="h-9 w-9 rounded-full bg-white/30 backdrop-blur" />
           <Skeleton className="h-9 w-9 rounded-full bg-white/30 backdrop-blur" />
         </div>

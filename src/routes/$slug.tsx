@@ -72,8 +72,9 @@ export const catalogQueryOptions = (slug: string) => queryOptions({
       blocked: res.blocked ?? false,
     };
   },
-  staleTime: 1000 * 60 * 5,
+  staleTime: 15_000,
   gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
 });
 
 import { StorefrontSkeleton } from "@/components/storefront/StorefrontSkeleton";
@@ -451,14 +452,17 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     <div className="min-h-screen bg-background pb-32">
       {/* Imagem de Capa (Cover Photo) atrás / acima */}
       <div
-        className="relative w-full h-40 md:h-56 bg-muted bg-cover bg-center overflow-visible"
-        style={bannerStyle}
+        className="relative w-full min-h-[11rem] md:min-h-[14rem] bg-muted bg-cover bg-center overflow-visible"
+        style={{
+          ...bannerStyle,
+          paddingTop: "env(safe-area-inset-top, 0px)",
+        }}
       >
         {/* Camada de escurecimento sutil */}
         <div className="absolute inset-0 bg-black/25" />
 
         {/* Container para os botões do cabeçalho sobre a capa */}
-        <div className="container mx-auto max-w-3xl px-4 pt-4 flex items-center justify-between relative z-10">
+        <div className="container mx-auto max-w-3xl px-4 pt-3 pb-4 flex items-center justify-between relative z-10">
           <div className="flex items-center gap-2">
             <button
               type="button"

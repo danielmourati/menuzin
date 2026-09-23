@@ -21,7 +21,8 @@ const getSyncChannel = () => {
 };
 
 /**
-  Transmite a alteração de status/cardápio em 0 milissegundos para outras abas do mesmo navegador.
+ * Transmite a alteração de status/cardápio em 0 milissegundos para abas locais (BroadcastChannel)
+ * e para todos os dispositivos de clientes (Supabase Realtime Broadcast).
  */
 export function broadcastStoreSync(event: StoreSyncEvent) {
   if (typeof window === "undefined") return;
@@ -32,14 +33,32 @@ export function broadcastStoreSync(event: StoreSyncEvent) {
       ch.close();
     }
     localStorage.setItem("menuzin_store_sync_trigger", JSON.stringify({ ...event, t: Date.now() }));
+
+    // Transmite via WebSocket Broadcast do Supabase (para alcançar dispositivos e PWAs externos em < 100ms)
+    if (event.tenantId) {
+      const channelName = `storefront-realtime-${event.tenantId}`;
+      const channel = supabase.channel(channelName);
+      channel.subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          channel.send({
+            type: "broadcast",
+            event: "TENANT_STATUS_CHANGED",
+            payload: event,
+          });
+          setTimeout(() => {
+            supabase.removeChannel(channel);
+          }, 1500);
+        }
+      });
+    }
   } catch {
     /* ignore */
   }
 }
 
 /**
-  Hook executado no storefront ($slug.tsx) para sincronizar status da loja e cardápio em tempo real (milissegundos)
-  via Supabase Realtime WebSockets e BroadcastChannel.
+ * Hook executado no storefront ($slug.tsx) para sincronizar status da loja e cardápio silenciosamente
+ * em tempo real via Supabase Realtime (WebSocket Broadcast + Postgres Changes), eventos de visibilidade do app e polling inteligente.
  */
 export function useStorefrontRealtime(slug: string, tenantId?: string) {
   const qc = useQueryClient();
@@ -47,8 +66,6 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
   useEffect(() => {
     if (!slug || !tenantId) return;
 
-    // 1. Sincronização em sub-milissegundos entre abas do mesmo navegador (BroadcastChannel)
-    const bc = getSyncChannel();
     const handleSyncMessage = (data: StoreSyncEvent) => {
       if (!data) return;
       if (data.tenantId && data.tenantId !== tenantId) return;
@@ -69,11 +86,12 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
       qc.invalidateQueries({ queryKey: ["catalog", slug] });
     };
 
+    // 1. Sincronização entre abas do mesmo navegador
+    const bc = getSyncChannel();
     if (bc) {
       bc.onmessage = (msg: MessageEvent<StoreSyncEvent>) => handleSyncMessage(msg.data);
     }
 
-    // Fallback de evento Storage para navegadores mais antigos
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "menuzin_store_sync_trigger" && e.newValue) {
         try {
@@ -86,10 +104,19 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
     };
     window.addEventListener("storage", handleStorage);
 
-    // 2. Inscrição no Supabase Realtime WebSocket (sincronização via internet em milissegundos para clientes remotos)
+    // 2. Inscrição no Supabase Realtime WebSocket (Broadcast + Postgres Changes)
     const channelName = `storefront-realtime-${tenantId}`;
     const channel = supabase
       .channel(channelName)
+      .on(
+        "broadcast",
+        { event: "TENANT_STATUS_CHANGED" },
+        (payload) => {
+          if (payload?.payload) {
+            handleSyncMessage(payload.payload as StoreSyncEvent);
+          }
+        }
+      )
       .on(
         "postgres_changes",
         {
@@ -101,7 +128,6 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
         (payload) => {
           const row = payload.new as Record<string, any>;
           if (row) {
-            // Atualiza o estado da loja na UI em MILISSEGUNDOS via React Query setQueryData!
             qc.setQueryData(catalogQueryOptions(slug).queryKey, (old: any) => {
               if (!old || !old.tenant) return old;
               return {
@@ -120,7 +146,6 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
               };
             });
           }
-          // Garante re-fetch completo em segundo plano
           qc.invalidateQueries({ queryKey: ["catalog", slug] });
         }
       )
@@ -160,12 +185,39 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
           qc.invalidateQueries({ queryKey: ["catalog", slug] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          qc.invalidateQueries({ queryKey: ["catalog", slug] });
+        }
+      });
+
+    // 3. Disparador de sync silencioso ao retomar o app (visibilidade, foco de janela, reconexão)
+    const triggerSilentSync = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        qc.invalidateQueries({ queryKey: ["catalog", slug] });
+      }
+    };
+
+    document.addEventListener("visibilitychange", triggerSilentSync);
+    window.addEventListener("focus", triggerSilentSync);
+    window.addEventListener("online", triggerSilentSync);
+
+    // 4. Polling silencioso de fundo a cada 15 segundos enquanto o app estiver aberto/visível
+    const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        qc.invalidateQueries({ queryKey: ["catalog", slug] });
+      }
+    }, 15_000);
 
     return () => {
       if (bc) bc.close();
       window.removeEventListener("storage", handleStorage);
+      document.removeEventListener("visibilitychange", triggerSilentSync);
+      window.removeEventListener("focus", triggerSilentSync);
+      window.removeEventListener("online", triggerSilentSync);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, [slug, tenantId, qc]);
 }
+
