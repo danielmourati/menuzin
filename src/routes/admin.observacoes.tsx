@@ -15,13 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Loader2, Layers, Lock, Sparkles } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Layers, Lock, Sparkles, ArrowUp, ArrowDown } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
   listAddonGroups, saveAddonGroup, deleteAddonGroup,
   saveAddonOption, deleteAddonOption, setAddonGroupTargets,
-  listMyCategories, listMyProducts,
+  listMyCategories, listMyProducts, reorderCatalogItem,
 } from "@/lib/catalog-admin.functions";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
@@ -295,6 +295,30 @@ function ObservacoesPage() {
       options: [...draft.options, ...toAdd],
     });
     toast.success(`${toAdd.length} opção(ões) importada(s) do grupo "${sourceGroup.name}"!`);
+  };
+
+  const handleMoveOption = async (idx: number, direction: "up" | "down") => {
+    if (!draft) return;
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= draft.options.length) return;
+
+    const currentOpt = draft.options[idx];
+
+    const newOptions = [...draft.options];
+    const temp = newOptions[idx];
+    newOptions[idx] = newOptions[targetIdx];
+    newOptions[targetIdx] = temp;
+
+    setDraft({ ...draft, options: newOptions });
+
+    if (currentOpt.id) {
+      try {
+        await reorderCatalogItem({ data: { entity: "addonOption", id: currentOpt.id, direction } });
+        qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
+      } catch (e: any) {
+        toast.error(e.message || "Erro ao reordenar opção.");
+      }
+    }
   };
 
   const handleQuickAddOption = async (optName: string, optPrice: number) => {
@@ -589,15 +613,30 @@ function ObservacoesPage() {
                               <Badge variant={o.price > 0 ? "default" : "secondary"} className="text-[11px]">
                                 {o.price > 0 ? moneyBR(o.price) : "Grátis"}
                               </Badge>
-                              {o.id && (
-                                <ReorderButtons
-                                  entity="addonOption"
-                                  id={o.id}
-                                  invalidateKeys={[["admin", "addon-groups"]]}
-                                  isFirst={idx === 0}
-                                  isLast={idx === draft.options.length - 1}
-                                />
-                              )}
+                              <div className="flex flex-col">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 hover:bg-muted"
+                                  title="Mover para cima"
+                                  disabled={idx === 0}
+                                  onClick={() => handleMoveOption(idx, "up")}
+                                >
+                                  <ArrowUp className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 hover:bg-muted"
+                                  title="Mover para baixo"
+                                  disabled={idx === draft.options.length - 1}
+                                  onClick={() => handleMoveOption(idx, "down")}
+                                >
+                                  <ArrowDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                              </div>
                               <Button
                                 size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:bg-destructive/10"
                                 onClick={() => handleRemoveOption(idx, o.id)}

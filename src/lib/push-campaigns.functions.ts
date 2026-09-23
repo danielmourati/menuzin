@@ -274,7 +274,7 @@ export const deletePushSubscription = createServerFn({ method: "POST" })
     const resolved = await tryResolveEffectiveTenantId(supabase, userId);
     if (!resolved?.tenantId) throw new Error("Loja não configurada");
 
-    const { error } = await (supabase as any)
+    const { error } = await (supabaseAdmin as any)
       .from("push_subscriptions")
       .delete()
       .eq("id", data.subscriptionId)
