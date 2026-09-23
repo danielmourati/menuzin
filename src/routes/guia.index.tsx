@@ -32,31 +32,37 @@ import {
   X,
 } from "lucide-react";
 
+import { useStorefrontRealtime, useGuiaRealtime } from "@/lib/store-realtime";
+
 const categoriesQO = queryOptions({
   queryKey: ["guia", "categories"],
   queryFn: () => listCategories(),
-  staleTime: 1000 * 60 * 5,
+  staleTime: 15_000,
   gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
 });
 const featuredQO = queryOptions({
   queryKey: ["guia", "featured"],
   queryFn: () => listFeatured(),
-  staleTime: 1000 * 60 * 5,
+  staleTime: 15_000,
   gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
 });
 
 const storesQO = queryOptions({
   queryKey: ["guia", "stores"],
   queryFn: () => listAllStores(),
-  staleTime: 1000 * 60 * 5,
+  staleTime: 15_000,
   gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
 });
 
 const homeQO = queryOptions({
   queryKey: ["guia", "home"],
   queryFn: () => getGuiaHome({ data: {} }),
-  staleTime: 1000 * 60 * 5,
+  staleTime: 15_000,
   gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
 });
 
 
@@ -98,10 +104,24 @@ const VERTICALS: { id: "restaurantes" | "mercados" | "conveniencias"; label: str
 ];
 
 function GuiaHome() {
-  const { data: catsData, isLoading: catsLoading } = useQuery(categoriesQO);
-  const { data: featData, isLoading: featLoading } = useQuery(featuredQO);
-  const { data: storesData, isLoading: storesLoading } = useQuery(storesQO);
-  const { data: home, isLoading: homeLoading } = useQuery(homeQO);
+  useGuiaRealtime();
+
+  const { data: catsData, isLoading: catsLoading } = useQuery({
+    ...categoriesQO,
+    placeholderData: (prev) => prev,
+  });
+  const { data: featData, isLoading: featLoading } = useQuery({
+    ...featuredQO,
+    placeholderData: (prev) => prev,
+  });
+  const { data: storesData, isLoading: storesLoading } = useQuery({
+    ...storesQO,
+    placeholderData: (prev) => prev,
+  });
+  const { data: home, isLoading: homeLoading } = useQuery({
+    ...homeQO,
+    placeholderData: (prev) => prev,
+  });
 
   const { location, needsLocation } = useGuiaLocation();
   const [cepOpen, setCepOpen] = useState(false);
@@ -125,7 +145,11 @@ function GuiaHome() {
     if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
   }, [availableVerticals, vertical]);
 
-  if ((catsLoading || featLoading || storesLoading || homeLoading) && (!catsData || !featData || !storesData || !home)) {
+  const isInitialLoading =
+    (!catsData || !featData || !storesData || !home) &&
+    (catsLoading || featLoading || storesLoading || homeLoading);
+
+  if (isInitialLoading) {
     return <GuiaHomeSkeleton />;
   }
 
@@ -179,7 +203,10 @@ function GuiaHome() {
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
+      <header
+        className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="mx-auto max-w-5xl px-4 pb-2 pt-3">
           <div className="flex items-center gap-3">
             <button
@@ -409,6 +436,7 @@ function GuiaHome() {
       <nav
         aria-label="Navegação"
         className="shrink-0 border-t bg-card/95 backdrop-blur"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
           <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />

@@ -78,7 +78,10 @@ function CategoryPage() {
   return (
     <div className="min-h-screen bg-muted/30 pb-16">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <header className="sticky top-0 z-20 border-b bg-card/90 backdrop-blur">
+      <header
+        className="sticky top-0 z-20 border-b bg-card/90 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
           <Link to="/guia" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-4 w-4" /> Guia

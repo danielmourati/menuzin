@@ -221,3 +221,65 @@ export function useStorefrontRealtime(slug: string, tenantId?: string) {
   }, [slug, tenantId, qc]);
 }
 
+/**
+ * Hook executado no Guia Menuzin (guia.index.tsx) para sincronizar status das lojas, categorias
+ * e ofertas do guia silenciosamente em tempo real.
+ */
+export function useGuiaRealtime() {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    // 1. Ouvinte para eventos de visibilidade, foco e reconexão de rede
+    const triggerSilentSync = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        qc.invalidateQueries({ queryKey: ["guia"] });
+      }
+    };
+
+    document.addEventListener("visibilitychange", triggerSilentSync);
+    window.addEventListener("focus", triggerSilentSync);
+    window.addEventListener("online", triggerSilentSync);
+
+    // 2. Polling silencioso de fundo a cada 15 segundos enquanto o app estiver visível
+    const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        qc.invalidateQueries({ queryKey: ["guia"] });
+      }
+    }, 15_000);
+
+    // 3. Supabase Realtime para tabelas do Guia e Tenants
+    const channelName = "guia-global-realtime";
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tenants" },
+        () => qc.invalidateQueries({ queryKey: ["guia"] })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "guia_slots" },
+        () => qc.invalidateQueries({ queryKey: ["guia"] })
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "guia_categories" },
+        () => qc.invalidateQueries({ queryKey: ["guia"] })
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          qc.invalidateQueries({ queryKey: ["guia"] });
+        }
+      });
+
+    return () => {
+      document.removeEventListener("visibilitychange", triggerSilentSync);
+      window.removeEventListener("focus", triggerSilentSync);
+      window.removeEventListener("online", triggerSilentSync);
+      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+}
+
+

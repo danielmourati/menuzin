@@ -92,7 +92,10 @@ function ProductPage() {
 
   return (
     <div className="min-h-screen bg-muted/30 pb-24">
-      <header className="sticky top-0 z-20 border-b bg-card/90 backdrop-blur">
+      <header
+        className="sticky top-0 z-20 border-b bg-card/90 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
           <Link to="/guia" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-4 w-4" /> Guia
@@ -151,7 +154,10 @@ function ProductPage() {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 p-3 backdrop-blur">
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card/95 p-3 backdrop-blur"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
         <div className="mx-auto max-w-3xl">
           <button
             onClick={handleOrder}

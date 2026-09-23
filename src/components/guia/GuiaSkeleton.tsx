@@ -5,7 +5,10 @@ export function GuiaHomeSkeleton() {
   return (
     <div className="flex h-dvh flex-col bg-muted/30">
       {/* Header Skeleton */}
-      <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur">
+      <header
+        className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="mx-auto max-w-5xl px-4 pb-2 pt-3">
           <div className="flex items-center gap-3">
             <div className="flex min-w-0 flex-1 items-start gap-2">
