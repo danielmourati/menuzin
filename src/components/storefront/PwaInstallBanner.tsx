@@ -38,7 +38,15 @@ export function PwaInstallBanner({
       return;
     }
 
-    // 2. Verifica se o usuário ignorou o banner recentemente (últimos 7 dias)
+    // 2. Se o usuário já autorizou/inscreveu-se em notificações push nesta loja, não incomodar com avisos de instalação/autorização
+    if (("Notification" in window) && Notification.permission === "granted") {
+      return;
+    }
+    if (localStorage.getItem(`menuzin_push_subscribed_${tenantSlug}`)) {
+      return;
+    }
+
+    // 3. Verifica se o usuário ignorou o banner recentemente (últimos 7 dias)
     const dismissedUntil = localStorage.getItem(`menuzin_pwa_dismiss_${tenantSlug}`);
     if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
       return;

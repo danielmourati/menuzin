@@ -31,17 +31,15 @@ async function autoRenewPushSubscription(tenantSlug: string, customerPhone?: str
     const { publicKey } = await getVapidPublicKey();
     if (!publicKey) return;
 
-    // Cancela assinatura antiga para forçar o navegador a gerar um novo token com a chave VAPID válida
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) {
-      await existing.unsubscribe();
+    // Reaproveita a assinatura ativa se já existir, sem cancelar o token do navegador
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const applicationServerKey = urlBase64ToUint8Array(publicKey);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
     }
-
-    const applicationServerKey = urlBase64ToUint8Array(publicKey);
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey,
-    });
 
     const jsonSub = sub.toJSON();
     if (jsonSub.endpoint && jsonSub.keys?.p256dh && jsonSub.keys?.auth) {
@@ -57,7 +55,7 @@ async function autoRenewPushSubscription(tenantSlug: string, customerPhone?: str
       });
     }
   } catch (err) {
-    console.warn("[PushAutoRenew] Erro ao renovar assinatura:", err);
+    console.warn("[PushAutoRenew] Erro ao sincronizar assinatura:", err);
   }
 }
 
@@ -76,16 +74,20 @@ export function PushPermissionBanner({
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     
     if (Notification.permission === "granted") {
-      // Se já permitido, renova silenciosamente o token com a chave VAPID atual do servidor
+      localStorage.setItem(`menuzin_push_subscribed_${tenantSlug}`, "true");
+      // Se já permitido, sincroniza silenciosamente o token sem exibir alertas repetidos
       autoRenewPushSubscription(tenantSlug, customerPhone);
       return;
     }
     if (Notification.permission === "denied") return; // Bloqueado pelo usuário
 
+    const isAlreadySubscribed = localStorage.getItem(`menuzin_push_subscribed_${tenantSlug}`);
+    if (isAlreadySubscribed) return;
+
     const dismissedUntil = localStorage.getItem(`menuzin_push_dismiss_${tenantSlug}`);
     if (dismissedUntil && Date.now() < Number(dismissedUntil)) return;
 
-    // Mostra o banner após 3.5 segundos de navegação
+    // Mostra o banner após 3.5 segundos apenas se o usuário ainda não se inscreveu
     const timer = setTimeout(() => setShow(true), 3500);
     return () => clearTimeout(timer);
   }, [tenantSlug, customerPhone]);
@@ -115,18 +117,15 @@ export function PushPermissionBanner({
       const { publicKey } = await getVapidPublicKey();
       if (!publicKey) throw new Error("Chave de push indisponível.");
 
-      // Cancela assinatura legada para forçar nova inscrição VAPID válida
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) {
-        await existing.unsubscribe();
+      // 4. Obtém ou cria a assinatura no navegador via PushManager
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const applicationServerKey = urlBase64ToUint8Array(publicKey);
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
       }
-
-      // 4. Cria a assinatura no navegador via PushManager
-      const applicationServerKey = urlBase64ToUint8Array(publicKey);
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
-      });
 
       const jsonSub = sub.toJSON();
       if (!jsonSub.endpoint || !jsonSub.keys?.p256dh || !jsonSub.keys?.auth) {
@@ -145,6 +144,7 @@ export function PushPermissionBanner({
         },
       });
 
+      localStorage.setItem(`menuzin_push_subscribed_${tenantSlug}`, "true");
       setSubscribed(true);
       toast.success(`Notificações ativadas! Você receberá os cupons e promoções de ${tenantName}.`);
       setTimeout(() => setShow(false), 2500);
