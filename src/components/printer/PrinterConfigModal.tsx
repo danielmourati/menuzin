@@ -109,6 +109,7 @@ const DEFAULT_OVERRIDES: PrinterLayoutOverrides = {
   show_instagram: false,
   show_thank_message: false,
   thank_message: "",
+  full_kitchen_receipt: false,
 };
 
 function fromTenantPrinter(p: TenantPrinter): ExtraDraft {
@@ -707,6 +708,27 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
                   {printerSelect(selected.printer_name, (v) => updateDraft({ printer_name: v }))}
                   {paperSelect(selected.paper_width, (v) => updateDraft({ paper_width: v }))}
+
+                  <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+                    <div className="space-y-0.5">
+                      <span className="text-sm font-medium">Imprimir pedido completo</span>
+                      <p className="text-xs text-muted-foreground">
+                        Imprime o recibo completo (valores, totais, dados do cliente e pagamento), assim como no caixa.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={Boolean(selected.layout_overrides?.full_kitchen_receipt)}
+                      onCheckedChange={(v) =>
+                        updateDraft({
+                          layout_overrides: {
+                            ...DEFAULT_OVERRIDES,
+                            ...selected.layout_overrides,
+                            full_kitchen_receipt: v,
+                          },
+                        })
+                      }
+                    />
+                  </div>
 
                   <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
                     <span className="text-sm">Em uso</span>

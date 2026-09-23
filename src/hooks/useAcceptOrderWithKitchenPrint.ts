@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import type { Order, OrderStatus } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 import { printKitchenTicket } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
@@ -50,6 +51,23 @@ export function useAcceptOrderWithKitchenPrint(
     retry: false,
   });
 
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant(),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const tenant = tenantData?.tenant as
+    | {
+        name?: string;
+        whatsapp?: string;
+        address?: string;
+        social?: { instagram?: string; pix?: string; cnpj?: string };
+      }
+    | null
+    | undefined;
+
   const kitchenPrinter = (data?.printers ?? []).find(
     (p) => p.role === "kitchen" && p.is_active,
   );
@@ -78,7 +96,15 @@ export function useAcceptOrderWithKitchenPrint(
         return;
       }
       try {
-        const { printer } = await printKitchenTicket(order, kitchenPrinter);
+        const storeInfo = {
+          storeName: tenant?.name,
+          storePhone: tenant?.whatsapp,
+          storeAddress: tenant?.address,
+          storeInstagram: tenant?.social?.instagram,
+          storePixKey: tenant?.social?.pix,
+          storeCnpj: tenant?.social?.cnpj,
+        };
+        const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
         toast.success(`Comanda enviada para ${printer}`);
       } catch (err) {
         const retry = {
@@ -94,7 +120,7 @@ export function useAcceptOrderWithKitchenPrint(
         }
       }
     },
-    [can, kitchenPrinter, navigate],
+    [can, kitchenPrinter, navigate, tenant],
   );
 
   /**

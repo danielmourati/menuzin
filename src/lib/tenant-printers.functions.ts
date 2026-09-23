@@ -24,6 +24,7 @@ export type PrinterLayoutOverrides = {
   show_instagram?: boolean;
   show_thank_message?: boolean;
   thank_message?: string;
+  full_kitchen_receipt?: boolean;
 };
 
 export type TenantPrinter = {
@@ -57,6 +58,7 @@ const LayoutOverridesSchema = z
     show_instagram: z.boolean().optional(),
     show_thank_message: z.boolean().optional(),
     thank_message: z.string().max(120).optional(),
+    full_kitchen_receipt: z.boolean().optional(),
   })
   .nullable()
   .optional();

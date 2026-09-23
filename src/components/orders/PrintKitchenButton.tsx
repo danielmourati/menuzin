@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
 import { printKitchenTicket } from "@/lib/print-kitchen";
 import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
@@ -39,6 +40,23 @@ export function PrintKitchenButton({
     retry: false,
   });
 
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant(),
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const tenant = tenantData?.tenant as
+    | {
+        name?: string;
+        whatsapp?: string;
+        address?: string;
+        social?: { instagram?: string; pix?: string; cnpj?: string };
+      }
+    | null
+    | undefined;
+
   if (!can("kitchenPrinter")) return null;
 
   const kitchenPrinter = (data?.printers ?? []).find(
@@ -68,7 +86,15 @@ export function PrintKitchenButton({
         return;
       }
       toast.loading("Enviando comanda para a cozinha...", { id: toastId });
-      const { printer } = await printKitchenTicket(order, kitchenPrinter);
+      const storeInfo = {
+        storeName: tenant?.name,
+        storePhone: tenant?.whatsapp,
+        storeAddress: tenant?.address,
+        storeInstagram: tenant?.social?.instagram,
+        storePixKey: tenant?.social?.pix,
+        storeCnpj: tenant?.social?.cnpj,
+      };
+      const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
       toast.success(`Comanda enviada para ${printer}`, { id: toastId });
     } catch (err) {
       if (err instanceof QzNotRunningError) {
