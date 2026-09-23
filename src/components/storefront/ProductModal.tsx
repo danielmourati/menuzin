@@ -416,7 +416,7 @@ export function ProductModal({
         note: "🎁 Brinde",
       });
     }
-    toast.success("Adicionado ao carrinho", { description: `${qty}x ${product.name}` });
+    // Adicionado ao carrinho silenciosamente (sem toast no storefront)
     onOpenChange(false);
   };
 
