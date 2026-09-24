@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS idempotency_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS orders_tenant_idempotency_key_uidx ON public.orders (tenant_id, idempotency_key) WHERE idempotency_key IS NOT NULL;

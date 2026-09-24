@@ -1275,6 +1275,7 @@ export type Database = {
           driver_id: string | null
           driver_name: string | null
           id: string
+          idempotency_key: string | null
           mode: Database["public"]["Enums"]["order_mode"]
           mp_payment_id: string | null
           mp_status: string | null
@@ -1310,6 +1311,7 @@ export type Database = {
           driver_id?: string | null
           driver_name?: string | null
           id?: string
+          idempotency_key?: string | null
           mode: Database["public"]["Enums"]["order_mode"]
           mp_payment_id?: string | null
           mp_status?: string | null
@@ -1345,6 +1347,7 @@ export type Database = {
           driver_id?: string | null
           driver_name?: string | null
           id?: string
+          idempotency_key?: string | null
           mode?: Database["public"]["Enums"]["order_mode"]
           mp_payment_id?: string | null
           mp_status?: string | null
