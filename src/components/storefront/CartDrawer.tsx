@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { readCustomerProfile, writeCustomerProfile, clearCustomerProfile } from "@/lib/customer-profile";
@@ -116,6 +116,7 @@ export function CartDrawer({
 
   // Persisted order (created before online payment, reused in finalize)
   const [dbOrderId, setDbOrderId] = useState<string | null>(null);
+  const ensureOrderPromise = useRef<Promise<{ id: string; number: number } | null> | null>(null);
   const [dbOrderNumber, setDbOrderNumber] = useState<number | null>(null);
 
   // customer
@@ -147,6 +148,7 @@ export function CartDrawer({
 
   // Submit + CEP lookup
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [clearOpen, setClearOpen] = useState(false);
@@ -446,6 +448,7 @@ export function CartDrawer({
     setSelectedMethod(null);
     setDbOrderId(null);
     setDbOrderNumber(null);
+    ensureOrderPromise.current = null;
     setPixData(null);
     setCardData(null);
     setCepError(null);
@@ -477,6 +480,7 @@ export function CartDrawer({
     setHistory([]);
     setDbOrderId(null);
     setDbOrderNumber(null);
+    ensureOrderPromise.current = null;
     setPixData(null);
     setCardData(null);
     setSelectedMethod(null);
@@ -561,67 +565,80 @@ export function CartDrawer({
     }
     if (dbOrderId && dbOrderNumber != null) return { id: dbOrderId, number: dbOrderNumber };
 
-    const { createOrder } = await import("@/lib/orders.functions");
-    const res = await createOrder({
-      data: {
-        tenant_slug: slug || "",
-        customer_name: name,
-        whatsapp: phone.replace(/\D/g, ""),
-        mode: mode!,
-        payment_label: `${paymentWhenLabel} · ${methodLabel}`,
-        delivery_fee: deliveryFee,
-        delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
-        delivery_neighborhood_snapshot:
-          mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
-        address:
-          mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
-        table_label: mode === "consumo_local" ? table : null,
-        note: generalNote || null,
-        coupon_code: appliedCoupon?.code ?? null,
+    if (ensureOrderPromise.current) {
+      return ensureOrderPromise.current;
+    }
 
-        items: items.map((i) => {
-          const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
-          const flavorLabels = (i.flavors ?? []).map((f) => ({
-            name: `Sabor: ${f.name}`,
-            price: 0,
-          }));
-          const groupLabels = (i.groupOptions ?? []).map((o) => ({
-            name: `${o.groupName}: ${o.name}`,
-            price: Number(o.price),
-          }));
-          const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
-          return {
-            product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
-            name_snapshot: i.product.name,
-            qty: i.qty,
-            unit_price: computeUnitPrice(i),
-            addons: [...sizeLabel, ...flavorLabels, ...groupLabels, ...legacyAddons],
-            note: i.note ?? null,
-          };
-        }),
-      },
-    });
-    if (res.customer) {
-      writeCustomerProfile({
-        id: res.customer.id,
-        phone: res.customer.phone,
-        token: res.customer.token,
-        name,
-        cep: cep.replace(/\D/g, "") || null,
-        neighborhood: neighborhood || null,
-        address:
-          mode === "entrega"
-            ? { cep, street, number, neighborhood, complement, reference }
-            : null,
-      });
-    }
-    if (!res.order) {
-      openWhatsappPresenca();
-      return null;
-    }
-    setDbOrderId(res.order.id);
-    setDbOrderNumber(res.order.number);
-    return { id: res.order.id, number: res.order.number };
+    ensureOrderPromise.current = (async () => {
+      try {
+        const { createOrder } = await import("@/lib/orders.functions");
+        const res = await createOrder({
+          data: {
+            tenant_slug: slug || "",
+            customer_name: name,
+            whatsapp: phone.replace(/\D/g, ""),
+            mode: mode!,
+            payment_label: `${paymentWhenLabel} · ${methodLabel}`,
+            delivery_fee: deliveryFee,
+            delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
+            delivery_neighborhood_snapshot:
+              mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
+            address:
+              mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
+            table_label: mode === "consumo_local" ? table : null,
+            note: generalNote || null,
+            coupon_code: appliedCoupon?.code ?? null,
+
+            items: items.map((i) => {
+              const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
+              const flavorLabels = (i.flavors ?? []).map((f) => ({
+                name: `Sabor: ${f.name}`,
+                price: 0,
+              }));
+              const groupLabels = (i.groupOptions ?? []).map((o) => ({
+                name: `${o.groupName}: ${o.name}`,
+                price: Number(o.price),
+              }));
+              const legacyAddons = i.addons.map((a) => ({ name: a.name, price: Number(a.price) }));
+              return {
+                product_id: /^[0-9a-f-]{36}$/i.test(i.product.id) ? i.product.id : null,
+                name_snapshot: i.product.name,
+                qty: i.qty,
+                unit_price: computeUnitPrice(i),
+                addons: [...sizeLabel, ...flavorLabels, ...groupLabels, ...legacyAddons],
+                note: i.note ?? null,
+              };
+            }),
+          },
+        });
+        if (res.customer) {
+          writeCustomerProfile({
+            id: res.customer.id,
+            phone: res.customer.phone,
+            token: res.customer.token,
+            name,
+            cep: cep.replace(/\D/g, "") || null,
+            neighborhood: neighborhood || null,
+            address:
+              mode === "entrega"
+                ? { cep, street, number, neighborhood, complement, reference }
+                : null,
+          });
+        }
+        if (!res.order) {
+          openWhatsappPresenca();
+          return null;
+        }
+        setDbOrderId(res.order.id);
+        setDbOrderNumber(res.order.number);
+        return { id: res.order.id, number: res.order.number };
+      } catch (err) {
+        ensureOrderPromise.current = null;
+        throw err;
+      }
+    })();
+
+    return ensureOrderPromise.current;
   };
 
   const handleSelectMethod = async (m: PaymentMethod) => {
@@ -711,11 +728,12 @@ export function CartDrawer({
   };
 
   const finalize = async () => {
-    if (submitting) return;
+    if (submittingRef.current) return;
     if (isPresencaOnly) {
       openWhatsappPresenca();
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
 
     try {
@@ -809,6 +827,7 @@ export function CartDrawer({
         search: { n: order.number } as never,
       });
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
