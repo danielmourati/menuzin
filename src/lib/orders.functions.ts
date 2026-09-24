@@ -31,6 +31,7 @@ const CreateOrderInput = z.object({
   note: z.string().max(500).nullable().optional(),
   coupon_code: z.string().min(2).max(40).regex(/^[A-Z0-9_-]+$/i).nullable().optional(),
   items: z.array(ItemSchema).min(1).max(50),
+  idempotency_key: z.string().min(8).max(80).nullable().optional(),
 });
 
 
@@ -105,7 +106,26 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const total = Math.max(0, subtotal - discountAmount) + (data.delivery_fee ?? 0);
 
-    // Idempotency Check: Prevent exact same order within 2 minutes
+    const reuseExisting = async (existing: Record<string, unknown>) => {
+      let customer: { id: string; phone: string; token: string } | null = null;
+      const cid = existing.customer_id as string | null;
+      if (cid) {
+        const { data: c } = await supabaseAdmin.from("customers").select("id, phone, device_token").eq("id", cid).maybeSingle();
+        if (c) customer = { id: c.id, phone: c.phone, token: c.device_token };
+      }
+      return { order: existing as unknown as DbOrder, whatsappOnly: false, reason: null, customer };
+    };
+
+    // 1) Idempotência forte: mesmo código de checkout => mesmo pedido.
+    if (data.idempotency_key) {
+      const { data: byKey } = await supabaseAdmin
+        .from("orders").select("*")
+        .eq("tenant_id", tenant.id).eq("idempotency_key", data.idempotency_key)
+        .maybeSingle();
+      if (byKey) return reuseExisting(byKey);
+    }
+
+    // 2) Rede de segurança: pedido idêntico ainda não pago nos últimos 2 minutos.
     const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     const { data: recentOrder } = await supabaseAdmin
       .from("orders")
@@ -113,27 +133,21 @@ export const createOrder = createServerFn({ method: "POST" })
       .eq("tenant_id", tenant.id)
       .eq("whatsapp", data.whatsapp)
       .eq("total", total)
-      .eq("payment_label", data.payment_label)
+      .neq("status", "cancelado")
+      .neq("payment_status", "approved")
       .gte("created_at", twoMinsAgo)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (recentOrder) {
-      // Re-use customer profile if available
-      let customer: { id: string; phone: string; token: string } | null = null;
-      if (recentOrder.customer_id) {
-        const { data: c } = await supabaseAdmin.from("customers").select("id, phone, device_token").eq("id", recentOrder.customer_id).maybeSingle();
-        if (c) customer = { id: c.id, phone: c.phone, token: c.device_token };
-      }
-      return { order: recentOrder as unknown as DbOrder, whatsappOnly: false, reason: null, customer };
-    }
+    if (recentOrder) return reuseExisting(recentOrder);
 
     const { data: order, error: oErr } = await supabaseAdmin
       .from("orders")
       .insert({
         tenant_id: tenant.id,
         number: 0, // trigger preenche
+        idempotency_key: data.idempotency_key ?? null,
         customer_name: data.customer_name,
         whatsapp: data.whatsapp,
         mode: data.mode,
@@ -153,6 +167,13 @@ export const createOrder = createServerFn({ method: "POST" })
       })
       .select("*")
       .single();
+    if (oErr?.code === "23505" && data.idempotency_key) {
+      const { data: byKey } = await supabaseAdmin
+        .from("orders").select("*")
+        .eq("tenant_id", tenant.id).eq("idempotency_key", data.idempotency_key)
+        .maybeSingle();
+      if (byKey) return reuseExisting(byKey);
+    }
     if (oErr || !order) throw new Error(oErr?.message || "Falha ao criar pedido");
 
     if (appliedCode) {
