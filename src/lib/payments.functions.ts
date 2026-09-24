@@ -558,6 +558,36 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
       throw new Error("Falha ao descriptografar credenciais da loja");
     }
 
+    // 3d. Reaproveitar Pix pendente já gerado para este pedido (evita cobranças duplicadas).
+    if (data.payment_method === "pix_online") {
+      const { data: existingPay } = await supabaseAdmin
+        .from("payments")
+        .select("provider_payment_id, status, raw_response")
+        .eq("order_id", order.id)
+        .eq("payment_method", "pix_online")
+        .eq("status", "pending")
+        .not("provider_payment_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const raw = existingPay?.raw_response as MpPaymentResponse | null | undefined;
+      const tx = raw?.point_of_interaction?.transaction_data;
+      const notExpired = !raw?.date_of_expiration || new Date(raw.date_of_expiration) > new Date();
+      if (existingPay && tx?.qr_code && notExpired) {
+        return {
+          type: "pix" as const,
+          data: {
+            qr_code: tx.qr_code ?? "",
+            qr_code_base64: tx.qr_code_base64 ?? "",
+            ticket_url: tx.ticket_url,
+            expires_at: raw?.date_of_expiration,
+            payment_id: String(existingPay.provider_payment_id),
+            payment_status: "pending" as const,
+          },
+        };
+      }
+    }
+
     // 4. Insert pending payment row first (so failures are tracked)
     const { data: paymentRow, error: pErr } = await supabaseAdmin
       .from("payments")
