@@ -117,6 +117,27 @@ export function CartDrawer({
   // Persisted order (created before online payment, reused in finalize)
   const [dbOrderId, setDbOrderId] = useState<string | null>(null);
   const ensureOrderPromise = useRef<Promise<{ id: string; number: number } | null> | null>(null);
+  const methodBusyRef = useRef(false);
+  // Código único por checkout: o servidor usa para nunca criar o mesmo pedido duas vezes.
+  const checkoutKeyStorage = `menuzin_checkout_key:${slug || "loja"}`;
+  const getCheckoutKey = () => {
+    try {
+      const existing = sessionStorage.getItem(checkoutKeyStorage);
+      if (existing) return existing;
+      const k = crypto.randomUUID();
+      sessionStorage.setItem(checkoutKeyStorage, k);
+      return k;
+    } catch {
+      return crypto.randomUUID();
+    }
+  };
+  const clearCheckoutKey = () => {
+    try {
+      sessionStorage.removeItem(checkoutKeyStorage);
+    } catch {
+      /* ignore */
+    }
+  };
   const [dbOrderNumber, setDbOrderNumber] = useState<number | null>(null);
 
   // customer
@@ -449,6 +470,7 @@ export function CartDrawer({
     setDbOrderId(null);
     setDbOrderNumber(null);
     ensureOrderPromise.current = null;
+    clearCheckoutKey();
     setPixData(null);
     setCardData(null);
     setCepError(null);
@@ -481,6 +503,7 @@ export function CartDrawer({
     setDbOrderId(null);
     setDbOrderNumber(null);
     ensureOrderPromise.current = null;
+    clearCheckoutKey();
     setPixData(null);
     setCardData(null);
     setSelectedMethod(null);
@@ -588,6 +611,7 @@ export function CartDrawer({
             table_label: mode === "consumo_local" ? table : null,
             note: generalNote || null,
             coupon_code: appliedCoupon?.code ?? null,
+            idempotency_key: getCheckoutKey(),
 
             items: items.map((i) => {
               const sizeLabel = i.size ? [{ name: `Tamanho: ${i.size.name}`, price: 0 }] : [];
@@ -1399,7 +1423,13 @@ export function CartDrawer({
                 settings={settings}
                 paymentWhen={paymentWhen || "na_retirada"}
                 selectedMethod={selectedMethod}
-                onSelectMethod={handleSelectMethod}
+                onSelectMethod={(m) => {
+                  if (methodBusyRef.current) return;
+                  methodBusyRef.current = true;
+                  void handleSelectMethod(m).finally(() => {
+                    methodBusyRef.current = false;
+                  });
+                }}
               />
             </div>
             <StickySubtotal />
