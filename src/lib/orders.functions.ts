@@ -105,6 +105,30 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const total = Math.max(0, subtotal - discountAmount) + (data.delivery_fee ?? 0);
 
+    // Idempotency Check: Prevent exact same order within 2 minutes
+    const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: recentOrder } = await supabaseAdmin
+      .from("orders")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .eq("whatsapp", data.whatsapp)
+      .eq("total", total)
+      .eq("payment_label", data.payment_label)
+      .gte("created_at", twoMinsAgo)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentOrder) {
+      // Re-use customer profile if available
+      let customer: { id: string; phone: string; token: string } | null = null;
+      if (recentOrder.customer_id) {
+        const { data: c } = await supabaseAdmin.from("customers").select("id, phone, device_token").eq("id", recentOrder.customer_id).maybeSingle();
+        if (c) customer = { id: c.id, phone: c.phone, token: c.device_token };
+      }
+      return { order: recentOrder as unknown as DbOrder, whatsappOnly: false, reason: null, customer };
+    }
+
     const { data: order, error: oErr } = await supabaseAdmin
       .from("orders")
       .insert({
