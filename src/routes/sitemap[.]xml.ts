@@ -45,8 +45,8 @@ export const Route = createFileRoute("/sitemap.xml")({
             }
             if (!data || data.length < 1000) break;
           }
-        } catch {
-          // products are optional in the sitemap
+        } catch (err) {
+          console.error("[sitemap] produtos", err);
         }
 
         try {
