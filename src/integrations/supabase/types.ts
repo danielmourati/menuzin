@@ -2582,7 +2582,6 @@ export type Database = {
           delivery_mode: string
           description: string | null
           directory_opt_in: boolean
-          document: string | null
           hours: string | null
           hours_schedule: Json
           id: string
@@ -2625,7 +2624,6 @@ export type Database = {
           delivery_mode?: string
           description?: string | null
           directory_opt_in?: boolean
-          document?: string | null
           hours?: string | null
           hours_schedule?: Json
           id?: string
@@ -2668,7 +2666,6 @@ export type Database = {
           delivery_mode?: string
           description?: string | null
           directory_opt_in?: boolean
-          document?: string | null
           hours?: string | null
           hours_schedule?: Json
           id?: string
