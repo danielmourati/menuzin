@@ -175,6 +175,9 @@ export type Tenant = {
   state: string;
   address: string;
   cep?: string | null;
+  addressNumber?: string | null;
+  addressReference?: string | null;
+  neighborhood?: string | null;
   document?: string | null;
   open: boolean;
   openMode: "auto" | "open" | "closed";

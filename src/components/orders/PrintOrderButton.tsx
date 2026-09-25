@@ -1,3 +1,4 @@
+import { formatTenantAddress } from "@/lib/tenant-address";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Printer, Loader2 } from "lucide-react";
@@ -82,7 +83,7 @@ export function PrintOrderButton({
       const { printer } = await printOrderViaQz(order, settings, {
         storeName: storeName ?? tenant?.name,
         storePhone: storePhone ?? tenant?.whatsapp,
-        storeAddress: storeAddress ?? tenant?.address,
+        storeAddress: storeAddress ?? formatTenantAddress(tenant),
         storeInstagram: tenant?.social?.instagram,
         storePixKey: tenant?.social?.pix,
         storeCnpj: tenant?.social?.cnpj,

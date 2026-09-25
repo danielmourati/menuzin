@@ -29,6 +29,13 @@
       "when": 1790311922732,
       "tag": "0003_tenants_document",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790312606485,
+      "tag": "0004_tenants_address_number_reference",
+      "breakpoints": true
     }
   ]
 }

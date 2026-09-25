@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS address_number text, ADD COLUMN IF NOT EXISTS address_reference text;

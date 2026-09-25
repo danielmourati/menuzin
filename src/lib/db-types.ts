@@ -11,6 +11,9 @@ export type DbTenant = {
   state: string;
   address: string;
   cep?: string | null;
+  address_number?: string | null;
+  address_reference?: string | null;
+  neighborhood?: string | null;
   document?: string | null;
   open: boolean;
   prep_time: string;

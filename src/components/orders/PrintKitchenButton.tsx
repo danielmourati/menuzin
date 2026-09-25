@@ -1,3 +1,4 @@
+import { formatTenantAddress } from "@/lib/tenant-address";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChefHat, Loader2 } from "lucide-react";
@@ -89,7 +90,7 @@ export function PrintKitchenButton({
       const storeInfo = {
         storeName: tenant?.name,
         storePhone: tenant?.whatsapp,
-        storeAddress: tenant?.address,
+        storeAddress: formatTenantAddress(tenant),
         storeInstagram: tenant?.social?.instagram,
         storePixKey: tenant?.social?.pix,
         storeCnpj: tenant?.social?.cnpj,

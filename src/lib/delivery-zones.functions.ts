@@ -1,3 +1,4 @@
+import { formatTenantAddress } from "@/lib/tenant-address";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -204,7 +205,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<DeliveryFeeResolution> => {
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
-      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, address, city, state")
+      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, address, address_number, neighborhood, city, state")
       .eq("slug", data.tenant_slug)
       .eq("active", true)
       .maybeSingle();
@@ -242,7 +243,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
         };
       }
       const destStr = `${data.street}, ${data.number}, ${data.neighborhood || ""}, ${data.city || ""}, ${data.state || ""}`.trim().replace(/,\s*,/g, ",");
-      const origStr = `${tenant.address}, ${tenant.city}, ${tenant.state}`.trim();
+      const origStr = `${formatTenantAddress(tenant)}, ${tenant.city}, ${tenant.state}`.trim();
       
       const apiKey = process.env.GOOGLE_MAPS_API_KEY;
       if (!apiKey) {
