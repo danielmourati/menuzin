@@ -2570,6 +2570,8 @@ export type Database = {
           accepts_takeout: boolean
           active: boolean
           address: string | null
+          address_number: string | null
+          address_reference: string | null
           business_types: string[]
           cep: string | null
           city: string | null
@@ -2613,6 +2615,8 @@ export type Database = {
           accepts_takeout?: boolean
           active?: boolean
           address?: string | null
+          address_number?: string | null
+          address_reference?: string | null
           business_types?: string[]
           cep?: string | null
           city?: string | null
@@ -2656,6 +2660,8 @@ export type Database = {
           accepts_takeout?: boolean
           active?: boolean
           address?: string | null
+          address_number?: string | null
+          address_reference?: string | null
           business_types?: string[]
           cep?: string | null
           city?: string | null
