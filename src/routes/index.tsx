@@ -213,6 +213,7 @@ function GuiaHome() {
 
   return (
     <div className="flex h-dvh flex-col bg-muted/30">
+      <h1 className="sr-only">Menuzin — delivery e cardápios de restaurantes perto de você</h1>
       <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
       <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Header */}
