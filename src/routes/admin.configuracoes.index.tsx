@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { lookupByCep } from "@/lib/viacep";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -202,6 +203,49 @@ function SettingsPage() {
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
+  // Busca de endereço pelo CEP (mesma lógica do checkout): debounce + cancelamento.
+  const cepTouched = useRef(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  useEffect(() => {
+    const digits = form.cep.replace(/\D/g, "");
+    if (!cepTouched.current || digits.length !== 8) {
+      setCepError(null);
+      setCepLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCepError(null);
+    setCepLoading(true);
+    const t = setTimeout(async () => {
+      const res = await lookupByCep(digits);
+      if (cancelled) return;
+      setCepLoading(false);
+      if (res.status === "ok") {
+        const r = res.results[0];
+        setForm((prev) => {
+          // Mantém número/complemento digitados após a vírgula, quando houver.
+          const rest = prev.address.includes(",") ? prev.address.slice(prev.address.indexOf(",")) : "";
+          return {
+            ...prev,
+            address: r.logradouro ? `${r.logradouro}${rest}` : prev.address,
+            neighborhood: r.bairro || prev.neighborhood,
+            city: r.localidade || prev.city,
+            state: r.uf || prev.state,
+          };
+        });
+      } else if (res.status === "empty") {
+        setCepError("CEP não encontrado");
+      } else if (res.status === "error") {
+        setCepError("Falha ao buscar CEP. Preencha manualmente.");
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [form.cep]);
+
   const publicLink = tenant?.slug ? `https://menuzin.app/${tenant.slug}` : "";
 
   return (
@@ -271,33 +315,21 @@ function SettingsPage() {
               <div>
                 <Label>CEP</Label>
                 <div className="mt-1.5 relative">
-                  <Input 
-                    value={form.cep} 
+                  <Input
+                    value={form.cep}
                     onChange={(e) => {
-                      const masked = formatCep(e.target.value);
-                      set("cep", masked);
-                      if (masked.length === 9) {
-                        const cleanCep = masked.replace(/\D/g, "");
-                        toast.promise(
-                          import("@/lib/viacep").then(({ lookupByCep }) => lookupByCep(cleanCep)),
-                          {
-                            loading: "Buscando CEP...",
-                            success: (data) => {
-                              if (data.logradouro) set("address", data.logradouro);
-                              if (data.bairro) set("neighborhood", data.bairro);
-                              if (data.localidade) set("city", data.localidade);
-                              if (data.uf) set("state", data.uf);
-                              return "Endereço encontrado";
-                            },
-                            error: "CEP não encontrado",
-                          }
-                        );
-                      }
-                    }} 
-                    placeholder="00000-000" 
+                      cepTouched.current = true;
+                      set("cep", formatCep(e.target.value));
+                    }}
+                    placeholder="00000-000"
                     maxLength={9}
+                    inputMode="numeric"
                   />
+                  {cepLoading && (
+                    <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                  )}
                 </div>
+                {cepError && <p className="mt-1 text-xs text-destructive">{cepError}</p>}
               </div>
               <div className="md:col-span-2"><Label>Endereço / Logradouro</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Bairro</Label><Input value={form.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} className="mt-1.5" /></div>
