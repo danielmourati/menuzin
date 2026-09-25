@@ -195,3 +195,24 @@ export function formatPhoneNumber(phone: string): string {
   return phone;
 }
 
+export function formatCep(cep: string): string {
+  const digits = cep.replace(/\D/g, "");
+  return digits.replace(/^(\d{5})(\d)/, "$1-$2").substr(0, 9);
+}
+
+export function formatCnpjCpf(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+      .substr(0, 14);
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2")
+    .substr(0, 18);
+}

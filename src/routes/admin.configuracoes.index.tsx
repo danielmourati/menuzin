@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "@/components/ui/badge";
 import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { formatCep, formatCnpjCpf } from "@/lib/format";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
 import { listMyCategories, listMyProducts } from "@/lib/catalog-admin.functions";
@@ -265,19 +266,18 @@ function SettingsPage() {
               <div className="md:col-span-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-1.5" /></div>
               <div className="md:col-span-2">
                 <Label>Documento (CNPJ/CPF)</Label>
-                <Input value={form.document} onChange={(e) => set("document", e.target.value)} placeholder="00.000.000/0001-00" className="mt-1.5" />
+                <Input value={form.document} onChange={(e) => set("document", formatCnpjCpf(e.target.value))} placeholder="00.000.000/0001-00" className="mt-1.5" maxLength={18} />
               </div>
               <div>
                 <Label>CEP</Label>
                 <div className="mt-1.5 relative">
                   <Input 
                     value={form.cep} 
-                    onChange={(e) => set("cep", e.target.value)} 
-                    placeholder="00000-000" 
-                    maxLength={9}
-                    onBlur={async () => {
-                      const cleanCep = form.cep.replace(/\D/g, "");
-                      if (cleanCep.length === 8) {
+                    onChange={(e) => {
+                      const masked = formatCep(e.target.value);
+                      set("cep", masked);
+                      if (masked.length === 9) {
+                        const cleanCep = masked.replace(/\D/g, "");
                         toast.promise(
                           import("@/lib/viacep").then(({ lookupByCep }) => lookupByCep(cleanCep)),
                           {
@@ -293,7 +293,9 @@ function SettingsPage() {
                           }
                         );
                       }
-                    }}
+                    }} 
+                    placeholder="00000-000" 
+                    maxLength={9}
                   />
                 </div>
               </div>
