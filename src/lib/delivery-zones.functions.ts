@@ -252,12 +252,27 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
       }
 
       try {
-        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origStr)}&destinations=${encodeURIComponent(destStr)}&key=${apiKey}`;
-        const res = await fetch(url);
-        const matrix = await res.json() as any;
+        const cacheKey = `${tenant.id}|${destStr.toLowerCase().replace(/\s+/g, " ")}`;
+        const cached = distanceCache.get(cacheKey);
+        let meters: number | null = null;
+        let matrix: any = null;
+        if (cached && cached.expires > Date.now()) {
+          meters = cached.meters;
+        } else {
+          const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origStr)}&destinations=${encodeURIComponent(destStr)}&region=br&language=pt-BR&key=${apiKey}`;
+          const res = await fetch(url);
+          matrix = await res.json() as any;
+          if (matrix.status === "REQUEST_DENIED" || matrix.error_message) {
+            console.error(`Google Distance Matrix recusou [${matrix.status}]: ${matrix.error_message ?? "sem detalhes"} — verifique se a Distance Matrix API está ativada e se a chave não tem restrição por referenciador HTTP.`);
+          }
+          if (matrix.status === "OK" && matrix.rows?.[0]?.elements?.[0]?.status === "OK") {
+            meters = matrix.rows[0].elements[0].distance.value as number;
+            distanceCache.set(cacheKey, { meters, expires: Date.now() + 10 * 60 * 1000 });
+            if (distanceCache.size > 500) distanceCache.delete(distanceCache.keys().next().value as string);
+          }
+        }
 
-        if (matrix.status === "OK" && matrix.rows[0]?.elements[0]?.status === "OK") {
-          const meters = matrix.rows[0].elements[0].distance.value;
+        if (meters !== null) {
           const km = meters / 1000;
           const baseKm = Number(tenant.delivery_base_km ?? 0);
           const feePerKm = Number(tenant.delivery_fee_per_km ?? 0);
