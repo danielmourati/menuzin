@@ -20,7 +20,10 @@ export type DbTenant = {
   accepts_delivery: boolean;
   accepts_takeout: boolean;
   accepts_dinein: boolean;
-  delivery_mode: "none" | "single" | "neighborhood";
+  delivery_mode: "none" | "single" | "neighborhood" | "km";
+  delivery_base_km?: number | null;
+  delivery_fee_per_km?: number | null;
+  delivery_max_km?: number | null;
 
   logo_url: string | null;
   cover_url: string | null;

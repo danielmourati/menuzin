@@ -177,13 +177,16 @@ export type Tenant = {
   open: boolean;
   openMode: "auto" | "open" | "closed";
   hoursSchedule: { weekday: number; enabled: boolean; open: string; close: string }[];
-  deliveryMode: "none" | "single" | "neighborhood";
+  deliveryMode: "none" | "single" | "neighborhood" | "km";
   acceptsDelivery: boolean;
   acceptsTakeout: boolean;
   acceptsDinein: boolean;
   prepTime: string;
   minOrder: number;
   deliveryFee: number;
+  deliveryBaseKm?: number | null;
+  deliveryFeePerKm?: number | null;
+  deliveryMaxKm?: number | null;
   hours: string;
   logoLetter: string;
   logoUrl?: string;

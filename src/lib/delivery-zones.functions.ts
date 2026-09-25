@@ -175,10 +175,10 @@ export const listPublicDeliveryZones = createServerFn({ method: "POST" })
 // ---- Public delivery-fee resolver ----
 
 export type DeliveryFeeResolution = {
-  mode: "none" | "single" | "neighborhood";
+  mode: "none" | "single" | "neighborhood" | "km";
   available: boolean;
   fee: number;
-  source: "none" | "single_fee" | "neighborhood_by_cep" | "neighborhood_by_name" | null;
+  source: "none" | "single_fee" | "neighborhood_by_cep" | "neighborhood_by_name" | "distance_km" | null;
   neighborhood: string | null;
   min_order_total: number;
   estimated_minutes: number | null;
@@ -190,6 +190,10 @@ const ResolveInput = z.object({
   cep: z.string().max(20).optional().nullable(),
   neighborhood: z.string().max(120).optional().nullable(),
   zone_id: z.string().uuid().optional().nullable(),
+  street: z.string().max(200).optional().nullable(),
+  number: z.string().max(50).optional().nullable(),
+  city: z.string().max(80).optional().nullable(),
+  state: z.string().max(40).optional().nullable(),
 });
 
 export const resolveDeliveryFee = createServerFn({ method: "POST" })
@@ -197,7 +201,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<DeliveryFeeResolution> => {
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
-      .select("id, delivery_mode, delivery_fee")
+      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, address, city, state")
       .eq("slug", data.tenant_slug)
       .eq("active", true)
       .maybeSingle();
@@ -210,7 +214,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
       };
     }
 
-    const mode = (tenant.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
+    const mode = (tenant.delivery_mode ?? "single") as "none" | "single" | "neighborhood" | "km";
 
     if (mode === "none") {
       return {
@@ -224,6 +228,73 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
         mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "single_fee",
         neighborhood: null, min_order_total: 0, estimated_minutes: null, message: null,
       };
+    }
+
+    if (mode === "km") {
+      if (!data.street || !data.number) {
+        return {
+          mode, available: false, fee: 0, source: null,
+          neighborhood: null, min_order_total: 0, estimated_minutes: null,
+          message: "Preencha a rua e o número para calcular a taxa de entrega",
+        };
+      }
+      const destStr = `${data.street}, ${data.number}, ${data.neighborhood || ""}, ${data.city || ""}, ${data.state || ""}`.trim().replace(/,\s*,/g, ",");
+      const origStr = `${tenant.address}, ${tenant.city}, ${tenant.state}`.trim();
+      
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        console.error("GOOGLE_MAPS_API_KEY não configurada.");
+        return {
+          mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "single_fee",
+          neighborhood: null, min_order_total: 0, estimated_minutes: null,
+          message: "Não foi possível calcular a distância, aplicando taxa base.",
+        };
+      }
+
+      try {
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origStr)}&destinations=${encodeURIComponent(destStr)}&key=${apiKey}`;
+        const res = await fetch(url);
+        const matrix = await res.json() as any;
+
+        if (matrix.status === "OK" && matrix.rows[0]?.elements[0]?.status === "OK") {
+          const meters = matrix.rows[0].elements[0].distance.value;
+          const km = meters / 1000;
+          const baseKm = Number(tenant.delivery_base_km ?? 0);
+          const feePerKm = Number(tenant.delivery_fee_per_km ?? 0);
+          const maxKm = tenant.delivery_max_km ? Number(tenant.delivery_max_km) : null;
+
+          if (maxKm !== null && maxKm > 0 && km > maxKm) {
+            return {
+              mode, available: false, fee: 0, source: null,
+              neighborhood: null, min_order_total: 0, estimated_minutes: null,
+              message: `Desculpe, só entregamos até ${maxKm}km. Você está a ${km.toFixed(1)}km.`,
+            };
+          }
+
+          let extraKm = Math.max(0, km - baseKm);
+          extraKm = Math.ceil(extraKm); // Arredonda pra cima como pedido
+          const totalFee = Number(tenant.delivery_fee ?? 0) + (extraKm * feePerKm);
+
+          return {
+            mode, available: true, fee: totalFee, source: "distance_km",
+            neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null, message: null,
+          };
+        } else {
+          console.warn("Google Maps Matrix falhou ou endereço não encontrado:", matrix);
+          return {
+            mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "distance_km",
+            neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null,
+            message: "Endereço exato não encontrado, aplicando taxa base.",
+          };
+        }
+      } catch (err) {
+        console.error("Erro na API do Google Maps:", err);
+        return {
+          mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "distance_km",
+          neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null,
+          message: "Erro de conexão, aplicando taxa base.",
+        };
+      }
     }
 
     // mode === 'neighborhood'

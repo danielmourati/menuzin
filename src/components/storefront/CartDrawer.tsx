@@ -156,6 +156,8 @@ export function CartDrawer({
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
   const [table, setTable] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
 
   // payment
   const [paymentWhen, setPaymentWhen] = useState<"agora" | "na_retirada" | null>(null);
@@ -191,6 +193,8 @@ export function CartDrawer({
       setNeighborhood((v) => v || a.neighborhood || "");
       setComplement((v) => v || a.complement || "");
       setReference((v) => v || a.reference || "");
+      setCity((v) => v || a.city || "");
+      setState((v) => v || a.state || "");
     }
   }, [open]);
 
@@ -205,6 +209,8 @@ export function CartDrawer({
     setNeighborhood("");
     setComplement("");
     setReference("");
+    setCity("");
+    setState("");
     toast.success("Dados salvos removidos deste dispositivo");
   };
 
@@ -229,11 +235,11 @@ export function CartDrawer({
     accepts_delivery?: boolean | null;
     accepts_takeout?: boolean | null;
     accepts_dinein?: boolean | null;
-    delivery_mode?: "none" | "single" | "neighborhood" | null;
+    delivery_mode?: "none" | "single" | "neighborhood" | "km" | null;
   };
   const tenant = (storefrontTenant ?? tenantData?.tenant ?? null) as TenantLike | null;
   const tenantAddress = tenant?.address ?? "";
-  const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
+  const deliveryMode = (tenant?.deliveryMode ?? tenant?.delivery_mode ?? "single") as "none" | "single" | "neighborhood" | "km";
   const rawTenantPlan = (tenant as { plan?: string } | null | undefined)?.plan;
   const tenantPlan = rawTenantPlan === "pro" ? "pro" : "presenca";
   const isPresencaOnly = tenantPlan === "presenca";
@@ -363,12 +369,12 @@ export function CartDrawer({
   // Resolve delivery fee from server (single source of truth).
   const cepDigitsOnly = cep.replace(/\D/g, "");
   const { data: feeResolution, isFetching: feeLoading } = useQuery<DeliveryFeeResolution>({
-    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood, selectedZoneId],
+    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood, selectedZoneId, street, number, city, state],
     queryFn: () =>
       resolveDeliveryFee({
-        data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood, zone_id: selectedZoneId },
+        data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood, zone_id: selectedZoneId, street, number, city, state },
       }),
-    enabled: !!slug && mode === "entrega",
+    enabled: !!slug && mode === "entrega" && (deliveryMode !== "km" || (!!street && !!number)),
     staleTime: 30_000,
   });
 
@@ -418,6 +424,8 @@ export function CartDrawer({
         const r = res.results[0];
         setStreet((cur) => cur || r.logradouro);
         setNeighborhood((cur) => cur || r.bairro);
+        setCity((cur) => cur || r.localidade);
+        setState((cur) => cur || r.uf);
       } else if (res.status === "empty") {
         setCepError("CEP não encontrado");
       } else if (res.status === "error") {
@@ -607,7 +615,7 @@ export function CartDrawer({
             delivery_neighborhood_snapshot:
               mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
             address:
-              mode === "entrega" ? { cep, street, number, neighborhood, complement, reference } : null,
+              mode === "entrega" ? { cep, street, number, neighborhood, complement, reference, city, state } : null,
             table_label: mode === "consumo_local" ? table : null,
             note: generalNote || null,
             coupon_code: appliedCoupon?.code ?? null,
@@ -645,7 +653,7 @@ export function CartDrawer({
             neighborhood: neighborhood || null,
             address:
               mode === "entrega"
-                ? { cep, street, number, neighborhood, complement, reference }
+                ? { cep, street, number, neighborhood, complement, reference, city, state }
                 : null,
           });
         }

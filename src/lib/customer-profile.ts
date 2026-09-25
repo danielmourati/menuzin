@@ -9,6 +9,8 @@ export type StoredAddress = {
   neighborhood?: string | null;
   complement?: string | null;
   reference?: string | null;
+  city?: string | null;
+  state?: string | null;
 };
 
 export type CustomerProfile = {

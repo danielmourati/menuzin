@@ -36,7 +36,7 @@ export const Route = createFileRoute("/admin/taxas-entrega")({
   ),
 });
 
-type Mode = "none" | "single" | "neighborhood";
+type Mode = "none" | "single" | "neighborhood" | "km";
 
 type Editing = {
   id?: string;
@@ -86,11 +86,17 @@ function DeliveryZonesPage() {
 
   const [mode, setMode] = useState<Mode>("single");
   const [singleFee, setSingleFee] = useState<number>(0);
+  const [kmBase, setKmBase] = useState<number>(0);
+  const [kmFee, setKmFee] = useState<number>(0);
+  const [kmMax, setKmMax] = useState<number>(0);
 
   useEffect(() => {
     if (tenantData) {
       setMode(((tenantData as { delivery_mode?: Mode }).delivery_mode ?? "single") as Mode);
       setSingleFee(Number((tenantData as { delivery_fee?: number }).delivery_fee ?? 0));
+      setKmBase(Number((tenantData as { delivery_base_km?: number }).delivery_base_km ?? 0));
+      setKmFee(Number((tenantData as { delivery_fee_per_km?: number }).delivery_fee_per_km ?? 0));
+      setKmMax(Number((tenantData as { delivery_max_km?: number }).delivery_max_km ?? 0));
     }
   }, [tenantData]);
 
@@ -103,6 +109,12 @@ function DeliveryZonesPage() {
         data: {
           delivery_mode: mode,
           ...(mode === "single" ? { delivery_fee: singleFee } : {}),
+          ...(mode === "km" ? {
+            delivery_fee: singleFee, // we use singleFee as base fee for KM too
+            delivery_base_km: kmBase,
+            delivery_fee_per_km: kmFee,
+            delivery_max_km: kmMax || null
+          } : {}),
           ...(mode === "none" ? { delivery_fee: 0 } : {}),
         },
       }),
@@ -242,7 +254,7 @@ function DeliveryZonesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
               <ModeCard
                 active={mode === "none"}
                 onClick={() => setMode("none")}
@@ -264,6 +276,13 @@ function DeliveryZonesPage() {
                 title="Taxa por bairro"
                 description="Cobra de acordo com o bairro/CEP do cliente."
               />
+              <ModeCard
+                active={mode === "km"}
+                onClick={() => setMode("km")}
+                icon={<MapPin className="h-5 w-5" />}
+                title="Taxa por KM"
+                description="Cobra com base na distância percorrida."
+              />
             </div>
 
             {mode === "single" && (
@@ -273,6 +292,31 @@ function DeliveryZonesPage() {
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   Aplicada automaticamente em todos os pedidos de entrega.
                 </p>
+              </div>
+            )}
+
+            {mode === "km" && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-2xl">
+                <div>
+                  <Label>Taxa Base</Label>
+                  <CurrencyInput className="mt-1.5" value={singleFee} onChange={setSingleFee} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">Valor cobrado pela distância base.</p>
+                </div>
+                <div>
+                  <Label>Distância Base (KM)</Label>
+                  <Input type="number" min={0} step={0.1} className="mt-1.5" value={kmBase} onChange={(e) => setKmBase(Number(e.target.value))} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">KM cobertos pela taxa base.</p>
+                </div>
+                <div>
+                  <Label>Valor por KM Adicional</Label>
+                  <CurrencyInput className="mt-1.5" value={kmFee} onChange={setKmFee} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">Cobrado por cada KM que ultrapassar a base.</p>
+                </div>
+                <div>
+                  <Label>Raio Máximo (KM)</Label>
+                  <Input type="number" min={0} step={0.1} className="mt-1.5" value={kmMax || ""} onChange={(e) => setKmMax(Number(e.target.value))} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">Deixe 0 para sem limite. Bloqueia pedidos acima disto.</p>
+                </div>
               </div>
             )}
 
