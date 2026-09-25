@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BellRing,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
