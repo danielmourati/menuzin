@@ -2575,10 +2575,7 @@ export type Database = {
           city: string | null
           cover_url: string | null
           created_at: string
-          delivery_base_km: number | null
           delivery_fee: number
-          delivery_fee_per_km: number | null
-          delivery_max_km: number | null
           delivery_mode: string
           description: string | null
           directory_opt_in: boolean
@@ -2617,10 +2614,7 @@ export type Database = {
           city?: string | null
           cover_url?: string | null
           created_at?: string
-          delivery_base_km?: number | null
           delivery_fee?: number
-          delivery_fee_per_km?: number | null
-          delivery_max_km?: number | null
           delivery_mode?: string
           description?: string | null
           directory_opt_in?: boolean
@@ -2659,10 +2653,7 @@ export type Database = {
           city?: string | null
           cover_url?: string | null
           created_at?: string
-          delivery_base_km?: number | null
           delivery_fee?: number
-          delivery_fee_per_km?: number | null
-          delivery_max_km?: number | null
           delivery_mode?: string
           description?: string | null
           directory_opt_in?: boolean
