@@ -46,10 +46,25 @@ export const Route = createFileRoute("/guia/produto/$id")({
         { property: "og:description", content: desc },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
-        ...(it.image_url ? [{ property: "og:image", content: it.image_url }] : []),
+        ...(it.image_url
+          ? [{ property: "og:image", content: it.image_url }, { name: "twitter:image", content: it.image_url }]
+          : []),
       ],
       links: [{ rel: "canonical", href: url }],
-      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLd) },
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Início", item: "https://menuzin.app" },
+              { "@type": "ListItem", position: 2, name: it.name, item: url },
+            ],
+          }),
+        },
+      ],
     };
   },
   notFoundComponent: () => (

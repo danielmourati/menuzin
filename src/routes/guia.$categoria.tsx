@@ -35,7 +35,22 @@ export const Route = createFileRoute("/guia/$categoria")({
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
         { property: "og:type", content: "website" },
+        ...(loaderData ? [{ property: "og:url", content: `https://menuzin.app/guia/${loaderData.cat.slug}` }] : [{ name: "robots", content: "noindex" }]),
       ],
+      links: loaderData ? [{ rel: "canonical", href: `https://menuzin.app/guia/${loaderData.cat.slug}` }] : [],
+      scripts: loaderData
+        ? [{
+            type: "application/ld+json",
+            children: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              itemListElement: [
+                { "@type": "ListItem", position: 1, name: "Início", item: "https://menuzin.app" },
+                { "@type": "ListItem", position: 2, name: loaderData.cat.label, item: `https://menuzin.app/guia/${loaderData.cat.slug}` },
+              ],
+            }),
+          }]
+        : [],
     };
   },
   notFoundComponent: () => (

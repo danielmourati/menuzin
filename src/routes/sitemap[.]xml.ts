@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
 import { listActiveTenants } from "@/lib/catalog.functions";
+import { DIRECTORY_CATEGORIES } from "@/lib/directory.functions";
 
 const BASE_URL = "https://menuzin.app";
 
@@ -18,18 +19,35 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "daily", priority: "1.0" },
           { path: "/comece-agora", changefreq: "weekly", priority: "0.9" },
-          { path: "/guia/quentinha", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/pizza", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/churrasco", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/hamburguer", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/lanches", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/marmitex", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/acai", changefreq: "daily", priority: "0.7" },
-          { path: "/guia/doces", changefreq: "daily", priority: "0.7" },
           { path: "/contato", changefreq: "monthly", priority: "0.4" },
           { path: "/privacidade", changefreq: "yearly", priority: "0.2" },
           { path: "/termos", changefreq: "yearly", priority: "0.2" },
         ];
+
+        for (const c of DIRECTORY_CATEGORIES) {
+          entries.push({ path: `/guia/${c.slug}`, changefreq: "daily", priority: "0.7" });
+        }
+
+        try {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const seen = new Set<string>();
+          for (let from = 0; from < 20000; from += 1000) {
+            const { data, error } = await supabaseAdmin
+              .from("directory_public")
+              .select("product_id")
+              .range(from, from + 999);
+            if (error) throw error;
+            for (const r of (data ?? []) as { product_id: string | null }[]) {
+              if (r.product_id && !seen.has(r.product_id)) {
+                seen.add(r.product_id);
+                entries.push({ path: `/guia/produto/${r.product_id}`, changefreq: "weekly", priority: "0.6" });
+              }
+            }
+            if (!data || data.length < 1000) break;
+          }
+        } catch (err) {
+          console.error("[sitemap] produtos", err);
+        }
 
         try {
           const { tenants } = await listActiveTenants();
