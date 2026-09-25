@@ -146,7 +146,7 @@ export function PushPermissionBanner({
 
       localStorage.setItem(`menuzin_push_subscribed_${tenantSlug}`, "true");
       setSubscribed(true);
-      toast.success(`Notificações ativadas! Você receberá os cupons e promoções de ${tenantName}.`);
+      // toast.success(`Notificações ativadas! Você receberá os cupons e promoções de ${tenantName}.`);
       setTimeout(() => setShow(false), 2500);
     } catch (err: any) {
       console.error("[PushSubscribe] Erro:", err);

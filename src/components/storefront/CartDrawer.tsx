@@ -211,7 +211,7 @@ export function CartDrawer({
     setReference("");
     setCity("");
     setState("");
-    toast.success("Dados salvos removidos deste dispositivo");
+    // toast.success("Dados salvos removidos deste dispositivo");
   };
 
   // Fetch settings for tenant
@@ -392,7 +392,7 @@ export function CartDrawer({
         data: { tenant_slug: slug, code: couponInput.trim(), subtotal },
       });
       setAppliedCoupon(res);
-      toast.success(`Cupom ${res.code} aplicado`);
+      // toast.success(`Cupom ${res.code} aplicado`);
     } catch (e) {
       setAppliedCoupon(null);
       toast.error((e as Error).message || "Cupom inválido");
@@ -485,7 +485,7 @@ export function CartDrawer({
     setCepLoading(false);
     setHistory([]);
     setStep("mode");
-    toast.success("Campos limpos");
+    // toast.success("Campos limpos");
   };
 
   const requestClearForm = () => {
@@ -849,7 +849,7 @@ export function CartDrawer({
         if (slug || tenant?.slug)
           saveLastOrderForSlug((slug || tenant?.slug)!, orderId, order.number);
       } catch {}
-      toast.success(`Pedido #${order.number} criado`);
+      // toast.success(`Pedido #${order.number} criado`);
       clear();
       onOpenChange(false);
       resetAll();
@@ -1003,7 +1003,7 @@ export function CartDrawer({
                   <button
                     onClick={() => {
                       clear();
-                      toast.success("Carrinho esvaziado");
+                      // toast.success("Carrinho esvaziado");
                     }}
                     className="text-sm font-semibold text-primary"
                   >
@@ -1523,7 +1523,7 @@ export function CartDrawer({
                       onClick={async () => {
                         try {
                           await navigator.clipboard.writeText(pixKey);
-                          toast.success("Chave PIX copiada");
+                          // toast.success("Chave PIX copiada");
                         } catch {
                           toast.error("Não foi possível copiar");
                         }

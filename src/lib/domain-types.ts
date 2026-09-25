@@ -174,6 +174,8 @@ export type Tenant = {
   city: string;
   state: string;
   address: string;
+  cep?: string | null;
+  document?: string | null;
   open: boolean;
   openMode: "auto" | "open" | "closed";
   hoursSchedule: { weekday: number; enabled: boolean; open: string; close: string }[];

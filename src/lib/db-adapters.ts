@@ -70,6 +70,8 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     city: t.city ?? "",
     state: t.state ?? "",
     address: t.address ?? "",
+    cep: t.cep ?? null,
+    document: t.document ?? null,
     open: t.open,
     openMode: (t.open_mode ?? "auto"),
     hoursSchedule: Array.isArray(t.hours_schedule) ? t.hours_schedule : [],

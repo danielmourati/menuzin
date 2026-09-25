@@ -280,7 +280,7 @@ export function QuickSignupModal({ open, onOpenChange }: { open: boolean; onOpen
 
         {/* ETAPA 1: Banner + Formulário Rápido (Anexo 1 ajustado com Paleta Menuzin) */}
         {step === 1 && (
-          <div className="grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
+          <div className="grid grid-cols-1 md:grid-cols-12 min-h-[540px] max-h-[85vh] overflow-y-auto">
             {/* Esquerda: Banner Menuzin */}
             <div className="md:col-span-5 bg-gradient-to-br from-orange-500 via-orange-600 to-amber-700 text-white p-6 md:p-8 flex flex-col justify-between relative overflow-hidden">
               <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />

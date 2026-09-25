@@ -1,19 +1,15 @@
 /* Service Worker para Web Push Notifications — Menuzin Delivery */
 
 self.addEventListener('push', function (event) {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      try {
-        data = { title: 'Novidade na loja! 🛵', body: event.data.text() };
-      } catch (e2) {
-        data = { title: 'Novidade na loja! 🛵', body: 'Você tem uma nova oferta exclusiva.' };
-      }
-    }
-  } else {
-    data = { title: 'Novidade na loja! 🛵', body: 'Confira as promoções e cupons do dia.' };
+  if (!event.data) {
+    return; // Ignora pushes vazios (pings do navegador)
+  }
+
+  let data;
+  try {
+    data = event.data.json();
+  } catch (e) {
+    return; // Ignora se não for JSON (não é campanha disparada pelo sistema)
   }
 
   const title = data.title || 'Novidade na loja! 🛵';

@@ -40,6 +40,8 @@ type FormState = {
   description: string;
   address: string;
   neighborhood: string;
+  cep: string;
+  document: string;
   city: string;
   state: string;
   delivery_fee: number;
@@ -138,7 +140,7 @@ function SettingsPage() {
 
 
   const [form, setForm] = useState<FormState>({
-    name: "", whatsapp: "", description: "", address: "", neighborhood: "", city: "", state: "",
+    name: "", whatsapp: "", description: "", address: "", neighborhood: "", cep: "", document: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
@@ -162,6 +164,8 @@ function SettingsPage() {
       description: tenant.description ?? "",
       address: tenant.address ?? "",
       neighborhood: tenant.neighborhood ?? "",
+      cep: tenant.cep ?? "",
+      document: tenant.document ?? "",
       city: tenant.city ?? "",
       state: tenant.state ?? "",
       delivery_fee: Number(tenant.delivery_fee ?? 0),
@@ -259,7 +263,41 @@ function SettingsPage() {
                 </div>
               </div>
               <div className="md:col-span-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-1.5" /></div>
-              <div><Label>Endereço</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
+              <div className="md:col-span-2">
+                <Label>Documento (CNPJ/CPF)</Label>
+                <Input value={form.document} onChange={(e) => set("document", e.target.value)} placeholder="00.000.000/0001-00" className="mt-1.5" />
+              </div>
+              <div>
+                <Label>CEP</Label>
+                <div className="mt-1.5 relative">
+                  <Input 
+                    value={form.cep} 
+                    onChange={(e) => set("cep", e.target.value)} 
+                    placeholder="00000-000" 
+                    maxLength={9}
+                    onBlur={async () => {
+                      const cleanCep = form.cep.replace(/\D/g, "");
+                      if (cleanCep.length === 8) {
+                        toast.promise(
+                          import("@/lib/viacep").then(({ lookupByCep }) => lookupByCep(cleanCep)),
+                          {
+                            loading: "Buscando CEP...",
+                            success: (data) => {
+                              if (data.logradouro) set("address", data.logradouro);
+                              if (data.bairro) set("neighborhood", data.bairro);
+                              if (data.localidade) set("city", data.localidade);
+                              if (data.uf) set("state", data.uf);
+                              return "Endereço encontrado";
+                            },
+                            error: "CEP não encontrado",
+                          }
+                        );
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2"><Label>Endereço / Logradouro</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Bairro</Label><Input value={form.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} className="mt-1.5" /></div>
               <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
               <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>

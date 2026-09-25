@@ -24,6 +24,7 @@ import { ImageUploader } from "@/components/ui/image-uploader";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, Loader2, Plus, Rocket, Tag, UtensilsCrossed,
 } from "lucide-react";
@@ -85,6 +86,7 @@ function WizardPage() {
   const [prodDesc, setProdDesc] = useState("");
   const [prodPrice, setProdPrice] = useState(0);
   const [prodImage, setProdImage] = useState<string | null>(null);
+  const [listedAsFlavor, setListedAsFlavor] = useState(true);
 
   const [createdProducts, setCreatedProducts] = useState(0);
 
@@ -145,7 +147,7 @@ function WizardPage() {
           type: "standard",
           max_flavors: null,
           allow_observations: true,
-          listed_as_flavor: null,
+          listed_as_flavor: selectedCategory?.kind === "pizza" ? listedAsFlavor : null,
           free_gift_kind: null,
           free_gift_ref_id: null,
           free_crust_mode: "none",
@@ -357,6 +359,21 @@ function WizardPage() {
                   placeholder="Ingredientes, porção, sabor..."
                 />
               </div>
+
+              {selectedCategory?.kind === "pizza" && (
+                <div className="flex items-center space-x-3 rounded-md border p-3">
+                  <Switch
+                    checked={listedAsFlavor}
+                    onCheckedChange={setListedAsFlavor}
+                  />
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Listar como sabor de pizza</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Se ativado, este sabor poderá ser escolhido pelos clientes na montagem das pizzas (meio a meio, etc).
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 <Button

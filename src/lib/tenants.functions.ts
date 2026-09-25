@@ -96,6 +96,8 @@ const UpdateTenantInput = z.object({
   state: z.string().max(40).optional(),
   address: z.string().max(240).optional(),
   neighborhood: z.string().max(80).optional(),
+  cep: z.string().max(20).nullable().optional(),
+  document: z.string().max(30).nullable().optional(),
   prep_time: z.string().max(80).optional(),
   min_order: z.number().min(0).max(99999).optional(),
   delivery_fee: z.number().min(0).max(9999).optional(),
