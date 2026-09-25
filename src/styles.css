@@ -48,8 +48,8 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Museo Sans Rounded", "Nunito", system-ui, sans-serif;
+  --font-sans: "Museo Sans Rounded", "Nunito", system-ui, sans-serif;
 
   --shadow-soft: 0 4px 16px -4px oklch(0.2 0.05 30 / 0.08);
   --shadow-pop: 0 12px 32px -8px oklch(0.6 0.2 30 / 0.25);
@@ -57,6 +57,7 @@
 
 :root {
   --radius: 0.875rem;
+  --gradient-hero: linear-gradient(120deg, oklch(0.52 0.19 38) 0%, oklch(0.64 0.2 42) 55%, oklch(0.72 0.18 55) 100%);
   --background: oklch(0.985 0.005 80);
   --foreground: oklch(0.18 0.03 250);
 
