@@ -1,3 +1,4 @@
+import { formatTenantAddress } from "@/lib/tenant-address";
 import { useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -131,7 +132,12 @@ export function StoreAboutDrawer({
               <h3 className="mb-2 text-sm font-bold">Endereço</h3>
               <p className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{tenant.address}</span>
+                <span>
+                  {formatTenantAddress(tenant)}
+                  {tenant.addressReference && (
+                    <span className="block text-xs">Referência: {tenant.addressReference}</span>
+                  )}
+                </span>
               </p>
             </section>
           )}

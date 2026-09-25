@@ -1,3 +1,4 @@
+import { formatTenantAddress } from "@/lib/tenant-address";
 // Helper para "Aceitar pedido": muda o status para "preparo" (fluxo
 // simplificado) e dispara a impressão da comanda de cozinha quando há
 // impressora configurada. Falhas de impressão não bloqueiam a aceitação.
@@ -99,7 +100,7 @@ export function useAcceptOrderWithKitchenPrint(
         const storeInfo = {
           storeName: tenant?.name,
           storePhone: tenant?.whatsapp,
-          storeAddress: tenant?.address,
+          storeAddress: formatTenantAddress(tenant),
           storeInstagram: tenant?.social?.instagram,
           storePixKey: tenant?.social?.pix,
           storeCnpj: tenant?.social?.cnpj,

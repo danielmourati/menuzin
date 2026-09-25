@@ -1,3 +1,4 @@
+import { formatTenantAddress } from "@/lib/tenant-address";
 // Wizard único para configuração do QZ Tray.
 //
 // Roda 5 passos sequenciais e mostra os 3 estados visuais (pendente/ok/erro)
@@ -125,7 +126,7 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
     () =>
       buildReceiptPreviewText(form, {
         storeName: tenant?.name,
-        storeAddress: tenant?.address,
+        storeAddress: formatTenantAddress(tenant),
         storePhone: tenant?.whatsapp,
         storeInstagram: tenant?.social?.instagram,
       }),
