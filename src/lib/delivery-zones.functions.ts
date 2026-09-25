@@ -4,6 +4,9 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 
+// Cache em memória das distâncias (evita cobranças repetidas no Google)
+const distanceCache = new Map<string, { meters: number; expires: number }>();
+
 export type DeliveryZoneRow = {
   id: string;
   tenant_id: string;
