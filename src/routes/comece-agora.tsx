@@ -11,6 +11,7 @@ import {
   PricingTable,
   ProductDeepDive,
   ProductHeroVisual,
+  PushNotificationsSection,
 } from "@/components/landing/CroSections";
 import { listPlans } from "@/lib/subscriptions.functions";
 import menuzinLogoAsset from "@/assets/menuzin-logo.png.asset.json";
@@ -108,28 +109,28 @@ function ComeceAgora() {
       </header>
 
       <main>
-        <section className="relative border-b overflow-hidden sm:overflow-visible">
+        <section className="relative overflow-hidden text-primary-foreground" style={{ background: "var(--gradient-hero)" }}>
           <div className="container mx-auto grid items-center gap-6 sm:gap-8 lg:gap-10 px-4 py-8 sm:py-12 md:py-16 lg:py-10 xl:py-16 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 text-xs font-bold text-primary sm:py-1">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 bg-primary-foreground/15 px-3 py-0.5 text-xs font-bold text-primary-foreground sm:py-1">
                 <Rocket className="h-3.5 w-3.5" aria-hidden="true" /> 14 dias grátis do Plano Pro
               </span>
-              <p className="mt-3 sm:mt-4 text-xs sm:text-sm font-bold uppercase text-primary">Pare de dividir seu lucro.</p>
+              <p className="mt-3 sm:mt-4 text-xs sm:text-sm font-bold uppercase text-primary-foreground/85">Pare de dividir seu lucro.</p>
               <h1 className="mt-2 text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl">
-                A experiência de um grande app de delivery, <span className="text-primary">sem pagar comissão por pedido.</span>
+                A experiência de um grande app de delivery, <span className="text-primary-foreground/90 underline decoration-primary-foreground/40 underline-offset-8">sem pagar comissão por pedido.</span>
               </h1>
-              <p className="mt-3 sm:mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                Painel visual de pedidos, impressão automática na cozinha e rastreio em tempo real para o cliente. <strong className="text-foreground">Assuma o controle do seu delivery.</strong>
+              <p className="mt-3 sm:mt-4 max-w-2xl text-base leading-relaxed text-primary-foreground/85 md:text-lg">
+                Painel visual de pedidos, impressão automática na cozinha e rastreio em tempo real para o cliente. <strong className="text-primary-foreground">Assuma o controle do seu delivery.</strong>
               </p>
               <div className="mt-5 sm:mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                <Button size="lg" onClick={openSignup} className="w-full shadow-[var(--shadow-pop)] sm:w-auto">
+                <Button size="lg" variant="secondary" onClick={openSignup} className="w-full bg-background text-primary shadow-[var(--shadow-pop)] hover:bg-background/90 sm:w-auto">
                   Testar o Pro por 14 dias <ArrowRight aria-hidden="true" />
                 </Button>
-                <a href="#recursos" className="px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground">Ver como funciona</a>
+                <a href="#recursos" className="px-3 py-2 text-sm font-semibold text-primary-foreground/85 hover:text-primary-foreground">Ver como funciona</a>
               </div>
-              <ul className="mt-4 sm:mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs sm:text-sm text-muted-foreground">
+              <ul className="mt-4 sm:mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs sm:text-sm text-primary-foreground/90">
                 {["Sem pedir cartão", "0% de comissão", "Retorno grátis ao Presença"].map((item) => (
-                  <li key={item} className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />{item}</li>
+                  <li key={item} className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-primary-foreground" aria-hidden="true" />{item}</li>
                 ))}
               </ul>
             </div>
@@ -140,6 +141,7 @@ function ComeceAgora() {
         <AuthorityStrip />
         <PainSolutionGrid />
         <ProductDeepDive />
+        <PushNotificationsSection />
         <PricingTable plans={plans} onCTAClick={openSignup} />
         <FaqSection
           plans={plans.map((plan) => ({ name: plan.name, price: plan.price }))}

@@ -273,3 +273,60 @@ export function PricingTable({ plans, onCTAClick }: PricingTableProps) {
     </section>
   );
 }
+const pushBars = [
+  { day: "Seg", h: 45 }, { day: "Ter", h: 58 }, { day: "Qua", h: 66 },
+  { day: "Qui", h: 76 }, { day: "Sex", h: 90 }, { day: "Sáb", h: 100 },
+];
+const pushItems = [
+  { t: "1. Campanhas ilimitadas", d: "Envie avisos para todos os clientes que ativaram as notificações da sua loja, quantas vezes quiser." },
+  { t: "2. Cupom na notificação", d: "Anexe um cupom e o cliente abre direto pelo botão \"Ver cupom\" no aviso." },
+  { t: "3. Mensagens personalizadas", d: "Título, texto e imagem com a cara da sua loja para chamar atenção na hora certa." },
+];
+
+export function PushNotificationsSection() {
+  const [open, setOpen] = useState(0);
+  return (
+    <section className="border-b">
+      <div className="container mx-auto grid items-center gap-12 px-4 py-20 lg:grid-cols-2">
+        <div className="relative pb-16 sm:pb-0">
+          <div className="rounded-2xl border bg-card p-6 shadow-[var(--shadow-soft)]">
+            <div className="flex items-center justify-between border-b pb-4">
+              <p className="font-display text-lg font-bold">Disparo de notificações</p>
+              <span className="text-sm font-semibold text-muted-foreground">Esta semana</span>
+            </div>
+            <div className="mt-6 flex h-56 items-end justify-between gap-3">
+              {pushBars.map((b, i) => (
+                <div key={b.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                  <div className="w-full max-w-10 rounded-full bg-primary" style={{ height: `${b.h}%`, opacity: 0.3 + i * 0.14 }} />
+                  <span className="text-xs text-muted-foreground">{b.day}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="absolute -bottom-2 right-2 w-56 rounded-2xl border bg-card p-5 text-center shadow-[var(--shadow-pop)] sm:-bottom-10 sm:-right-4 motion-safe:animate-float-badge-a">
+            <BellRing className="mx-auto h-9 w-9 text-primary" aria-hidden="true" />
+            <p className="mt-2 font-display text-2xl font-extrabold text-primary">+R$ 12.480</p>
+            <p className="mt-1 text-sm text-muted-foreground">Vendas das campanhas de notificação</p>
+            <span className="mt-2 inline-block rounded-md bg-success/10 px-2 py-0.5 text-xs font-bold text-success">↑ 32%</span>
+          </div>
+        </div>
+        <div>
+          <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-sm font-bold text-primary">Notificações push</span>
+          <h2 className="mt-4 text-3xl font-bold text-balance md:text-5xl">Traga o cliente de volta com um toque</h2>
+          <p className="mt-4 text-lg text-muted-foreground">Avise sobre promoções e novidades direto no celular de quem já comprou com você. Sem custo por envio.</p>
+          <div className="mt-8 space-y-3">
+            {pushItems.map((it, i) => (
+              <div key={it.t} className="rounded-xl bg-primary/5">
+                <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)} className="flex w-full items-center justify-between px-5 py-4 text-left font-semibold">
+                  {it.t}
+                  <ChevronDown className={`h-5 w-5 transition-transform ${open === i ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
+                {open === i && <p className="px-5 pb-4 text-muted-foreground">{it.d}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
