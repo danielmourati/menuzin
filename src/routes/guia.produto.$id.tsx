@@ -56,7 +56,7 @@ export const Route = createFileRoute("/guia/produto/$id")({
     <div className="grid min-h-screen place-items-center p-6 text-center">
       <div>
         <p className="text-lg font-semibold">Produto indisponível</p>
-        <Link to="/guia" className="mt-2 inline-block text-sm text-primary underline">Voltar ao Guia</Link>
+        <Link to="/" className="mt-2 inline-block text-sm text-primary underline">Voltar ao Guia</Link>
       </div>
     </div>
   ),
@@ -97,7 +97,7 @@ function ProductPage() {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
-          <Link to="/guia" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ChevronLeft className="h-4 w-4" /> Guia
           </Link>
         </div>

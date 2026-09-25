@@ -1,83 +1,98 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Utensils, Smartphone, MessageCircle, BarChart3, ArrowRight, CheckCircle2, ShoppingBag, ShieldCheck, Headphones, Store, Bell, Rocket } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-import { useQuery } from "@tanstack/react-query";
-import { listActiveTenants } from "@/lib/catalog.functions";
-import { listPlans } from "@/lib/subscriptions.functions";
-import landingBurgerArtesanal from "@/assets/demo-burger-artesanal.jpg";
-import landingComboSmash from "@/assets/demo-combo-smash.jpg";
-import landingBurgerBacon from "@/assets/demo-burger-bacon.jpg";
-import landingBatataRefri from "@/assets/demo-batata-refri.jpg";
-import landingHeroDevices from "@/assets/landing-hero-devices.png";
-import couplePhoneAsset from "@/assets/couple-ordering.png.asset.json";
-import { WhatsAppFloatingButton, WHATSAPP_CONTACT_URL } from "@/components/WhatsAppFloatingButton";
-import { QuickSignupModal } from "@/components/landing/QuickSignupModal";
+import { useQuery, queryOptions } from "@tanstack/react-query";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
-  FeatureShowcaseSection,
-  CTABanner,
-  ContactSpecialistSection,
-  FaqSection,
-  LandingFooter,
-  faqs,
-} from "@/components/landing/LandingSections";
+  listCategories,
+  listFeatured,
+  listAllStores,
+  DIRECTORY_CATEGORIES,
+  type DirectoryStore,
+} from "@/lib/directory.functions";
+import { productImage } from "@/lib/product-image";
+import { brl } from "@/lib/format";
+import { getGuiaHome } from "@/lib/guia.functions";
+import type { GuiaSectionId, GuiaSlot } from "@/lib/guia-types";
 
-const DEMO_SLUG = "burguerprime";
+import { SlotCard } from "@/components/guia/SlotCard";
+import { GuiaHomeSkeleton } from "@/components/guia/GuiaSkeleton";
+import { GuiaSearchOverlay } from "@/components/guia/GuiaSearch";
+import { MessagesButton, NotificationsButton } from "@/components/guia/GuiaInbox";
+import { CepGateDialog, useGuiaLocation } from "@/components/guia/CepGateDialog";
+import {
+  ChevronRight,
+  Home,
+  LayoutGrid,
+  List,
+  MapPin,
+  Receipt,
+  Rocket,
+  Search,
+  Star,
+  User,
+  X,
+} from "lucide-react";
 
-const demoProducts = [
-  { name: "Burger Artesanal", desc: "Blend bovino, queijo, alface, brioche", price: 32.9, img: landingBurgerArtesanal },
-  { name: "Combo Smash", desc: "Smash + batata + refri", price: 38.9, img: landingComboSmash },
-  { name: "Burger Bacon", desc: "Bacon crocante, cheddar, brioche", price: 34.9, img: landingBurgerBacon },
-  { name: "Batata + Refri", desc: "Porção de batata com refri 350ml", price: 18.5, img: landingBatataRefri },
-];
+import { useStorefrontRealtime, useGuiaRealtime } from "@/lib/store-realtime";
 
-// Fallback estático usado apenas enquanto os planos do banco carregam.
-const fallbackPricingPlans = [
-  {
-    id: "presenca",
-    name: "Presença",
-    price: 0,
-    annualPrice: null as number | null,
-    tagline: "Sua vitrine no Guia Menuzin, sem pagar nada.",
-    features: [
-      "Página no Guia Menuzin",
-      "Até 20 produtos e 4 categorias",
-      "QR Code e link público",
-      "Botão de WhatsApp",
-      "Estatísticas básicas",
-      "Marca Menuzin visível",
-    ],
-    cta: "Cadastrar grátis",
-  },
-] as const;
+const categoriesQO = queryOptions({
+  queryKey: ["guia", "categories"],
+  queryFn: () => listCategories(),
+  staleTime: 15_000,
+  gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
+});
+const featuredQO = queryOptions({
+  queryKey: ["guia", "featured"],
+  queryFn: () => listFeatured(),
+  staleTime: 15_000,
+  gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
+});
 
-const PLAN_CTA: Record<string, string> = {
-  presenca: "Cadastrar grátis",
-  pro: "Profissionalizar meu delivery",
-};
+const storesQO = queryOptions({
+  queryKey: ["guia", "stores"],
+  queryFn: () => listAllStores(),
+  staleTime: 15_000,
+  gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
+});
 
+const homeQO = queryOptions({
+  queryKey: ["guia", "home"],
+  queryFn: () => getGuiaHome({ data: {} }),
+  staleTime: 15_000,
+  gcTime: 1000 * 60 * 15,
+  refetchOnWindowFocus: true,
+});
 
-
-const HOME_TITLE = "Cardápio digital sem comissão — Menuzin";
-const HOME_DESC =
-  "Use apps como vitrine e fidelize clientes com seu cardápio Menuzin. Receba pedidos no WhatsApp e fique com 100% das vendas.";
-const HOME_OG_TITLE = "Menuzin — Fidelize clientes sem pagar comissão";
 
 export const Route = createFileRoute("/")({
+  loader: ({ context }) => {
+    context.queryClient.prefetchQuery(categoriesQO);
+    context.queryClient.prefetchQuery(featuredQO);
+    context.queryClient.prefetchQuery(storesQO);
+    context.queryClient.prefetchQuery(homeQO);
+    return { origin: "https://menuzin.app" };
+  },
+  pendingComponent: GuiaHomeSkeleton,
   head: () => ({
     meta: [
-      { title: HOME_TITLE },
-      { name: "description", content: HOME_DESC },
-      { property: "og:title", content: HOME_OG_TITLE },
-      { property: "og:description", content: HOME_DESC },
+      { title: "Menuzin — delivery e cardápios de restaurantes perto de você" },
+      {
+        name: "description",
+        content:
+          "Guia de delivery de Parnaíba: restaurantes, pizzarias, hamburguerias, marmitex e açaí do seu bairro. Veja cardápios e peça direto pelo WhatsApp.",
+      },
+      { property: "og:title", content: "Guia Menuzin — comida do seu bairro" },
+      {
+        property: "og:description",
+        content:
+          "O guia local dos restaurantes e comidas de Parnaíba. Peça direto pelo WhatsApp.",
+      },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://menuzin.app/" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: HOME_OG_TITLE },
-      { name: "twitter:description", content: HOME_DESC },
+      { property: "og:url", content: "https://menuzin.app" },
     ],
-    links: [{ rel: "canonical", href: "https://menuzin.app/" }],
+    links: [{ rel: "canonical", href: "https://menuzin.app" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -86,360 +101,818 @@ export const Route = createFileRoute("/")({
           "@type": "WebSite",
           name: "Menuzin",
           url: "https://menuzin.app",
-          description: HOME_DESC,
-        }),
-      },
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: faqs.map((f) => ({
-            "@type": "Question",
-            name: f.q,
-            acceptedAnswer: { "@type": "Answer", text: f.a },
-          })),
+          inLanguage: "pt-BR",
+          description: "Guia de delivery local: restaurantes e cardápios do seu bairro.",
         }),
       },
     ],
   }),
-  component: Landing,
+  component: GuiaHome,
 });
 
-function Landing() {
-  const { data: tenantsData } = useQuery({
-    queryKey: ["public", "active-tenants"],
-    queryFn: () => listActiveTenants(),
-    staleTime: 60_000,
+const VERTICALS: { id: "restaurantes" | "mercados" | "conveniencias"; label: string; emoji: string }[] = [
+  { id: "restaurantes", label: "restaurantes", emoji: "🍔" },
+  { id: "mercados", label: "mercados", emoji: "🛒" },
+  { id: "conveniencias", label: "conveniências", emoji: "🍺" },
+];
+
+function GuiaHome() {
+  useGuiaRealtime();
+
+  const { data: catsData, isLoading: catsLoading } = useQuery({
+    ...categoriesQO,
+    placeholderData: (prev) => prev,
   });
-  // Fonte da verdade dos preços = planos ativos configurados pelo superadmin.
-  const { data: plansData } = useQuery({
-    queryKey: ["plans"],
-    queryFn: () => listPlans(),
-    staleTime: 60_000,
+  const { data: featData, isLoading: featLoading } = useQuery({
+    ...featuredQO,
+    placeholderData: (prev) => prev,
   });
-  const pricingPlans = useMemo(() => {
-    const rows = plansData?.plans ?? [];
-    if (!rows.length) return fallbackPricingPlans.map((p) => ({ ...p, features: [...p.features] }));
-    return rows
-      .slice()
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((p) => ({
-        id: p.slug,
-        name: p.name,
-        price: Number(p.monthly_price) || 0,
-        annualPrice: p.annual_price != null ? Number(p.annual_price) : null,
-        tagline: p.description ?? "",
-        features: p.features ?? [],
-        cta: PLAN_CTA[p.slug] ?? "Falar com a gente",
-      }));
-  }, [plansData]);
-  // Loja demo oficial da plataforma; fallback para a primeira loja ativa.
-  const demoSlug =
-    tenantsData?.tenants?.find((t) => t.slug === DEMO_SLUG)?.slug ?? tenantsData?.tenants?.[0]?.slug;
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-  const [signupOpen, setSignupOpen] = useState(false);
+  const { data: storesData, isLoading: storesLoading } = useQuery({
+    ...storesQO,
+    placeholderData: (prev) => prev,
+  });
+  const { data: home, isLoading: homeLoading } = useQuery({
+    ...homeQO,
+    placeholderData: (prev) => prev,
+  });
+
+  const { location, needsLocation } = useGuiaLocation();
+  const [cepOpen, setCepOpen] = useState(false);
+  useEffect(() => {
+    if (needsLocation) setCepOpen(true);
+  }, [needsLocation]);
+
+  const [vertical, setVertical] = useState<"restaurantes" | "mercados" | "conveniencias">("restaurantes");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [storesView, setStoresView] = useState<"grid" | "list">("list");
+  const [topStoresAll, setTopStoresAll] = useState(false);
+  const [featuredAll, setFeaturedAll] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const allStores = storesData?.stores ?? [];
+  const availableVerticals = useMemo(() => VERTICALS.filter((v) =>
+    v.id === "restaurantes" ? true : allStores.some((s) => s.vertical === v.id),
+  ), [allStores]);
+
+  useEffect(() => {
+    if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
+  }, [availableVerticals, vertical]);
+
+  const isInitialLoading =
+    (!catsData || !featData || !storesData || !home) &&
+    (catsLoading || featLoading || storesLoading || homeLoading);
+
+  if (isInitialLoading) {
+    return <GuiaHomeSkeleton />;
+  }
+
+  if (!catsData || !featData || !storesData || !home) {
+    return <GuiaHomeSkeleton />;
+  }
+
+  const featured = featData.items;
+
+  const byKind = (kind: GuiaSlot["kind"]) => home.slots.filter((s) => s.kind === kind && s.active);
+  const heroSlots = byKind("hero");
+  const featuredSlots = byKind("featured");
+  const topStoresSlots = byKind("top_stores");
+  const bannerSlots = byKind("banner");
+  const collectionSlots = byKind("collection");
+  const flashSlots = byKind("flash_offer");
+  const managedCategories = home.categories;
+  const sectionOrder = home.sectionOrder;
+  const sectionActive = home.sectionActive;
+
+  // Consolida: só categorias que realmente têm produtos ativos no Guia.
+  const countOf = (slug: string) =>
+    catsData.categories.find((x) => x.slug === slug)?.count ?? 0;
+  const visibleCategories = (
+    managedCategories.length > 0
+      ? managedCategories
+      : DIRECTORY_CATEGORIES.map((c, i) => ({
+          id: c.slug,
+          slug: c.slug,
+          label: c.label,
+          emoji: c.emoji,
+          imageUrl: undefined as string | undefined,
+          imageFit: "cover" as "cover" | "contain",
+          active: true,
+          sortOrder: i,
+        }))
+  ).filter((c) => countOf(c.slug) > 0);
+
+  const verticalStores = allStores.filter((s) => s.vertical === vertical);
+  const filteredStores = categoryFilter
+    ? verticalStores.filter((s) => s.categories.includes(categoryFilter))
+    : verticalStores;
+  const activeCategoryLabel = categoryFilter
+    ? (managedCategories.find((c) => c.slug === categoryFilter)?.label
+        ?? DIRECTORY_CATEGORIES.find((c) => c.slug === categoryFilter)?.label
+        ?? categoryFilter)
+    : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b">
-        <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/__l5e/assets-v1/8bccd988-a267-40f1-ae97-10934cea3aac/menuzin-logo.png" alt="Logo Menuzin" className="h-9 w-auto" />
-          </Link>
-          <div className="flex items-center gap-3 md:gap-4">
-            <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#features">Recursos</a>
-              <a href="#plans">Planos</a>
-              <a href="#faq">Dúvidas</a>
-              <a href="#contato">Contato</a>
-              {demoSlug && <Link to="/$slug" params={{ slug: demoSlug }}>Demo da loja</Link>}
-            </nav>
-            <div className="relative group">
-              <span
-                className="absolute -inset-1 -z-10 rounded-full bg-gradient-to-r from-primary via-primary/70 to-primary opacity-60 blur-md transition duration-300 group-hover:opacity-100 group-hover:blur-lg"
-                aria-hidden
-              />
-              <Button
-                asChild
-                className="relative h-10 px-5 text-sm shadow-lg transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:shadow-xl"
-              >
-                <a href="#plans">Começar Agora</a>
-              </Button>
-            </div>
+    <div className="flex h-dvh flex-col bg-muted/30">
+      <CepGateDialog open={cepOpen} onOpenChange={setCepOpen} dismissible={!!location} />
+      <GuiaSearchOverlay open={searchOpen} onOpenChange={setSearchOpen} />
+      {/* Header */}
+      <header
+        className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
+        <div className="mx-auto max-w-5xl px-4 pb-2 pt-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setCepOpen(true)}
+              className="flex min-w-0 flex-1 items-start gap-2 text-left"
+            >
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold leading-tight">
+                  {location?.city ?? "Escolha sua cidade"}{" "}
+                  <ChevronRight className="inline h-3.5 w-3.5" />
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {location
+                    ? `${location.uf ? location.uf + " · " : ""}CEP ${location.cep.slice(0, 5)}-${location.cep.slice(5)}`
+                    : "Informe seu CEP para ver as lojas perto de você"}
+                </p>
+              </div>
+            </button>
+            <MessagesButton />
+            <NotificationsButton offers={[...flashSlots, ...featuredSlots]} />
+          </div>
+
+          {/* Search */}
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="mt-3 flex w-full items-center gap-2 rounded-2xl border bg-background px-3 py-2 text-left"
+          >
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              Busque por lojas, pratos ou promoções…
+            </span>
+          </button>
+
+          {/* Verticals */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {availableVerticals.map((v) => {
+              const active = v.id === vertical;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setVertical(v.id)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
+                    active
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-transparent bg-background text-muted-foreground"
+                  }`}
+                >
+                  <span className="text-lg leading-none">{v.emoji}</span>
+                  {v.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </header>
 
-      <section className="relative overflow-hidden sm:overflow-visible">
-        <div className="container mx-auto grid gap-6 sm:gap-8 lg:gap-10 px-4 py-8 sm:py-12 md:py-16 lg:py-10 xl:py-16 lg:grid-cols-2 lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border bg-orange-500/10 px-3 py-0.5 text-xs font-bold text-orange-600 dark:text-orange-400 sm:px-3.5 sm:py-1">
-              <Rocket className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
-              <span>14 DIAS GRÁTIS DO PLANO PRO LIBERADOS NO CADASTRO</span>
-            </div>
-            <h1 className="mt-2 text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl">
-              Pare de dividir seu lucro. <span className="text-primary">Fidelize sem comissão.</span>
-            </h1>
-            <p className="mt-3 sm:mt-4 max-w-xl text-base text-muted-foreground text-balance md:text-lg">
-              Use os grandes apps como vitrine para atrair clientes e o Menuzin para fazê-los voltar.
-              Receba pedidos no WhatsApp e fique com 100% das vendas.
-            </p>
-            <div className="mt-5 sm:mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <Button size="lg" className="gap-2 bg-gradient-to-r from-orange-500 to-amber-500 font-extrabold text-white shadow-lg shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600" onClick={() => setSignupOpen(true)}>
-                <Rocket className="h-4 w-4" /> Testar 14 Dias Grátis (Plano PRO)
-              </Button>
-              {demoSlug && (
-                <Button asChild variant="outline" size="lg" className="gap-2">
-                  <Link to="/$slug" params={{ slug: demoSlug }}>
-                    Ver loja demo <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              )}
-            </div>
-            <div className="mt-4 sm:mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Sem pedir cartão</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> 14 dias do Plano PRO</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Downgrade grátis automático</span>
-            </div>
-          </div>
+      <main className="flex-1 overflow-y-auto"><div className="mx-auto max-w-5xl space-y-8 px-4 py-5">
+        {/* Hero carousel (fixo, sempre no topo) */}
+        {heroSlots.length > 0 && <HeroCarousel slots={heroSlots} />}
 
-          <div className="relative flex items-center justify-center lg:justify-end py-2 sm:py-4">
-            <div className="pointer-events-none absolute inset-0 -z-10 rounded-[50%] gradient-brand opacity-20 blur-3xl animate-blob-pulse" />
-            <img
-              src={landingHeroDevices}
-              alt="Painel administrativo Menuzin no notebook e cardápio digital no celular"
-              width={1536}
-              height={1024}
-              className="block h-auto w-full max-w-md object-contain drop-shadow-2xl animate-float-device sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[380px] lg:max-h-[420px] xl:max-h-[500px]"
-            />
+        {(() => {
+          const sectionNodes: Record<GuiaSectionId, React.ReactNode> = {
+            categories: (
+              <div className="space-y-8">
+                {visibleCategories.length > 0 && (
+                <Section
+                  title="categorias"
+                  subtitle="explora o que rola no seu bairro"
+                >
+                  <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {visibleCategories.map((c) => {
+                      const isReal = true;
+                      const isSelected = categoryFilter === c.slug;
 
-            {/* Floating elements — sem cards/bordas */}
-            <div className="pointer-events-none absolute left-2 top-2 hidden animate-fade-up-in sm:block md:-left-2 lg:-left-6">
-              <div className="flex animate-float-badge-a items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md dark:bg-card/95 border border-border/40">
-                <div className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary">
-                  <ShoppingBag className="h-3.5 w-3.5" />
-                </div>
-                <div className="text-left leading-tight">
-                  <p className="text-[11px] font-semibold">Novo pedido #1058</p>
-                  <p className="text-[10px] text-muted-foreground">R$ 64,80 · Delivery</p>
-                </div>
+                      const inner = (
+                        <>
+                          {c.imageUrl ? (
+                            <img
+                              src={c.imageUrl}
+                              alt=""
+                              className={`h-14 w-14 ${c.imageFit === "contain" ? "object-contain" : "object-cover"} transition group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}
+                            />
+                          ) : c.emoji?.trim() ? (
+                            <span className={`text-4xl leading-none transition group-hover:scale-110 ${isSelected ? "scale-110" : ""}`}>{c.emoji}</span>
+                          ) : (
+                            <span className="h-14 w-14" />
+                          )}
+
+                          <span className={`text-xs font-semibold leading-tight lowercase ${isSelected ? "text-primary" : ""}`}>{c.label}</span>
+                        </>
+                      );
+                      const cls = `group flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 text-center ${isSelected ? "" : ""}`;
+                      return isReal ? (
+                        <button
+                          key={c.slug}
+                          type="button"
+                          onClick={() => setCategoryFilter((prev) => (prev === c.slug ? null : c.slug))}
+                          aria-pressed={isSelected}
+                          className={cls}
+                        >
+                          {inner}
+                        </button>
+                      ) : (
+                        <div key={c.slug} className={cls}>{inner}</div>
+                      );
+                    })}
+                  </div>
+                </Section>
+                )}
+
+
+                <AllStoresSection
+                  stores={filteredStores}
+                  view={storesView}
+                  onViewChange={setStoresView}
+                  activeCategoryLabel={activeCategoryLabel}
+                  onClearFilter={() => setCategoryFilter(null)}
+                />
               </div>
-            </div>
+            ),
 
-            <div className="pointer-events-none absolute right-2 top-10 hidden animate-fade-up-in delay-300 sm:block md:-right-2 lg:-right-4">
-              <div className="flex animate-float-badge-b items-center gap-2 rounded-full bg-white/95 px-3 py-1.5 shadow-xl backdrop-blur-md dark:bg-card/95 border border-border/40">
-                <div className="relative">
-                  <Bell className="h-4 w-4 animate-bell-swing text-primary" />
-                  <span className="absolute -right-1 -top-1 h-2 w-2 animate-ping-soft rounded-full bg-primary ring-2 ring-white dark:ring-card" />
+            featured: featuredSlots.length > 0 ? (
+              <SlotRowSection
+                title={<>destaques da semana <span>🔥</span></>}
+                subtitle="pra driblar a fome com até 40% OFF"
+                slots={featuredSlots}
+              />
+            ) : null,
+
+            top_stores: topStoresSlots.length > 0 ? (
+              <Section
+                title={<>lojas em alta por aqui <span>✨</span></>}
+                subtitle="só rango top pro seu jantar 🍔🍕🥩"
+                action={topStoresSlots.length > 6 ? "ver mais" : undefined}
+                onAction={() => setTopStoresAll((v) => !v)}
+              >
+                <div className="grid grid-cols-1 gap-3 rounded-xl bg-card p-3 shadow-sm sm:grid-cols-2">
+                  {(topStoresAll ? topStoresSlots : topStoresSlots.slice(0, 6)).map((s) => (
+                    <button key={s.id} type="button" className="rounded-lg text-left transition hover:bg-muted/60">
+                      <SlotCard slot={s} />
+                    </button>
+                  ))}
                 </div>
-                <span className="text-[11px] font-semibold">3 novas notificações</span>
-              </div>
-            </div>
+              </Section>
+            ) : null,
 
-            <div className="pointer-events-none absolute bottom-4 right-2 hidden animate-fade-up-in delay-450 sm:block md:right-0 lg:-right-2">
-              <div className="flex animate-float-badge-c items-center gap-2 rounded-full bg-[#25D366] px-3 py-1.5 text-white shadow-xl border border-white/20">
-                <MessageCircle className="h-4 w-4" />
-                <span className="text-[11px] font-semibold">Pedido enviado ao WhatsApp</span>
-              </div>
-            </div>
-          </div>
+            flash_offer: flashSlots.length > 0 ? (
+              <SlotRowSection
+                title={<>ofertas relâmpago <span>⚡</span></>}
+                subtitle="rápido antes que acabe"
+                slots={flashSlots}
+              />
+            ) : null,
 
-        </div>
-      </section>
+            banner_1: bannerSlots[0] ? <SlotCard slot={bannerSlots[0]} /> : null,
 
-      <section
-        className="relative border-y bg-muted/30 bg-cover bg-center"
-        style={{ backgroundImage: `url(${couplePhoneAsset.url})` }}
-        aria-label="Casal feliz fazendo pedido pelo celular"
+            collection: collectionSlots.length > 0 ? (
+              <SlotRowSection title="coleções de lojas e promos" slots={collectionSlots} />
+            ) : null,
+
+            banner_2: bannerSlots[1] ? <SlotCard slot={bannerSlots[1]} /> : null,
+
+            featured_real: featured.length > 0 ? (
+              <Section
+                title="em destaque agora"
+                subtitle="lançamentos do bairro, direto do WhatsApp da loja"
+                action={featured.length > 3 ? (featuredAll ? "ver menos" : "ver mais") : undefined}
+                onAction={() => setFeaturedAll((v) => !v)}
+              >
+                <div
+                  className={
+                    featuredAll || featured.length <= 3
+                      ? "grid grid-cols-3 gap-3"
+                      : "-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  }
+                >
+                  {(featuredAll ? featured : featured).map((it) => (
+                    <Link
+                      key={it.product_id}
+                      to="/guia/produto/$id"
+                      params={{ id: it.product_id }}
+                      className={`group overflow-hidden rounded-lg bg-card shadow-sm transition hover:shadow-md ${
+                        featuredAll || featured.length <= 3
+                          ? ""
+                          : "w-[calc((100%-1.5rem)/3)] shrink-0 snap-start"
+                      }`}
+                    >
+                      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                        <img
+                          src={productImage(it.image_url)}
+                          alt={it.name}
+                          className="h-full w-full object-cover transition group-hover:scale-105"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <p className="line-clamp-1 text-sm font-bold">{it.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {it.tenant_name}
+                          {it.neighborhood ? ` · ${it.neighborhood}` : ""}
+                        </p>
+                        <p className="mt-1 text-sm font-black text-primary">
+                          {brl(it.promo_price ?? it.price)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </Section>
+            ) : null,
+
+            famozin: <FamozinSection stores={verticalStores} />,
+
+            publish_cta: <PublishCta />,
+          };
+
+          return sectionOrder
+            .filter((id) => sectionActive[id] !== false)
+            .map((id) => <div key={id}>{sectionNodes[id]}</div>);
+        })()}
+      </div></main>
+
+      {/* Bottom nav mobile */}
+      <nav
+        aria-label="Navegação"
+        className="shrink-0 border-t bg-card/95 backdrop-blur"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-background/10 md:from-background/95 md:via-background/40 md:to-transparent" />
-        <div className="relative container mx-auto px-4 py-24 md:py-32 lg:py-40">
-          <div className="max-w-xl">
-            <h2 className="text-3xl font-bold md:text-4xl">Pré-visualização do cardápio</h2>
-            <p className="mt-3 text-base text-muted-foreground md:text-lg">
-              Veja como seus clientes vão pedir — direto do celular, em poucos toques.
-            </p>
-            {demoSlug && (
-              <div className="relative mt-8 inline-flex">
-                <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-primary/60" aria-hidden />
-                <Button asChild size="lg" className="relative gap-2 shadow-lg">
-                  <Link to="/$slug" params={{ slug: demoSlug }}>
-                    Ver demo da loja <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </div>
+        <div className="mx-auto flex max-w-5xl items-center justify-around px-4 py-2">
+          <BottomTab icon={<Home className="h-5 w-5" />} label="início" active />
+          <BottomTab
+            icon={<Search className="h-5 w-5" />}
+            label="busca"
+            onClick={() => setSearchOpen(true)}
+          />
+          <Link
+            to="/meus-pedidos"
+            className="flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold text-muted-foreground transition hover:text-foreground"
+          >
+            <Receipt className="h-5 w-5" />
+            pedidos
+          </Link>
+          <Link
+            to="/minha-conta"
+            className="flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold text-muted-foreground transition hover:text-foreground"
+          >
+            <User className="h-5 w-5" />
+            conta
+          </Link>
         </div>
-      </section>
+      </nav>
+    </div>
+  );
+}
 
-      <section className="border-y bg-card">
-        <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-10 gap-y-4 px-4 py-6 text-sm text-muted-foreground">
-          <span className="flex items-center gap-2"><Store className="h-4 w-4 text-primary" /> Multi-loja</span>
-          <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> LGPD &amp; pagamentos seguros</span>
-          <span className="flex items-center gap-2"><Headphones className="h-4 w-4 text-primary" /> Suporte em português</span>
-        </div>
-      </section>
+// ---------- SUB COMPONENTS ----------
 
-      <section id="features" className="border-y bg-muted/40">
-        <div className="container mx-auto grid gap-8 px-4 py-16 md:grid-cols-4">
-          {[
-            { icon: Utensils, t: "Cardápio digital", d: "Categorias, adicionais, variações e destaques com fotos." },
-            { icon: Smartphone, t: "Pedidos em tempo real", d: "Receba e gerencie pedidos com notificações instantâneas." },
-            { icon: MessageCircle, t: "Integração WhatsApp", d: "Pedido enviado direto, formatado e pronto para imprimir." },
-            { icon: BarChart3, t: "Painel de gestão", d: "Métricas, produtos, cupons, taxas e equipe — tudo em um lugar." },
-          ].map(({ icon: Icon, t, d }) => (
-            <div key={t} className="rounded-2xl border bg-card p-6 shadow-[var(--shadow-soft)]">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
-              <h3 className="mt-4 font-semibold">{t}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{d}</p>
+function HeroCarousel({ slots }: { slots: GuiaSlot[] }) {
+  const [idx, setIdx] = useState(0);
+  const [drag, setDrag] = useState(0);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const moved = useRef(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (slots.length <= 1 || paused) return;
+    timer.current = setInterval(() => setIdx((i) => (i + 1) % slots.length), 5000);
+    return () => {
+      if (timer.current) clearInterval(timer.current);
+    };
+  }, [slots.length, paused]);
+
+  const width = () => wrapRef.current?.clientWidth || 1;
+
+  const onDown = (x: number) => {
+    if (slots.length <= 1) return;
+    dragging.current = true;
+    moved.current = false;
+    startX.current = x;
+    setPaused(true);
+  };
+  const onMove = (x: number) => {
+    if (!dragging.current) return;
+    const dx = x - startX.current;
+    if (Math.abs(dx) > 6) moved.current = true;
+    setDrag(dx);
+  };
+  const onUp = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    const threshold = width() * 0.2;
+    if (drag <= -threshold) setIdx((i) => (i + 1) % slots.length);
+    else if (drag >= threshold) setIdx((i) => (i - 1 + slots.length) % slots.length);
+    setDrag(0);
+    setPaused(false);
+  };
+
+  const offsetPct = (drag / width()) * 100;
+
+  return (
+    <div className="space-y-2">
+      <div
+        ref={wrapRef}
+        className="relative touch-pan-y select-none overflow-hidden rounded-xl"
+        onTouchStart={(e) => onDown(e.touches[0].clientX)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX)}
+        onTouchEnd={onUp}
+        onPointerDown={(e) => e.pointerType === "mouse" && onDown(e.clientX)}
+        onPointerMove={(e) => e.pointerType === "mouse" && onMove(e.clientX)}
+        onPointerUp={(e) => e.pointerType === "mouse" && onUp()}
+        onPointerLeave={(e) => e.pointerType === "mouse" && onUp()}
+        onClickCapture={(e) => {
+          if (moved.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            moved.current = false;
+          }
+        }}
+      >
+        <div
+          className={`flex ${dragging.current ? "" : "transition-transform duration-500 ease-out"}`}
+          style={{ transform: `translateX(calc(-${idx * 100}% + ${offsetPct}%))` }}
+        >
+          {slots.map((s) => (
+            <div key={s.id} className="flex w-full shrink-0 justify-center">
+              <SlotCard slot={s} />
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Deep features (mostra valor antes do preço) */}
-      <FeatureShowcaseSection products={demoProducts} />
-
-      {/* Planos — posicionados após a demonstração de valor */}
-      <section id="plans" className="relative overflow-hidden bg-gradient-to-b from-muted/40 via-background to-background">
-        <div className="container mx-auto px-4 py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-              Planos &amp; preços
-            </span>
-            <h2 className="mt-4 text-3xl font-bold md:text-4xl">Escolha o plano ideal para o seu negócio</h2>
-            <p className="mt-3 text-muted-foreground">
-              Comece grátis no Presença e evolua quando precisar de painel de pedidos, pagamento online e automação. Sem fidelidade.
-            </p>
-
-
-            {/* Toggle mensal / anual */}
-            <div className="mt-8 flex flex-col items-center gap-2">
-              <div className="inline-flex items-center rounded-full border bg-card p-1 shadow-[var(--shadow-soft)]">
-                <button
-                  type="button"
-                  onClick={() => setBilling("monthly")}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                    billing === "monthly" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Mensal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBilling("annual")}
-                  className={`relative rounded-full px-4 py-2 text-sm font-medium transition ${
-                    billing === "annual" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Anual
-                  <span className="ml-2 inline-flex items-center rounded-full bg-success px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-success-foreground">
-                    2 meses grátis
-                  </span>
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {billing === "annual" ? "Economize ~17% pagando anualmente" : "Cobrado mensalmente, sem fidelidade"}
-              </p>
-            </div>
-          </div>
-          <div className="mx-auto mt-12 grid max-w-3xl gap-6 md:grid-cols-2">
-            {pricingPlans.map((p) => {
-              const isFree = p.price <= 0;
-              const monthly = p.price;
-              // Preço anual do banco quando configurado; senão 10x mensal (2 meses grátis).
-              const annualTotal = p.annualPrice != null ? p.annualPrice : p.price * 10;
-              const annualMonthly = Math.round((annualTotal / 12) * 100) / 100;
-              const displayed = billing === "annual" ? annualMonthly : monthly;
-              const fmt = (n: number) =>
-                n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-              const isPro = p.id === "pro";
-              return (
-                <div
-                  key={p.id}
-                  className={`relative flex flex-col rounded-3xl border bg-card p-8 transition ${
-                    isPro
-                      ? "border-2 border-primary shadow-[var(--shadow-pop)] ring-2 ring-primary/20"
-                      : "shadow-[var(--shadow-soft)]"
-                  }`}
-                >
-                  {isPro && (
-                    <span className="absolute -top-3 left-1/2 inline-flex -translate-x-1/2 items-center whitespace-nowrap rounded-full bg-primary px-4 py-1 text-xs font-bold text-primary-foreground shadow">
-                      Melhor Custo-Benefício
-                    </span>
-                  )}
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-2xl font-bold">{p.name}</h3>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground min-h-[2.5rem]">{p.tagline}</p>
-                  <div className="mt-5">
-                    {billing === "annual" && !isFree && (
-                      <p className="text-sm text-muted-foreground line-through">
-                        De R$ {fmt(monthly)}/mês
-                      </p>
-                    )}
-                    <p className="text-4xl font-bold">
-                      R$ {fmt(displayed)}
-                      <span className="text-base font-normal text-muted-foreground">/mês</span>
-                    </p>
-                    {billing === "annual" && !isFree ? (
-                      <p className="mt-1 text-xs font-medium text-success">
-                        R$ {fmt(annualTotal)} por ano · 2 meses grátis
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-muted-foreground">Cobrado mensalmente</p>
-                    )}
-                  </div>
-                  <ul className="mt-6 space-y-3 text-sm">
-                    {p.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#F46622]" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  {isFree ? (
-                    <Button
-                      className="mt-8 w-full gap-2 bg-[#F46622] text-white hover:bg-[#d9561a]"
-                      size="lg"
-                      onClick={() => setSignupOpen(true)}
-                    >
-                      <Rocket className="h-4 w-4" /> Criar meu cardápio grátis
-                    </Button>
-                  ) : (
-                    <Button
-                      asChild
-                      className="mt-8 w-full gap-2 bg-[#F46622] text-white hover:bg-[#d9561a]"
-                      size="lg"
-                    >
-                      <a href={WHATSAPP_CONTACT_URL} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle className="h-4 w-4" /> {p.cta}
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            Sem fidelidade. Você pode mudar de plano quando quiser.
-          </p>
+      </div>
+      {slots.length > 1 && (
+        <div className="flex justify-center gap-1.5">
+          {slots.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Slide ${i + 1}`}
+              onClick={() => setIdx(i)}
+              className={`h-1.5 rounded-full transition-all ${
+                i === idx ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/40"
+              }`}
+            />
+          ))}
         </div>
-      </section>
-
-      {/* FAQ — quebra objeções imediatamente após o preço */}
-      <FaqSection plans={pricingPlans.map((p) => ({ name: p.name, price: p.price }))} />
-
-      {/* CTA final + contato */}
-      <CTABanner onCTAClick={() => setSignupOpen(true)} />
-      <ContactSpecialistSection />
-      <LandingFooter />
-
-      <QuickSignupModal open={signupOpen} onOpenChange={setSignupOpen} />
-      <WhatsAppFloatingButton />
+      )}
     </div>
+  );
+}
+
+function Section({
+  title,
+  subtitle,
+  action,
+  onAction,
+  children,
+}: {
+  title: React.ReactNode;
+  subtitle?: string;
+  action?: string;
+  onAction?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-black leading-tight tracking-tight lowercase">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
+        {action && (
+          <button
+            type="button"
+            onClick={onAction}
+            className="shrink-0 text-xs font-bold text-primary hover:underline"
+          >
+            {action} <ChevronRight className="inline h-3 w-3" />
+          </button>
+        )}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function PublishCta() {
+  return (
+    <section
+      aria-label="Publique seu cardápio"
+      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-fuchsia-600 to-purple-700 p-6 text-white shadow-lg sm:p-8"
+    >
+      <div className="pointer-events-none absolute -right-6 -top-6 select-none text-[8rem] leading-none opacity-25">
+        🍽️
+      </div>
+      <div className="pointer-events-none absolute -bottom-8 -left-4 select-none text-[6rem] leading-none opacity-20">
+        🚀
+      </div>
+      <div className="relative z-10 max-w-xl">
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-[10px] font-black uppercase tracking-widest backdrop-blur">
+          <Rocket className="h-3 w-3" /> lojista? bora vender mais
+        </span>
+        <h2 className="mt-3 text-2xl font-black leading-tight sm:text-4xl">
+          Publique seu cardápio grátis no MenuZin
+        </h2>
+        <p className="mt-2 text-sm opacity-95 sm:text-base">
+          Crie sua loja em 2 minutos, receba pedidos direto pelo WhatsApp e apareça de graça no Guia do seu bairro. Sem taxas, sem complicação.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link
+            to="/comece-agora"
+            className="inline-flex items-center gap-1 rounded-full bg-white px-5 py-2.5 text-sm font-black text-purple-700 shadow-lg transition hover:scale-105"
+          >
+            Começar grátis <ChevronRight className="h-4 w-4" />
+          </Link>
+          <Link
+            to="/comece-agora"
+            className="text-sm font-semibold underline-offset-4 hover:underline"
+          >
+            Ver planos e recursos
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SlotRowSection({
+  title,
+  subtitle,
+  slots,
+}: {
+  title: React.ReactNode;
+  subtitle?: string;
+  slots: GuiaSlot[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Section
+      title={title}
+      subtitle={subtitle}
+      action={slots.length > 1 ? (expanded ? "ver menos" : "ver mais") : undefined}
+      onAction={() => setExpanded((v) => !v)}
+    >
+      {expanded ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {slots.map((s) => (
+            <SlotCard key={s.id} slot={s} />
+          ))}
+        </div>
+      ) : (
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {slots.map((s) => (
+            <div key={s.id} className="shrink-0 snap-start text-left">
+              <SlotCard slot={s} />
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function FamozinSection({ stores }: { stores: DirectoryStore[] }) {
+  const [expanded, setExpanded] = useState(false);
+  // Ordena pelas lojas mais bem avaliadas; sem avaliação vem depois.
+  const ranked = [...stores].sort((a, b) => {
+    const ar = a.rating_avg ?? -1;
+    const br = b.rating_avg ?? -1;
+    if (ar !== br) return br - ar;
+    if (a.rating_count !== b.rating_count) return b.rating_count - a.rating_count;
+    return a.tenant_name.localeCompare(b.tenant_name);
+  });
+  const list = expanded ? ranked : ranked.slice(0, 8);
+  if (!ranked.length) return null;
+  return (
+    <Section
+      title={<>famozin na cidade <span>😎</span></>}
+      subtitle="as lojas mais bem avaliadas por aqui"
+      action={ranked.length > 8 ? (expanded ? "ver menos" : "ver mais") : undefined}
+      onAction={() => setExpanded((v) => !v)}
+    >
+      <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
+        {list.map((s) => (
+          <Link
+            key={s.tenant_id}
+            to="/$slug"
+            params={{ slug: s.tenant_slug }}
+            className="group flex flex-col items-center gap-1.5 text-center"
+          >
+            <div className="relative h-16 w-16 overflow-hidden rounded-full border bg-muted shadow-sm transition group-hover:scale-105">
+              {s.tenant_logo ? (
+                <img src={s.tenant_logo} alt={s.tenant_name} className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-lg font-black text-muted-foreground">
+                  {s.tenant_name.slice(0, 1)}
+                </span>
+              )}
+              {!s.open && (
+                <span className="absolute inset-0 flex items-center justify-center bg-background/70 text-[9px] font-black uppercase text-muted-foreground">
+                  fechada
+                </span>
+              )}
+            </div>
+            <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{s.tenant_name}</span>
+            {s.rating_avg != null ? (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600">
+                <Star className="h-2.5 w-2.5 fill-current" />
+                {s.rating_avg.toFixed(1).replace(".", ",")}
+              </span>
+            ) : (
+              <span className="text-[10px] font-semibold text-muted-foreground">nova</span>
+            )}
+          </Link>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+
+function BottomTab({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-14 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[10px] font-bold transition ${
+        active
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {icon}
+      <span className="lowercase">{label}</span>
+    </button>
+  );
+}
+
+function AllStoresSection({
+  stores,
+  view,
+  onViewChange,
+  activeCategoryLabel,
+  onClearFilter,
+}: {
+  stores: {
+    tenant_id: string;
+    tenant_slug: string;
+    tenant_name: string;
+    tenant_logo: string | null;
+    neighborhood: string | null;
+    city: string | null;
+    categories: string[];
+    product_count: number;
+    has_featured: boolean;
+  }[];
+  view: "grid" | "list";
+  onViewChange: (v: "grid" | "list") => void;
+  activeCategoryLabel?: string | null;
+  onClearFilter?: () => void;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {activeCategoryLabel && (
+          <button
+            type="button"
+            onClick={onClearFilter}
+            className="mr-auto inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary hover:bg-primary/20"
+          >
+            categoria: {activeCategoryLabel}
+            <X className="h-3 w-3" />
+          </button>
+        )}
+        <div className="inline-flex shrink-0 items-center rounded-lg border bg-background p-0.5">
+          <button
+            type="button"
+            aria-label="Ver em grade"
+            aria-pressed={view === "grid"}
+            onClick={() => onViewChange("grid")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              view === "grid"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            grade
+          </button>
+          <button
+            type="button"
+            aria-label="Ver em lista"
+            aria-pressed={view === "list"}
+            onClick={() => onViewChange("list")}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold transition ${
+              view === "list"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />
+            lista
+          </button>
+        </div>
+      </div>
+
+      {stores.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+          {activeCategoryLabel ? "Nenhuma loja nessa categoria." : "Nenhuma loja cadastrada ainda."}
+        </p>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-3 gap-3">
+          {stores.map((s) => (
+            <Link
+              key={s.tenant_id}
+              to="/$slug"
+              params={{ slug: s.tenant_slug }}
+              className="group flex flex-col overflow-hidden rounded-lg bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="relative aspect-square overflow-hidden bg-muted">
+                {s.tenant_logo ? (
+                  <img
+                    src={s.tenant_logo}
+                    alt={s.tenant_name}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-4xl">
+                    🍽️
+                  </div>
+                )}
+              </div>
+              <div className="p-2.5">
+                <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
+                <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                  {s.neighborhood ?? s.city ?? "no bairro"}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="divide-y overflow-hidden rounded-lg bg-card shadow-sm">
+          {stores.map((s) => (
+            <Link
+              key={s.tenant_id}
+              to="/$slug"
+              params={{ slug: s.tenant_slug }}
+              className="flex items-center gap-3 p-3 transition hover:bg-muted/60"
+            >
+              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-muted">
+                {s.tenant_logo ? (
+                  <img
+                    src={s.tenant_logo}
+                    alt={s.tenant_name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="text-2xl">🍽️</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-1 text-sm font-bold">{s.tenant_name}</p>
+                <p className="line-clamp-1 text-xs text-muted-foreground">
+                  {s.neighborhood ?? s.city ?? "no bairro"}
+                  {s.categories.length > 0 ? ` · ${s.categories.slice(0, 3).join(", ")}` : ""}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

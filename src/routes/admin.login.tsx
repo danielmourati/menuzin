@@ -159,7 +159,7 @@ function LoginPage() {
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-orange-200/60 bg-card/95 p-6 shadow-2xl backdrop-blur-xl dark:border-orange-900/40 sm:p-8 md:p-10">
         {/* Logo do Menuzin */}
         <div className="mb-6 flex justify-center">
-          <Link to="/" className="inline-block transition-transform hover:scale-105 active:scale-95">
+          <Link to="/comece-agora" className="inline-block transition-transform hover:scale-105 active:scale-95">
             <img src={menuzinLogo} alt="Menuzin" className="h-10 w-auto drop-shadow-sm md:h-12" />
           </Link>
         </div>

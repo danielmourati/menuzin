@@ -96,7 +96,7 @@ function MinhaConta() {
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
           <Button asChild variant="ghost" size="icon" className="rounded-xl">
-            <Link to="/guia">
+            <Link to="/">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -125,7 +125,7 @@ function MinhaConta() {
               compras em qualquer loja do Menuzin.
             </p>
             <Button asChild className="mt-4">
-              <Link to="/guia">Explorar o Guia</Link>
+              <Link to="/">Explorar o Guia</Link>
             </Button>
           </div>
         ) : (

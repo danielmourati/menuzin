@@ -303,7 +303,7 @@ function OptInBlock() {
       {tenant?.directory_opt_in && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
-            <Link to="/guia" target="_blank">
+            <Link to="/" target="_blank">
               Ver Guia público <ExternalLink className="ml-1 h-3 w-3" />
             </Link>
           </Button>

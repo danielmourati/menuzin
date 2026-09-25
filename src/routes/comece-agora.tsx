@@ -99,7 +99,7 @@ function ComeceAgora() {
     <div className="min-h-screen overflow-x-hidden bg-background">
       <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
         <div className="container mx-auto grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 sm:flex sm:justify-between">
-          <Link to="/" className="min-w-0">
+          <Link to="/comece-agora" className="min-w-0">
             <img src={menuzinLogoAsset.url} alt="Menuzin" className="h-9 w-auto" />
           </Link>
           <div className="flex shrink-0 items-center gap-3">
