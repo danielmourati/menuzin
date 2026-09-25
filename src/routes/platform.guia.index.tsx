@@ -124,7 +124,7 @@ function PlatformGuiaOverview() {
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link to="/guia" target="_blank">
+                <Link to="/" target="_blank">
                   Abrir <ExternalLink className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
@@ -148,7 +148,7 @@ function PlatformGuiaOverview() {
               <iframe
                 key={reloadKey}
                 title="Guia Menuzin preview"
-                src="/guia"
+                src="/"
                 width={spec.width}
                 height={spec.height}
                 className={

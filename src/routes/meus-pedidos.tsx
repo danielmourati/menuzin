@@ -62,7 +62,7 @@ function MyOrdersPage() {
       <header className="sticky top-0 z-20 border-b bg-card/95 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
           <Button asChild variant="ghost" size="icon" className="rounded-xl">
-            <Link to="/guia">
+            <Link to="/">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -148,7 +148,7 @@ function EmptyState({ title, text }: { title: string; text: string }) {
       <h2 className="mt-3 font-semibold">{title}</h2>
       <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">{text}</p>
       <Button asChild className="mt-4">
-        <Link to="/guia">Explorar o Guia</Link>
+        <Link to="/">Explorar o Guia</Link>
       </Button>
     </div>
   );
