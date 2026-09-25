@@ -10,6 +10,8 @@ export type DbTenant = {
   city: string;
   state: string;
   address: string;
+  cep?: string | null;
+  document?: string | null;
   open: boolean;
   prep_time: string;
   min_order: number;
