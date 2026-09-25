@@ -359,7 +359,6 @@ function SettingsPage() {
                   <div className="col-span-6"><Label>Ponto de referência <span className="font-normal text-muted-foreground">(opcional)</span></Label><Input value={form.address_reference} onChange={(e) => set("address_reference", e.target.value)} placeholder="Ex.: ao lado da farmácia" className="mt-1.5" maxLength={200} /></div>
                 </div>
               </div>
-              <div className="md:col-span-2 border-t pt-6" />
               <div className="md:col-span-2">
                 <Label>Tipo de negócio</Label>
                 <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
