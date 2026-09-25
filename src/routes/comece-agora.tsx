@@ -117,7 +117,7 @@ function ComeceAgora() {
               </span>
               <p className="mt-3 sm:mt-4 text-xs sm:text-sm font-bold uppercase text-primary-foreground/85">Pare de dividir seu lucro.</p>
               <h1 className="mt-2 text-3xl font-bold leading-tight text-balance sm:text-4xl md:text-5xl lg:text-5xl xl:text-6xl">
-                A experiência de um grande app de delivery, <span className="text-primary-foreground/90 underline decoration-primary-foreground/40 underline-offset-8">sem pagar comissão por pedido.</span>
+                A experiência de um grande app de delivery, <span className="text-primary-foreground/90">sem pagar comissão por pedido.</span>
               </h1>
               <p className="mt-3 sm:mt-4 max-w-2xl text-base leading-relaxed text-primary-foreground/85 md:text-lg">
                 Painel visual de pedidos, impressão automática na cozinha e rastreio em tempo real para o cliente. <strong className="text-primary-foreground">Assuma o controle do seu delivery.</strong>
