@@ -41,6 +41,8 @@ type FormState = {
   whatsapp: string;
   description: string;
   address: string;
+  address_number: string;
+  address_reference: string;
   neighborhood: string;
   cep: string;
   document: string;
@@ -142,7 +144,7 @@ function SettingsPage() {
 
 
   const [form, setForm] = useState<FormState>({
-    name: "", whatsapp: "", description: "", address: "", neighborhood: "", cep: "", document: "", city: "", state: "",
+    name: "", whatsapp: "", description: "", address: "", address_number: "", address_reference: "", neighborhood: "", cep: "", document: "", city: "", state: "",
     delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
@@ -165,6 +167,8 @@ function SettingsPage() {
       whatsapp: tenant.whatsapp ?? "",
       description: tenant.description ?? "",
       address: tenant.address ?? "",
+      address_number: (tenant as { address_number?: string | null }).address_number ?? "",
+      address_reference: (tenant as { address_reference?: string | null }).address_reference ?? "",
       neighborhood: tenant.neighborhood ?? "",
       cep: tenant.cep ?? "",
       document: tenant.document ?? "",
@@ -224,11 +228,9 @@ function SettingsPage() {
       if (res.status === "ok") {
         const r = res.results[0];
         setForm((prev) => {
-          // Mantém número/complemento digitados após a vírgula, quando houver.
-          const rest = prev.address.includes(",") ? prev.address.slice(prev.address.indexOf(",")) : "";
           return {
             ...prev,
-            address: r.logradouro ? `${r.logradouro}${rest}` : prev.address,
+            address: r.logradouro || prev.address,
             neighborhood: r.bairro || prev.neighborhood,
             city: r.localidade || prev.city,
             state: r.uf || prev.state,
@@ -292,7 +294,10 @@ function SettingsPage() {
             </TabsList>
 
             <TabsContent value="dados" className="mt-6 grid gap-4 md:grid-cols-2">
-              <div><Label>Nome da loja</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} className="mt-1.5" /></div>
+              <div className="md:col-span-2 space-y-4">
+                <h3 className="text-sm font-bold">Identificação</h3>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div><Label>Nome da loja</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} className="mt-1.5" /></div>
               <div>
                 <Label>WhatsApp</Label>
                 <div className="mt-1.5 flex">
@@ -307,11 +312,17 @@ function SettingsPage() {
                   />
                 </div>
               </div>
-              <div className="md:col-span-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-1.5" /></div>
-              <div className="md:col-span-2">
-                <Label>Documento (CNPJ/CPF)</Label>
-                <Input value={form.document} onChange={(e) => set("document", formatCnpjCpf(e.target.value))} placeholder="00.000.000/0001-00" className="mt-1.5" maxLength={18} />
+                  <div>
+                    <Label>Documento (CNPJ/CPF)</Label>
+                    <Input value={form.document} onChange={(e) => set("document", formatCnpjCpf(e.target.value))} placeholder="00.000.000/0001-00" className="mt-1.5" maxLength={18} />
+                  </div>
+                  <div className="md:col-span-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-1.5" /></div>
+                </div>
               </div>
+              <div className="md:col-span-2 space-y-4 border-t pt-6">
+                <h3 className="text-sm font-bold">Endereço da loja</h3>
+                <div className="grid grid-cols-6 gap-4">
+                  <div className="col-span-6 md:col-span-2">
               <div>
                 <Label>CEP</Label>
                 <div className="mt-1.5 relative">
@@ -331,10 +342,24 @@ function SettingsPage() {
                 </div>
                 {cepError && <p className="mt-1 text-xs text-destructive">{cepError}</p>}
               </div>
-              <div className="md:col-span-2"><Label>Endereço / Logradouro</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
-              <div><Label>Bairro</Label><Input value={form.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} className="mt-1.5" /></div>
-              <div><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
-              <div><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value)} className="mt-1.5" /></div>
+                  </div>
+                  <div className="hidden md:col-span-4 md:block" />
+                  <div className="col-span-4 md:col-span-5"><Label>Rua / Logradouro</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} className="mt-1.5" /></div>
+                  <div className="col-span-2 md:col-span-1">
+                    <Label>Nº</Label>
+                    <Input value={form.address_number} onChange={(e) => set("address_number", e.target.value)} placeholder="123" className="mt-1.5" maxLength={20} />
+                    <label className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <input type="checkbox" checked={form.address_number === "S/N"} onChange={(e) => set("address_number", e.target.checked ? "S/N" : "")} />
+                      S/N
+                    </label>
+                  </div>
+                  <div className="col-span-6 md:col-span-3"><Label>Bairro</Label><Input value={form.neighborhood} onChange={(e) => set("neighborhood", e.target.value)} className="mt-1.5" /></div>
+                  <div className="col-span-4 md:col-span-2"><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
+                  <div className="col-span-2 md:col-span-1"><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value.toUpperCase().slice(0, 2))} className="mt-1.5" maxLength={2} /></div>
+                  <div className="col-span-6"><Label>Ponto de referência <span className="font-normal text-muted-foreground">(opcional)</span></Label><Input value={form.address_reference} onChange={(e) => set("address_reference", e.target.value)} placeholder="Ex.: ao lado da farmácia" className="mt-1.5" maxLength={200} /></div>
+                </div>
+              </div>
+              <div className="md:col-span-2 border-t pt-6" />
               <div className="md:col-span-2">
                 <Label>Tipo de negócio</Label>
                 <p className="mb-2 mt-0.5 text-xs text-muted-foreground">
