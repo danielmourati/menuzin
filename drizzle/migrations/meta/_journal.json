@@ -15,6 +15,13 @@
       "when": 1790267048378,
       "tag": "0001_orders_idempotency_key",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790308943860,
+      "tag": "0002_tenant_delivery_km",
+      "breakpoints": true
     }
   ]
 }
