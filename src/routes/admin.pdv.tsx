@@ -330,10 +330,10 @@ function PdvPage() {
           tenantSlug={tenantData?.tenant?.slug}
           tenantInfo={tenantData?.tenant ? { 
             name: tenantData.tenant.name, 
-            logoUrl: tenantData.tenant.logoUrl ?? null, 
-            logoLetter: tenantData.tenant.logoLetter ?? null 
+            logoUrl: tenantData.tenant.logo_url ?? null, 
+            logoLetter: tenantData.tenant.logo_letter ?? null 
           } : null}
-          pizzaSizes={selectedProduct?.category_id ? (catsData?.categories?.find(c => c.id === selectedProduct.category_id)?.pizza_sizes?.filter(s => s.active) || []).map(s => ({
+          pizzaSizes={selectedProduct?.category_id ? ((((catsData?.categories?.find(c => c.id === selectedProduct.category_id) as unknown as { pizza_sizes?: DbCategoryPizzaSize[] } | undefined)?.pizza_sizes) ?? []).filter((s: DbCategoryPizzaSize) => s.active)).map((s: DbCategoryPizzaSize) => ({
             id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed"
           })) : []}
           pizzaFlavors={

@@ -70,7 +70,7 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   const der = pemToDer(pem);
   return await crypto.subtle.importKey(
     "pkcs8",
-    der,
+    der as unknown as BufferSource,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-512" },
     false,
     ["sign"],
