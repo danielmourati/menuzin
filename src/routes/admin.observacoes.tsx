@@ -412,6 +412,7 @@ function ObservacoesPage() {
                   invalidateKeys={[["admin", "addon-groups"]]}
                   isFirst={idx === 0}
                   isLast={idx === groups.length - 1}
+                  siblingIds={groups.map((x) => x.id)}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

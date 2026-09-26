@@ -136,6 +136,7 @@ function CategoriesPage() {
                 <ReorderButtons
                   entity="category"
                   id={c.id}
+                  siblingIds={list.map((x) => x.id)}
                   invalidateKeys={[["admin", "categories"]]}
                   isFirst={idx === 0}
                   isLast={idx === list.length - 1}

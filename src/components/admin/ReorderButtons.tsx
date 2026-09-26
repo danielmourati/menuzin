@@ -11,21 +11,24 @@ type Props = {
   id: string;
   /** Chaves da query para invalidar após o swap (lista a ser reordenada). */
   invalidateKeys: ReadonlyArray<ReadonlyArray<unknown>>;
+  /** Ids na ordem exibida na tela — a seta troca com o vizinho visível. */
+  siblingIds?: string[];
   isFirst?: boolean;
   isLast?: boolean;
 };
 
-export function ReorderButtons({ entity, id, invalidateKeys, isFirst, isLast }: Props) {
+export function ReorderButtons({ entity, id, invalidateKeys, siblingIds, isFirst, isLast }: Props) {
   const qc = useQueryClient();
   const mut = useMutation({
     mutationFn: (direction: "up" | "down") =>
-      reorderCatalogItem({ data: { entity, id, direction } }),
-    onSuccess: () => {
-      for (const key of invalidateKeys) {
-        qc.invalidateQueries({ queryKey: key as unknown as readonly unknown[] });
-      }
-    },
-    onError: (e: Error) => toast.error(e.message),
+      reorderCatalogItem({ data: { entity, id, direction, orderedIds: siblingIds } }),
+    onSettled: () =>
+      Promise.all(
+        invalidateKeys.map((key) =>
+          qc.invalidateQueries({ queryKey: key as unknown as readonly unknown[] }),
+        ),
+      ),
+    onError: (e: Error) => toast.error(e.message || "Não foi possível mudar a ordem."),
   });
 
   return (
@@ -37,7 +40,7 @@ export function ReorderButtons({ entity, id, invalidateKeys, isFirst, isLast }: 
         className="h-6 w-6"
         title="Mover para cima"
         disabled={isFirst || mut.isPending}
-        onClick={() => mut.mutate("up")}
+        onClick={(e) => { e.stopPropagation(); mut.mutate("up"); }}
       >
         {mut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUp className="h-3.5 w-3.5" />}
       </Button>
@@ -48,7 +51,7 @@ export function ReorderButtons({ entity, id, invalidateKeys, isFirst, isLast }: 
         className="h-6 w-6"
         title="Mover para baixo"
         disabled={isLast || mut.isPending}
-        onClick={() => mut.mutate("down")}
+        onClick={(e) => { e.stopPropagation(); mut.mutate("down"); }}
       >
         <ArrowDown className="h-3.5 w-3.5" />
       </Button>
