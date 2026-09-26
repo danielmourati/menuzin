@@ -346,3 +346,81 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+const ManualOrderInput = z.object({
+  customer_name: z.string().min(1).max(120),
+  whatsapp: z.string().max(20).optional().nullable(),
+  mode: z.enum(["entrega", "retirada", "consumo_local"]),
+  payment_label: z.string().max(120).default(""),
+  payment_status: z.enum(["pending", "approved", "manual"]).default("manual"),
+  initial_status: z.enum(["novo", "preparo"]).default("preparo"),
+  change_for: z.number().min(0).max(99999).nullable().optional(),
+  delivery_fee: z.number().min(0).max(9999).default(0),
+  address: z.record(z.string(), z.string()).nullable().optional(),
+  table_label: z.string().max(50).nullable().optional(),
+  note: z.string().max(500).nullable().optional(),
+  items: z.array(ItemSchema).min(1).max(50),
+});
+
+export const createManualOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ManualOrderInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { tenantId } = await tryResolveEffectiveTenantId(supabase, userId) ?? {};
+    if (!tenantId) throw new Error("Acesso negado: você não tem uma loja selecionada.");
+
+    const subtotal = data.items.reduce((s, it) => s + it.qty * it.unit_price, 0);
+    const total = subtotal + data.delivery_fee;
+
+    // A chamada usa o cliente administrativo para gravar pedido
+    const { data: order, error: oErr } = await supabaseAdmin
+      .from("orders")
+      .insert({
+        tenant_id: tenantId,
+        customer_id: null,
+        status: data.initial_status,
+        payment_status: data.payment_status,
+        customer_name: data.customer_name,
+        whatsapp: data.whatsapp || "",
+        mode: data.mode,
+        payment_label: data.payment_label,
+        change_for: data.change_for ?? null,
+        subtotal,
+        delivery_fee: data.delivery_fee,
+        discount_amount: 0,
+        total,
+        address: data.address ?? null,
+        table_label: data.table_label ?? null,
+        note: data.note ?? null,
+      })
+      .select("*")
+      .single();
+
+    if (oErr || !order) throw new Error(oErr?.message || "Falha ao criar pedido no PDV");
+
+    const { error: iErr } = await supabaseAdmin
+      .from("order_items")
+      .insert(data.items.map((it) => ({
+        order_id: order.id,
+        product_id: it.product_id ?? null,
+        name_snapshot: it.name_snapshot,
+        qty: it.qty,
+        unit_price: it.unit_price,
+        addons: it.addons,
+        note: it.note ?? null,
+      })));
+    if (iErr) throw new Error(iErr.message);
+
+    // Timeline entry
+    await supabaseAdmin.from("order_status_history").insert({
+      order_id: order.id,
+      previous_status: null,
+      new_status: data.initial_status,
+      note: "Pedido lançado via PDV",
+      changed_by: userId,
+    });
+
+    return { orderId: order.id, displayId: order.display_id };
+  });
+
