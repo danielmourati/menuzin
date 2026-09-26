@@ -1,3 +1,4 @@
+import { getPriceRange } from "@/lib/product-selection";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { brl } from "@/lib/format";
@@ -18,10 +19,10 @@ export function ProductCard({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const unavailable = !product.available;
   const isPizza = product.categoryKind === "pizza";
-  const positiveSizePrices = (product.sizes ?? []).map((s) => s.price).filter((n) => n > 0);
-  const minSizePrice = positiveSizePrices.length > 0 ? Math.min(...positiveSizePrices) : undefined;
-  const displayPrice = isPizza && minSizePrice != null ? minSizePrice : (product.promoPrice ?? product.price);
-  const showFromPrefix = isPizza;
+  const range = getPriceRange(product.sizes);
+  const minSizePrice = range.min ?? undefined;
+  const showFromPrefix = isPizza || range.varies;
+  const displayPrice = showFromPrefix && minSizePrice != null ? minSizePrice : (product.promoPrice ?? product.price);
 
 
   if (view === "list") {
