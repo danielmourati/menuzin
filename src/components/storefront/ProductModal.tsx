@@ -61,6 +61,7 @@ export function ProductModal({
   const [qty, setQty] = useState(1);
   const [legacyAddons, setLegacyAddons] = useState<ProductAddon[]>([]);
   const [sizeId, setSizeId] = useState<string | null>(null);
+  const [sizeTouched, setSizeTouched] = useState(false);
   const [flavorIds, setFlavorIds] = useState<string[]>([]);
   const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
   const [doughId, setDoughId] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export function ProductModal({
         }
       } else {
         setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
+        setSizeTouched(false);
         setFlavorIds([]);
       }
       setGroupSelections({});
@@ -283,6 +285,7 @@ export function ProductModal({
 
   const handleSelectStandardSize = (v: string) => {
     setSizeId(v);
+    setSizeTouched(true);
     const nextTarget = allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart";
     scrollToNextSection(nextTarget);
   };
@@ -530,6 +533,11 @@ export function ProductModal({
               <>
                 <span className="text-sm text-muted-foreground">A partir de </span>
                 <span className="font-bold">{brl(pizzaStartingFrom)}</span>
+              </>
+            ) : !isPizzaCategory && !sizeTouched && getPriceRange(product.sizes).varies ? (
+              <>
+                <span className="text-sm text-muted-foreground">A partir de </span>
+                <span className="font-bold">{brl(getPriceRange(product.sizes).min!)}</span>
               </>
             ) : (
               <>

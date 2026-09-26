@@ -195,3 +195,11 @@ export function parseAddonLabel(name: string): ParsedAddonLabel {
 export function listAddonGroups(product: Product): AddonGroup[] {
   return product.addonGroups ?? [];
 }
+
+/** Menor/maior preço positivo entre os tamanhos; `varies` quando diferem. */
+export function getPriceRange(sizes?: { price: number }[] | null): { min: number | null; max: number | null; varies: boolean } {
+  const p = (sizes ?? []).map((s) => Number(s.price)).filter((n) => Number.isFinite(n) && n > 0);
+  if (!p.length) return { min: null, max: null, varies: false };
+  const min = Math.min(...p), max = Math.max(...p);
+  return { min, max, varies: min < max };
+}
