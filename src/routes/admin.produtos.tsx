@@ -909,6 +909,7 @@ function ProductsPage() {
                                   invalidateKeys={[["admin", "addon-groups"]]}
                                   isFirst={idx === 0}
                                   isLast={idx === obsGroups.length - 1}
+                                  siblingIds={obsGroups.map((x) => x.id)}
                                 />
                               </div>
                               <Checkbox
@@ -1026,6 +1027,7 @@ function ProductsPage() {
                                   invalidateKeys={[["admin", "addon-groups"]]}
                                   isFirst={idx === 0}
                                   isLast={idx === addonSubcats.length - 1}
+                                  siblingIds={addonSubcats.map((x) => x.id)}
                                 />
                               </div>
                               <Checkbox
