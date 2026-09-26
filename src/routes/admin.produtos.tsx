@@ -612,6 +612,7 @@ function ProductsPage() {
                   <ReorderButtons
                     entity="product"
                     id={p.id}
+                    siblingIds={filtered.map((x) => x.id)}
                     invalidateKeys={[["admin", "products"]]}
                     isFirst={idx === 0}
                     isLast={idx === filtered.length - 1}

@@ -407,7 +407,7 @@ function AdicionaisPage() {
           return (
             <Card key={g.id}>
               <CardContent className="flex flex-wrap items-center gap-3 p-4">
-                <ReorderButtons entity="addonGroup" id={g.id} invalidateKeys={[["admin", "addon-groups"]]} isFirst={idx === 0} isLast={idx === groups.length - 1} />
+                <ReorderButtons entity="addonGroup" id={g.id} siblingIds={groups.map((x) => x.id)} invalidateKeys={[["admin", "addon-groups"]]} isFirst={idx === 0} isLast={idx === groups.length - 1} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-semibold">{g.name}</p>

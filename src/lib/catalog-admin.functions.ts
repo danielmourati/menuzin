@@ -36,7 +36,7 @@ export const listMyCategories = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     const { data, error } = await sb
-      .from("categories").select("*").eq("tenant_id", tenantId).order("sort_order");
+      .from("categories").select("*").eq("tenant_id", tenantId).order("sort_order").order("created_at");
     if (error) throw new Error(error.message);
     return { categories: (data ?? []) as DbCategory[] };
   });
@@ -112,9 +112,9 @@ async function loadProductDetails(sb: SB, productIds: string[]) {
     };
   }
   const [{ data: addons }, { data: sizes }, { data: flavors }] = await Promise.all([
-    sb.from("product_addons").select("*").in("product_id", productIds).order("sort_order"),
-    sb.from("product_sizes").select("*").in("product_id", productIds).order("sort_order"),
-    sb.from("product_flavors").select("*").in("product_id", productIds).order("sort_order"),
+    sb.from("product_addons").select("*").in("product_id", productIds).order("sort_order").order("created_at"),
+    sb.from("product_sizes").select("*").in("product_id", productIds).order("sort_order").order("created_at"),
+    sb.from("product_flavors").select("*").in("product_id", productIds).order("sort_order").order("created_at"),
   ]);
   return {
     addons: (addons ?? []) as DbAddon[],
@@ -131,7 +131,7 @@ export const listMyProducts = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     const { data: products, error: pErr } = await sb
-      .from("products").select("*").eq("tenant_id", tenantId).order("sort_order");
+      .from("products").select("*").eq("tenant_id", tenantId).order("sort_order").order("created_at");
     if (pErr) throw new Error(pErr.message);
     const productIds = (products ?? []).map((p) => p.id as string);
     const { addons, sizes, flavors } = await loadProductDetails(sb, productIds);
@@ -465,14 +465,14 @@ export const listAddonGroups = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     const { data: groups, error } = await sb
-      .from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order");
+      .from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order").order("created_at");
     if (error) throw new Error(error.message);
     const groupIds = (groups ?? []).map((g) => g.id as string);
     if (!groupIds.length) {
       return { groups: [] as (DbAddonGroup & { targets: DbAddonGroupTarget[] })[] };
     }
     const [{ data: opts }, { data: targets }] = await Promise.all([
-      sb.from("addon_options").select("*").in("group_id", groupIds).order("sort_order"),
+      sb.from("addon_options").select("*").in("group_id", groupIds).order("sort_order").order("created_at"),
       sb.from("addon_group_targets").select("*").in("group_id", groupIds),
     ]);
     const optsByGroup = new Map<string, DbAddonOption[]>();
@@ -637,12 +637,12 @@ export const listAddonItems = createServerFn({ method: "POST" })
     const sb = context.supabase as SB;
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     const { data: groups, error } = await sb
-      .from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order");
+      .from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order").order("created_at");
     if (error) throw new Error(error.message);
     const ids = (groups ?? []).map((g) => g.id as string);
     if (!ids.length) return { items: [] as AddonItem[] };
     const [{ data: opts }, { data: targets }] = await Promise.all([
-      sb.from("addon_options").select("*").in("group_id", ids).order("sort_order"),
+      sb.from("addon_options").select("*").in("group_id", ids).order("sort_order").order("created_at"),
       sb.from("addon_group_targets").select("*").in("group_id", ids),
     ]);
     const firstOpt = new Map<string, DbAddonOption>();
@@ -758,9 +758,9 @@ export const listCategoryPizzaConfig = createServerFn({ method: "POST" })
     const tenantId = await getAuthorizedTenantId(sb, context.userId);
     await assertCategoryOwnership(sb, tenantId, data.category_id);
     const [sizes, doughs, crusts] = await Promise.all([
-      sbAny(sb).from("category_pizza_sizes").select("*").eq("category_id", data.category_id).order("sort_order"),
-      sbAny(sb).from("category_pizza_doughs").select("*").eq("category_id", data.category_id).order("sort_order"),
-      sbAny(sb).from("category_pizza_crusts").select("*").eq("category_id", data.category_id).order("sort_order"),
+      sbAny(sb).from("category_pizza_sizes").select("*").eq("category_id", data.category_id).order("sort_order").order("created_at"),
+      sbAny(sb).from("category_pizza_doughs").select("*").eq("category_id", data.category_id).order("sort_order").order("created_at"),
+      sbAny(sb).from("category_pizza_crusts").select("*").eq("category_id", data.category_id).order("sort_order").order("created_at"),
     ]);
     if (sizes.error) throw new Error(sizes.error.message);
     if (doughs.error) throw new Error(doughs.error.message);

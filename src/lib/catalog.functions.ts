@@ -71,8 +71,8 @@ export const getCatalog = createServerFn({ method: "POST" })
       supabaseAdmin.from("order_ratings").select("stars").eq("tenant_id", tenantId),
       getTenantPlan(tenantId),
       isTenantBlocked(tenantId),
-      supabaseAdmin.from("categories").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order"),
-      supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).order("sort_order"),
+      supabaseAdmin.from("categories").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order").order("created_at"),
+      supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).order("sort_order").order("created_at"),
       supabaseAdmin.from("addon_groups").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     ]);
 
@@ -113,13 +113,13 @@ export const getCatalog = createServerFn({ method: "POST" })
       { data: pCrusts },
     ] = await Promise.all([
       prodIds.length
-        ? supabaseAdmin.from("product_sizes").select("*").in("product_id", prodIds).order("sort_order")
+        ? supabaseAdmin.from("product_sizes").select("*").in("product_id", prodIds).order("sort_order").order("created_at")
         : Promise.resolve({ data: [] }),
       prodIds.length
-        ? supabaseAdmin.from("product_flavors").select("*").in("product_id", prodIds).eq("available", true).order("sort_order")
+        ? supabaseAdmin.from("product_flavors").select("*").in("product_id", prodIds).eq("available", true).order("sort_order").order("created_at")
         : Promise.resolve({ data: [] }),
       prodIds.length
-        ? supabaseAdmin.from("product_addons").select("*").in("product_id", prodIds).order("sort_order")
+        ? supabaseAdmin.from("product_addons").select("*").in("product_id", prodIds).order("sort_order").order("created_at")
         : Promise.resolve({ data: [] }),
       groupIds.length
         ? supabaseAdmin.from("addon_options").select("*").in("group_id", groupIds).eq("active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true })
@@ -128,13 +128,13 @@ export const getCatalog = createServerFn({ method: "POST" })
         ? supabaseAdmin.from("addon_group_targets").select("*").in("group_id", groupIds)
         : Promise.resolve({ data: [] }),
       pizzaCats.length
-        ? sbAny.from("category_pizza_sizes").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order")
+        ? sbAny.from("category_pizza_sizes").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order").order("created_at")
         : Promise.resolve({ data: [] }),
       pizzaCats.length
-        ? sbAny.from("category_pizza_doughs").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order")
+        ? sbAny.from("category_pizza_doughs").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order").order("created_at")
         : Promise.resolve({ data: [] }),
       pizzaCats.length
-        ? sbAny.from("category_pizza_crusts").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order")
+        ? sbAny.from("category_pizza_crusts").select("*").in("category_id", pizzaCats).eq("active", true).order("sort_order").order("created_at")
         : Promise.resolve({ data: [] }),
     ]);
 
