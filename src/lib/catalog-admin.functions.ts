@@ -134,13 +134,15 @@ export const listMyProducts = createServerFn({ method: "POST" })
     const productIds = (products ?? []).map((p) => p.id as string);
     const { addons, sizes, flavors } = await loadProductDetails(sb, productIds);
 
-    const [{ data: groupsRaw }, { data: opts }, { data: targets }] = await Promise.all([
-      sb.from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
-      sb.from("addon_options").select("*, addon_groups!inner(tenant_id)").eq("addon_groups.tenant_id", tenantId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
-      sb.from("addon_group_targets").select("*, addon_groups!inner(tenant_id)").eq("addon_groups.tenant_id", tenantId),
+    const { data: groupsRaw } = await sb.from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order", { ascending: true }).order("created_at", { ascending: true });
+    const groups = (groupsRaw ?? []) as any[];
+    const groupIds = groups.map(g => g.id);
+
+    const [{ data: opts }, { data: targets }] = await Promise.all([
+      groupIds.length ? sb.from("addon_options").select("*").in("group_id", groupIds).order("sort_order", { ascending: true }).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
+      groupIds.length ? sb.from("addon_group_targets").select("*").in("group_id", groupIds) : Promise.resolve({ data: [] }),
     ]);
 
-    const groups = (groupsRaw ?? []) as any[];
     const optionsByGroup = new Map<string, any[]>();
     for (const o of (opts ?? []) as any[]) {
       const arr = optionsByGroup.get(o.group_id) ?? [];
