@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, type LucideIcon } from "lucide-react";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, type LucideIcon } from "lucide-react";
 import { StoreSideMenu } from "@/components/storefront/StoreSideMenu";
 import { StoreAboutDrawer } from "@/components/storefront/StoreAboutDrawer";
 import { getDeliveryFeeRange } from "@/lib/delivery-zones.functions";
@@ -231,7 +231,7 @@ type PizzaSizeRow = { id: string; category_id: string; name: string; pieces: num
 
 function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizzaCrusts }: { tenant: Tenant; categories: Category[]; products: Product[]; pizzaSizes: PizzaSizeRow[]; pizzaDoughs: PizzaExtraRow[]; pizzaCrusts: PizzaExtraRow[] }) {
   const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  // const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<string>("Todos");
@@ -481,14 +481,33 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setSearchOpen((v) => !v)}
-            aria-label="Buscar produtos"
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-primary-foreground shadow-md transition active:scale-95 ${searchOpen ? "bg-primary/70" : "bg-primary hover:bg-primary/90"}`}
-          >
-            {searchOpen ? <XIcon className="h-4 w-4 md:h-5 md:w-5" /> : <Search className="h-4 w-4 md:h-5 md:w-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: tenant.name,
+                    text: `Conheça ${tenant.name} no Menuzin!`,
+                    url: window.location.href,
+                  }).catch(console.error);
+                } else {
+                  window.open(`https://api.whatsapp.com/send?text=Confira o cardápio de ${tenant.name}: ${window.location.href}`);
+                }
+              }}
+              aria-label="Compartilhar"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/90 active:scale-95"
+            >
+              <Share2 className="h-4 w-4 md:h-5 md:w-5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Favoritar"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/90 active:scale-95"
+            >
+              <Heart className="h-4 w-4 md:h-5 md:w-5" />
+            </button>
+          </div>
         </div>
 
 
@@ -556,22 +575,28 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </button>
         </div>
 
-        {/* Search input (colapsável) */}
-        {searchOpen && (
-          <div className="relative mt-2 mb-4">
-            <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="storefront-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produtos no cardápio..."
-              aria-label="Buscar produtos no cardápio"
-              autoFocus
-              className="h-11 rounded-2xl border-input bg-card pl-10.5 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
-            />
-          </div>
-        )}
+        {/* Search input (fixo) */}
+        <div className="relative mt-2 mb-4">
+          <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" aria-hidden="true" />
+          <Input
+            id="storefront-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="busque por item ou categoria"
+            aria-label="Buscar produtos no cardápio"
+            className="h-11 rounded-2xl border-input bg-card pl-10 pr-10 text-foreground shadow-sm placeholder:text-muted-foreground focus-visible:ring-primary/30"
+          />
+          {search.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
 
 
@@ -658,11 +683,28 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setSearchOpen((v) => !v)}
-                    aria-label="Buscar produtos"
-                    className="grid h-8 w-8 place-items-center rounded-full bg-muted/80 text-foreground transition active:scale-95"
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: tenant.name,
+                          text: `Conheça ${tenant.name} no Menuzin!`,
+                          url: window.location.href,
+                        }).catch(console.error);
+                      } else {
+                        window.open(`https://api.whatsapp.com/send?text=Confira o cardápio de ${tenant.name}: ${window.location.href}`);
+                      }
+                    }}
+                    aria-label="Compartilhar"
+                    className="grid h-8 w-8 place-items-center rounded-full text-primary hover:bg-muted/50 transition active:scale-95"
                   >
-                    {searchOpen ? <XIcon className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                    <Share2 className="h-4 w-4 md:h-5 md:w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Favoritar"
+                    className="grid h-8 w-8 place-items-center rounded-full text-primary hover:bg-muted/50 transition active:scale-95"
+                  >
+                    <Heart className="h-4 w-4 md:h-5 md:w-5" />
                   </button>
                   <button
                     type="button"
