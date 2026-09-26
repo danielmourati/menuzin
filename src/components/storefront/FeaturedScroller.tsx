@@ -60,18 +60,18 @@ export function FeaturedScroller({
                   )}
                 </div>
                 <div className="relative p-2.5 pr-10">
-                  <h3 className="line-clamp-1 text-sm font-semibold">{p.name}</h3>
+                  <h3 className="line-clamp-1 text-base font-semibold">{p.name}</h3>
                   {p.description && (
-                    <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{p.description}</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>
                   )}
                   <div className="mt-1">
                     {p.promoPrice ? (
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-sm font-bold text-primary">{brl(p.promoPrice)}</span>
-                        <span className="text-[10px] text-muted-foreground line-through">{brl(p.price)}</span>
+                        <span className="text-base font-bold text-primary">{brl(p.promoPrice)}</span>
+                        <span className="text-xs text-muted-foreground line-through">{brl(p.price)}</span>
                       </div>
                     ) : (
-                      <span className="text-sm font-bold">{brl(p.price)}</span>
+                      <span className="text-base font-bold">{brl(p.price)}</span>
                     )}
                   </div>
                   {!unavailable && (
