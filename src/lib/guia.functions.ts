@@ -82,9 +82,10 @@ export const getGuiaHome = createServerFn({ method: "GET" })
       supabaseAdmin.from("guia_sections").select("*").order("sort_order", { ascending: true }),
     ]);
 
-    if (slotsRes.error) throw new Error(slotsRes.error.message);
-    if (catsRes.error) throw new Error(catsRes.error.message);
-    if (secRes.error) throw new Error(secRes.error.message);
+    // Falha momentânea do banco (ex.: timeout) não deve derrubar a página inicial.
+    for (const r of [slotsRes, catsRes, secRes]) {
+      if (r.error) console.error("[getGuiaHome]", r.error.message);
+    }
 
     const cityMatch = (rowCity: string | null | undefined) =>
       !rowCity || !city || normalizeCity(rowCity) === city;
