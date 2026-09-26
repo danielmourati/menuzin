@@ -123,6 +123,8 @@ async function loadProductDetails(sb: SB, productIds: string[]) {
   };
 }
 
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
 export const listMyProducts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -139,8 +141,8 @@ export const listMyProducts = createServerFn({ method: "POST" })
     const groupIds = groups.map(g => g.id);
 
     const [{ data: opts }, { data: targets }] = await Promise.all([
-      groupIds.length ? sb.from("addon_options").select("*").in("group_id", groupIds).order("sort_order", { ascending: true }).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
-      groupIds.length ? sb.from("addon_group_targets").select("*").in("group_id", groupIds) : Promise.resolve({ data: [] }),
+      groupIds.length ? supabaseAdmin.from("addon_options").select("*").in("group_id", groupIds).order("sort_order", { ascending: true }).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
+      groupIds.length ? supabaseAdmin.from("addon_group_targets").select("*").in("group_id", groupIds) : Promise.resolve({ data: [] }),
     ]);
 
     const optionsByGroup = new Map<string, any[]>();
