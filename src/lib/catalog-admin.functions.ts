@@ -922,6 +922,7 @@ export const reorderCatalogItem = createServerFn({ method: "POST" })
 
     // Carrega item atual e valida ownership pelo escopo apropriado.
     let scopeFilter: { column: string; value: string };
+    let kindFilter: { column: string; value: string } | undefined;
     let currentSort: number;
     if (data.entity === "addonOption") {
       const { data: opt, error: oErr } = await sbAny(sb)
@@ -934,19 +935,29 @@ export const reorderCatalogItem = createServerFn({ method: "POST" })
       scopeFilter = { column: "group_id", value: (opt as { group_id: string }).group_id };
       currentSort = Number((opt as { sort_order: number }).sort_order ?? 0);
     } else {
+      const selectStr = data.entity === "addonGroup" ? "id, tenant_id, sort_order, kind" : "id, tenant_id, sort_order";
       const { data: row, error } = await sbAny(sb)
-        .from(table).select("id, tenant_id, sort_order").eq("id", data.id).maybeSingle();
+        .from(table).select(selectStr).eq("id", data.id).maybeSingle();
       if (error || !row) throw new Error("Item não encontrado.");
       if ((row as { tenant_id: string }).tenant_id !== tenantId) throw new Error("Sem permissão.");
       scopeFilter = { column: "tenant_id", value: tenantId };
       currentSort = Number((row as { sort_order: number }).sort_order ?? 0);
+      if (data.entity === "addonGroup" && (row as any).kind) {
+        kindFilter = { column: "kind", value: (row as any).kind };
+      }
     }
 
     // Busca todos os itens do mesmo escopo ordenados por sort_order e criacao
-    const { data: allItems, error: aErr } = await sbAny(sb)
+    let query = sbAny(sb)
       .from(table)
       .select("id, sort_order")
-      .eq(scopeFilter.column, scopeFilter.value)
+      .eq(scopeFilter.column, scopeFilter.value);
+      
+    if (kindFilter) {
+      query = query.eq(kindFilter.column, kindFilter.value);
+    }
+
+    const { data: allItems, error: aErr } = await query
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
     if (aErr || !allItems) throw new Error("Erro ao consultar itens para reordenação.");
