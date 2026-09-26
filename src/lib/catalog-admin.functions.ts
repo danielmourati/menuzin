@@ -134,6 +134,48 @@ export const listMyProducts = createServerFn({ method: "POST" })
     const productIds = (products ?? []).map((p) => p.id as string);
     const { addons, sizes, flavors } = await loadProductDetails(sb, productIds);
 
+    const [{ data: groupsRaw }, { data: opts }, { data: targets }] = await Promise.all([
+      sb.from("addon_groups").select("*").eq("tenant_id", tenantId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+      sb.from("addon_options").select("*, addon_groups!inner(tenant_id)").eq("addon_groups.tenant_id", tenantId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+      sb.from("addon_group_targets").select("*, addon_groups!inner(tenant_id)").eq("addon_groups.tenant_id", tenantId),
+    ]);
+
+    const groups = (groupsRaw ?? []) as any[];
+    const optionsByGroup = new Map<string, any[]>();
+    for (const o of (opts ?? []) as any[]) {
+      const arr = optionsByGroup.get(o.group_id) ?? [];
+      arr.push(o);
+      optionsByGroup.set(o.group_id, arr);
+    }
+    const groupsById = new Map<string, any>();
+    for (const g of groups) {
+      groupsById.set(g.id, { ...g, options: optionsByGroup.get(g.id) ?? [] });
+    }
+
+    const groupsByProduct = new Map<string, any[]>();
+    const productsByCategory = new Map<string, string[]>();
+    for (const p of (products ?? [])) {
+      if (p.category_id) {
+        const arr = productsByCategory.get(p.category_id) ?? [];
+        arr.push(p.id);
+        productsByCategory.set(p.category_id, arr);
+      }
+    }
+    const addGroupToProduct = (pid: string, g: any) => {
+      const arr = groupsByProduct.get(pid) ?? [];
+      if (!arr.some((x) => x.id === g.id)) arr.push(g);
+      groupsByProduct.set(pid, arr);
+    };
+    for (const t of (targets ?? []) as any[]) {
+      const g = groupsById.get(t.group_id);
+      if (!g) continue;
+      if (t.product_id) addGroupToProduct(t.product_id, g);
+      if (t.category_id) {
+        for (const pid of productsByCategory.get(t.category_id) ?? []) addGroupToProduct(pid, g);
+      }
+    }
+    const groupIndexMap = new Map<string, number>(groups.map((g, idx) => [g.id, idx]));
+
     const groupBy = <T extends { product_id: string }>(arr: T[]) => {
       const m = new Map<string, T[]>();
       for (const x of arr) {
@@ -152,6 +194,7 @@ export const listMyProducts = createServerFn({ method: "POST" })
       addons: aByP.get(p.id) ?? [],
       sizes: sByP.get(p.id) ?? [],
       flavors: fByP.get(p.id) ?? [],
+      addonGroups: (groupsByProduct.get(p.id) ?? []).sort((a, b) => (groupIndexMap.get(a.id) ?? 0) - (groupIndexMap.get(b.id) ?? 0)),
     }));
     return { products: list };
   });
