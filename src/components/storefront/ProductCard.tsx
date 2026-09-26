@@ -1,3 +1,4 @@
+import { getPriceRange } from "@/lib/product-selection";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { brl } from "@/lib/format";

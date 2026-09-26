@@ -1,3 +1,4 @@
+import { getPriceRange } from "@/lib/product-selection";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
