@@ -13,8 +13,7 @@ import { Loader2, Plus, Minus, Search, ShoppingCart, Utensils, Check, ArrowRight
 import { listMyCategories, listMyProducts } from "@/lib/catalog-admin.functions";
 import { createManualOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
-import type { OrderMode } from "@/lib/domain-types";
-import { printOrderToQZ } from "@/lib/printer";
+type OrderMode = "entrega" | "retirada" | "consumo_local" | "balcao";
 import { getMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/pdv")({ component: PdvPage });
@@ -44,7 +43,7 @@ function PdvPage() {
   // Checkout states
   const [customerName, setCustomerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [mode, setMode] = useState<OrderMode>("balcao" as any);
+  const [mode, setMode] = useState<OrderMode>("balcao");
   const [tableLabel, setTableLabel] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved">("approved");
   const [paymentLabel, setPaymentLabel] = useState("Dinheiro");
@@ -104,14 +103,6 @@ function PdvPage() {
     },
     onSuccess: async (data) => {
       toast.success(`Pedido #${data.displayId} lançado com sucesso!`);
-      // Try printing
-      if (tenantData?.tenant) {
-        try {
-          await printOrderToQZ(tenantData.tenant as any, data.orderId, true);
-        } catch (err) {
-          console.error(err);
-        }
-      }
       setCart([]);
       setCustomerName("");
       setWhatsapp("");

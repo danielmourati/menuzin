@@ -378,6 +378,7 @@ export const createManualOrder = createServerFn({ method: "POST" })
       .from("orders")
       .insert({
         tenant_id: tenantId,
+        number: 0, // trigger preenche
         customer_id: null,
         status: data.initial_status,
         payment_status: data.payment_status,
@@ -421,6 +422,6 @@ export const createManualOrder = createServerFn({ method: "POST" })
       changed_by: userId,
     });
 
-    return { orderId: order.id, displayId: order.display_id };
+    return { orderId: order.id, displayId: order.number };
   });
 
