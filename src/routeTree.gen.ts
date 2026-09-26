@@ -35,6 +35,7 @@ import { Route as AdminRedefinirSenhaRouteImport } from './routes/admin.redefini
 import { Route as AdminRecuperarSenhaRouteImport } from './routes/admin.recuperar-senha'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminPdvRouteImport } from './routes/admin.pdv'
 import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
 import { Route as AdminNotificacoesRouteImport } from './routes/admin.notificacoes'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
@@ -210,6 +211,11 @@ const AdminProdutosRoute = AdminProdutosRouteImport.update({
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
   id: '/admin/pedidos',
   path: '/admin/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPdvRoute = AdminPdvRouteImport.update({
+  id: '/admin/pdv',
+  path: '/admin/pdv',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
@@ -482,6 +488,7 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/admin/notificacoes': typeof AdminNotificacoesRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
+  '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/recuperar-senha': typeof AdminRecuperarSenhaRoute
@@ -555,6 +562,7 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/admin/notificacoes': typeof AdminNotificacoesRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
+  '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/recuperar-senha': typeof AdminRecuperarSenhaRoute
@@ -629,6 +637,7 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/admin/notificacoes': typeof AdminNotificacoesRoute
   '/admin/observacoes': typeof AdminObservacoesRoute
+  '/admin/pdv': typeof AdminPdvRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/produtos': typeof AdminProdutosRoute
   '/admin/recuperar-senha': typeof AdminRecuperarSenhaRoute
@@ -705,6 +714,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/notificacoes'
     | '/admin/observacoes'
+    | '/admin/pdv'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/recuperar-senha'
@@ -778,6 +788,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/notificacoes'
     | '/admin/observacoes'
+    | '/admin/pdv'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/recuperar-senha'
@@ -851,6 +862,7 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/admin/notificacoes'
     | '/admin/observacoes'
+    | '/admin/pdv'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/admin/recuperar-senha'
@@ -921,6 +933,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminNotificacoesRoute: typeof AdminNotificacoesRoute
   AdminObservacoesRoute: typeof AdminObservacoesRoute
+  AdminPdvRoute: typeof AdminPdvRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProdutosRoute: typeof AdminProdutosRoute
   AdminRecuperarSenhaRoute: typeof AdminRecuperarSenhaRoute
@@ -1135,6 +1148,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/pedidos'
       fullPath: '/admin/pedidos'
       preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/pdv': {
+      id: '/admin/pdv'
+      path: '/admin/pdv'
+      fullPath: '/admin/pdv'
+      preLoaderRoute: typeof AdminPdvRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/observacoes': {
@@ -1562,6 +1582,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminNotificacoesRoute: AdminNotificacoesRoute,
   AdminObservacoesRoute: AdminObservacoesRoute,
+  AdminPdvRoute: AdminPdvRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProdutosRoute: AdminProdutosRoute,
   AdminRecuperarSenhaRoute: AdminRecuperarSenhaRoute,
