@@ -901,6 +901,7 @@ const ReorderInput = z.object({
   entity: z.enum(["category", "product", "addonGroup", "addonOption"]),
   id: z.string().uuid(),
   direction: z.enum(["up", "down"]),
+  orderedIds: z.array(z.string().uuid()).max(2000).optional(),
 });
 
 type ReorderEntity = "category" | "product" | "addonGroup" | "addonOption";
@@ -963,22 +964,34 @@ export const reorderCatalogItem = createServerFn({ method: "POST" })
     if (aErr || !allItems) throw new Error("Erro ao consultar itens para reordenação.");
 
     const items = allItems as { id: string; sort_order: number }[];
-    const idx = items.findIndex((item) => item.id === data.id);
+    const inScope = new Set(items.map((i) => i.id));
+
+    // Lista visível na tela (respeita filtros). Sem ela, usa o escopo inteiro.
+    const visible = (data.orderedIds ?? []).filter((id) => inScope.has(id));
+    const subset = visible.length > 1 && visible.includes(data.id) ? visible : items.map((i) => i.id);
+
+    const idx = subset.indexOf(data.id);
     if (idx === -1) return { ok: true, swapped: false };
-
     const targetIdx = data.direction === "up" ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= items.length) return { ok: true, swapped: false };
+    if (targetIdx < 0 || targetIdx >= subset.length) return { ok: true, swapped: false };
 
-    // Swap no array local
-    const temp = items[idx];
-    items[idx] = items[targetIdx];
-    items[targetIdx] = temp;
+    const reordered = [...subset];
+    [reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]];
 
-    // Atualização sequencial no banco garantindo sort_order distinto (0, 1, 2, 3...)
-    await Promise.all(
-      items.map((item, i) =>
-        sbAny(sb).from(table).update({ sort_order: i }).eq("id", item.id)
-      )
+    // Encaixa a nova ordem do subconjunto nas mesmas posições que ele ocupa no escopo.
+    const subsetSet = new Set(subset);
+    let k = 0;
+    const finalIds = items.map((i) => (subsetSet.has(i.id) ? reordered[k++] : i.id));
+
+    // Renumera 0..N (elimina empates) gravando só o que mudou; falha = erro visível.
+    const current = new Map(items.map((i) => [i.id, Number(i.sort_order ?? 0)]));
+    const updates = finalIds
+      .map((id, i) => ({ id, i }))
+      .filter(({ id, i }) => current.get(id) !== i);
+    const results = await Promise.all(
+      updates.map(({ id, i }) => sbAny(sb).from(table).update({ sort_order: i }).eq("id", id)),
     );
+    const failed = results.find((r: { error: unknown }) => r.error);
+    if (failed) throw new Error("Não foi possível salvar a nova ordem. Tente novamente.");
     return { ok: true, swapped: true };
   });
