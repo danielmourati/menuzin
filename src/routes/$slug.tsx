@@ -10,10 +10,15 @@ import { StoreAboutDrawer } from "@/components/storefront/StoreAboutDrawer";
 import { getDeliveryFeeRange } from "@/lib/delivery-zones.functions";
 
 
-function getCategoryIcon(name: string): LucideIcon {
+import { PastelSalgadoIcon, PastelDoceIcon } from "@/components/storefront/PastelIcons";
+
+function getCategoryIcon(name: string): LucideIcon | typeof PastelSalgadoIcon {
   const n = name.toLowerCase();
   if (n.includes("tod")) return LayoutGrid;
   if (n.includes("pizza")) return Pizza;
+  if (n.includes("doce") && (n.includes("pastel") || n.includes("pastéis") || n.includes("pasteis"))) return PastelDoceIcon;
+  if (n.includes("doce")) return PastelDoceIcon;
+  if (n.includes("pastel") || n.includes("pastéis") || n.includes("pasteis") || n.includes("sabor") || n.includes("montado")) return PastelSalgadoIcon;
   if (n.includes("hambur") || n.includes("burger") || n.includes("lanche")) return Sandwich;
   if (n.includes("combo")) return UtensilsCrossed;
   if (n.includes("bebid") || n.includes("drink") || n.includes("suco") || n.includes("refri")) return GlassWater;
