@@ -43,7 +43,7 @@ type PizzaFlavorOption = {
 
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo,
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart,
 }: {
   product: Product | null;
   open: boolean;
@@ -55,6 +55,7 @@ export function ProductModal({
   freeGiftProduct?: Product | null;
   tenantSlug?: string;
   tenantInfo?: { name?: string | null; logoUrl?: string | null; logoLetter?: string | null; ratingAvg?: number | null; prepTimeLabel?: string | null } | null;
+  onAddToCart?: (item: any) => void;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -396,7 +397,7 @@ export function ProductModal({
 
     if (selectedDough && selectedDough.extraPrice >= 0) extras.push({ id: `dough-${selectedDough.id}`, name: `Massa: ${selectedDough.name}`, price: selectedDough.extraPrice });
     if (selectedCrust) extras.push({ id: `crust-${selectedCrust.id}`, name: `Borda: ${selectedCrust.name}${isCrustFree ? " (Grátis)" : ""}`, price: isCrustFree ? 0 : selectedCrust.extraPrice });
-    add({
+    const itemPayload = {
       product,
       qty,
       addons: [...legacyAddons, ...extras],
@@ -405,16 +406,28 @@ export function ProductModal({
       groupOptions: groupOptionsSelected.length ? groupOptionsSelected : undefined,
       basePrice,
       note: note || undefined,
-    });
+    };
+
+    if (onAddToCart) {
+      onAddToCart(itemPayload);
+    } else {
+      add(itemPayload);
+    }
+
     // Free gift: auto add a separate item at price 0 for each pizza
     if (product.freeGiftKind === "product" && freeGiftProduct) {
-      add({
+      const giftPayload = {
         product: freeGiftProduct,
         qty,
         addons: [{ id: "brinde", name: `Brinde com ${product.name}`, price: 0 }],
         basePrice: 0,
         note: "🎁 Brinde",
-      });
+      };
+      if (onAddToCart) {
+        onAddToCart(giftPayload);
+      } else {
+        add(giftPayload);
+      }
     }
     // Adicionado ao carrinho silenciosamente (sem toast no storefront)
     onOpenChange(false);

@@ -15,6 +15,9 @@ import { createManualOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
 type OrderMode = "entrega" | "retirada" | "consumo_local" | "balcao";
 import { getMyTenant } from "@/lib/tenants.functions";
+import { ProductModal } from "@/components/storefront/ProductModal";
+import { dbProductToUi } from "@/lib/db-adapters";
+import { computeUnitPrice, type CartItem } from "@/lib/cart-context";
 
 export const Route = createFileRoute("/admin/pdv")({ component: PdvPage });
 
@@ -38,8 +41,10 @@ function PdvPage() {
     });
   }, [products, activeCat, search]);
 
-  const [cart, setCart] = useState<{ id: string; product: any; qty: number; unit_price: number }[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   // Checkout states
   const [customerName, setCustomerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -48,17 +53,11 @@ function PdvPage() {
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved">("approved");
   const [paymentLabel, setPaymentLabel] = useState("Dinheiro");
 
-  const subtotal = cart.reduce((s, it) => s + it.qty * it.unit_price, 0);
+  const subtotal = cart.reduce((s, it) => s + it.qty * computeUnitPrice(it), 0);
 
-  const addToCart = (product: any) => {
+  const addToCart = (item: Omit<CartItem, "uid">) => {
     setCart((prev) => {
-      const idx = prev.findIndex((i) => i.product.id === product.id);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx].qty += 1;
-        return copy;
-      }
-      return [...prev, { id: crypto.randomUUID(), product, qty: 1, unit_price: product.price }];
+      return [...prev, { ...item, uid: crypto.randomUUID() }];
     });
   };
 
@@ -79,13 +78,25 @@ function PdvPage() {
 
       const actualMode = mode === "balcao" ? "retirada" : mode;
 
-      const items = cart.map((c) => ({
-        product_id: c.product.id,
-        name_snapshot: c.product.name,
-        qty: c.qty,
-        unit_price: c.unit_price,
-        addons: [],
-      }));
+      const items = cart.map((c) => {
+        const mergedAddons = [
+          ...(c.addons || []).map(a => ({ name: a.name, price: a.price })),
+          ...(c.groupOptions || []).map(go => ({ name: `${go.groupName}: ${go.name}`, price: go.price }))
+        ];
+        
+        let finalName = c.product.name;
+        if (c.size) finalName += ` (${c.size.name})`;
+        if (c.flavors?.length) finalName += ` - ${c.flavors.map(f => f.name).join(", ")}`;
+
+        return {
+          product_id: c.product.id,
+          name_snapshot: finalName,
+          qty: c.qty,
+          unit_price: computeUnitPrice(c),
+          addons: mergedAddons,
+          note: c.note || null,
+        };
+      });
 
       return createManualOrder({
         data: {
@@ -158,7 +169,10 @@ function PdvPage() {
                   {filteredProducts.map((p) => (
                     <div 
                       key={p.id} 
-                      onClick={() => addToCart(p)}
+                      onClick={() => {
+                        setSelectedProduct(p);
+                        setModalOpen(true);
+                      }}
                       className="border rounded-lg p-3 hover:border-primary hover:shadow-sm cursor-pointer transition-all bg-card flex flex-col h-full"
                     >
                       <h4 className="font-medium text-sm leading-tight flex-1">{p.name}</h4>
@@ -192,14 +206,38 @@ function PdvPage() {
             ) : (
               <div className="space-y-3">
                 {cart.map((item, i) => (
-                  <div key={item.id} className="flex items-center gap-2 text-sm">
-                    <div className="flex-1 font-medium">{item.product.name}</div>
-                    <div className="text-muted-foreground">{brl(item.unit_price)}</div>
-                    <div className="flex items-center gap-1 bg-muted rounded-md p-1">
-                      <button onClick={() => updateQty(i, -1)} className="p-1 hover:bg-background rounded text-muted-foreground"><Minus className="h-3 w-3" /></button>
-                      <span className="w-5 text-center font-medium">{item.qty}</span>
-                      <button onClick={() => updateQty(i, 1)} className="p-1 hover:bg-background rounded text-muted-foreground"><Plus className="h-3 w-3" /></button>
+                  <div key={item.uid} className="flex flex-col gap-1 text-sm border-b pb-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 font-medium text-wrap break-words leading-tight">
+                        {item.product.name}
+                        {item.size && <span className="text-muted-foreground font-normal ml-1">({item.size.name})</span>}
+                        {item.flavors && item.flavors.length > 0 && (
+                          <span className="text-muted-foreground font-normal ml-1 text-xs">
+                            - {item.flavors.map((f) => f.name).join(", ")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-muted-foreground whitespace-nowrap">{brl(computeUnitPrice(item))}</div>
+                      <div className="flex items-center gap-1 bg-muted rounded-md p-1 shrink-0 ml-1">
+                        <button onClick={() => updateQty(i, -1)} className="p-1 hover:bg-background rounded text-muted-foreground"><Minus className="h-3 w-3" /></button>
+                        <span className="w-5 text-center font-medium">{item.qty}</span>
+                        <button onClick={() => updateQty(i, 1)} className="p-1 hover:bg-background rounded text-muted-foreground"><Plus className="h-3 w-3" /></button>
+                      </div>
                     </div>
+                    {/* Addons e Notas */}
+                    {(item.addons?.length || item.groupOptions?.length || item.note) ? (
+                      <div className="pl-2 border-l-2 border-muted/50 ml-1 py-0.5 space-y-1">
+                        {item.addons?.map((a, idx) => (
+                          <p key={idx} className="text-xs text-muted-foreground">+ {a.name}</p>
+                        ))}
+                        {item.groupOptions?.map((go, idx) => (
+                          <p key={idx} className="text-xs text-muted-foreground">+ {go.groupName}: {go.name}</p>
+                        ))}
+                        {item.note && (
+                          <p className="text-xs text-amber-600 font-medium italic">Obs: {item.note}</p>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -282,6 +320,44 @@ function PdvPage() {
         </div>
 
       </div>
+
+      {selectedProduct && (
+        <ProductModal
+          product={dbProductToUi(selectedProduct, catsData?.categories?.find(c => c.id === selectedProduct.category_id)?.name || "Categoria")}
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          onAddToCart={addToCart}
+          tenantSlug={tenantData?.tenant?.slug}
+          tenantInfo={tenantData?.tenant ? { 
+            name: tenantData.tenant.name, 
+            logoUrl: tenantData.tenant.logoUrl ?? null, 
+            logoLetter: tenantData.tenant.logoLetter ?? null 
+          } : null}
+          pizzaSizes={selectedProduct?.category_id ? (catsData?.categories?.find(c => c.id === selectedProduct.category_id)?.pizza_sizes?.filter(s => s.active) || []).map(s => ({
+            id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed"
+          })) : []}
+          pizzaFlavors={
+            selectedProduct?.category_id 
+              ? products.filter(p => p.category_id === selectedProduct.category_id && p.available && p.listed_as_flavor === true).map(p => {
+                const uiP = dbProductToUi(p, "Categoria", "pizza");
+                return {
+                  id: p.id,
+                  name: p.name,
+                  description: p.description ?? "",
+                  image: p.image_url ?? "",
+                  pricesByCategorySizeId: Object.fromEntries((uiP.sizes ?? []).filter((s) => s.categorySizeId).map((s) => [s.categorySizeId as string, s.price])),
+                  fractionPricesByCategorySizeId: Object.fromEntries(
+                    (uiP.sizes ?? [])
+                      .filter((s) => s.categorySizeId && s.fractionPrices)
+                      .map((s) => [s.categorySizeId as string, s.fractionPrices as Record<string, number>]),
+                  ),
+                  fallbackPrice: Number(p.price)
+                };
+              })
+              : []
+          }
+        />
+      )}
     </AdminLayout>
   );
 }
