@@ -32,7 +32,7 @@ function PdvPage() {
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      if (activeCat !== "todas" && p.category !== activeCat) return false;
+      if (activeCat !== "todas" && p.category_id !== activeCat) return false;
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
