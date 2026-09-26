@@ -57,30 +57,30 @@ export function ProductCard({
           )}
         </div>
 
-        <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-1 pr-12">
-          <h3 className="line-clamp-2 text-sm font-semibold sm:text-base">{product.name}</h3>
+        <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-1 pr-14">
+          <h3 className="line-clamp-2 text-base font-semibold sm:text-lg">{product.name}</h3>
           {product.description && (
-            <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
+            <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
           )}
           <div className="mt-0.5">
             {showFromPrefix ? (
               <div className="flex flex-wrap items-baseline gap-x-1">
-                <span className="text-[10px] text-muted-foreground">A partir de</span>
-                <span className="text-sm font-bold text-primary">{brl(displayPrice)}</span>
+                <span className="text-xs text-muted-foreground">A partir de</span>
+                <span className="text-base font-bold sm:text-lg text-primary">{brl(displayPrice)}</span>
               </div>
             ) : product.promoPrice ? (
               <div className="flex flex-wrap items-baseline gap-x-1.5">
-                <span className="text-sm font-bold text-primary">{brl(product.promoPrice)}</span>
-                <span className="text-[10px] text-muted-foreground line-through">{brl(product.price)}</span>
+                <span className="text-base font-bold sm:text-lg text-primary">{brl(product.promoPrice)}</span>
+                <span className="text-xs text-muted-foreground line-through">{brl(product.price)}</span>
               </div>
             ) : (
-              <span className="text-sm font-bold">{brl(product.price)}</span>
+              <span className="text-base font-bold sm:text-lg">{brl(product.price)}</span>
             )}
           </div>
 
           {!unavailable && (
-            <span className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition group-hover:scale-110">
-              <Plus className="h-4 w-4" />
+            <span className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition group-hover:scale-110">
+              <Plus className="h-5 w-5" />
             </span>
           )}
         </div>
@@ -126,23 +126,23 @@ export function ProductCard({
       </div>
 
       <div className="relative flex flex-1 flex-col gap-0.5 p-2.5 pr-10">
-        <h3 className="line-clamp-2 text-sm font-semibold">{product.name}</h3>
+        <h3 className="line-clamp-2 text-base font-semibold">{product.name}</h3>
         {product.description && (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
+          <p className="line-clamp-2 text-[13px] text-muted-foreground">{product.description}</p>
         )}
         <div className="mt-1">
           {showFromPrefix ? (
             <div className="flex flex-wrap items-baseline gap-x-1">
-              <span className="text-[10px] text-muted-foreground">A partir de</span>
-              <span className="text-sm font-bold text-primary">{brl(displayPrice)}</span>
+              <span className="text-xs text-muted-foreground">A partir de</span>
+              <span className="text-base font-bold text-primary">{brl(displayPrice)}</span>
             </div>
           ) : product.promoPrice ? (
             <div className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-sm font-bold text-primary">{brl(product.promoPrice)}</span>
-              <span className="text-[10px] text-muted-foreground line-through">{brl(product.price)}</span>
+              <span className="text-base font-bold text-primary">{brl(product.promoPrice)}</span>
+              <span className="text-xs text-muted-foreground line-through">{brl(product.price)}</span>
             </div>
           ) : (
-            <span className="text-sm font-bold">{brl(product.price)}</span>
+            <span className="text-base font-bold">{brl(product.price)}</span>
           )}
         </div>
 
