@@ -103,14 +103,6 @@ function PdvPage() {
     },
     onSuccess: async (data) => {
       toast.success(`Pedido #${data.displayId} lançado com sucesso!`);
-      // Try printing
-      if (tenantData?.tenant) {
-        try {
-          await printOrderToQZ(tenantData.tenant as any, data.orderId, true);
-        } catch (err) {
-          console.error(err);
-        }
-      }
       setCart([]);
       setCustomerName("");
       setWhatsapp("");
