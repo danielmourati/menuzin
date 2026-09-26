@@ -28,6 +28,7 @@ export type CustomerProfile = {
   address?: StoredAddress | null;
   ordersCount?: number;
   updatedAt?: string;
+  favoriteStores?: { slug: string; name: string; logoUrl?: string | null }[];
 };
 
 const KEY = "menuzin:customer:v1";

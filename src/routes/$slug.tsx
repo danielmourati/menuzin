@@ -54,6 +54,8 @@ import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters
 import type { Product, Tenant, Category } from "@/lib/domain-types";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { useStorefrontRealtime } from "@/lib/store-realtime";
+import { useCustomerProfile, writeCustomerProfile } from "@/lib/customer-profile";
+import { toast } from "sonner";
 
 const STORE_SLUG_PATTERN = /^[a-z0-9-]+$/;
 const isCatalogSlug = (slug: string) => STORE_SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.has(slug);
@@ -244,6 +246,19 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal } = useCart();
+  const profile = useCustomerProfile();
+
+  const isFavorite = profile?.favoriteStores?.some(s => s.slug === tenant.slug) ?? false;
+  const toggleFavorite = () => {
+    const current = profile?.favoriteStores ?? [];
+    if (isFavorite) {
+      writeCustomerProfile({ favoriteStores: current.filter(s => s.slug !== tenant.slug) });
+      toast("Removida dos favoritos");
+    } else {
+      writeCustomerProfile({ favoriteStores: [...current, { slug: tenant.slug, name: tenant.name, logoUrl: tenant.logoUrl }] });
+      toast.success("Loja favoritada!");
+    }
+  };
 
   // Deep link vindo do Guia: /:slug?produto=<id|slug> abre o produto direto.
   const { produto: deepLinkProductId } = Route.useSearch();
@@ -502,10 +517,11 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             </button>
             <button
               type="button"
+              onClick={toggleFavorite}
               aria-label="Favoritar"
               className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/90 active:scale-95"
             >
-              <Heart className="h-4 w-4 md:h-5 md:w-5" />
+              <Heart className={`h-4 w-4 md:h-5 md:w-5 ${isFavorite ? "fill-current" : ""}`} />
             </button>
           </div>
         </div>
@@ -701,10 +717,11 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   </button>
                   <button
                     type="button"
+                    onClick={toggleFavorite}
                     aria-label="Favoritar"
                     className="grid h-8 w-8 place-items-center rounded-full text-primary hover:bg-muted/50 transition active:scale-95"
                   >
-                    <Heart className="h-4 w-4 md:h-5 md:w-5" />
+                    <Heart className={`h-4 w-4 md:h-5 md:w-5 ${isFavorite ? "fill-current" : ""}`} />
                   </button>
                   <button
                     type="button"
