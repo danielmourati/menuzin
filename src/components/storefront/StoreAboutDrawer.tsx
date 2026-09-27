@@ -114,9 +114,27 @@ export function StoreAboutDrawer({
             <Truck className="h-3.5 w-3.5" /> Entrega {brl(tenant.deliveryFee)}
           </span>
           <span className="text-muted-foreground/40">•</span>
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" /> {tenant.prepTime || "—"}
-          </span>
+          {tenant.deliveryTime || tenant.takeoutTime ? (
+            <>
+              {tenant.deliveryTime && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" title="Tempo médio de entrega">
+                  <Clock className="h-3.5 w-3.5" /> {tenant.deliveryTime}
+                </span>
+              )}
+              {tenant.deliveryTime && tenant.takeoutTime && (
+                <span className="text-muted-foreground/40">•</span>
+              )}
+              {tenant.takeoutTime && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" title="Tempo médio para retirada">
+                  <ShoppingBag className="h-3.5 w-3.5" /> {tenant.takeoutTime}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" /> {tenant.prepTime || "—"}
+            </span>
+          )}
           <span className="text-muted-foreground/40">•</span>
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             Mín. {brl(tenant.minOrder)}
