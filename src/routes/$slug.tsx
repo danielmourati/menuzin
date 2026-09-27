@@ -580,9 +580,24 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               <span className="inline-flex shrink-0 items-center gap-1">
                 <Bike className="h-3 w-3 text-primary" /> {deliveryLabel}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1">
-                <Clock className="h-3 w-3 text-primary" /> {tenant.prepTime || "—"}
-              </span>
+              {tenant.deliveryTime || tenant.takeoutTime ? (
+                <>
+                  {tenant.deliveryTime && (
+                    <span className="inline-flex shrink-0 items-center gap-1" title="Tempo médio de entrega">
+                      <Clock className="h-3 w-3 text-primary" /> {tenant.deliveryTime}
+                    </span>
+                  )}
+                  {tenant.takeoutTime && (
+                    <span className="inline-flex shrink-0 items-center gap-1" title="Tempo médio para retirada">
+                      <ShoppingBag className="h-3 w-3 text-primary" /> {tenant.takeoutTime}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="inline-flex shrink-0 items-center gap-1">
+                  <Clock className="h-3 w-3 text-primary" /> {tenant.prepTime || "—"}
+                </span>
+              )}
               <span className="inline-flex shrink-0 items-center gap-1">
                 <Wallet className="h-3 w-3 text-primary" /> Mín. {brl(tenant.minOrder)}
               </span>
