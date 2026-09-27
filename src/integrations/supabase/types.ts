@@ -2582,6 +2582,8 @@ export type Database = {
           delivery_fee_per_km: number | null
           delivery_max_km: number | null
           delivery_mode: string
+          delivery_time_max: number | null
+          delivery_time_min: number | null
           description: string | null
           directory_opt_in: boolean
           document: string | null
@@ -2604,6 +2606,8 @@ export type Database = {
           social: Json
           state: string | null
           status: Database["public"]["Enums"]["tenant_status"]
+          takeout_time_max: number | null
+          takeout_time_min: number | null
           theme_from: string | null
           theme_to: string | null
           updated_at: string
@@ -2627,6 +2631,8 @@ export type Database = {
           delivery_fee_per_km?: number | null
           delivery_max_km?: number | null
           delivery_mode?: string
+          delivery_time_max?: number | null
+          delivery_time_min?: number | null
           description?: string | null
           directory_opt_in?: boolean
           document?: string | null
@@ -2649,6 +2655,8 @@ export type Database = {
           social?: Json
           state?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
+          takeout_time_max?: number | null
+          takeout_time_min?: number | null
           theme_from?: string | null
           theme_to?: string | null
           updated_at?: string
@@ -2672,6 +2680,8 @@ export type Database = {
           delivery_fee_per_km?: number | null
           delivery_max_km?: number | null
           delivery_mode?: string
+          delivery_time_max?: number | null
+          delivery_time_min?: number | null
           description?: string | null
           directory_opt_in?: boolean
           document?: string | null
@@ -2694,6 +2704,8 @@ export type Database = {
           social?: Json
           state?: string | null
           status?: Database["public"]["Enums"]["tenant_status"]
+          takeout_time_max?: number | null
+          takeout_time_min?: number | null
           theme_from?: string | null
           theme_to?: string | null
           updated_at?: string

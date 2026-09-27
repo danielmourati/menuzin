@@ -51,8 +51,10 @@ type FormState = {
   delivery_fee: number;
   min_order: number;
   prep_time: string;
-  delivery_time: string;
-  takeout_time: string;
+  delivery_time_min: string;
+  delivery_time_max: string;
+  takeout_time_min: string;
+  takeout_time_max: string;
   pos_paper_width: "55mm" | "80mm";
   hours_schedule: HoursSchedule;
   accepts_delivery: boolean;
@@ -147,7 +149,7 @@ function SettingsPage() {
 
   const [form, setForm] = useState<FormState>({
     name: "", whatsapp: "", description: "", address: "", address_number: "", address_reference: "", neighborhood: "", cep: "", document: "", city: "", state: "",
-    delivery_fee: 0, min_order: 0, prep_time: "", delivery_time: "", takeout_time: "", pos_paper_width: "80mm",
+    delivery_fee: 0, min_order: 0, prep_time: "", delivery_time_min: "", delivery_time_max: "", takeout_time_min: "", takeout_time_max: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
     business_types: [],
@@ -179,8 +181,10 @@ function SettingsPage() {
       delivery_fee: Number(tenant.delivery_fee ?? 0),
       min_order: Number(tenant.min_order ?? 0),
       prep_time: tenant.prep_time ?? "",
-      delivery_time: (tenant as { deliveryTime?: string | null }).deliveryTime ?? "",
-      takeout_time: (tenant as { takeoutTime?: string | null }).takeoutTime ?? "",
+      delivery_time_min: tenant.delivery_time_min != null ? String(tenant.delivery_time_min) : "",
+      delivery_time_max: tenant.delivery_time_max != null ? String(tenant.delivery_time_max) : "",
+      takeout_time_min: tenant.takeout_time_min != null ? String(tenant.takeout_time_min) : "",
+      takeout_time_max: tenant.takeout_time_max != null ? String(tenant.takeout_time_max) : "",
       pos_paper_width: (t.pos_paper_width === "55mm" ? "55mm" : "80mm"),
       hours_schedule: sched.some((d) => d.enabled) ? sched : defaultSchedule(),
       accepts_delivery: t.accepts_delivery ?? true,
@@ -198,7 +202,30 @@ function SettingsPage() {
     ((prodsData as { products?: unknown[] } | undefined)?.products?.length ?? 0) > 0;
 
   const saveMut = useMutation({
-    mutationFn: () => updateMyTenant({ data: form }),
+    mutationFn: () => {
+      const num = (s: string) => {
+        const n = parseInt(s, 10);
+        return Number.isFinite(n) && n > 0 ? n : null;
+      };
+      const pair = (label: string, a: string, b: string) => {
+        let min = num(a), max = num(b);
+        if (min == null && max != null) min = max;
+        if (max == null && min != null) max = min;
+        if (min != null && max != null) {
+          if (min > 600 || max > 600) throw new Error(`${label}: máximo de 600 minutos.`);
+          if (max < min) throw new Error(`${label}: o "até" deve ser maior ou igual ao "de".`);
+        }
+        return [min, max] as const;
+      };
+      const { delivery_time_min, delivery_time_max, takeout_time_min, takeout_time_max, ...rest } = form;
+      const [dMin, dMax] = pair("Tempo de delivery", delivery_time_min, delivery_time_max);
+      const [tMin, tMax] = pair("Tempo de retirada", takeout_time_min, takeout_time_max);
+      return updateMyTenant({ data: {
+        ...rest,
+        delivery_time_min: dMin, delivery_time_max: dMax,
+        takeout_time_min: tMin, takeout_time_max: tMax,
+      } });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-tenant"] });
       toast.success("Configurações salvas");
@@ -515,26 +542,23 @@ function SettingsPage() {
                 <Label>Pedido mínimo</Label>
                 <CurrencyInput value={form.min_order} onChange={(v) => set("min_order", v)} className="mt-1.5" />
               </div>
-              <div className="max-w-xs">
-                <Label>Tempo médio Delivery</Label>
-                <Input
-                  type="time"
-                  placeholder="00:30"
-                  value={form.delivery_time}
-                  onChange={(e) => set("delivery_time", e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div className="max-w-xs">
-                <Label>Tempo médio Retirada</Label>
-                <Input
-                  type="time"
-                  placeholder="00:20"
-                  value={form.takeout_time}
-                  onChange={(e) => set("takeout_time", e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
+              {([
+                ["Tempo médio Delivery", "delivery_time_min", "delivery_time_max", "40", "75"],
+                ["Tempo médio Retirada", "takeout_time_min", "takeout_time_max", "15", "30"],
+              ] as const).map(([label, kMin, kMax, phMin, phMax]) => (
+                <div key={kMin}>
+                  <Label>{label}</Label>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">de</span>
+                    <Input type="number" inputMode="numeric" min={1} max={600} placeholder={phMin}
+                      value={form[kMin]} onChange={(e) => set(kMin, e.target.value)} className="w-20" />
+                    <span className="text-sm text-muted-foreground">a</span>
+                    <Input type="number" inputMode="numeric" min={1} max={600} placeholder={phMax}
+                      value={form[kMax]} onChange={(e) => set(kMax, e.target.value)} className="w-20" />
+                    <span className="text-sm text-muted-foreground">min</span>
+                  </div>
+                </div>
+              ))}
             </TabsContent>
 
             <TabsContent value="redes" className="mt-6 grid gap-3 md:grid-cols-2">

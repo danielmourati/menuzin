@@ -5,6 +5,12 @@ import type {
   ProductSize, ProductFlavor, AddonGroup, AddonOption,
 } from "./domain-types";
 
+export function formatTimeRange(min?: number | null, max?: number | null): string | null {
+  const a = min ?? max, b = max ?? min;
+  if (a == null || b == null) return null;
+  return a === b ? `${a} min` : `${a}–${b} min`;
+}
+
 export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: "standard" | "pizza" | "oferta" = "standard"): Product {
   return {
     id: p.id,
@@ -83,8 +89,8 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     acceptsTakeout: t.accepts_takeout ?? true,
     acceptsDinein: t.accepts_dinein ?? true,
     prepTime: t.prep_time ?? "",
-    deliveryTime: (t as { delivery_time?: string | null }).delivery_time ?? null,
-    takeoutTime: (t as { takeout_time?: string | null }).takeout_time ?? null,
+    deliveryTime: formatTimeRange(t.delivery_time_min, t.delivery_time_max),
+    takeoutTime: formatTimeRange(t.takeout_time_min, t.takeout_time_max),
     minOrder: Number(t.min_order),
     deliveryFee: Number(t.delivery_fee),
     deliveryBaseKm: t.delivery_base_km != null ? Number(t.delivery_base_km) : null,
