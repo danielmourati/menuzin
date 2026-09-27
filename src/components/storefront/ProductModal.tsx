@@ -159,7 +159,7 @@ export function ProductModal({
         for (const o of g.options) {
           if (ids.includes(o.id)) sum += o.price;
         }
-        out.push({ id: `todos-${g.id}`, name: "[Todos os adicionais]", price: sum, groupName: g.name });
+        out.push({ id: `todos-${g.id}`, name: "[Todos os adicionais]", price: sum, groupName: g.name, sortOrder: 0 });
       } else {
         for (const o of g.options) {
           if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
