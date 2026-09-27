@@ -5,6 +5,12 @@ import type {
   ProductSize, ProductFlavor, AddonGroup, AddonOption,
 } from "./domain-types";
 
+export function formatTimeRange(min?: number | null, max?: number | null): string | null {
+  const a = min ?? max, b = max ?? min;
+  if (a == null || b == null) return null;
+  return a === b ? `${a} min` : `${a}–${b} min`;
+}
+
 export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: "standard" | "pizza" | "oferta" = "standard"): Product {
   return {
     id: p.id,

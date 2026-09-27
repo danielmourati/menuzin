@@ -17,6 +17,10 @@ export type DbTenant = {
   document?: string | null;
   open: boolean;
   prep_time: string;
+  delivery_time_min?: number | null;
+  delivery_time_max?: number | null;
+  takeout_time_min?: number | null;
+  takeout_time_max?: number | null;
   min_order: number;
   delivery_fee: number;
   hours: string;
