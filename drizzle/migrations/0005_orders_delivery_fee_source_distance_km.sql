@@ -1,0 +1,2 @@
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_delivery_fee_source_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_delivery_fee_source_check CHECK (delivery_fee_source IS NULL OR delivery_fee_source IN ('none','single_fee','neighborhood_by_cep','neighborhood_by_name','distance_km'));
