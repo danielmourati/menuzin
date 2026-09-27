@@ -827,6 +827,31 @@ export function ProductModal({
                           <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
                         )}
                         <div className="space-y-2">
+                          {!isRadio && activeOptions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const selected = groupSelections[g.id] ?? [];
+                                const max = g.maxSelect > 0 ? g.maxSelect : activeOptions.length;
+                                const isAllSelected = selected.length === Math.min(activeOptions.length, max) && selected.length > 0;
+                                
+                                setGroupSelections(prev => ({
+                                  ...prev,
+                                  [g.id]: isAllSelected ? [] : activeOptions.slice(0, max).map(o => o.id)
+                                }));
+                              }}
+                              className={`flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition ${
+                                (groupSelections[g.id] ?? []).length === Math.min(activeOptions.length, g.maxSelect > 0 ? g.maxSelect : activeOptions.length) && (groupSelections[g.id] ?? []).length > 0
+                                  ? "border-primary/60 bg-primary/5 font-medium"
+                                  : "border-border/60 bg-card hover:bg-muted/30"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Checkbox checked={(groupSelections[g.id] ?? []).length === Math.min(activeOptions.length, g.maxSelect > 0 ? g.maxSelect : activeOptions.length) && (groupSelections[g.id] ?? []).length > 0} />
+                                <span className="text-sm font-semibold">Todos os adicionais</span>
+                              </div>
+                            </button>
+                          )}
                           {activeOptions.map((o) => {
                             const checked = isOptionSelected(g, o);
                             return (
