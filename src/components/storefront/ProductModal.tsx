@@ -152,8 +152,7 @@ export function ProductModal({
       const ids = groupSelections[g.id] ?? [];
       const activeOptions = g.options.filter((o) => o.price >= 0);
       const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
-      const max = g.maxSelect > 0 ? g.maxSelect : activeOptions.length;
-      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && ids.length === Math.min(activeOptions.length, max) && ids.length > 0;
+      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && ids.length === activeOptions.length;
 
       if (isAllSelected) {
         let sum = 0;
@@ -840,27 +839,26 @@ export function ProductModal({
                           <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
                         )}
                         <div className="space-y-2">
-                          {!isRadio && g.kind !== "observacao" && activeOptions.length > 1 && (
+                          {!isRadio && g.kind !== "observacao" && activeOptions.length > 1 && (g.maxSelect <= 0 || g.maxSelect >= activeOptions.length) && (
                             <button
                               type="button"
                               onClick={() => {
                                 const selected = groupSelections[g.id] ?? [];
-                                const max = g.maxSelect > 0 ? g.maxSelect : activeOptions.length;
-                                const isAllSelected = selected.length === Math.min(activeOptions.length, max) && selected.length > 0;
+                                const isAllSelected = selected.length === activeOptions.length;
                                 
                                 setGroupSelections(prev => ({
                                   ...prev,
-                                  [g.id]: isAllSelected ? [] : activeOptions.slice(0, max).map(o => o.id)
+                                  [g.id]: isAllSelected ? [] : activeOptions.map(o => o.id)
                                 }));
                               }}
                               className={`flex w-full cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition ${
-                                (groupSelections[g.id] ?? []).length === Math.min(activeOptions.length, g.maxSelect > 0 ? g.maxSelect : activeOptions.length) && (groupSelections[g.id] ?? []).length > 0
+                                (groupSelections[g.id] ?? []).length === activeOptions.length
                                   ? "border-primary/60 bg-primary/5 font-medium"
                                   : "border-border/60 bg-card hover:bg-muted/30"
                               }`}
                             >
                               <div className="flex items-center gap-3">
-                                <Checkbox checked={(groupSelections[g.id] ?? []).length === Math.min(activeOptions.length, g.maxSelect > 0 ? g.maxSelect : activeOptions.length) && (groupSelections[g.id] ?? []).length > 0} />
+                                <Checkbox checked={(groupSelections[g.id] ?? []).length === activeOptions.length} />
                                 <span className="text-sm font-semibold">Todos os adicionais</span>
                               </div>
                             </button>
