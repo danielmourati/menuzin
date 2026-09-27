@@ -5,13 +5,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import type { DbOrder, DbOrderItem, DbHistoryRow } from "@/lib/db-types";
 
-const AddonSchema = z.object({ name: z.string().max(120), price: z.number().min(0) });
+const AddonSchema = z.object({ name: z.string().max(200), price: z.number().min(0) });
 const ItemSchema = z.object({
   product_id: z.string().uuid().nullable().optional(),
   name_snapshot: z.string().min(1).max(200),
   qty: z.number().int().min(1).max(99),
   unit_price: z.number().min(0).max(99999),
-  addons: z.array(AddonSchema).max(20).default([]),
+  addons: z.array(AddonSchema).max(100).default([]),
   note: z.string().max(500).optional().nullable(),
 });
 
@@ -23,7 +23,7 @@ const CreateOrderInput = z.object({
   payment_label: z.string().max(120).default(""),
   change_for: z.number().min(0).max(99999).nullable().optional(),
   delivery_fee: z.number().min(0).max(9999).default(0),
-  delivery_fee_source: z.enum(["none", "single_fee", "neighborhood_by_cep", "neighborhood_by_name"]).nullable().optional(),
+  delivery_fee_source: z.enum(["none", "single_fee", "neighborhood_by_cep", "neighborhood_by_name", "distance_km"]).nullable().optional(),
   delivery_neighborhood_snapshot: z.string().max(120).nullable().optional(),
   address: z.record(z.string(), z.string()).nullable().optional(),
   table_label: z.string().max(50).nullable().optional(),
