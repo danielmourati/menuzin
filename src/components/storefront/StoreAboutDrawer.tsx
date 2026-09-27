@@ -42,9 +42,9 @@ export function StoreAboutDrawer({
       };
 
   const deliveryOptions = [
-    { key: "delivery", label: "Delivery", icon: Truck, active: tenant.acceptsDelivery },
-    { key: "takeout", label: "Retirada", icon: ShoppingBag, active: tenant.acceptsTakeout },
-    { key: "dinein", label: "Consumo no Local", icon: UtensilsCrossed, active: tenant.acceptsDinein },
+    { key: "delivery", label: "Delivery", time: tenant.deliveryTime || tenant.prepTime, icon: Truck, active: tenant.acceptsDelivery },
+    { key: "takeout", label: "Retirada", time: tenant.takeoutTime || tenant.prepTime, icon: ShoppingBag, active: tenant.acceptsTakeout },
+    { key: "dinein", label: "No Local", time: tenant.prepTime, icon: UtensilsCrossed, active: tenant.acceptsDinein },
   ].filter((o) => o.active);
 
   const scheduleByWeekday = new Map<number, { open: string; close: string; enabled: boolean }>();
@@ -152,10 +152,11 @@ export function StoreAboutDrawer({
                   return (
                     <div
                       key={o.key}
-                      className="flex flex-col items-center gap-2 rounded-2xl border bg-card p-3 text-center"
+                      className="flex flex-col items-center gap-1.5 rounded-2xl border bg-card p-3 text-center"
                     >
-                      <Icon className="h-6 w-6 text-primary" />
+                      <Icon className="h-6 w-6 text-primary mb-1" />
                       <span className="text-xs font-medium">{o.label}</span>
+                      {o.time && <span className="text-[10px] text-muted-foreground">{o.time}</span>}
                     </div>
                   );
                 })}

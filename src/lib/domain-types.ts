@@ -187,6 +187,8 @@ export type Tenant = {
   acceptsTakeout: boolean;
   acceptsDinein: boolean;
   prepTime: string;
+  deliveryTime?: string | null;
+  takeoutTime?: string | null;
   minOrder: number;
   deliveryFee: number;
   deliveryBaseKm?: number | null;

@@ -83,6 +83,8 @@ export function dbTenantToUi(t: DbTenant): Tenant {
     acceptsTakeout: t.accepts_takeout ?? true,
     acceptsDinein: t.accepts_dinein ?? true,
     prepTime: t.prep_time ?? "",
+    deliveryTime: t.delivery_time ?? null,
+    takeoutTime: t.takeout_time ?? null,
     minOrder: Number(t.min_order),
     deliveryFee: Number(t.delivery_fee),
     deliveryBaseKm: t.delivery_base_km != null ? Number(t.delivery_base_km) : null,

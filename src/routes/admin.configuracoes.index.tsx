@@ -51,6 +51,8 @@ type FormState = {
   delivery_fee: number;
   min_order: number;
   prep_time: string;
+  delivery_time: string;
+  takeout_time: string;
   pos_paper_width: "55mm" | "80mm";
   hours_schedule: HoursSchedule;
   accepts_delivery: boolean;
@@ -145,7 +147,7 @@ function SettingsPage() {
 
   const [form, setForm] = useState<FormState>({
     name: "", whatsapp: "", description: "", address: "", address_number: "", address_reference: "", neighborhood: "", cep: "", document: "", city: "", state: "",
-    delivery_fee: 0, min_order: 0, prep_time: "", pos_paper_width: "80mm",
+    delivery_fee: 0, min_order: 0, prep_time: "", delivery_time: "", takeout_time: "", pos_paper_width: "80mm",
     hours_schedule: defaultSchedule(),
     accepts_delivery: true, accepts_takeout: true, accepts_dinein: true,
     business_types: [],
@@ -177,6 +179,8 @@ function SettingsPage() {
       delivery_fee: Number(tenant.delivery_fee ?? 0),
       min_order: Number(tenant.min_order ?? 0),
       prep_time: tenant.prep_time ?? "",
+      delivery_time: (tenant as { deliveryTime?: string | null }).deliveryTime ?? "",
+      takeout_time: (tenant as { takeoutTime?: string | null }).takeoutTime ?? "",
       pos_paper_width: (t.pos_paper_width === "55mm" ? "55mm" : "80mm"),
       hours_schedule: sched.some((d) => d.enabled) ? sched : defaultSchedule(),
       accepts_delivery: t.accepts_delivery ?? true,
@@ -512,12 +516,22 @@ function SettingsPage() {
                 <CurrencyInput value={form.min_order} onChange={(v) => set("min_order", v)} className="mt-1.5" />
               </div>
               <div className="max-w-xs">
-                <Label>Tempo médio de preparo</Label>
+                <Label>Tempo médio Delivery</Label>
                 <Input
                   type="time"
                   placeholder="00:30"
-                  value={form.prep_time}
-                  onChange={(e) => set("prep_time", e.target.value)}
+                  value={form.delivery_time}
+                  onChange={(e) => set("delivery_time", e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+              <div className="max-w-xs">
+                <Label>Tempo médio Retirada</Label>
+                <Input
+                  type="time"
+                  placeholder="00:20"
+                  value={form.takeout_time}
+                  onChange={(e) => set("takeout_time", e.target.value)}
                   className="mt-1.5"
                 />
               </div>
