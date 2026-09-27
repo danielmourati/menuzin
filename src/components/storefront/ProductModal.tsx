@@ -150,8 +150,21 @@ export function ProductModal({
     if (!product) return out;
     for (const g of product.addonGroups ?? []) {
       const ids = groupSelections[g.id] ?? [];
-      for (const o of g.options) {
-        if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
+      const activeOptions = g.options.filter((o) => o.price >= 0);
+      const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
+      const max = g.maxSelect > 0 ? g.maxSelect : activeOptions.length;
+      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && ids.length === Math.min(activeOptions.length, max) && ids.length > 0;
+
+      if (isAllSelected) {
+        let sum = 0;
+        for (const o of g.options) {
+          if (ids.includes(o.id)) sum += o.price;
+        }
+        out.push({ id: `todos-${g.id}`, name: "[Todos os adicionais]", price: sum, groupName: g.name });
+      } else {
+        for (const o of g.options) {
+          if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
+        }
       }
     }
     return out;
@@ -827,7 +840,7 @@ export function ProductModal({
                           <p className="mb-2 text-xs text-muted-foreground">{g.description}</p>
                         )}
                         <div className="space-y-2">
-                          {!isRadio && activeOptions.length > 1 && (
+                          {!isRadio && g.kind !== "observacao" && activeOptions.length > 1 && (
                             <button
                               type="button"
                               onClick={() => {

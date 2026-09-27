@@ -55,9 +55,10 @@ export function StoreAboutDrawer({
   const payments = paymentsQ.data;
   const paymentPills: string[] = [];
   if (payments?.cash_enabled) paymentPills.push("Dinheiro");
-  if (payments?.credit_card_enabled) paymentPills.push("Cartão de Crédito");
-  if (payments?.debit_card_enabled) paymentPills.push("Cartão de Débito");
+  if (payments?.card_on_delivery_enabled) paymentPills.push("Cartão na Entrega");
   if (payments?.pix_enabled || payments?.pix_manual_enabled) paymentPills.push("PIX");
+  if (payments?.credit_card_enabled) paymentPills.push("Cartão de Crédito (Online)");
+  if (payments?.debit_card_enabled) paymentPills.push("Cartão de Débito (Online)");
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
