@@ -262,7 +262,7 @@ export function useOrdersRealtime() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }}, [canFetch]);
+  }, [canFetch]);
 
   // Bridge para listeners locais (notificações)
   useEffect(() => {
