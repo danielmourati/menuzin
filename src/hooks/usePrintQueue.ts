@@ -72,7 +72,7 @@ export function usePrintQueue(isServer: boolean, localPrinterName?: string, useB
           table: 'print_jobs',
           filter: `status=eq.pending`,
         },
-        (payload) => {
+        (payload: any) => {
           const newJob = payload.new as PrintJob;
           queryClient.setQueryData<PrintJob[]>(["print-jobs"], (old = []) => [...old, newJob]);
           
