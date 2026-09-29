@@ -103,7 +103,7 @@ export function PrintKitchenButton({
         
         // Bluetooth type -> force 55mm as requested by user
         const cols = columnsFor("55mm", "normal", "mono");
-        const text = buildKitchenTicket(order, cols, kitchenPrinter, storeInfo);
+        const text = buildKitchenTicket(order, cols);
         
         const encoder = new TextEncoder();
         await webBluetoothPrinter.print(encoder.encode(text));
