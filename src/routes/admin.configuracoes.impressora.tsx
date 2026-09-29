@@ -33,12 +33,7 @@ function PrinterSettingsPage() {
   const initPrinterFlow = async () => {
     setLoading(true);
     try {
-      const status = await checkQzStatusAndTrust();
-      if (status.ok && !status.prompted) {
-        setPrintersOpen(true);
-      } else {
-        setGuideOpen(true);
-      }
+      setPrintersOpen(true);
     } finally {
       setLoading(false);
     }
