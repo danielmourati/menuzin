@@ -29,6 +29,7 @@ import {
   HelpCircle,
   Loader2,
   Monitor,
+  MonitorSmartphone,
   Plus,
   Printer,
   RefreshCw,
@@ -67,6 +68,7 @@ import { setDevicePrinter } from "@/lib/device-printer";
 import { ReceiptLayoutFields } from "@/components/printer/ReceiptLayoutFields";
 import { QzInstallGuide } from "@/components/printer/QzInstallGuide";
 import { QzDiagnosticsModal } from "@/components/printer/QzDiagnosticsModal";
+import { DevicePrinterConfig } from "@/components/printer/DevicePrinterConfig";
 import { useTenantPlan, UpgradeNotice } from "@/lib/plan-features";
 
 interface PrinterConfigModalProps {
@@ -151,7 +153,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
   const [caixa, setCaixa] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
   const [drafts, setDrafts] = useState<ExtraDraft[]>([]);
-  const [selectedId, setSelectedId] = useState<string>("caixa");
+  const [selectedId, setSelectedId] = useState<string>("device");
   const [systemPrinters, setSystemPrinters] = useState<QzPrinter[]>([]);
   const [scanning, setScanning] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -207,7 +209,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
   useEffect(() => {
     if (open) {
-      setSelectedId("caixa");
+      setSelectedId("device");
       setAdvancedOpen(false);
       void detect(true);
     }
@@ -531,6 +533,23 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
               <div className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
                 <button
                   type="button"
+                  onClick={() => setSelectedId("device")}
+                  className={
+                    "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
+                    (selectedId === "device" ? "border bg-background shadow-sm" : "hover:bg-muted/60")
+                  }
+                >
+                  <MonitorSmartphone className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">Neste Aparelho</span>
+                    <span className="block truncate text-[11px] text-muted-foreground">
+                      Configuração local
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setSelectedId("caixa")}
                   className={
                     "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
@@ -592,6 +611,8 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                 <div className="grid h-full place-items-center py-16">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
+              ) : selectedId === "device" ? (
+                <DevicePrinterConfig />
               ) : isCaixa ? (
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3 border-b pb-3">
