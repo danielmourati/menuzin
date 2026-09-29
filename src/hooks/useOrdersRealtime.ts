@@ -141,6 +141,8 @@ export function useOrdersRealtime() {
   const queryClient = useQueryClient();
   const authCtx = useContext(AuthContext);
   const profileTenantId = authCtx?.profile?.tenant_id ?? undefined;
+  // Só consulta pedidos com sessão pronta — evita 401 durante hidratação/logout.
+  const canFetch = !!authCtx && !authCtx.loading && authCtx.isAuthenticated;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AdminNotification[]>(globalNotifications);
@@ -189,12 +191,14 @@ export function useOrdersRealtime() {
   }, []);
 
   useEffect(() => {
+    if (!canFetch) return;
     refetch();
-  }, [refetch]);
+  }, [refetch, canFetch]);
 
   // Polling periódico a cada 10s
   useEffect(() => {
     unlockAudioOnFirstGesture();
+    if (!canFetch) return;
     let cancelled = false;
 
     const tick = async () => {
@@ -258,7 +262,7 @@ export function useOrdersRealtime() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, []);
+  }}, [canFetch]);
 
   // Bridge para listeners locais (notificações)
   useEffect(() => {
