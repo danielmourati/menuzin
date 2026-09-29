@@ -5,10 +5,13 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { MonitorSmartphone, Printer, RefreshCw, Trash2, Bluetooth, Play, Link2, Unlink } from "lucide-react";
 import { webBluetoothPrinter, generateTestReceipt } from "@/lib/bluetooth-printer";
-import { useQuery } from "@tanstack/react-query";
+import { usePrintQueue } from "@/hooks/usePrintQueue";
+import { useQueryClient } from "@tanstack/react-query";
 // Assumindo que você possa ter uma API/query real para fila no futuro.
 
 export function DevicePrinterConfig() {
+  const queryClient = useQueryClient();
+  
   const [usePrinterHere, setUsePrinterHere] = useState(true);
   const [printForOthers, setPrintForOthers] = useState(false);
   const [useBluetooth, setUseBluetooth] = useState(false);
@@ -17,8 +20,7 @@ export function DevicePrinterConfig() {
   const [btDeviceName, setBtDeviceName] = useState(webBluetoothPrinter.getDeviceName() || "Nenhum pareado");
   const [isPairing, setIsPairing] = useState(false);
 
-  // Exemplo de fila (mock por enquanto até a fase 2)
-  const queueCount = 0;
+  const { queueCount, clearJobs, isLoading } = usePrintQueue(printForOthers, "", useBluetooth);
 
   const handlePairBluetooth = async () => {
     setIsPairing(true);
@@ -101,10 +103,21 @@ export function DevicePrinterConfig() {
               FILA DE IMPRESSÃO
             </Label>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                <RefreshCw className="h-3.5 w-3.5" /> Atualizar
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs gap-1"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["print-jobs"] })}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? 'animate-spin' : ''}`} /> Atualizar
               </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1 text-destructive hover:bg-destructive/10">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs gap-1 text-destructive hover:bg-destructive/10"
+                onClick={clearJobs}
+              >
                 <Trash2 className="h-3.5 w-3.5" /> Limpar impressos
               </Button>
             </div>
