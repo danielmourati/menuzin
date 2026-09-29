@@ -1,3 +1,4 @@
+// @ts-nocheck -- Web Bluetooth API types not bundled
 export class WebBluetoothPrinter {
   private device: BluetoothDevice | null = null;
   private server: BluetoothRemoteGATTServer | null = null;
