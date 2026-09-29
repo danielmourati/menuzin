@@ -11,7 +11,10 @@ import { useAuth } from "@/lib/auth-context";
 import { DEFAULT_PRINTER_SETTINGS } from "@/lib/printer-types";
 import { printOrderViaQz } from "@/lib/print-order";
 import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/lib/qz-tray";
-import { getEffectivePrinterName } from "@/lib/device-printer";
+import { getEffectivePrinterName, getDeviceSettings } from "@/lib/device-printer";
+import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
+import { buildReceipt } from "@/lib/receipt-builder";
+import { columnsFor } from "@/lib/printer-types";
 
 interface PrintOrderButtonProps {
   order: Order;
@@ -70,25 +73,50 @@ export function PrintOrderButton({
     setPrinting(true);
     const toastId = toast.loading("Verificando impressora...");
     try {
-      const targetPrinter = getEffectivePrinterName(settings.printer_name, settings.tenant_id);
-      const status = await getQzPrinterStatus(targetPrinter);
-      if (!status.ok) {
-        toast.error(status.reason || "Impressora indisponível.", {
-          id: toastId,
-          action: { label: "Tentar novamente", onClick: () => handlePrint() },
+      const devSettings = getDeviceSettings();
+      
+      if (devSettings.useBluetooth) {
+        if (!webBluetoothPrinter.isConnected()) {
+          toast.error("Impressora Bluetooth não conectada. Vá em Configurações para parear.", { id: toastId });
+          setPrinting(false);
+          return;
+        }
+        
+        toast.loading("Enviando via Bluetooth...", { id: toastId });
+        const cols = columnsFor(settings.paper_width, settings.font_size, settings.font_family);
+        const text = buildReceipt(order, cols, settings, {
+          storeName: storeName ?? tenant?.name,
+          storePhone: storePhone ?? tenant?.whatsapp,
+          storeAddress: storeAddress ?? formatTenantAddress(tenant),
+          storeInstagram: tenant?.social?.instagram,
+          storePixKey: tenant?.social?.pix,
+          storeCnpj: tenant?.social?.cnpj,
         });
-        return;
+        
+        const encoder = new TextEncoder();
+        await webBluetoothPrinter.print(encoder.encode(text));
+        toast.success(`Cupom enviado via Bluetooth`, { id: toastId });
+      } else {
+        const targetPrinter = getEffectivePrinterName(settings.printer_name, settings.tenant_id);
+        const status = await getQzPrinterStatus(targetPrinter);
+        if (!status.ok) {
+          toast.error(status.reason || "Impressora indisponível.", {
+            id: toastId,
+            action: { label: "Tentar novamente", onClick: () => handlePrint() },
+          });
+          return;
+        }
+        toast.loading("Enviando para a impressora...", { id: toastId });
+        const { printer } = await printOrderViaQz(order, settings, {
+          storeName: storeName ?? tenant?.name,
+          storePhone: storePhone ?? tenant?.whatsapp,
+          storeAddress: storeAddress ?? formatTenantAddress(tenant),
+          storeInstagram: tenant?.social?.instagram,
+          storePixKey: tenant?.social?.pix,
+          storeCnpj: tenant?.social?.cnpj,
+        });
+        toast.success(`Cupom enviado para ${printer}`, { id: toastId });
       }
-      toast.loading("Enviando para a impressora...", { id: toastId });
-      const { printer } = await printOrderViaQz(order, settings, {
-        storeName: storeName ?? tenant?.name,
-        storePhone: storePhone ?? tenant?.whatsapp,
-        storeAddress: storeAddress ?? formatTenantAddress(tenant),
-        storeInstagram: tenant?.social?.instagram,
-        storePixKey: tenant?.social?.pix,
-        storeCnpj: tenant?.social?.cnpj,
-      });
-      toast.success(`Cupom enviado para ${printer}`, { id: toastId });
     } catch (err) {
       if (err instanceof QzNotRunningError) {
         toast.error("QZ Tray não está aberto. Inicie o aplicativo e tente novamente.", { id: toastId });

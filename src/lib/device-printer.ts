@@ -48,3 +48,17 @@ export function getEffectivePrinterName(globalPrinterName: string | null | undef
   }
   return globalPrinterName?.trim() || '';
 }
+
+export function getDeviceSettings() {
+  if (typeof window === 'undefined') return { usePrinterHere: true, printForOthers: false, useBluetooth: false };
+  try {
+    const raw = localStorage.getItem('menuzin_device_settings');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { usePrinterHere: true, printForOthers: false, useBluetooth: false };
+}
+
+export function saveDeviceSettings(settings: { usePrinterHere: boolean; printForOthers: boolean; useBluetooth: boolean }) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('menuzin_device_settings', JSON.stringify(settings));
+}

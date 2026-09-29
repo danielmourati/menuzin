@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -7,14 +7,19 @@ import { MonitorSmartphone, Printer, RefreshCw, Trash2, Bluetooth, Play, Link2, 
 import { webBluetoothPrinter, generateTestReceipt } from "@/lib/bluetooth-printer";
 import { usePrintQueue } from "@/hooks/usePrintQueue";
 import { useQueryClient } from "@tanstack/react-query";
+import { getDeviceSettings, saveDeviceSettings } from "@/lib/device-printer";
 // Assumindo que você possa ter uma API/query real para fila no futuro.
 
 export function DevicePrinterConfig() {
   const queryClient = useQueryClient();
+  const init = getDeviceSettings();
+  const [usePrinterHere, setUsePrinterHere] = useState(init.usePrinterHere);
+  const [printForOthers, setPrintForOthers] = useState(init.printForOthers);
+  const [useBluetooth, setUseBluetooth] = useState(init.useBluetooth);
   
-  const [usePrinterHere, setUsePrinterHere] = useState(true);
-  const [printForOthers, setPrintForOthers] = useState(false);
-  const [useBluetooth, setUseBluetooth] = useState(false);
+  useEffect(() => {
+    saveDeviceSettings({ usePrinterHere, printForOthers, useBluetooth });
+  }, [usePrinterHere, printForOthers, useBluetooth]);
   
   const [btConnected, setBtConnected] = useState(webBluetoothPrinter.isConnected());
   const [btDeviceName, setBtDeviceName] = useState(webBluetoothPrinter.getDeviceName() || "Nenhum pareado");
