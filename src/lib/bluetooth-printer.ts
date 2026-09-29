@@ -11,28 +11,22 @@ export class WebBluetoothPrinter {
 
     try {
       this.device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['000018f0-0000-1000-8000-00805f9b34fb'] }, // Custom thermal printer service
-          { services: ['0000e781-0000-1000-8000-00805f9b34fb'] }, // Another common service
-          { namePrefix: 'MPT' },
-          { namePrefix: 'RP' },
-          { namePrefix: 'MTP' },
-          { namePrefix: 'PT' },
-          { namePrefix: 'Ipos' },
-          { namePrefix: 'POS' }
-        ],
+        acceptAllDevices: true,
         optionalServices: [
           '000018f0-0000-1000-8000-00805f9b34fb',
           '0000e781-0000-1000-8000-00805f9b34fb',
           'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
           '49535343-fe7d-4ae5-8fa9-9fafd205e455' // Common serial port over BLE service
-        ],
-        acceptAllDevices: true // Using acceptAllDevices + optionalServices for max compatibility if filters fail
+        ]
       });
 
       return this.device;
-    } catch (err) {
-      throw new Error("Falha ao buscar dispositivos Bluetooth: " + (err as Error).message);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (msg.includes("cancelled") || msg.includes("cancelado")) {
+        throw new Error("Seleção de impressora cancelada.");
+      }
+      throw new Error("Falha ao buscar dispositivos Bluetooth: " + msg);
     }
   }
 
