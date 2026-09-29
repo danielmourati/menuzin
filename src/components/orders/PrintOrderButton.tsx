@@ -83,8 +83,10 @@ export function PrintOrderButton({
         }
         
         toast.loading("Enviando via Bluetooth...", { id: toastId });
-        const cols = columnsFor(settings.paper_width, settings.font_size, settings.font_family);
-        const text = buildReceipt(order, cols, settings, {
+        
+        // Bluetooth type -> force 55mm as requested by user
+        const cols = columnsFor("55mm", settings.font_size, settings.font_family);
+        const text = buildReceipt(order, cols, { ...settings, paper_width: "55mm" }, {
           storeName: storeName ?? tenant?.name,
           storePhone: storePhone ?? tenant?.whatsapp,
           storeAddress: storeAddress ?? formatTenantAddress(tenant),

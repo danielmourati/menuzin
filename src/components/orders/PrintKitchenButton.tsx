@@ -9,9 +9,12 @@ import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { printKitchenTicket } from "@/lib/print-kitchen";
-import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
+import { getDeviceSettings } from "@/lib/device-printer";
+import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
+import { buildKitchenTicket } from "@/lib/print-kitchen";
+import { columnsFor } from "@/lib/printer-types";
 
 interface PrintKitchenButtonProps {
   order: Order;
@@ -78,15 +81,7 @@ export function PrintKitchenButton({
     setPrinting(true);
     const toastId = toast.loading("Verificando impressora...");
     try {
-      const status = await getQzPrinterStatus(kitchenPrinter.printer_name);
-      if (!status.ok) {
-        toast.error(status.reason || "Impressora indisponível.", {
-          id: toastId,
-          action: { label: "Tentar novamente", onClick: () => handlePrint() },
-        });
-        return;
-      }
-      toast.loading("Enviando comanda para a cozinha...", { id: toastId });
+      const devSettings = getDeviceSettings();
       const storeInfo = {
         storeName: tenant?.name,
         storePhone: tenant?.whatsapp,
@@ -95,8 +90,37 @@ export function PrintKitchenButton({
         storePixKey: tenant?.social?.pix,
         storeCnpj: tenant?.social?.cnpj,
       };
-      const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
-      toast.success(`Comanda enviada para ${printer}`, { id: toastId });
+
+      if (devSettings.useBluetooth) {
+        if (!webBluetoothPrinter.isConnected()) {
+          toast.error("Impressora Bluetooth não conectada. Vá em Configurações para parear.", { id: toastId });
+          setPrinting(false);
+          return;
+        }
+
+        toast.loading("Enviando comanda via Bluetooth...", { id: toastId });
+        
+        // Bluetooth type -> force 55mm as requested by user
+        const cols = columnsFor("55mm", "normal", "mono");
+        const text = buildKitchenTicket(order, cols, kitchenPrinter, storeInfo);
+        
+        const encoder = new TextEncoder();
+        await webBluetoothPrinter.print(encoder.encode(text));
+        toast.success(`Comanda enviada via Bluetooth`, { id: toastId });
+
+      } else {
+        const status = await getQzPrinterStatus(kitchenPrinter.printer_name);
+        if (!status.ok) {
+          toast.error(status.reason || "Impressora indisponível.", {
+            id: toastId,
+            action: { label: "Tentar novamente", onClick: () => handlePrint() },
+          });
+          return;
+        }
+        toast.loading("Enviando comanda para a cozinha...", { id: toastId });
+        const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
+        toast.success(`Comanda enviada para ${printer}`, { id: toastId });
+      }
     } catch (err) {
       if (err instanceof QzNotRunningError) {
         toast.error("QZ Tray não está aberto.", { id: toastId });
