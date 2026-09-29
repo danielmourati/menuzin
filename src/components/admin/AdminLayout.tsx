@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { AdminNotificationsBell } from "@/components/admin/AdminNotificationsBell";
 import { OrdersRealtimeListener } from "@/components/orders/OrdersRealtimeListener";
+import { GlobalPrintQueueServer } from "@/components/printer/GlobalPrintQueueServer";
 import { SupportChatWidget, openSupportChat } from "@/components/support/SupportChatWidget";
 import { useAuth } from "@/lib/auth-context";
 import { getMyTenant, claimNewTenant, updateMyTenant } from "@/lib/tenants.functions";
@@ -356,6 +357,7 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
   return (
     <AuthGate>
       <div className="flex h-screen overflow-hidden bg-muted/30">
+        <GlobalPrintQueueServer />
         <OrdersRealtimeListener />
         <SupportChatWidget />
         <aside

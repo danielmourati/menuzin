@@ -153,7 +153,10 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
   const [caixa, setCaixa] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
   const [drafts, setDrafts] = useState<ExtraDraft[]>([]);
-  const [selectedId, setSelectedId] = useState<string>("device");
+  
+  const isMobile = typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const [selectedId, setSelectedId] = useState<string>(isMobile ? "device" : "caixa");
+
   const [systemPrinters, setSystemPrinters] = useState<QzPrinter[]>([]);
   const [scanning, setScanning] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -531,22 +534,24 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                 Onde imprimir
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
-                <button
-                  type="button"
-                  onClick={() => setSelectedId("device")}
-                  className={
-                    "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
-                    (selectedId === "device" ? "border bg-background shadow-sm" : "hover:bg-muted/60")
-                  }
-                >
-                  <MonitorSmartphone className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-medium">Neste Aparelho</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
-                      Configuração local
+                {isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId("device")}
+                    className={
+                      "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
+                      (selectedId === "device" ? "border bg-background shadow-sm" : "hover:bg-muted/60")
+                    }
+                  >
+                    <MonitorSmartphone className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">Neste Aparelho</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        Configuração local
+                      </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                )}
 
                 <button
                   type="button"
