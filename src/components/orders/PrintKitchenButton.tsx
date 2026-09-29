@@ -13,7 +13,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
-import { buildKitchenTicket } from "@/lib/print-kitchen";
+import { buildKitchenTicket } from "@/lib/kitchen-ticket";
+import { getQzPrinterStatus, QzNotRunningError, QzPrintTimeoutError } from "@/lib/qz-tray";
 import { columnsFor } from "@/lib/printer-types";
 
 interface PrintKitchenButtonProps {
@@ -102,7 +103,7 @@ export function PrintKitchenButton({
         
         // Bluetooth type -> force 55mm as requested by user
         const cols = columnsFor("55mm", "normal", "mono");
-        const text = buildKitchenTicket(order, cols, kitchenPrinter, storeInfo);
+        const text = buildKitchenTicket(order, cols);
         
         const encoder = new TextEncoder();
         await webBluetoothPrinter.print(encoder.encode(text));
