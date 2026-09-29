@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase as typedSupabase } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = typedSupabase as any;
 import { type PrintJob, fetchPendingJobs, markJobAsPrinted, clearPrintedJobs } from "@/lib/print-jobs.functions";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
 import { printQzTextTest, ensureQzConnected } from "@/lib/qz-tray"; // QZ Tray fallback for PC Server
