@@ -53,7 +53,16 @@ export function getDeviceSettings() {
   if (typeof window === 'undefined') return { usePrinterHere: true, printForOthers: false, useBluetooth: false };
   try {
     const raw = localStorage.getItem('menuzin_device_settings');
-    if (raw) return JSON.parse(raw);
+    if (raw && raw !== 'undefined' && raw !== 'null') {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          usePrinterHere: parsed.usePrinterHere ?? true,
+          printForOthers: parsed.printForOthers ?? false,
+          useBluetooth: parsed.useBluetooth ?? false,
+        };
+      }
+    }
   } catch (e) {}
   return { usePrinterHere: true, printForOthers: false, useBluetooth: false };
 }
