@@ -1,6 +1,6 @@
 import type { DbCategoryPizzaSize } from "@/lib/db-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Plus, Minus, Search, ShoppingCart, Utensils, Check, ArrowRight } from "lucide-react";
+import { Loader2, Plus, Minus, Search, ShoppingCart, Utensils, Check, ArrowRight, MapPin } from "lucide-react";
 import { listMyCategories, listMyProducts } from "@/lib/catalog-admin.functions";
 import { createManualOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
@@ -19,6 +20,8 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { dbProductToUi } from "@/lib/db-adapters";
 import { computeUnitPrice, type CartItem } from "@/lib/cart-context";
+import { lookupByCep } from "@/lib/viacep";
+import { resolveDeliveryFee } from "@/lib/delivery-zones.functions";
 
 export const Route = createFileRoute("/admin/pdv")({ component: PdvPage });
 
@@ -54,7 +57,73 @@ function PdvPage() {
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved">("approved");
   const [paymentLabel, setPaymentLabel] = useState("Dinheiro");
 
+  // Delivery / Address states
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [cep, setCep] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [complement, setComplement] = useState("");
+  const [reference, setReference] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(0);
+
+  // Dynamic CEP search
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepError(null);
+      setCepLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setCepError(null);
+    setCepLoading(true);
+    const t = setTimeout(async () => {
+      const res = await lookupByCep(digits);
+      if (cancelled) return;
+      setCepLoading(false);
+      if (res.status === "ok") {
+        const r = res.results[0];
+        setStreet((cur) => cur || r.logradouro);
+        setNeighborhood((cur) => cur || r.bairro);
+        setCity((cur) => cur || r.localidade);
+        setState((cur) => cur || r.uf);
+      } else if (res.status === "empty") {
+        setCepError("CEP não encontrado");
+      } else if (res.status === "error") {
+        setCepError("Falha ao buscar CEP. Preencha manualmente.");
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [cep]);
+
+  const cepDigitsOnly = cep.replace(/\D/g, "");
+  const { data: feeResolution, isFetching: feeLoading } = useQuery({
+    queryKey: ["pdv-resolve-delivery-fee", tenantData?.tenant?.slug, cepDigitsOnly, neighborhood, street, number, city, state],
+    queryFn: () => {
+      if (!tenantData?.tenant?.slug) return Promise.resolve(null);
+      return resolveDeliveryFee({
+        data: { tenant_slug: tenantData.tenant.slug, cep: cepDigitsOnly, neighborhood, street, number, city, state },
+      });
+    },
+    enabled: !!tenantData?.tenant?.slug && mode === "entrega" && addressModalOpen,
+  });
+
+  useEffect(() => {
+    if (feeResolution) {
+      setDeliveryFee(Number(feeResolution.fee || 0));
+    }
+  }, [feeResolution]);
+
   const subtotal = cart.reduce((s, it) => s + it.qty * computeUnitPrice(it), 0);
+  const total = subtotal + (mode === "entrega" ? deliveryFee : 0);
 
   const addToCart = (item: Omit<CartItem, "uid">) => {
     setCart((prev) => {
@@ -76,8 +145,16 @@ function PdvPage() {
       if (!customerName) throw new Error("Informe o nome do cliente.");
       if (cart.length === 0) throw new Error("Carrinho vazio.");
       if (mode === "consumo_local" && !tableLabel) throw new Error("Informe a mesa.");
+      if (mode === "entrega" && (!cep || !street || !number || !neighborhood)) {
+        setAddressModalOpen(true);
+        throw new Error("Preencha o endereço de entrega antes de lançar o pedido.");
+      }
 
       const actualMode = mode === "balcao" ? "retirada" : mode;
+      
+      const address = mode === "entrega" ? {
+        cep: cepDigitsOnly, street, number, neighborhood, complement, reference, city, state
+      } : null;
 
       const items = cart.map((c) => {
         const mergedAddons = [
@@ -107,8 +184,9 @@ function PdvPage() {
           payment_label: paymentLabel,
           payment_status: paymentStatus,
           initial_status: paymentStatus === "approved" ? "preparo" : "novo",
-          delivery_fee: 0,
+          delivery_fee: mode === "entrega" ? deliveryFee : 0,
           table_label: tableLabel || null,
+          address: address as any,
           items,
         }
       });
@@ -119,6 +197,13 @@ function PdvPage() {
       setCustomerName("");
       setWhatsapp("");
       setTableLabel("");
+      setCep("");
+      setStreet("");
+      setNumber("");
+      setNeighborhood("");
+      setComplement("");
+      setReference("");
+      setDeliveryFee(0);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -276,6 +361,19 @@ function PdvPage() {
                     <Input value={tableLabel} onChange={(e) => setTableLabel(e.target.value)} placeholder="Ex: 05" className="h-8 mt-1 text-sm" />
                   </div>
                 )}
+                {mode === "entrega" && (
+                  <div>
+                    <Label className="text-xs">Endereço de Entrega</Label>
+                    <Button 
+                      variant={cep && street ? "secondary" : "outline"}
+                      className="w-full h-8 mt-1 justify-start text-xs font-normal overflow-hidden" 
+                      onClick={() => setAddressModalOpen(true)}
+                    >
+                      <MapPin className="mr-2 h-3.5 w-3.5 shrink-0" />
+                      {cep && street ? <span className="truncate">{street}, {number}</span> : "Informar Endereço"}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -307,7 +405,12 @@ function PdvPage() {
             <div className="pt-3 border-t flex justify-between items-end">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total a Cobrar</p>
-                <p className="text-2xl font-black text-primary leading-none mt-1">{brl(subtotal)}</p>
+                <p className="text-2xl font-black text-primary leading-none mt-1">{brl(total)}</p>
+                {mode === "entrega" && deliveryFee > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1 text-right">
+                    (Inc. Frete de {brl(deliveryFee)})
+                  </p>
+                )}
               </div>
               <Button 
                 onClick={() => submitMut.mutate()} 
@@ -359,6 +462,69 @@ function PdvPage() {
           }
         />
       )}
+
+      {/* Address Modal */}
+      <Dialog open={addressModalOpen} onOpenChange={setAddressModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Endereço de Entrega</DialogTitle>
+            <DialogDescription>Preencha os dados do local de entrega.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 sm:col-span-1">
+                <Label htmlFor="cep">CEP</Label>
+                <div className="relative">
+                  <Input id="cep" value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
+                  {cepLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+                {cepError && <p className="text-xs text-destructive mt-1">{cepError}</p>}
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <Label htmlFor="neighborhood">Bairro *</Label>
+                <Input id="neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3">
+                <Label htmlFor="street">Endereço (Rua/Av) *</Label>
+                <Input id="street" value={street} onChange={(e) => setStreet(e.target.value)} />
+              </div>
+              <div className="col-span-1">
+                <Label htmlFor="number">Número *</Label>
+                <Input id="number" value={number} onChange={(e) => setNumber(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2 sm:col-span-1">
+                <Label htmlFor="complement">Complemento</Label>
+                <Input id="complement" value={complement} onChange={(e) => setComplement(e.target.value)} />
+              </div>
+              <div className="col-span-2 sm:col-span-1">
+                <Label htmlFor="reference">Ponto de Referência</Label>
+                <Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-muted p-3 rounded-md flex justify-between items-center mt-2">
+            <span className="text-sm font-medium">Taxa de Entrega:</span>
+            {feeLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : (
+              <span className="text-base font-bold text-primary">{brl(deliveryFee)}</span>
+            )}
+          </div>
+
+          <DialogFooter className="mt-2">
+            <Button onClick={() => setAddressModalOpen(false)}>
+              Salvar Endereço
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
