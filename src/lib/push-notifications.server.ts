@@ -108,6 +108,8 @@ export async function savePushSubscriptionServer(input: SavePushSubInput) {
 
   const payload = {
     tenant_id: input.tenantId,
+    is_admin_device: false,
+    user_id: null,
     customer_id: input.customerId || null,
     customer_phone: input.customerPhone || null,
     endpoint: input.endpoint,
@@ -206,7 +208,8 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
   let query = (supabaseAdmin as any)
     .from("push_subscriptions")
     .select("*")
-    .eq("tenant_id", tenantId);
+    .eq("tenant_id", tenantId)
+    .eq("is_admin_device", false);
 
   // Se o filtro for apenas para quem já comprou
   if (campaign.target_type === "customers_with_orders") {
@@ -294,14 +297,7 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
 
   const payloadStr = JSON.stringify(pushPayload);
 
-  const pushOptions = {
-    vapidDetails: {
-      subject: VAPID_SUBJECT,
-      publicKey: VAPID_PUBLIC_KEY,
-      privateKey: VAPID_PRIVATE_KEY,
-    },
-    TTL: 86400,
-  };
+  const pushOptions = getVapidPushOptions();
 
   let lastError: string | null = null;
 
