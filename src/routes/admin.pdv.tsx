@@ -210,10 +210,10 @@ function PdvPage() {
 
   return (
     <AdminLayout title="PDV (Frente de Caixa)">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 pb-24 lg:pb-0 lg:h-[calc(100vh-8rem)]">
         
         {/* Lado Esquerdo: Catálogo */}
-        <div className="lg:col-span-2 flex flex-col h-full bg-background border rounded-xl overflow-hidden">
+        <div className="lg:col-span-2 flex flex-col h-[70vh] lg:h-full bg-background border rounded-xl overflow-hidden">
           <div className="p-4 border-b flex gap-3 bg-muted/30">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -221,17 +221,17 @@ function PdvPage() {
                 placeholder="Buscar produto..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-background"
+                className="pl-9 bg-background h-11 text-base lg:h-10 lg:text-sm"
               />
             </div>
           </div>
           
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
             {/* Categorias Sidebar */}
-            <div className="w-48 border-r overflow-y-auto bg-muted/10 p-2 space-y-1">
+            <div className="flex md:block gap-2 md:gap-0 md:w-48 shrink-0 border-b md:border-b-0 md:border-r overflow-x-auto md:overflow-x-hidden md:overflow-y-auto bg-muted/10 p-2 md:space-y-1 scrollbar-hide">
               <button 
                 onClick={() => setActiveCat("todas")}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${activeCat === "todas" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"}`}
+                className={`shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left px-3 py-2 min-h-10 rounded-full md:rounded-md text-sm transition-colors ${activeCat === "todas" ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"}`}
               >
                 Todas as categorias
               </button>
@@ -239,7 +239,7 @@ function PdvPage() {
                 <button 
                   key={c.id}
                   onClick={() => setActiveCat(c.id)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${activeCat === c.id ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"}`}
+                  className={`shrink-0 whitespace-nowrap md:whitespace-normal md:w-full text-left px-3 py-2 min-h-10 rounded-full md:rounded-md text-sm transition-colors ${activeCat === c.id ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted"}`}
                 >
                   {c.name}
                 </button>
@@ -247,7 +247,7 @@ function PdvPage() {
             </div>
 
             {/* Produtos Grid */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-3 md:p-4">
               {prodsLoading ? (
                 <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin h-8 w-8 text-muted-foreground" /></div>
               ) : (
@@ -259,7 +259,7 @@ function PdvPage() {
                         setSelectedProduct(p);
                         setModalOpen(true);
                       }}
-                      className="border rounded-lg p-3 hover:border-primary hover:shadow-sm cursor-pointer transition-all bg-card flex flex-col h-full"
+                      className="border rounded-lg p-3 min-h-20 active:scale-[0.98] hover:border-primary hover:shadow-sm cursor-pointer transition-all bg-card flex flex-col h-full"
                     >
                       <h4 className="font-medium text-sm leading-tight flex-1">{p.name}</h4>
                       <p className="font-semibold text-primary mt-2">{brl(p.price)}</p>
@@ -277,12 +277,12 @@ function PdvPage() {
         </div>
 
         {/* Lado Direito: Carrinho / Resumo */}
-        <div className="flex flex-col h-full bg-background border rounded-xl overflow-hidden shadow-sm">
+        <div id="pdv-comanda" className="flex flex-col lg:h-full bg-background border rounded-xl overflow-hidden shadow-sm scroll-mt-4">
           <div className="p-4 border-b bg-muted/30">
             <h2 className="font-semibold flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Comanda Atual</h2>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 max-h-[50vh] lg:max-h-none">
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
                 <Utensils className="h-8 w-8 mb-3 opacity-20" />
@@ -305,9 +305,9 @@ function PdvPage() {
                       </div>
                       <div className="text-muted-foreground whitespace-nowrap">{brl(computeUnitPrice(item))}</div>
                       <div className="flex items-center gap-1 bg-muted rounded-md p-1 shrink-0 ml-1">
-                        <button onClick={() => updateQty(i, -1)} className="p-1 hover:bg-background rounded text-muted-foreground"><Minus className="h-3 w-3" /></button>
+                        <button onClick={() => updateQty(i, -1)} aria-label="Diminuir" className="grid h-9 w-9 lg:h-7 lg:w-7 place-items-center hover:bg-background rounded text-muted-foreground"><Minus className="h-4 w-4 lg:h-3 lg:w-3" /></button>
                         <span className="w-5 text-center font-medium">{item.qty}</span>
-                        <button onClick={() => updateQty(i, 1)} className="p-1 hover:bg-background rounded text-muted-foreground"><Plus className="h-3 w-3" /></button>
+                        <button onClick={() => updateQty(i, 1)} aria-label="Aumentar" className="grid h-9 w-9 lg:h-7 lg:w-7 place-items-center hover:bg-background rounded text-muted-foreground"><Plus className="h-4 w-4 lg:h-3 lg:w-3" /></button>
                       </div>
                     </div>
                     {/* Addons e Notas */}
@@ -332,22 +332,22 @@ function PdvPage() {
 
           <div className="p-4 border-t bg-muted/10 space-y-4">
             <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2">
                 <div>
                   <Label className="text-xs">Nome do Cliente *</Label>
-                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Ex: Maria" className="h-8 mt-1 text-sm" />
+                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Ex: Maria" className="h-11 lg:h-8 mt-1 text-base lg:text-sm" />
                 </div>
                 <div>
                   <Label className="text-xs">WhatsApp (Opcional)</Label>
-                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="Apenas números" className="h-8 mt-1 text-sm" />
+                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="Apenas números" inputMode="numeric" type="tel" className="h-11 lg:h-8 mt-1 text-base lg:text-sm" />
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2">
                 <div>
                   <Label className="text-xs">Tipo de Venda</Label>
                   <Select value={mode} onValueChange={(v: any) => setMode(v)}>
-                    <SelectTrigger className="h-8 mt-1 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11 lg:h-8 mt-1 text-base lg:text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="balcao">Balcão (Retirada)</SelectItem>
                       <SelectItem value="consumo_local">Mesa (Local)</SelectItem>
@@ -358,7 +358,7 @@ function PdvPage() {
                 {mode === "consumo_local" && (
                   <div>
                     <Label className="text-xs">Nº da Mesa</Label>
-                    <Input value={tableLabel} onChange={(e) => setTableLabel(e.target.value)} placeholder="Ex: 05" className="h-8 mt-1 text-sm" />
+                    <Input value={tableLabel} onChange={(e) => setTableLabel(e.target.value)} placeholder="Ex: 05" className="h-11 lg:h-8 mt-1 text-base lg:text-sm" />
                   </div>
                 )}
                 {mode === "entrega" && (
@@ -366,7 +366,7 @@ function PdvPage() {
                     <Label className="text-xs">Endereço de Entrega</Label>
                     <Button 
                       variant={cep && street ? "secondary" : "outline"}
-                      className="w-full h-8 mt-1 justify-start text-xs font-normal overflow-hidden" 
+                      className="w-full h-11 lg:h-8 mt-1 justify-start text-sm lg:text-xs font-normal overflow-hidden" 
                       onClick={() => setAddressModalOpen(true)}
                     >
                       <MapPin className="mr-2 h-3.5 w-3.5 shrink-0" />
@@ -376,11 +376,11 @@ function PdvPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2">
                 <div>
                   <Label className="text-xs">Pagamento</Label>
                   <Select value={paymentLabel} onValueChange={setPaymentLabel}>
-                    <SelectTrigger className="h-8 mt-1 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11 lg:h-8 mt-1 text-base lg:text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                       <SelectItem value="PIX">PIX</SelectItem>
@@ -392,7 +392,7 @@ function PdvPage() {
                 <div>
                   <Label className="text-xs">Status Pagamento</Label>
                   <Select value={paymentStatus} onValueChange={(v: any) => setPaymentStatus(v)}>
-                    <SelectTrigger className="h-8 mt-1 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-11 lg:h-8 mt-1 text-base lg:text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="approved">Já Pago</SelectItem>
                       <SelectItem value="pending">Aguardando (Pagar depois)</SelectItem>
@@ -402,7 +402,7 @@ function PdvPage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t flex justify-between items-end">
+            <div className="pt-3 border-t flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-end">
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total a Cobrar</p>
                 <p className="text-2xl font-black text-primary leading-none mt-1">{brl(total)}</p>
@@ -415,7 +415,7 @@ function PdvPage() {
               <Button 
                 onClick={() => submitMut.mutate()} 
                 disabled={submitMut.isPending || cart.length === 0}
-                className="font-bold shadow-md"
+                className="font-bold shadow-md h-12 w-full sm:w-auto lg:h-10"
               >
                 {submitMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-1.5" /> Lançar Pedido</>}
               </Button>
@@ -424,6 +424,18 @@ function PdvPage() {
         </div>
 
       </div>
+
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <Button
+            className="w-full h-12 font-bold justify-between"
+            onClick={() => document.getElementById("pdv-comanda")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Ver comanda ({cart.reduce((n, i) => n + i.qty, 0)})</span>
+            <span>{brl(total)}</span>
+          </Button>
+        </div>
+      )}
 
       {selectedProduct && (
         <ProductModal
