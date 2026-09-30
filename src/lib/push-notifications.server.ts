@@ -1,24 +1,93 @@
 import webpush from "web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-// Fallback VAPID keys generated with web-push (ECDSA P-256)
-// In production, set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in environment variables
-const VAPID_PUBLIC_KEY =
-  process.env.VAPID_PUBLIC_KEY ||
-  "BLbgHeSYq0jq6GZpesgNPAk94rxfvGDQnW1WgAefzi-nDsq7sX26i8fGmKYnGgdZZIAujtrKjjmLskY1n0QVmJo";
-const VAPID_PRIVATE_KEY =
-  process.env.VAPID_PRIVATE_KEY ||
-  "43P2oW-ma60ZjCmKm8IYIAYarMyTQqqmCQ043VJUaVc";
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:suporte@menuzin.app";
+// Chaves VAPID lidas do cofre de secrets (lidas sob demanda, nunca no escopo do módulo)
+function getVapid() {
+  const publicKey = process.env["VAPID_PUBLIC_KEY"];
+  const privateKey = process.env["VAPID_PRIVATE_KEY"];
+  const subject = process.env["VAPID_SUBJECT"] || "mailto:suporte@menuzin.app";
+  if (!publicKey || !privateKey) throw new Error("Chaves de push (VAPID) não configuradas.");
+  return { publicKey, privateKey, subject };
+}
 
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (e) {
-  console.warn("[web-push] Configuração VAPID inicial:", e);
+export function getVapidPushOptions() {
+  const v = getVapid();
+  return {
+    vapidDetails: { subject: v.subject, publicKey: v.publicKey, privateKey: v.privateKey },
+    TTL: 86400,
+  };
 }
 
 export function getVapidPublicKeyServer() {
-  return VAPID_PUBLIC_KEY;
+  return getVapid().publicKey;
+}
+
+/** Envia push para todos os aparelhos do lojista de uma loja */
+export async function sendAdminOrderPushServer(orderId: string, tenantId: string) {
+  const { data: order } = await (supabaseAdmin as any)
+    .from("orders")
+    .select("id, number, total, customer_name, tenant_id")
+    .eq("id", orderId)
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  if (!order) return { sent: 0, failed: 0 };
+
+  const { data: subs } = await (supabaseAdmin as any)
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .eq("tenant_id", tenantId)
+    .eq("is_admin_device", true);
+  const list = subs ?? [];
+  if (list.length === 0) return { sent: 0, failed: 0 };
+
+  const total = Number(order.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const payload = JSON.stringify({
+    title: `Novo pedido #${order.number ?? ""}`.trim(),
+    body: `${order.customer_name || "Cliente"} — ${total}. Toque para ver.`,
+    icon: "/icon-192.png",
+    url: "/admin/pedidos",
+    kind: "admin_order",
+    tag: `order-${order.id}`,
+  });
+  const options = getVapidPushOptions();
+  const expired: string[] = [];
+  let sent = 0;
+  let failed = 0;
+  await Promise.all(
+    list.map(async (s: any) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, options);
+        sent++;
+      } catch (err: any) {
+        failed++;
+        console.error("[AdminPush] falha:", err?.statusCode, err?.body || err?.message);
+        if (err?.statusCode === 404 || err?.statusCode === 410) expired.push(s.id);
+      }
+    }),
+  );
+  if (expired.length) await (supabaseAdmin as any).from("push_subscriptions").delete().in("id", expired);
+  return { sent, failed };
+}
+
+/** Salva o aparelho do lojista (já autorizado pelo chamador) */
+export async function saveAdminPushSubscriptionServer(input: {
+  tenantId: string; userId: string; endpoint: string; p256dh: string; auth: string; userAgent?: string | null;
+}) {
+  const now = new Date().toISOString();
+  await (supabaseAdmin as any).from("push_subscriptions").delete().eq("endpoint", input.endpoint).eq("is_admin_device", true);
+  const { error } = await (supabaseAdmin as any).from("push_subscriptions").insert({
+    tenant_id: input.tenantId,
+    user_id: input.userId,
+    is_admin_device: true,
+    endpoint: input.endpoint,
+    p256dh: input.p256dh,
+    auth: input.auth,
+    user_agent: input.userAgent || null,
+    last_active_at: now,
+    updated_at: now,
+  });
+  if (error) throw new Error(error.message);
+  return { ok: true };
 }
 
 export type SavePushSubInput = {
