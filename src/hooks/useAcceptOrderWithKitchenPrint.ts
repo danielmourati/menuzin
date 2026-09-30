@@ -123,6 +123,7 @@ export function useAcceptOrderWithKitchenPrint(
             storePixKey: tenant?.social?.pix,
             storeCnpj: tenant?.social?.cnpj,
           };
+          if (!kitchenPrinter) throw new Error("Nenhuma impressora de cozinha configurada.");
           const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
           toast.success(`Comanda enviada automaticamente para ${printer}`);
         }
