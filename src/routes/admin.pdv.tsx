@@ -339,7 +339,7 @@ function PdvPage() {
                 </div>
                 <div>
                   <Label className="text-xs">WhatsApp (Opcional)</Label>
-                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="Apenas números" className="h-11 lg:h-8 mt-1 text-base lg:text-sm" />
+                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="Apenas números" inputMode="numeric" type="tel" className="h-11 lg:h-8 mt-1 text-base lg:text-sm" />
                 </div>
               </div>
               
@@ -424,6 +424,18 @@ function PdvPage() {
         </div>
 
       </div>
+
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 backdrop-blur p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <Button
+            className="w-full h-12 font-bold justify-between"
+            onClick={() => document.getElementById("pdv-comanda")?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <span className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Ver comanda ({cart.reduce((n, i) => n + i.qty, 0)})</span>
+            <span>{brl(total)}</span>
+          </Button>
+        </div>
+      )}
 
       {selectedProduct && (
         <ProductModal
