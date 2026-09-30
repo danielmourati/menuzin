@@ -11,11 +11,12 @@ import { dbOrderToUi } from "@/lib/order-adapters";
 import { useNotificationPrefs } from "./useNotificationPrefs";
 import {
   playNotificationSound,
+  stopNotificationSound,
   unlockAudioOnFirstGesture,
 } from "@/lib/order-alert-sound";
 import { AuthContext } from "@/lib/auth-context";
 
-export { playNotificationSound } from "@/lib/order-alert-sound";
+export { playNotificationSound, stopNotificationSound } from "@/lib/order-alert-sound";
 
 const SEEN_ORDERS_STORAGE_KEY = "menuzin_seen_order_ids";
 
@@ -226,6 +227,7 @@ export function useOrdersRealtime() {
           const currentAlertOrder = ui.find((o) => o.id === globalNewOrderAlert?.id);
           if (!currentAlertOrder || currentAlertOrder.status !== "novo") {
             globalNewOrderAlert = null;
+            stopNotificationSound();
           }
         }
 
@@ -284,6 +286,7 @@ export function useOrdersRealtime() {
         markOrderAsSeen(orderId);
         if (globalNewOrderAlert?.id === orderId) {
           globalNewOrderAlert = null;
+          stopNotificationSound();
         }
 
         await updateOrderStatusFn({
@@ -305,6 +308,7 @@ export function useOrdersRealtime() {
       markOrderAsSeen(orderId);
       if (globalNewOrderAlert?.id === orderId) {
         globalNewOrderAlert = null;
+        stopNotificationSound();
         notifyListeners();
       }
       return updateOrderStatus(
@@ -321,6 +325,7 @@ export function useOrdersRealtime() {
       markOrderAsSeen(orderId);
       if (globalNewOrderAlert?.id === orderId) {
         globalNewOrderAlert = null;
+        stopNotificationSound();
         notifyListeners();
       }
       const fullNote = reason + (note ? ` — Observação: ${note}` : "");
@@ -381,6 +386,7 @@ export function useOrdersRealtime() {
     }
     globalNewOrderAlert = null;
     setNewOrderAlert(null);
+    stopNotificationSound();
     notifyListeners();
   };
 

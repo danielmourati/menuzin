@@ -148,6 +148,15 @@ export function playNotificationSound() {
   });
 }
 
+export function stopNotificationSound() {
+  const audio = getAlertAudio();
+  if (audio && !audio.paused) {
+    audio.pause();
+    audio.currentTime = 0;
+  }
+}
+
+
 
 
 // Apenas para testes: limpa estado interno do módulo.
