@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import webPush from "https://esm.sh/web-push@3.6.7";
+import webPush from "npm:web-push@3.6.7";
 
 // Configure Web Push with VAPID keys
 // These should be set in Supabase Edge Function Secrets
