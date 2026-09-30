@@ -1057,6 +1057,24 @@ export type Database = {
           },
         ]
       }
+      internal_config: {
+        Row: {
+          created_at: string
+          key: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       mp_oauth_states: {
         Row: {
           created_at: string
@@ -2074,11 +2092,13 @@ export type Database = {
           customer_phone: string | null
           endpoint: string
           id: string
+          is_admin_device: boolean
           last_active_at: string
           p256dh: string
           tenant_id: string
           updated_at: string
           user_agent: string | null
+          user_id: string | null
         }
         Insert: {
           auth: string
@@ -2087,11 +2107,13 @@ export type Database = {
           customer_phone?: string | null
           endpoint: string
           id?: string
+          is_admin_device?: boolean
           last_active_at?: string
           p256dh: string
           tenant_id: string
           updated_at?: string
           user_agent?: string | null
+          user_id?: string | null
         }
         Update: {
           auth?: string
@@ -2100,11 +2122,13 @@ export type Database = {
           customer_phone?: string | null
           endpoint?: string
           id?: string
+          is_admin_device?: boolean
           last_active_at?: string
           p256dh?: string
           tenant_id?: string
           updated_at?: string
           user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {

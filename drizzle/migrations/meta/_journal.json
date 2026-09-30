@@ -50,6 +50,13 @@
       "when": 1790478813508,
       "tag": "0006_tenants_delivery_takeout_time_range",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790779510438,
+      "tag": "0007_admin_order_push",
+      "breakpoints": true
     }
   ]
 }
