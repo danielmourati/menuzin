@@ -65,7 +65,7 @@ export function usePrintQueue(isServer: boolean, localPrinterName?: string, useB
   // Realtime subscription
   useEffect(() => {
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel(`print-jobs-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         {
