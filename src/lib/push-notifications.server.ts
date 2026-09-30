@@ -296,9 +296,9 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
 
   const pushOptions = {
     vapidDetails: {
-      subject: VAPID_SUBJECT,
-      publicKey: VAPID_PUBLIC_KEY,
-      privateKey: VAPID_PRIVATE_KEY,
+      subject: getVapid().subject,
+      publicKey: getVapid().publicKey,
+      privateKey: getVapid().privateKey,
     },
     TTL: 86400,
   };

@@ -115,6 +115,7 @@ export function useAcceptOrderWithKitchenPrint(
           await webBluetoothPrinter.print(encoder.encode(text));
           toast.success(`Comanda impressa automaticamente via Bluetooth`);
         } else {
+          if (!kitchenPrinter) return;
           const storeInfo = {
             storeName: tenant?.name,
             storePhone: tenant?.whatsapp,
