@@ -1,35 +1,54 @@
-self.addEventListener('push', function(event) {
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      
-      const title = data.title || 'Menuzin';
-      const options = {
-        body: data.body || 'Novo pedido recebido!',
-        icon: data.icon || '/icon-192x192.png',
-        badge: '/badge.png',
-        data: data.url || '/admin/pedidos',
-        requireInteraction: true, // Garante que a notificação fique na tela até o usuário clicar
-        vibrate: [200, 100, 200, 100, 200, 100, 200]
-      };
+/* Service Worker para Web Push Notifications — Menuzin Delivery */
 
-      event.waitUntil(self.registration.showNotification(title, options));
-    } catch (e) {
-      console.error('Erro ao processar notificação push', e);
-    }
+self.addEventListener('push', function (event) {
+  if (!event.data) {
+    return; // Ignora pushes vazios (pings do navegador)
   }
+
+  let data;
+  try {
+    data = event.data.json();
+  } catch (e) {
+    return; // Ignora se não for JSON (não é campanha disparada pelo sistema)
+  }
+
+  const title = data.title || 'Novidade na loja! 🛵';
+  const options = {
+    body: data.body || 'Confira as promoções e cupons do dia.',
+    icon: data.icon || '/icon-192.png',
+    badge: '/icon-192.png',
+    image: data.image || null,
+    tag: 'menuzin-campaign-' + Date.now(),
+    renotify: true,
+    data: {
+      url: data.url || '/',
+      coupon: data.coupon || null,
+    },
+    vibrate: [200, 100, 200],
+    actions: data.coupon ? [
+      { action: 'open_store', title: '🏷️ Ver Cupom' },
+      { action: 'close', title: 'Fechar' }
+    ] : [
+      { action: 'open_store', title: '🛍️ Abrir Loja' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener('notificationclick', function(event) {
+self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  
-  // Ao clicar, tenta focar na aba existente ou abrir uma nova
+
+  if (event.action === 'close') return;
+
+  const targetUrl = event.notification.data?.url || '/';
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then(function(clientList) {
-      const targetUrl = event.notification.data || '/admin/pedidos';
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
-        if (client.url.includes(targetUrl) && 'focus' in client) {
+        if (client.url && 'focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
