@@ -48,6 +48,22 @@ function getAudioContext(): AudioContext | null {
 export async function unlockNotificationAudio(): Promise<boolean> {
   let unlocked = false;
 
+  const audio = getAlertAudio();
+  let audioPromise: Promise<void> | undefined;
+  let prevVol = 1;
+
+  // Em navegadores mobile (ex: iOS Safari), o audio.play() DEVE ser 
+  // chamado de forma síncrona na stack de evento do usuário.
+  if (audio) {
+    prevVol = audio.volume;
+    try {
+      audio.volume = 0;
+      audioPromise = audio.play();
+    } catch {
+      // ignore
+    }
+  }
+
   const context = getAudioContext();
   if (context) {
     try {
@@ -59,18 +75,15 @@ export async function unlockNotificationAudio(): Promise<boolean> {
       gain.connect(context.destination);
       oscillator.start();
       oscillator.stop(context.currentTime + 0.03);
-      unlocked = context.state === "running";
+      if (context.state === "running") unlocked = true;
     } catch {
       // segue para fallback
     }
   }
 
-  const audio = getAlertAudio();
-  if (audio) {
-    const prevVol = audio.volume;
+  if (audio && audioPromise) {
     try {
-      audio.volume = 0;
-      await audio.play();
+      await audioPromise;
       audio.pause();
       audio.currentTime = 0;
       unlocked = true;

@@ -9,7 +9,9 @@ import { Label } from "@/components/ui/label";
 import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
 import { useOrdersRealtime, playNotificationSound } from "@/hooks/useOrdersRealtime";
 import { uploadTenantAudio } from "@/lib/storage";
-import { updateMyTenant } from "@/lib/tenants.functions";
+import { updateMyTenant, getMyTenant } from "@/lib/tenants.functions";
+import { useQuery } from "@tanstack/react-query";
+import { useWebPush } from "@/hooks/useWebPush";
 import { ArrowLeft, Volume2, Bell, Upload, Music, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +28,24 @@ function OrderSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant"],
+    queryFn: () => getMyTenant()
+  });
+  
+  const push = useWebPush();
+
+  const handlePushSubscribe = async () => {
+    if (!tenantData?.tenant?.id) {
+      toast.error("Erro ao identificar o tenant atual.");
+      return;
+    }
+    const success = await push.subscribe(tenantData.tenant.id);
+    if (success) {
+      toast.success("Inscrição para notificações em segundo plano realizada!");
+    }
+  };
 
   const handleTestSound = () => {
     playNotificationSound();
@@ -216,6 +236,37 @@ function OrderSettingsPage() {
                 checked={prefs.highlightNew}
                 onCheckedChange={(checked) => updatePrefs({ highlightNew: checked })}
               />
+            </div>
+            
+            {/* Notificações Push (Plano de Fundo) */}
+            <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/10 transition">
+              <div className="space-y-0.5">
+                <Label htmlFor="push-enabled" className="text-sm font-semibold flex items-center gap-1.5">
+                  <Bell className="h-4 w-4 text-primary" /> Notificações em Segundo Plano
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Receba alertas no sistema operacional mesmo se o navegador estiver em segundo plano ou a tela estiver desligada.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {push.isSupported ? (
+                  push.isSubscribed ? (
+                    <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">Inscrito</span>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      variant="default"
+                      className="h-8 text-xs font-semibold"
+                      disabled={push.isLoading || push.permission === 'denied'}
+                      onClick={handlePushSubscribe}
+                    >
+                      {push.isLoading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : "Ativar"}
+                    </Button>
+                  )
+                ) : (
+                  <span className="text-xs text-muted-foreground">Navegador não suporta</span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
