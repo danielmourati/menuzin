@@ -149,7 +149,12 @@ function GuiaHome() {
   const [featuredAll, setFeaturedAll] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
-  const allStores = storesData?.stores ?? [];
+  const allStores = useMemo(() => {
+    const stores = storesData?.stores ?? [];
+    if (!location?.city) return stores;
+    const target = location.city.trim().toLowerCase();
+    return stores.filter((s) => s.city && s.city.trim().toLowerCase() === target);
+  }, [storesData?.stores, location?.city]);
   const availableVerticals = useMemo(() => VERTICALS.filter((v) =>
     v.id === "restaurantes" ? true : allStores.some((s) => s.vertical === v.id),
   ), [allStores]);
@@ -170,7 +175,12 @@ function GuiaHome() {
     return <GuiaHomeSkeleton />;
   }
 
-  const featured = featData.items;
+  const featured = useMemo(() => {
+    const items = featData.items ?? [];
+    if (!location?.city) return items;
+    const target = location.city.trim().toLowerCase();
+    return items.filter((s) => s.city && s.city.trim().toLowerCase() === target);
+  }, [featData.items, location?.city]);
 
   const byKind = (kind: GuiaSlot["kind"]) => home.slots.filter((s) => s.kind === kind && s.active);
   const heroSlots = byKind("hero");
@@ -185,7 +195,7 @@ function GuiaHome() {
 
   // Consolida: só categorias que realmente têm produtos ativos no Guia.
   const countOf = (slug: string) =>
-    catsData.categories.find((x) => x.slug === slug)?.count ?? 0;
+    allStores.filter((s) => s.categories.includes(slug)).length;
   const visibleCategories = (
     managedCategories.length > 0
       ? managedCategories

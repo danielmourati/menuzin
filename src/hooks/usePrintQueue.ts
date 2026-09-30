@@ -29,7 +29,11 @@ export function usePrintQueue(isServer: boolean, localPrinterName?: string, useB
       // Decode content (assumes text/plain payload for ESC/POS or simple string)
       const content = job.content;
       
-      if (useBluetooth && webBluetoothPrinter.isConnected()) {
+      if (useBluetooth) {
+        if (!webBluetoothPrinter.isConnected()) {
+          // Tenta reconexão automática caso o device ainda esteja na memória (ex: a tela nunca fechou)
+          await webBluetoothPrinter.connect();
+        }
         const encoder = new TextEncoder();
         await webBluetoothPrinter.print(encoder.encode(content));
       } else if (localPrinterName) {
