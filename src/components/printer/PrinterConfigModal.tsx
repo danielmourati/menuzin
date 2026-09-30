@@ -774,8 +774,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
           {/* Rodapé */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-5 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="flex items-center gap-1.5 text-xs">
+            {selectedId !== "device" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="flex items-center gap-1.5 text-xs">
                 {qzStatus === "connected" ? (
                   <>
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Impressão ligada
@@ -823,6 +824,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                 Imprimir teste
               </Button>
             </div>
+            ) : (
+              <div />
+            )}
 
             <div className="ml-auto flex items-center gap-2">
               <Button size="sm" className="gap-1.5" onClick={() => void handleSave(false)} disabled={saving}>
