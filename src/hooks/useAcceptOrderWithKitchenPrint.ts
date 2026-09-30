@@ -15,6 +15,10 @@ import { printKitchenTicket } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
+import { getDeviceSettings } from "@/lib/device-printer";
+import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
+import { buildKitchenTicket } from "@/lib/kitchen-ticket";
+import { columnsFor } from "@/lib/printer-types";
 
 export function isOnlinePaymentOrder(order: { payment?: string | null }): boolean {
   if (!order?.payment) return false;
@@ -87,7 +91,10 @@ export function useAcceptOrderWithKitchenPrint(
   const printKitchenFor = useCallback(
     async (order: Order) => {
       if (!can("kitchenPrinter")) return;
-      if (!kitchenPrinter) {
+      
+      const devSettings = getDeviceSettings();
+      
+      if (!devSettings.useBluetooth && !kitchenPrinter) {
         toast.info("Pedido aceito. Configure a impressora da cozinha para impressão automática.", {
           action: {
             label: "Configurar",
@@ -97,16 +104,28 @@ export function useAcceptOrderWithKitchenPrint(
         return;
       }
       try {
-        const storeInfo = {
-          storeName: tenant?.name,
-          storePhone: tenant?.whatsapp,
-          storeAddress: formatTenantAddress(tenant),
-          storeInstagram: tenant?.social?.instagram,
-          storePixKey: tenant?.social?.pix,
-          storeCnpj: tenant?.social?.cnpj,
-        };
-        const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
-        toast.success(`Comanda enviada para ${printer}`);
+        if (devSettings.useBluetooth) {
+          if (!webBluetoothPrinter.isConnected()) {
+            toast.error("Impressão automática falhou: Bluetooth não conectado.");
+            return;
+          }
+          const cols = columnsFor("55mm", "normal", "mono");
+          const text = buildKitchenTicket(order, cols);
+          const encoder = new TextEncoder();
+          await webBluetoothPrinter.print(encoder.encode(text));
+          toast.success(`Comanda impressa automaticamente via Bluetooth`);
+        } else {
+          const storeInfo = {
+            storeName: tenant?.name,
+            storePhone: tenant?.whatsapp,
+            storeAddress: formatTenantAddress(tenant),
+            storeInstagram: tenant?.social?.instagram,
+            storePixKey: tenant?.social?.pix,
+            storeCnpj: tenant?.social?.cnpj,
+          };
+          const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
+          toast.success(`Comanda enviada automaticamente para ${printer}`);
+        }
       } catch (err) {
         const retry = {
           label: "Reimprimir",
