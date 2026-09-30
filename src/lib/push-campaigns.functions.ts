@@ -284,3 +284,26 @@ export const deletePushSubscription = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+
+// Inscreve o aparelho do lojista (dono/admin da loja) para avisos de novo pedido
+export const subscribeAdminPush = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      tenantId: z.string().uuid(),
+      endpoint: z.string().url(),
+      p256dh: z.string().min(1),
+      auth: z.string().min(1),
+      userAgent: z.string().optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const [{ data: isOwner }, { data: isPlatform }] = await Promise.all([
+      supabase.rpc("has_tenant_role", { _user_id: userId, _tenant_id: data.tenantId, _roles: ["owner", "admin"] }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" }),
+    ]);
+    if (!isOwner && !isPlatform) throw new Error("Sem permissão para esta loja.");
+    const { saveAdminPushSubscriptionServer } = await import("./push-notifications.server");
+    return saveAdminPushSubscriptionServer({ ...data, userId });
+  });
