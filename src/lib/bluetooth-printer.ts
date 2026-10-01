@@ -18,30 +18,27 @@ export class WebBluetoothPrinter {
     const isCancel = (m: string) => /cancel|NotFoundError|User/i.test(m);
     const errMsg = (e: any) => (typeof e === 'number' || typeof e === 'string') ? String(e) : (e?.message || e?.name || String(e));
 
-    try {
-      // Tentativa 1: lista todos os aparelhos (Chrome/Edge)
-      this.device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES });
-      return this.device;
-    } catch (err1: any) {
-      const m1 = errMsg(err1);
-      if (isCancel(m1) && !/^\d+$/.test(m1)) throw new Error("Seleção de impressora cancelada.");
-      // Tentativa 2: alguns navegadores (ex.: Bluefy no iPhone) exigem filtros
+    // O Bluefy (iPhone/iPad) rejeita com código numérico quando não consegue
+    // interpretar as opções. Tentamos do formato mais completo ao mais simples.
+    const attempts: any[] = [
+      { acceptAllDevices: true, optionalServices: SERVICES },
+      { acceptAllDevices: true, optionalServices: [0x18f0, 0xff00, 0xe781] },
+      { acceptAllDevices: true },
+      { filters: [{ services: [0x18f0] }, { services: [0xff00] }, { namePrefix: 'MPT' }, { namePrefix: 'Printer' }, { namePrefix: 'BT' }], optionalServices: [0x18f0, 0xff00] },
+    ];
+    let lastErr: any = null;
+    for (const opts of attempts) {
       try {
-        this.device = await navigator.bluetooth.requestDevice({
-          filters: [
-            ...SERVICES.map((s) => ({ services: [s] })),
-            ...['MPT', 'PT-', 'MTP', 'Printer', 'BlueTooth', 'InnerPrinter', 'POS', 'RPP', 'KP', 'GP', 'XP', 'P58', 'P80', 'BT'].map((p) => ({ namePrefix: p })),
-          ],
-          optionalServices: SERVICES,
-        });
+        this.device = await navigator.bluetooth.requestDevice(opts);
         return this.device;
-      } catch (err2: any) {
-        const m2 = errMsg(err2);
-        console.error('[Bluetooth] requestDevice falhou', err1, err2);
-        if (isCancel(m2) && !/^\d+$/.test(m2)) throw new Error("Seleção de impressora cancelada.");
-        throw new Error("Não foi possível listar impressoras Bluetooth. Verifique se o Bluetooth do aparelho está ligado, se o navegador tem permissão de Bluetooth (Ajustes > Bluefy > Bluetooth) e se a impressora está ligada e fora de outro pareamento. (código " + m2 + ")");
+      } catch (err: any) {
+        lastErr = err;
+        const m = errMsg(err);
+        if (isCancel(m) && !/^\d+$/.test(m)) throw new Error("Seleção de impressora cancelada.");
+        console.warn('[Bluetooth] requestDevice falhou com', opts, err);
       }
     }
+    throw new Error("Não foi possível listar impressoras Bluetooth neste navegador. Feche e abra o Bluefy, desligue e ligue o Bluetooth e tente de novo. (código " + errMsg(lastErr) + ")");
   }
 
   async connect(): Promise<void> {
