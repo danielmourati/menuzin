@@ -156,7 +156,11 @@ export function playNotificationSound() {
   };
 
   return play().catch((e) => {
+    // Não guarda para tocar depois: o som perdido é descartado.
     console.warn("Falha ao tocar alerta sonoro de novo pedido:", e);
+    void import("sonner").then(({ toast }) =>
+      toast.warning("Novo pedido! Toque na tela para ativar o som dos avisos.", { id: "audio-blocked" }),
+    );
     unlockAudioOnFirstGesture();
   });
 }
