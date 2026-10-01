@@ -4,7 +4,10 @@ export const BLUEFY_APP_STORE_URL = "https://apps.apple.com/app/bluefy-web-ble-b
 export function isIOSDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  return /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1);
+  const platform = (navigator as unknown as { platform?: string }).platform || "";
+  if (/iPad|iPhone|iPod/i.test(ua) || /iPad|iPhone|iPod/i.test(platform)) return true;
+  // iPadOS / alguns navegadores iOS se identificam como Mac
+  return (/Mac/i.test(ua) || /Mac/i.test(platform)) && (navigator.maxTouchPoints ?? 0) > 1;
 }
 
 export function isStandaloneApp(): boolean {
@@ -33,5 +36,6 @@ export function setBluefyPref(on: boolean) {
 }
 
 export function bluefyLink(url: string) {
-  return `bluefy://open?url=${encodeURIComponent(url)}`;
+  // Formato documentado pela PNN Soft: bluefy://open?url=example.com
+  return `bluefy://open?url=${url.replace(/^https?:\/\//, "")}`;
 }
