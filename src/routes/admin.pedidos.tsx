@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
 import { assignDriverToOrder } from "@/lib/drivers.functions";
 import type { OrderStatus } from "@/lib/domain-types";
+import { isIOSDevice, isStandaloneApp, getBluefyPref, bluefyLink, BLUEFY_APP_STORE_URL } from "@/lib/bluefy";
 
 export const Route = createFileRoute("/admin/pedidos")({
   component: () => (
@@ -143,6 +144,31 @@ function OrdersPage() {
     };
     window.addEventListener("open-order-details", handleOpenDetails);
     return () => window.removeEventListener("open-order-details", handleOpenDetails);
+  }, []);
+
+  // Abertura via aviso push: ?order=<id>&from=push (iOS pode repassar ao Bluefy)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("order");
+    const fromPush = params.get("from") === "push";
+    if (!orderId) return;
+    setDetailedOrderId(orderId);
+    const clean = `${window.location.origin}/admin/pedidos?order=${encodeURIComponent(orderId)}`;
+    window.history.replaceState(null, "", `/admin/pedidos`);
+    if (fromPush && isIOSDevice() && isStandaloneApp() && getBluefyPref()) {
+      let left = false;
+      const onHide = () => { left = true; };
+      document.addEventListener("visibilitychange", onHide, { once: true });
+      window.location.href = bluefyLink(clean);
+      setTimeout(() => {
+        if (!left && document.visibilityState === "visible") {
+          toast("Não foi possível abrir no Bluefy", {
+            description: "Instale o Bluefy para abrir os pedidos nele.",
+            action: { label: "App Store", onClick: () => window.open(BLUEFY_APP_STORE_URL, "_blank") },
+          });
+        }
+      }, 2000);
+    }
   }, []);
 
   // Filtra as ordens de acordo com a barra de busca e modalidade

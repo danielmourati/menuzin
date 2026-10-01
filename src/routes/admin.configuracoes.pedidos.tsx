@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { isIOSDevice, getBluefyPref, setBluefyPref } from "@/lib/bluefy";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
@@ -35,6 +36,12 @@ function OrderSettingsPage() {
   });
   
   const push = useWebPush();
+  const [isIOS, setIsIOS] = useState(false);
+  const [bluefyOn, setBluefyOn] = useState(false);
+  useEffect(() => {
+    setIsIOS(isIOSDevice());
+    setBluefyOn(getBluefyPref());
+  }, []);
 
   const handlePushSubscribe = async () => {
     if (!tenantData?.tenant?.id) {
@@ -268,6 +275,24 @@ function OrderSettingsPage() {
                 )}
               </div>
             </div>
+
+            {isIOS && (
+              <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/10 transition">
+                <div className="space-y-0.5">
+                  <Label htmlFor="open-bluefy" className="text-sm font-semibold">
+                    Sempre abrir no Bluefy
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ao tocar no aviso de um pedido, abrir o pedido no navegador Bluefy (para usar a impressora Bluetooth).
+                  </p>
+                </div>
+                <Switch
+                  id="open-bluefy"
+                  checked={bluefyOn}
+                  onCheckedChange={(c) => { setBluefyPref(c); setBluefyOn(c); }}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

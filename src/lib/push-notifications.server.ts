@@ -45,7 +45,7 @@ export async function sendAdminOrderPushServer(orderId: string, tenantId: string
     title: `Novo pedido #${order.number ?? ""}`.trim(),
     body: `${order.customer_name || "Cliente"} — ${total}. Toque para ver.`,
     icon: "/icon-192.png",
-    url: "/admin/pedidos",
+    url: `/admin/pedidos?order=${order.id}&from=push`,
     kind: "admin_order",
     tag: `order-${order.id}`,
   });
