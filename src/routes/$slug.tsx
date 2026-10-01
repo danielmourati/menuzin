@@ -161,7 +161,7 @@ export const Route = createFileRoute("/$slug")({
   component: StoreRoute,
   errorComponent: ({ error }) => (
     <div className="grid min-h-screen place-items-center px-4 text-center">
-      <p className="text-sm text-muted-foreground">Erro ao carregar a loja: {error.message}</p>
+      <p className="text-sm text-muted-foreground">Erro ao carregar a loja: {(error as Error).message}</p>
     </div>
   ),
 });

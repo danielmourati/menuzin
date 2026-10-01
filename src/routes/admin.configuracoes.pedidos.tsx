@@ -260,11 +260,11 @@ function OrderSettingsPage() {
                       disabled={push.isLoading || push.permission === 'denied'}
                       onClick={handlePushSubscribe}
                     >
-                      {push.isLoading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : "Ativar"}
+                      {push.isLoading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : push.permission === 'denied' ? "Bloqueado no navegador" : "Ativar"}
                     </Button>
                   )
                 ) : (
-                  <span className="text-xs text-muted-foreground">Navegador não suporta</span>
+                  <span className="max-w-[220px] text-right text-xs text-muted-foreground">{push.unsupportedReason || "Navegador não suporta"}</span>
                 )}
               </div>
             </div>

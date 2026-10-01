@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 
 // Utility to convert Base64 VAPID key to Uint8Array
@@ -18,15 +19,34 @@ function urlB64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+export function getPushSupport(): { ok: boolean; reason: string } {
+  if (typeof window === 'undefined') return { ok: false, reason: '' };
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+  let inIframe = false;
+  try { inIframe = window.top !== window.self; } catch { inIframe = true; }
+  if (inIframe) return { ok: false, reason: 'Não funciona dentro da prévia. Abra o site publicado (menuzin.app).' };
+  if (isIOS && !standalone) return { ok: false, reason: 'No iPhone: toque em Compartilhar > Adicionar à Tela de Início e abra o Menuzin por lá (iOS 16.4 ou mais novo).' };
+  if (!window.isSecureContext) return { ok: false, reason: 'Só funciona em endereço seguro (https).' };
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return { ok: false, reason: 'Este navegador não tem avisos em segundo plano (pode ser modo anônimo). Use o Chrome, Edge ou Firefox.' };
+  }
+  return { ok: true, reason: '' };
+}
+
 export function useWebPush() {
   const { session } = useAuth();
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [unsupportedReason, setUnsupportedReason] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+    const support = getPushSupport();
+    setUnsupportedReason(support.reason);
+    if (support.ok) {
       setIsSupported(true);
       setPermission(Notification.permission);
       
@@ -48,7 +68,8 @@ export function useWebPush() {
       setPermission(perm);
       
       if (perm !== 'granted') {
-        throw new Error('Permissão negada para notificações');
+        toast.error('Permissão negada. Libere as notificações do site nas configurações do navegador.');
+        return false;
       }
 
       const registration = await navigator.serviceWorker.register('/sw.js');
@@ -85,6 +106,7 @@ export function useWebPush() {
       return true;
     } catch (err) {
       console.error('Erro ao assinar web push:', err);
+      toast.error('Não foi possível ativar: ' + ((err as Error)?.message || 'erro desconhecido'));
       return false;
     } finally {
       setIsLoading(false);
@@ -96,6 +118,7 @@ export function useWebPush() {
     permission,
     isSubscribed,
     isLoading,
+    unsupportedReason,
     subscribe
   };
 }

@@ -15,6 +15,7 @@ import {
   unlockAudioOnFirstGesture,
 } from "@/lib/order-alert-sound";
 import { AuthContext } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 
 export { playNotificationSound, stopNotificationSound } from "@/lib/order-alert-sound";
 
@@ -97,6 +98,8 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
   );
 
   if (alertable.length === 0) return;
+  // Só pedidos realmente recentes tocam som (evita alarme atrasado após o aparelho dormir).
+  const fresh = alertable.filter((o) => Date.now() - new Date(o.createdAt).getTime() <= ALERT_MAX_AGE_MS);
 
   const sorted = [...alertable].sort((a, b) => {
     const ta = new Date(a.createdAt).getTime();
@@ -135,8 +138,43 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
   }
 
   notifyListeners();
-  if (soundEnabled) playNotificationSound();
+  // Um só disparo por pedido no aparelho inteiro (todas as abas).
+  if (soundEnabled && fresh.some((o) => claimSoundForOrder(o.id))) playNotificationSound();
 }
+
+const ALERT_MAX_AGE_MS = 3 * 60 * 1000;
+const SOUND_CLAIM_PREFIX = "menuzin_alert_sound_";
+
+function claimSoundForOrder(orderId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const key = SOUND_CLAIM_PREFIX + orderId;
+    if (localStorage.getItem(key)) return false;
+    localStorage.setItem(key, String(Date.now()));
+    // limpeza de marcas antigas
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(SOUND_CLAIM_PREFIX) && Date.now() - Number(localStorage.getItem(k)) > 3600_000) localStorage.removeItem(k);
+    }
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+const alertChannel: BroadcastChannel | null =
+  typeof window !== "undefined" && "BroadcastChannel" in window ? new BroadcastChannel("menuzin-order-alert") : null;
+alertChannel?.addEventListener("message", (ev) => {
+  const msg = ev.data as { type?: string; orderId?: string };
+  if (msg?.type === "handled" && msg.orderId) {
+    markOrderAsSeen(msg.orderId);
+    if (globalNewOrderAlert?.id === msg.orderId) {
+      globalNewOrderAlert = null;
+      stopNotificationSound();
+      notifyListeners();
+    }
+  }
+});
 
 export function useOrdersRealtime() {
   const queryClient = useQueryClient();
@@ -228,6 +266,7 @@ export function useOrdersRealtime() {
           if (!currentAlertOrder || currentAlertOrder.status !== "novo") {
             globalNewOrderAlert = null;
             stopNotificationSound();
+            notifyListeners();
           }
         }
 
@@ -260,11 +299,28 @@ export function useOrdersRealtime() {
 
     void tick();
     const id = window.setInterval(tick, 10000);
+    // Aviso imediato: qualquer INSERT/UPDATE de pedido da loja dispara uma conferência na hora.
+    let debounce: number | undefined;
+    const channel = profileTenantId
+      ? supabase
+          .channel(`orders-live-${profileTenantId}-${Math.random().toString(36).slice(2)}`)
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "orders", filter: `tenant_id=eq.${profileTenantId}` },
+            () => {
+              window.clearTimeout(debounce);
+              debounce = window.setTimeout(() => void tick(), 400);
+            },
+          )
+          .subscribe()
+      : null;
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      window.clearTimeout(debounce);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [canFetch]);
+  }, [canFetch, profileTenantId]);
 
   // Bridge para listeners locais (notificações)
   useEffect(() => {
@@ -284,6 +340,7 @@ export function useOrdersRealtime() {
         // Ao alterar o status (aceitar, enviar para preparo, cancelar, etc.),
         // marca como visto e cancela o alerta visual/sonoro ativo para ele.
         markOrderAsSeen(orderId);
+        alertChannel?.postMessage({ type: "handled", orderId });
         if (globalNewOrderAlert?.id === orderId) {
           globalNewOrderAlert = null;
           stopNotificationSound();
