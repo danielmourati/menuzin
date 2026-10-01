@@ -5,9 +5,8 @@ export class WebBluetoothPrinter {
   private characteristic: BluetoothRemoteGATTCharacteristic | null = null;
 
   async requestDevice(): Promise<BluetoothDevice> {
-    if (!navigator.bluetooth) {
-      throw new Error("Web Bluetooth não é suportado neste navegador. Use Chrome ou Edge no Android/PC.");
-    }
+    const support = getBluetoothSupport();
+    if (!support.ok) throw new Error(support.reason);
 
     try {
       this.device = await navigator.bluetooth.requestDevice({
@@ -111,4 +110,20 @@ export function generateTestReceipt(): Uint8Array {
   buffer.set(encoder.encode(text), 2);
   
   return buffer;
+}
+
+export type BluetoothSupport = { ok: true } | { ok: false; reason: string };
+
+/** Diz se este aparelho/navegador consegue usar impressora Bluetooth e, se não, o motivo. */
+export function getBluetoothSupport(): BluetoothSupport {
+  if (typeof window === "undefined") return { ok: false, reason: "" };
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  let inIframe = false;
+  try { inIframe = window.top !== window.self; } catch { inIframe = true; }
+  if (isIOS) return { ok: false, reason: "iPhone e iPad não permitem impressora Bluetooth pelo navegador. Use o app de impressão (QZ) num computador ou um aparelho Android." };
+  if (inIframe) return { ok: false, reason: "O Bluetooth não funciona dentro da prévia. Abra o site publicado (menuzin.app)." };
+  if (!window.isSecureContext) return { ok: false, reason: "O Bluetooth só funciona em endereço seguro (https)." };
+  if (!(navigator as any).bluetooth) return { ok: false, reason: "Este navegador não tem Bluetooth. Abra o painel no Chrome ou Edge (Android, PC ou Mac)." };
+  return { ok: true };
 }

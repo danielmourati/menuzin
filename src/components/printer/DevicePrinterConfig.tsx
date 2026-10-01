@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { MonitorSmartphone, Printer, RefreshCw, Trash2, Bluetooth, Play, Link2, Unlink } from "lucide-react";
-import { webBluetoothPrinter, generateTestReceipt } from "@/lib/bluetooth-printer";
+import { webBluetoothPrinter, generateTestReceipt, getBluetoothSupport } from "@/lib/bluetooth-printer";
 import { usePrintQueue } from "@/hooks/usePrintQueue";
 import { useQueryClient } from "@tanstack/react-query";
 import { getDeviceSettings, saveDeviceSettings } from "@/lib/device-printer";
@@ -24,6 +24,8 @@ export function DevicePrinterConfig() {
   const [btConnected, setBtConnected] = useState(webBluetoothPrinter.isConnected());
   const [btDeviceName, setBtDeviceName] = useState(webBluetoothPrinter.getDeviceName() || "Nenhum pareado");
   const [isPairing, setIsPairing] = useState(false);
+  const [btSupport, setBtSupport] = useState<{ ok: boolean; reason?: string }>({ ok: true });
+  useEffect(() => { setBtSupport(getBluetoothSupport()); }, []);
 
   const { queueCount, clearJobs, isLoading } = usePrintQueue(printForOthers, "", useBluetooth);
 
@@ -148,6 +150,9 @@ export function DevicePrinterConfig() {
         </div>
         
         <div className="p-4 space-y-4">
+          {!btSupport.ok && btSupport.reason && (
+            <p className="rounded-md border border-border bg-muted p-3 text-xs text-muted-foreground">{btSupport.reason}</p>
+          )}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-sm">
               <span className="text-muted-foreground">Dispositivo Pareado:</span>{" "}
@@ -157,7 +162,7 @@ export function DevicePrinterConfig() {
             <div className="flex flex-wrap gap-2">
               <Button 
                 onClick={handlePairBluetooth} 
-                disabled={isPairing}
+                disabled={isPairing || !btSupport.ok}
                 size="sm" 
                 variant={btConnected ? "outline" : "default"}
                 className={!btConnected ? "bg-primary text-primary-foreground" : ""}
@@ -167,7 +172,7 @@ export function DevicePrinterConfig() {
               </Button>
               <Button 
                 onClick={handlePairBluetooth}
-                disabled={!btDeviceName || isPairing || btConnected}
+                disabled={!btSupport.ok || !btDeviceName || isPairing || btConnected}
                 variant="outline" 
                 size="sm"
               >
@@ -175,7 +180,7 @@ export function DevicePrinterConfig() {
               </Button>
               <Button 
                 onClick={handleTestBluetooth}
-                disabled={!btConnected}
+                disabled={!btSupport.ok || !btConnected}
                 variant="outline" 
                 size="sm" 
                 className="bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950/20 dark:hover:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800/30"
