@@ -64,7 +64,7 @@ export const subscribeAdminPush = createServerFn({ method: "POST" })
     const { data: allowed } = await supabase.rpc("has_tenant_role", {
       _user_id: userId,
       _tenant_id: data.tenantId,
-      _roles: ["tenant_owner", "tenant_admin"],
+      _roles: ["owner", "admin"],
     });
     const { data: isPlatform } = await supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" });
     if (!allowed && !isPlatform) throw new Error("Só o dono ou um administrador da loja pode ativar.");

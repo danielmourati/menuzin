@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { getVapidPublicKey, subscribeAdminPush } from '@/lib/push-campaigns.functions';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 
@@ -72,35 +72,36 @@ export function useWebPush() {
         return false;
       }
 
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      const registration = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
       await navigator.serviceWorker.ready;
 
-      // Pegar a chave VAPID das variáveis de ambiente
-      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      const { publicKey: vapidPublicKey } = await getVapidPublicKey();
       if (!vapidPublicKey) {
-        throw new Error('Chave VAPID pública não configurada (VITE_VAPID_PUBLIC_KEY)');
+        throw new Error('O servidor está sem a chave de notificações. Fale com o suporte.');
       }
 
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(vapidPublicKey)
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(vapidPublicKey)
+        });
+      }
+
+      const subData = subscription.toJSON();
+      if (!subData.endpoint || !subData.keys?.p256dh || !subData.keys?.auth) {
+        throw new Error('Assinatura do navegador incompleta.');
+      }
+
+      await subscribeAdminPush({
+        data: {
+          tenantId,
+          endpoint: subData.endpoint,
+          p256dh: subData.keys.p256dh,
+          auth: subData.keys.auth,
+          userAgent: navigator.userAgent,
+        },
       });
-
-      const subData = JSON.parse(JSON.stringify(subscription));
-
-      // Salvar no Supabase
-      const { error } = await supabase.from('push_subscriptions').upsert({
-        tenant_id: tenantId,
-        user_id: session.user.id,
-        is_admin_device: true,
-        endpoint: subData.endpoint,
-        p256dh: subData.keys.p256dh,
-        auth: subData.keys.auth,
-        user_agent: navigator.userAgent,
-        last_active_at: new Date().toISOString(),
-      }, { onConflict: 'endpoint' });
-
-      if (error) throw error;
       
       setIsSubscribed(true);
       return true;
