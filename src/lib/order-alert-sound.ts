@@ -48,22 +48,7 @@ function getAudioContext(): AudioContext | null {
 export async function unlockNotificationAudio(): Promise<boolean> {
   let unlocked = false;
 
-  const audio = getAlertAudio();
-  let audioPromise: Promise<void> | undefined;
-  let prevVol = 1;
-
-  // Em navegadores mobile (ex: iOS Safari), o audio.play() DEVE ser 
-  // chamado de forma síncrona na stack de evento do usuário.
-  if (audio) {
-    prevVol = audio.volume;
-    try {
-      audio.volume = 0;
-      audioPromise = audio.play();
-    } catch {
-      // ignore
-    }
-  }
-
+  // Primeiro tenta destravar só com um oscilador inaudível (não toca o som de pedido).
   const context = getAudioContext();
   if (context) {
     try {
@@ -81,16 +66,22 @@ export async function unlockNotificationAudio(): Promise<boolean> {
     }
   }
 
-  if (audio && audioPromise) {
-    try {
-      await audioPromise;
-      audio.pause();
-      audio.currentTime = 0;
-      unlocked = true;
-    } catch {
-      // ignore
-    } finally {
-      audio.volume = prevVol;
+  // Som customizado precisa do elemento de áudio destravado. Usa "muted"
+  // (no iPhone o volume é ignorado e o som tocaria de verdade).
+  if (_overrideUrl || !unlocked) {
+    const audio = getAlertAudio();
+    if (audio) {
+      audio.muted = true;
+      try {
+        await audio.play();
+        audio.pause();
+        audio.currentTime = 0;
+        unlocked = true;
+      } catch {
+        // ignore
+      } finally {
+        audio.muted = false;
+      }
     }
   }
 
