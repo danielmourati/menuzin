@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { isIOSDevice, getBluefyPref, setBluefyPref } from "@/lib/bluefy";
+import { isIOSDevice, getBluefyPref, setBluefyPref, bluefyLink } from "@/lib/bluefy";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { SettingsBreadcrumb } from "@/components/admin/SettingsBreadcrumb";
@@ -286,11 +286,21 @@ function OrderSettingsPage() {
                     Ao tocar no aviso de um pedido, abrir o pedido no navegador Bluefy (para usar a impressora Bluetooth).
                   </p>
                 </div>
+                <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs font-semibold"
+                  onClick={() => { window.location.href = bluefyLink(`${window.location.origin}/admin/pedidos`); }}
+                >
+                  Testar
+                </Button>
                 <Switch
                   id="open-bluefy"
                   checked={bluefyOn}
                   onCheckedChange={(c) => { setBluefyPref(c); setBluefyOn(c); }}
                 />
+                </div>
               </div>
             )}
           </CardContent>
