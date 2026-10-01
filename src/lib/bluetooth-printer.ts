@@ -121,9 +121,11 @@ export function getBluetoothSupport(): BluetoothSupport {
   const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   let inIframe = false;
   try { inIframe = window.top !== window.self; } catch { inIframe = true; }
-  if (isIOS) return { ok: false, reason: "iPhone e iPad não permitem impressora Bluetooth pelo navegador. Use o app de impressão (QZ) num computador ou um aparelho Android." };
   if (inIframe) return { ok: false, reason: "O Bluetooth não funciona dentro da prévia. Abra o site publicado (menuzin.app)." };
   if (!window.isSecureContext) return { ok: false, reason: "O Bluetooth só funciona em endereço seguro (https)." };
-  if (!(navigator as any).bluetooth) return { ok: false, reason: "Este navegador não tem Bluetooth. Abra o painel no Chrome ou Edge (Android, PC ou Mac)." };
+  if (!(navigator as any).bluetooth) {
+    if (isIOS) return { ok: false, reason: "Seu navegador não tem Bluetooth. No iPhone/iPad, abra o painel no app Bluefy (grátis na App Store)." };
+    return { ok: false, reason: "Este navegador não tem Bluetooth. Abra o painel no Chrome ou Edge (Android, PC ou Mac)." };
+  }
   return { ok: true };
 }
