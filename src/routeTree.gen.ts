@@ -9,121 +9,87 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as SlugRouteImport } from './routes/$slug'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
-import { Route as ContatoRouteImport } from './routes/contato'
-import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
-import { Route as MinhaContaRouteImport } from './routes/minha-conta'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermosRouteImport } from './routes/termos'
-import { Route as SlugProdutoSlugRouteImport } from './routes/$slug.$produtoSlug'
-import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
-import { Route as SlugDestaquesRouteImport } from './routes/$slug.destaques'
-import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
-import { Route as SlugPromocoesRouteImport } from './routes/$slug.promocoes'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
-import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
-import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
-import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
-import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
-import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
-import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
-import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
-import { Route as AdminDiretorioRouteImport } from './routes/admin.diretorio'
-import { Route as AdminEntregadoresRouteImport } from './routes/admin.entregadores'
-import { Route as AdminLoginRouteImport } from './routes/admin.login'
-import { Route as AdminNotificacoesRouteImport } from './routes/admin.notificacoes'
-import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
-import { Route as AdminPdvRouteImport } from './routes/admin.pdv'
-import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
-import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
-import { Route as AdminRecuperarSenhaRouteImport } from './routes/admin.recuperar-senha'
-import { Route as AdminRedefinirSenhaRouteImport } from './routes/admin.redefinir-senha'
-import { Route as AdminRelatoriosRouteImport } from './routes/admin.relatorios'
-import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
-import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as MinhaContaRouteImport } from './routes/minha-conta'
+import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
+import { Route as ContatoRouteImport } from './routes/contato'
+import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as SlugRouteImport } from './routes/$slug'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuiaIndexRouteImport } from './routes/guia.index'
-import { Route as GuiaCategoriaRouteImport } from './routes/guia.$categoria'
-import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
-import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
-import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
-import { Route as PlatformGuiaRouteImport } from './routes/platform.guia'
-import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
-import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as PlatformSuporteRouteImport } from './routes/platform.suporte'
-import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
-import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
-import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
-import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
-import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
-import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
-import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
-import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
-import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
-import { Route as ApiPublicManifestAdminRouteImport } from './routes/api.public.manifest-admin'
-import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
-import { Route as ApiPublicMpOauthCallbackRouteImport } from './routes/api.public.mp-oauth-callback'
-import { Route as ApiPublicMpOrderWebhookRouteImport } from './routes/api.public.mp-order-webhook'
-import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
-import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
-import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
-import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
-import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
+import { Route as PlatformPlanosRouteImport } from './routes/platform.planos'
+import { Route as PlatformLojasRouteImport } from './routes/platform.lojas'
+import { Route as PlatformGuiaRouteImport } from './routes/platform.guia'
+import { Route as PlatformDashboardRouteImport } from './routes/platform.dashboard'
+import { Route as PlatformAssinaturasRouteImport } from './routes/platform.assinaturas'
+import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
+import { Route as GuiaCategoriaRouteImport } from './routes/guia.$categoria'
+import { Route as AdminTrocarSenhaRouteImport } from './routes/admin.trocar-senha'
+import { Route as AdminTaxasEntregaRouteImport } from './routes/admin.taxas-entrega'
+import { Route as AdminRelatoriosRouteImport } from './routes/admin.relatorios'
+import { Route as AdminRedefinirSenhaRouteImport } from './routes/admin.redefinir-senha'
+import { Route as AdminRecuperarSenhaRouteImport } from './routes/admin.recuperar-senha'
+import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminPdvRouteImport } from './routes/admin.pdv'
+import { Route as AdminObservacoesRouteImport } from './routes/admin.observacoes'
+import { Route as AdminNotificacoesRouteImport } from './routes/admin.notificacoes'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
+import { Route as AdminEntregadoresRouteImport } from './routes/admin.entregadores'
+import { Route as AdminDiretorioRouteImport } from './routes/admin.diretorio'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
+import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
+import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
+import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
+import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
+import { Route as SlugPromocoesRouteImport } from './routes/$slug.promocoes'
+import { Route as SlugPedidoConfirmadoRouteImport } from './routes/$slug.pedido-confirmado'
+import { Route as SlugDestaquesRouteImport } from './routes/$slug.destaques'
+import { Route as SlugCuponsRouteImport } from './routes/$slug.cupons'
+import { Route as SlugProdutoSlugRouteImport } from './routes/$slug.$produtoSlug'
 import { Route as PlatformGuiaIndexRouteImport } from './routes/platform.guia.index'
-import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
-import { Route as PlatformGuiaPlanosRouteImport } from './routes/platform.guia.planos'
-import { Route as PlatformGuiaSecoesRouteImport } from './routes/platform.guia.secoes'
-import { Route as PlatformGuiaSlotsRouteImport } from './routes/platform.guia.slots'
-import { Route as PlatformGuiaSolicitacoesRouteImport } from './routes/platform.guia.solicitacoes'
+import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin.configuracoes.index'
 import { Route as PlatformTenantsNovoRouteImport } from './routes/platform.tenants.novo'
-import { Route as ApiPublicManifestSlugRouteImport } from './routes/api.public.manifest.$slug'
-import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as PlatformGuiaSolicitacoesRouteImport } from './routes/platform.guia.solicitacoes'
+import { Route as PlatformGuiaSlotsRouteImport } from './routes/platform.guia.slots'
+import { Route as PlatformGuiaSecoesRouteImport } from './routes/platform.guia.secoes'
+import { Route as PlatformGuiaPlanosRouteImport } from './routes/platform.guia.planos'
+import { Route as PlatformGuiaCategoriasRouteImport } from './routes/platform.guia.categorias'
+import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
+import { Route as LojaSlugPedidoConfirmadoRouteImport } from './routes/loja.$slug.pedido-confirmado'
+import { Route as GuiaProdutoIdRouteImport } from './routes/guia.produto.$id'
+import { Route as ApiPublicQzCertDotcrtRouteImport } from './routes/api.public.qz-cert[.]crt'
+import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
+import { Route as ApiPublicOrderPushRouteImport } from './routes/api.public.order-push'
+import { Route as ApiPublicMpOrderWebhookRouteImport } from './routes/api.public.mp-order-webhook'
+import { Route as ApiPublicMpOauthCallbackRouteImport } from './routes/api.public.mp-oauth-callback'
+import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
+import { Route as ApiPublicManifestAdminRouteImport } from './routes/api.public.manifest-admin'
+import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
+import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
+import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
+import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
+import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin.configuracoes.pagamentos'
+import { Route as AdminConfiguracoesImpressoraRouteImport } from './routes/admin.configuracoes.impressora'
+import { Route as AdminCardapioNovoRouteImport } from './routes/admin.cardapio.novo'
+import { Route as SlugAcompanharOrderIdRouteImport } from './routes/$slug.acompanhar.$orderId'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
+import { Route as ApiPublicManifestSlugRouteImport } from './routes/api.public.manifest.$slug'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SlugRoute = SlugRouteImport.update({
-  id: '/$slug',
-  path: '/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
-  id: '/comece-agora',
-  path: '/comece-agora',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContatoRoute = ContatoRouteImport.update({
-  id: '/contato',
-  path: '/contato',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeusPedidosRoute = MeusPedidosRouteImport.update({
-  id: '/meus-pedidos',
-  path: '/meus-pedidos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MinhaContaRoute = MinhaContaRouteImport.update({
-  id: '/minha-conta',
-  path: '/minha-conta',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -131,179 +97,59 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TermosRoute = TermosRouteImport.update({
-  id: '/termos',
-  path: '/termos',
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SlugProdutoSlugRoute = SlugProdutoSlugRouteImport.update({
-  id: '/$produtoSlug',
-  path: '/$produtoSlug',
-  getParentRoute: () => SlugRoute,
+const MinhaContaRoute = MinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SlugCuponsRoute = SlugCuponsRouteImport.update({
-  id: '/cupons',
-  path: '/cupons',
-  getParentRoute: () => SlugRoute,
+const MeusPedidosRoute = MeusPedidosRouteImport.update({
+  id: '/meus-pedidos',
+  path: '/meus-pedidos',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SlugDestaquesRoute = SlugDestaquesRouteImport.update({
-  id: '/destaques',
-  path: '/destaques',
-  getParentRoute: () => SlugRoute,
+const ContatoRoute = ContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SlugPedidoConfirmadoRoute = SlugPedidoConfirmadoRouteImport.update({
-  id: '/pedido-confirmado',
-  path: '/pedido-confirmado',
-  getParentRoute: () => SlugRoute,
+const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
+  id: '/comece-agora',
+  path: '/comece-agora',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const SlugPromocoesRoute = SlugPromocoesRouteImport.update({
-  id: '/promocoes',
-  path: '/promocoes',
-  getParentRoute: () => SlugRoute,
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAdicionaisRoute = AdminAdicionaisRouteImport.update({
-  id: '/adicionais',
-  path: '/adicionais',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
-  id: '/aparencia',
-  path: '/aparencia',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
-  id: '/assinatura',
-  path: '/assinatura',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
-  id: '/avaliacoes',
-  path: '/avaliacoes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
-  id: '/categorias',
-  path: '/categorias',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCuponsRoute = AdminCuponsRouteImport.update({
-  id: '/cupons',
-  path: '/cupons',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminDashboardRoute = AdminDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminDiretorioRoute = AdminDiretorioRouteImport.update({
-  id: '/diretorio',
-  path: '/diretorio',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEntregadoresRoute = AdminEntregadoresRouteImport.update({
-  id: '/entregadores',
-  path: '/entregadores',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminNotificacoesRoute = AdminNotificacoesRouteImport.update({
-  id: '/notificacoes',
-  path: '/notificacoes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
-  id: '/observacoes',
-  path: '/observacoes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPdvRoute = AdminPdvRouteImport.update({
-  id: '/pdv',
-  path: '/pdv',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPedidosRoute = AdminPedidosRouteImport.update({
-  id: '/pedidos',
-  path: '/pedidos',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminProdutosRoute = AdminProdutosRouteImport.update({
-  id: '/produtos',
-  path: '/produtos',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRecuperarSenhaRoute = AdminRecuperarSenhaRouteImport.update({
-  id: '/recuperar-senha',
-  path: '/recuperar-senha',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRedefinirSenhaRoute = AdminRedefinirSenhaRouteImport.update({
-  id: '/redefinir-senha',
-  path: '/redefinir-senha',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRelatoriosRoute = AdminRelatoriosRouteImport.update({
-  id: '/relatorios',
-  path: '/relatorios',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminTaxasEntregaRoute = AdminTaxasEntregaRouteImport.update({
-  id: '/taxas-entrega',
-  path: '/taxas-entrega',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminTrocarSenhaRoute = AdminTrocarSenhaRouteImport.update({
-  id: '/trocar-senha',
-  path: '/trocar-senha',
-  getParentRoute: () => AdminRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const GuiaIndexRoute = GuiaIndexRouteImport.update({
   id: '/guia/',
   path: '/guia/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuiaCategoriaRoute = GuiaCategoriaRouteImport.update({
-  id: '/guia/$categoria',
-  path: '/guia/$categoria',
-  getParentRoute: () => rootRouteImport,
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
-const LojaSlugRoute = LojaSlugRouteImport.update({
-  id: '/loja/$slug',
-  path: '/loja/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlatformAssinaturasRoute = PlatformAssinaturasRouteImport.update({
-  id: '/platform/assinaturas',
-  path: '/platform/assinaturas',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
-  id: '/platform/dashboard',
-  path: '/platform/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlatformGuiaRoute = PlatformGuiaRouteImport.update({
-  id: '/platform/guia',
-  path: '/platform/guia',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlatformLojasRoute = PlatformLojasRouteImport.update({
-  id: '/platform/lojas',
-  path: '/platform/lojas',
+const PlatformSuporteRoute = PlatformSuporteRouteImport.update({
+  id: '/platform/suporte',
+  path: '/platform/suporte',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
@@ -311,96 +157,210 @@ const PlatformPlanosRoute = PlatformPlanosRouteImport.update({
   path: '/platform/planos',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PlatformSuporteRoute = PlatformSuporteRouteImport.update({
-  id: '/platform/suporte',
-  path: '/platform/suporte',
+const PlatformLojasRoute = PlatformLojasRouteImport.update({
+  id: '/platform/lojas',
+  path: '/platform/lojas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
-  id: '/acompanhar/$orderId',
-  path: '/acompanhar/$orderId',
+const PlatformGuiaRoute = PlatformGuiaRouteImport.update({
+  id: '/platform/guia',
+  path: '/platform/guia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformDashboardRoute = PlatformDashboardRouteImport.update({
+  id: '/platform/dashboard',
+  path: '/platform/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformAssinaturasRoute = PlatformAssinaturasRouteImport.update({
+  id: '/platform/assinaturas',
+  path: '/platform/assinaturas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LojaSlugRoute = LojaSlugRouteImport.update({
+  id: '/loja/$slug',
+  path: '/loja/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuiaCategoriaRoute = GuiaCategoriaRouteImport.update({
+  id: '/guia/$categoria',
+  path: '/guia/$categoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTrocarSenhaRoute = AdminTrocarSenhaRouteImport.update({
+  id: '/trocar-senha',
+  path: '/trocar-senha',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTaxasEntregaRoute = AdminTaxasEntregaRouteImport.update({
+  id: '/taxas-entrega',
+  path: '/taxas-entrega',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRelatoriosRoute = AdminRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRedefinirSenhaRoute = AdminRedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRecuperarSenhaRoute = AdminRecuperarSenhaRouteImport.update({
+  id: '/recuperar-senha',
+  path: '/recuperar-senha',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProdutosRoute = AdminProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPdvRoute = AdminPdvRouteImport.update({
+  id: '/pdv',
+  path: '/pdv',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
+  id: '/observacoes',
+  path: '/observacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminNotificacoesRoute = AdminNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEntregadoresRoute = AdminEntregadoresRouteImport.update({
+  id: '/entregadores',
+  path: '/entregadores',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDiretorioRoute = AdminDiretorioRouteImport.update({
+  id: '/diretorio',
+  path: '/diretorio',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCuponsRoute = AdminCuponsRouteImport.update({
+  id: '/cupons',
+  path: '/cupons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
+  id: '/avaliacoes',
+  path: '/avaliacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
+  id: '/assinatura',
+  path: '/assinatura',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
+  id: '/aparencia',
+  path: '/aparencia',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdicionaisRoute = AdminAdicionaisRouteImport.update({
+  id: '/adicionais',
+  path: '/adicionais',
+  getParentRoute: () => AdminRoute,
+} as any)
+const SlugPromocoesRoute = SlugPromocoesRouteImport.update({
+  id: '/promocoes',
+  path: '/promocoes',
   getParentRoute: () => SlugRoute,
 } as any)
-const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
-  id: '/cardapio/novo',
-  path: '/cardapio/novo',
-  getParentRoute: () => AdminRoute,
+const SlugPedidoConfirmadoRoute = SlugPedidoConfirmadoRouteImport.update({
+  id: '/pedido-confirmado',
+  path: '/pedido-confirmado',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugDestaquesRoute = SlugDestaquesRouteImport.update({
+  id: '/destaques',
+  path: '/destaques',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugCuponsRoute = SlugCuponsRouteImport.update({
+  id: '/cupons',
+  path: '/cupons',
+  getParentRoute: () => SlugRoute,
+} as any)
+const SlugProdutoSlugRoute = SlugProdutoSlugRouteImport.update({
+  id: '/$produtoSlug',
+  path: '/$produtoSlug',
+  getParentRoute: () => SlugRoute,
+} as any)
+const PlatformGuiaIndexRoute = PlatformGuiaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlatformGuiaRoute,
 } as any)
 const AdminConfiguracoesIndexRoute = AdminConfiguracoesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminConfiguracoesRoute,
 } as any)
-const AdminConfiguracoesImpressoraRoute =
-  AdminConfiguracoesImpressoraRouteImport.update({
-    id: '/impressora',
-    path: '/impressora',
-    getParentRoute: () => AdminConfiguracoesRoute,
-  } as any)
-const AdminConfiguracoesPagamentosRoute =
-  AdminConfiguracoesPagamentosRouteImport.update({
-    id: '/pagamentos',
-    path: '/pagamentos',
-    getParentRoute: () => AdminConfiguracoesRoute,
-  } as any)
-const AdminConfiguracoesPedidosRoute =
-  AdminConfiguracoesPedidosRouteImport.update({
-    id: '/pedidos',
-    path: '/pedidos',
-    getParentRoute: () => AdminConfiguracoesRoute,
-  } as any)
-const AdminConfiguracoesPromocaoRoute =
-  AdminConfiguracoesPromocaoRouteImport.update({
-    id: '/promocao',
-    path: '/promocao',
-    getParentRoute: () => AdminConfiguracoesRoute,
-  } as any)
-const AdminConfiguracoesWhatsappRoute =
-  AdminConfiguracoesWhatsappRouteImport.update({
-    id: '/whatsapp',
-    path: '/whatsapp',
-    getParentRoute: () => AdminConfiguracoesRoute,
-  } as any)
-const ApiPublicGuiaClickRoute = ApiPublicGuiaClickRouteImport.update({
-  id: '/api/public/guia-click',
-  path: '/api/public/guia-click',
+const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
+  id: '/platform/tenants/novo',
+  path: '/platform/tenants/novo',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicManifestAdminRoute = ApiPublicManifestAdminRouteImport.update({
-  id: '/api/public/manifest-admin',
-  path: '/api/public/manifest-admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicMenuzinMpWebhookRoute =
-  ApiPublicMenuzinMpWebhookRouteImport.update({
-    id: '/api/public/menuzin-mp-webhook',
-    path: '/api/public/menuzin-mp-webhook',
-    getParentRoute: () => rootRouteImport,
+const PlatformGuiaSolicitacoesRoute =
+  PlatformGuiaSolicitacoesRouteImport.update({
+    id: '/solicitacoes',
+    path: '/solicitacoes',
+    getParentRoute: () => PlatformGuiaRoute,
   } as any)
-const ApiPublicMpOauthCallbackRoute =
-  ApiPublicMpOauthCallbackRouteImport.update({
-    id: '/api/public/mp-oauth-callback',
-    path: '/api/public/mp-oauth-callback',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicMpOrderWebhookRoute = ApiPublicMpOrderWebhookRouteImport.update({
-  id: '/api/public/mp-order-webhook',
-  path: '/api/public/mp-order-webhook',
-  getParentRoute: () => rootRouteImport,
+const PlatformGuiaSlotsRoute = PlatformGuiaSlotsRouteImport.update({
+  id: '/slots',
+  path: '/slots',
+  getParentRoute: () => PlatformGuiaRoute,
 } as any)
-const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
-  id: '/api/public/qz',
-  path: '/api/public/qz',
-  getParentRoute: () => rootRouteImport,
+const PlatformGuiaSecoesRoute = PlatformGuiaSecoesRouteImport.update({
+  id: '/secoes',
+  path: '/secoes',
+  getParentRoute: () => PlatformGuiaRoute,
 } as any)
-const ApiPublicQzCertDotcrtRoute = ApiPublicQzCertDotcrtRouteImport.update({
-  id: '/api/public/qz-cert.crt',
-  path: '/api/public/qz-cert.crt',
-  getParentRoute: () => rootRouteImport,
+const PlatformGuiaPlanosRoute = PlatformGuiaPlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
+  getParentRoute: () => PlatformGuiaRoute,
 } as any)
-const GuiaProdutoIdRoute = GuiaProdutoIdRouteImport.update({
-  id: '/guia/produto/$id',
-  path: '/guia/produto/$id',
+const PlatformGuiaCategoriasRoute = PlatformGuiaCategoriasRouteImport.update({
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => PlatformGuiaRoute,
+} as any)
+const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
+  id: '/lovable/email/events',
+  path: '/lovable/email/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaSlugPedidoConfirmadoRoute =
@@ -409,50 +369,107 @@ const LojaSlugPedidoConfirmadoRoute =
     path: '/pedido-confirmado',
     getParentRoute: () => LojaSlugRoute,
   } as any)
-const LovableEmailEventsRoute = LovableEmailEventsRouteImport.update({
-  id: '/lovable/email/events',
-  path: '/lovable/email/events',
+const GuiaProdutoIdRoute = GuiaProdutoIdRouteImport.update({
+  id: '/guia/produto/$id',
+  path: '/guia/produto/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PlatformGuiaIndexRoute = PlatformGuiaIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PlatformGuiaRoute,
+const ApiPublicQzCertDotcrtRoute = ApiPublicQzCertDotcrtRouteImport.update({
+  id: '/api/public/qz-cert.crt',
+  path: '/api/public/qz-cert.crt',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PlatformGuiaCategoriasRoute = PlatformGuiaCategoriasRouteImport.update({
-  id: '/categorias',
-  path: '/categorias',
-  getParentRoute: () => PlatformGuiaRoute,
+const ApiPublicQzRoute = ApiPublicQzRouteImport.update({
+  id: '/api/public/qz',
+  path: '/api/public/qz',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PlatformGuiaPlanosRoute = PlatformGuiaPlanosRouteImport.update({
-  id: '/planos',
-  path: '/planos',
-  getParentRoute: () => PlatformGuiaRoute,
+const ApiPublicOrderPushRoute = ApiPublicOrderPushRouteImport.update({
+  id: '/api/public/order-push',
+  path: '/api/public/order-push',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PlatformGuiaSecoesRoute = PlatformGuiaSecoesRouteImport.update({
-  id: '/secoes',
-  path: '/secoes',
-  getParentRoute: () => PlatformGuiaRoute,
+const ApiPublicMpOrderWebhookRoute = ApiPublicMpOrderWebhookRouteImport.update({
+  id: '/api/public/mp-order-webhook',
+  path: '/api/public/mp-order-webhook',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const PlatformGuiaSlotsRoute = PlatformGuiaSlotsRouteImport.update({
-  id: '/slots',
-  path: '/slots',
-  getParentRoute: () => PlatformGuiaRoute,
-} as any)
-const PlatformGuiaSolicitacoesRoute =
-  PlatformGuiaSolicitacoesRouteImport.update({
-    id: '/solicitacoes',
-    path: '/solicitacoes',
-    getParentRoute: () => PlatformGuiaRoute,
+const ApiPublicMpOauthCallbackRoute =
+  ApiPublicMpOauthCallbackRouteImport.update({
+    id: '/api/public/mp-oauth-callback',
+    path: '/api/public/mp-oauth-callback',
+    getParentRoute: () => rootRouteImport,
   } as any)
-const PlatformTenantsNovoRoute = PlatformTenantsNovoRouteImport.update({
-  id: '/platform/tenants/novo',
-  path: '/platform/tenants/novo',
+const ApiPublicMenuzinMpWebhookRoute =
+  ApiPublicMenuzinMpWebhookRouteImport.update({
+    id: '/api/public/menuzin-mp-webhook',
+    path: '/api/public/menuzin-mp-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicManifestAdminRoute = ApiPublicManifestAdminRouteImport.update({
+  id: '/api/public/manifest-admin',
+  path: '/api/public/manifest-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicManifestSlugRoute = ApiPublicManifestSlugRouteImport.update({
-  id: '/api/public/manifest/$slug',
-  path: '/api/public/manifest/$slug',
+const ApiPublicGuiaClickRoute = ApiPublicGuiaClickRouteImport.update({
+  id: '/api/public/guia-click',
+  path: '/api/public/guia-click',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminConfiguracoesWhatsappRoute =
+  AdminConfiguracoesWhatsappRouteImport.update({
+    id: '/whatsapp',
+    path: '/whatsapp',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminConfiguracoesPromocaoRoute =
+  AdminConfiguracoesPromocaoRouteImport.update({
+    id: '/promocao',
+    path: '/promocao',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminConfiguracoesPedidosRoute =
+  AdminConfiguracoesPedidosRouteImport.update({
+    id: '/pedidos',
+    path: '/pedidos',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminConfiguracoesPagamentosRoute =
+  AdminConfiguracoesPagamentosRouteImport.update({
+    id: '/pagamentos',
+    path: '/pagamentos',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminConfiguracoesImpressoraRoute =
+  AdminConfiguracoesImpressoraRouteImport.update({
+    id: '/impressora',
+    path: '/impressora',
+    getParentRoute: () => AdminConfiguracoesRoute,
+  } as any)
+const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
+  id: '/cardapio/novo',
+  path: '/cardapio/novo',
+  getParentRoute: () => AdminRoute,
+} as any)
+const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
+  id: '/acompanhar/$orderId',
+  path: '/acompanhar/$orderId',
+  getParentRoute: () => SlugRoute,
+} as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaSlugAcompanharOrderIdRoute =
@@ -461,22 +478,11 @@ const LojaSlugAcompanharOrderIdRoute =
     path: '/acompanhar/$orderId',
     getParentRoute: () => LojaSlugRoute,
   } as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
+const ApiPublicManifestSlugRoute = ApiPublicManifestSlugRouteImport.update({
+  id: '/api/public/manifest/$slug',
+  path: '/api/public/manifest/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -537,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
+  '/api/public/order-push': typeof ApiPublicOrderPushRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -612,6 +619,7 @@ export interface FileRoutesByTo {
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
+  '/api/public/order-push': typeof ApiPublicOrderPushRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -691,6 +699,7 @@ export interface FileRoutesById {
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
+  '/api/public/order-push': typeof ApiPublicOrderPushRoute
   '/api/public/qz': typeof ApiPublicQzRoute
   '/api/public/qz-cert.crt': typeof ApiPublicQzCertDotcrtRoute
   '/guia/produto/$id': typeof GuiaProdutoIdRoute
@@ -771,6 +780,7 @@ export interface FileRouteTypes {
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
     | '/api/public/mp-order-webhook'
+    | '/api/public/order-push'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -846,6 +856,7 @@ export interface FileRouteTypes {
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
     | '/api/public/mp-order-webhook'
+    | '/api/public/order-push'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -924,6 +935,7 @@ export interface FileRouteTypes {
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
     | '/api/public/mp-order-webhook'
+    | '/api/public/order-push'
     | '/api/public/qz'
     | '/api/public/qz-cert.crt'
     | '/guia/produto/$id'
@@ -969,6 +981,7 @@ export interface RootRouteChildren {
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicMpOauthCallbackRoute: typeof ApiPublicMpOauthCallbackRoute
   ApiPublicMpOrderWebhookRoute: typeof ApiPublicMpOrderWebhookRoute
+  ApiPublicOrderPushRoute: typeof ApiPublicOrderPushRoute
   ApiPublicQzRoute: typeof ApiPublicQzRoute
   ApiPublicQzCertDotcrtRoute: typeof ApiPublicQzCertDotcrtRoute
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
@@ -982,60 +995,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/$slug': {
-      id: '/$slug'
-      path: '/$slug'
-      fullPath: '/$slug'
-      preLoaderRoute: typeof SlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/comece-agora': {
-      id: '/comece-agora'
-      path: '/comece-agora'
-      fullPath: '/comece-agora'
-      preLoaderRoute: typeof ComeceAgoraRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contato': {
-      id: '/contato'
-      path: '/contato'
-      fullPath: '/contato'
-      preLoaderRoute: typeof ContatoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/meus-pedidos': {
-      id: '/meus-pedidos'
-      path: '/meus-pedidos'
-      fullPath: '/meus-pedidos'
-      preLoaderRoute: typeof MeusPedidosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/minha-conta': {
-      id: '/minha-conta'
-      path: '/minha-conta'
-      fullPath: '/minha-conta'
-      preLoaderRoute: typeof MinhaContaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sitemap.xml': {
@@ -1045,201 +1009,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/termos': {
-      id: '/termos'
-      path: '/termos'
-      fullPath: '/termos'
-      preLoaderRoute: typeof TermosRouteImport
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$slug/$produtoSlug': {
-      id: '/$slug/$produtoSlug'
-      path: '/$produtoSlug'
-      fullPath: '/$slug/$produtoSlug'
-      preLoaderRoute: typeof SlugProdutoSlugRouteImport
-      parentRoute: typeof SlugRoute
+    '/minha-conta': {
+      id: '/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof MinhaContaRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/$slug/cupons': {
-      id: '/$slug/cupons'
-      path: '/cupons'
-      fullPath: '/$slug/cupons'
-      preLoaderRoute: typeof SlugCuponsRouteImport
-      parentRoute: typeof SlugRoute
+    '/meus-pedidos': {
+      id: '/meus-pedidos'
+      path: '/meus-pedidos'
+      fullPath: '/meus-pedidos'
+      preLoaderRoute: typeof MeusPedidosRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/$slug/destaques': {
-      id: '/$slug/destaques'
-      path: '/destaques'
-      fullPath: '/$slug/destaques'
-      preLoaderRoute: typeof SlugDestaquesRouteImport
-      parentRoute: typeof SlugRoute
+    '/contato': {
+      id: '/contato'
+      path: '/contato'
+      fullPath: '/contato'
+      preLoaderRoute: typeof ContatoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/$slug/pedido-confirmado': {
-      id: '/$slug/pedido-confirmado'
-      path: '/pedido-confirmado'
-      fullPath: '/$slug/pedido-confirmado'
-      preLoaderRoute: typeof SlugPedidoConfirmadoRouteImport
-      parentRoute: typeof SlugRoute
+    '/comece-agora': {
+      id: '/comece-agora'
+      path: '/comece-agora'
+      fullPath: '/comece-agora'
+      preLoaderRoute: typeof ComeceAgoraRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/$slug/promocoes': {
-      id: '/$slug/promocoes'
-      path: '/promocoes'
-      fullPath: '/$slug/promocoes'
-      preLoaderRoute: typeof SlugPromocoesRouteImport
-      parentRoute: typeof SlugRoute
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
       path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/adicionais': {
-      id: '/admin/adicionais'
-      path: '/adicionais'
-      fullPath: '/admin/adicionais'
-      preLoaderRoute: typeof AdminAdicionaisRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/aparencia': {
-      id: '/admin/aparencia'
-      path: '/aparencia'
-      fullPath: '/admin/aparencia'
-      preLoaderRoute: typeof AdminAparenciaRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/assinatura': {
-      id: '/admin/assinatura'
-      path: '/assinatura'
-      fullPath: '/admin/assinatura'
-      preLoaderRoute: typeof AdminAssinaturaRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/avaliacoes': {
-      id: '/admin/avaliacoes'
-      path: '/avaliacoes'
-      fullPath: '/admin/avaliacoes'
-      preLoaderRoute: typeof AdminAvaliacoesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/categorias': {
-      id: '/admin/categorias'
-      path: '/categorias'
-      fullPath: '/admin/categorias'
-      preLoaderRoute: typeof AdminCategoriasRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/configuracoes': {
-      id: '/admin/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/admin/configuracoes'
-      preLoaderRoute: typeof AdminConfiguracoesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/cupons': {
-      id: '/admin/cupons'
-      path: '/cupons'
-      fullPath: '/admin/cupons'
-      preLoaderRoute: typeof AdminCuponsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/dashboard': {
-      id: '/admin/dashboard'
-      path: '/dashboard'
-      fullPath: '/admin/dashboard'
-      preLoaderRoute: typeof AdminDashboardRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/diretorio': {
-      id: '/admin/diretorio'
-      path: '/diretorio'
-      fullPath: '/admin/diretorio'
-      preLoaderRoute: typeof AdminDiretorioRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/entregadores': {
-      id: '/admin/entregadores'
-      path: '/entregadores'
-      fullPath: '/admin/entregadores'
-      preLoaderRoute: typeof AdminEntregadoresRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/login': {
-      id: '/admin/login'
-      path: '/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/notificacoes': {
-      id: '/admin/notificacoes'
-      path: '/notificacoes'
-      fullPath: '/admin/notificacoes'
-      preLoaderRoute: typeof AdminNotificacoesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/observacoes': {
-      id: '/admin/observacoes'
-      path: '/observacoes'
-      fullPath: '/admin/observacoes'
-      preLoaderRoute: typeof AdminObservacoesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pdv': {
-      id: '/admin/pdv'
-      path: '/pdv'
-      fullPath: '/admin/pdv'
-      preLoaderRoute: typeof AdminPdvRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pedidos': {
-      id: '/admin/pedidos'
-      path: '/pedidos'
-      fullPath: '/admin/pedidos'
-      preLoaderRoute: typeof AdminPedidosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/produtos': {
-      id: '/admin/produtos'
-      path: '/produtos'
-      fullPath: '/admin/produtos'
-      preLoaderRoute: typeof AdminProdutosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/recuperar-senha': {
-      id: '/admin/recuperar-senha'
-      path: '/recuperar-senha'
-      fullPath: '/admin/recuperar-senha'
-      preLoaderRoute: typeof AdminRecuperarSenhaRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/redefinir-senha': {
-      id: '/admin/redefinir-senha'
-      path: '/redefinir-senha'
-      fullPath: '/admin/redefinir-senha'
-      preLoaderRoute: typeof AdminRedefinirSenhaRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/relatorios': {
-      id: '/admin/relatorios'
-      path: '/relatorios'
-      fullPath: '/admin/relatorios'
-      preLoaderRoute: typeof AdminRelatoriosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/taxas-entrega': {
-      id: '/admin/taxas-entrega'
-      path: '/taxas-entrega'
-      fullPath: '/admin/taxas-entrega'
-      preLoaderRoute: typeof AdminTaxasEntregaRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/trocar-senha': {
-      id: '/admin/trocar-senha'
-      path: '/trocar-senha'
-      fullPath: '/admin/trocar-senha'
-      preLoaderRoute: typeof AdminTrocarSenhaRouteImport
-      parentRoute: typeof AdminRoute
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/guia/': {
       id: '/guia/'
@@ -1248,46 +1072,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuiaIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guia/$categoria': {
-      id: '/guia/$categoria'
-      path: '/guia/$categoria'
-      fullPath: '/guia/$categoria'
-      preLoaderRoute: typeof GuiaCategoriaRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/loja/$slug': {
-      id: '/loja/$slug'
-      path: '/loja/$slug'
-      fullPath: '/loja/$slug'
-      preLoaderRoute: typeof LojaSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/platform/assinaturas': {
-      id: '/platform/assinaturas'
-      path: '/platform/assinaturas'
-      fullPath: '/platform/assinaturas'
-      preLoaderRoute: typeof PlatformAssinaturasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/platform/dashboard': {
-      id: '/platform/dashboard'
-      path: '/platform/dashboard'
-      fullPath: '/platform/dashboard'
-      preLoaderRoute: typeof PlatformDashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/platform/guia': {
-      id: '/platform/guia'
-      path: '/platform/guia'
-      fullPath: '/platform/guia'
-      preLoaderRoute: typeof PlatformGuiaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/platform/lojas': {
-      id: '/platform/lojas'
-      path: '/platform/lojas'
-      fullPath: '/platform/lojas'
-      preLoaderRoute: typeof PlatformLojasRouteImport
+    '/platform/suporte': {
+      id: '/platform/suporte'
+      path: '/platform/suporte'
+      fullPath: '/platform/suporte'
+      preLoaderRoute: typeof PlatformSuporteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/platform/planos': {
@@ -1297,138 +1093,229 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformPlanosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/platform/suporte': {
-      id: '/platform/suporte'
-      path: '/platform/suporte'
-      fullPath: '/platform/suporte'
-      preLoaderRoute: typeof PlatformSuporteRouteImport
+    '/platform/lojas': {
+      id: '/platform/lojas'
+      path: '/platform/lojas'
+      fullPath: '/platform/lojas'
+      preLoaderRoute: typeof PlatformLojasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$slug/acompanhar/$orderId': {
-      id: '/$slug/acompanhar/$orderId'
-      path: '/acompanhar/$orderId'
-      fullPath: '/$slug/acompanhar/$orderId'
-      preLoaderRoute: typeof SlugAcompanharOrderIdRouteImport
-      parentRoute: typeof SlugRoute
+    '/platform/guia': {
+      id: '/platform/guia'
+      path: '/platform/guia'
+      fullPath: '/platform/guia'
+      preLoaderRoute: typeof PlatformGuiaRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/admin/cardapio/novo': {
-      id: '/admin/cardapio/novo'
-      path: '/cardapio/novo'
-      fullPath: '/admin/cardapio/novo'
-      preLoaderRoute: typeof AdminCardapioNovoRouteImport
+    '/platform/dashboard': {
+      id: '/platform/dashboard'
+      path: '/platform/dashboard'
+      fullPath: '/platform/dashboard'
+      preLoaderRoute: typeof PlatformDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/assinaturas': {
+      id: '/platform/assinaturas'
+      path: '/platform/assinaturas'
+      fullPath: '/platform/assinaturas'
+      preLoaderRoute: typeof PlatformAssinaturasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja/$slug': {
+      id: '/loja/$slug'
+      path: '/loja/$slug'
+      fullPath: '/loja/$slug'
+      preLoaderRoute: typeof LojaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guia/$categoria': {
+      id: '/guia/$categoria'
+      path: '/guia/$categoria'
+      fullPath: '/guia/$categoria'
+      preLoaderRoute: typeof GuiaCategoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/trocar-senha': {
+      id: '/admin/trocar-senha'
+      path: '/trocar-senha'
+      fullPath: '/admin/trocar-senha'
+      preLoaderRoute: typeof AdminTrocarSenhaRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/configuracoes/': {
-      id: '/admin/configuracoes/'
-      path: '/'
-      fullPath: '/admin/configuracoes/'
-      preLoaderRoute: typeof AdminConfiguracoesIndexRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
+    '/admin/taxas-entrega': {
+      id: '/admin/taxas-entrega'
+      path: '/taxas-entrega'
+      fullPath: '/admin/taxas-entrega'
+      preLoaderRoute: typeof AdminTaxasEntregaRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/configuracoes/impressora': {
-      id: '/admin/configuracoes/impressora'
-      path: '/impressora'
-      fullPath: '/admin/configuracoes/impressora'
-      preLoaderRoute: typeof AdminConfiguracoesImpressoraRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
+    '/admin/relatorios': {
+      id: '/admin/relatorios'
+      path: '/relatorios'
+      fullPath: '/admin/relatorios'
+      preLoaderRoute: typeof AdminRelatoriosRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/configuracoes/pagamentos': {
-      id: '/admin/configuracoes/pagamentos'
-      path: '/pagamentos'
-      fullPath: '/admin/configuracoes/pagamentos'
-      preLoaderRoute: typeof AdminConfiguracoesPagamentosRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
+    '/admin/redefinir-senha': {
+      id: '/admin/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/admin/redefinir-senha'
+      preLoaderRoute: typeof AdminRedefinirSenhaRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/configuracoes/pedidos': {
-      id: '/admin/configuracoes/pedidos'
+    '/admin/recuperar-senha': {
+      id: '/admin/recuperar-senha'
+      path: '/recuperar-senha'
+      fullPath: '/admin/recuperar-senha'
+      preLoaderRoute: typeof AdminRecuperarSenhaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/produtos': {
+      id: '/admin/produtos'
+      path: '/produtos'
+      fullPath: '/admin/produtos'
+      preLoaderRoute: typeof AdminProdutosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
       path: '/pedidos'
-      fullPath: '/admin/configuracoes/pedidos'
-      preLoaderRoute: typeof AdminConfiguracoesPedidosRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/configuracoes/promocao': {
-      id: '/admin/configuracoes/promocao'
-      path: '/promocao'
-      fullPath: '/admin/configuracoes/promocao'
-      preLoaderRoute: typeof AdminConfiguracoesPromocaoRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
+    '/admin/pdv': {
+      id: '/admin/pdv'
+      path: '/pdv'
+      fullPath: '/admin/pdv'
+      preLoaderRoute: typeof AdminPdvRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/configuracoes/whatsapp': {
-      id: '/admin/configuracoes/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/admin/configuracoes/whatsapp'
-      preLoaderRoute: typeof AdminConfiguracoesWhatsappRouteImport
-      parentRoute: typeof AdminConfiguracoesRoute
+    '/admin/observacoes': {
+      id: '/admin/observacoes'
+      path: '/observacoes'
+      fullPath: '/admin/observacoes'
+      preLoaderRoute: typeof AdminObservacoesRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/guia-click': {
-      id: '/api/public/guia-click'
-      path: '/api/public/guia-click'
-      fullPath: '/api/public/guia-click'
-      preLoaderRoute: typeof ApiPublicGuiaClickRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/notificacoes': {
+      id: '/admin/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/admin/notificacoes'
+      preLoaderRoute: typeof AdminNotificacoesRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/manifest-admin': {
-      id: '/api/public/manifest-admin'
-      path: '/api/public/manifest-admin'
-      fullPath: '/api/public/manifest-admin'
-      preLoaderRoute: typeof ApiPublicManifestAdminRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/menuzin-mp-webhook': {
-      id: '/api/public/menuzin-mp-webhook'
-      path: '/api/public/menuzin-mp-webhook'
-      fullPath: '/api/public/menuzin-mp-webhook'
-      preLoaderRoute: typeof ApiPublicMenuzinMpWebhookRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/entregadores': {
+      id: '/admin/entregadores'
+      path: '/entregadores'
+      fullPath: '/admin/entregadores'
+      preLoaderRoute: typeof AdminEntregadoresRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/mp-oauth-callback': {
-      id: '/api/public/mp-oauth-callback'
-      path: '/api/public/mp-oauth-callback'
-      fullPath: '/api/public/mp-oauth-callback'
-      preLoaderRoute: typeof ApiPublicMpOauthCallbackRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/diretorio': {
+      id: '/admin/diretorio'
+      path: '/diretorio'
+      fullPath: '/admin/diretorio'
+      preLoaderRoute: typeof AdminDiretorioRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/mp-order-webhook': {
-      id: '/api/public/mp-order-webhook'
-      path: '/api/public/mp-order-webhook'
-      fullPath: '/api/public/mp-order-webhook'
-      preLoaderRoute: typeof ApiPublicMpOrderWebhookRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/qz': {
-      id: '/api/public/qz'
-      path: '/api/public/qz'
-      fullPath: '/api/public/qz'
-      preLoaderRoute: typeof ApiPublicQzRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/cupons': {
+      id: '/admin/cupons'
+      path: '/cupons'
+      fullPath: '/admin/cupons'
+      preLoaderRoute: typeof AdminCuponsRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/api/public/qz-cert.crt': {
-      id: '/api/public/qz-cert.crt'
-      path: '/api/public/qz-cert.crt'
-      fullPath: '/api/public/qz-cert.crt'
-      preLoaderRoute: typeof ApiPublicQzCertDotcrtRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/guia/produto/$id': {
-      id: '/guia/produto/$id'
-      path: '/guia/produto/$id'
-      fullPath: '/guia/produto/$id'
-      preLoaderRoute: typeof GuiaProdutoIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/categorias': {
+      id: '/admin/categorias'
+      path: '/categorias'
+      fullPath: '/admin/categorias'
+      preLoaderRoute: typeof AdminCategoriasRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/loja/$slug/pedido-confirmado': {
-      id: '/loja/$slug/pedido-confirmado'
+    '/admin/avaliacoes': {
+      id: '/admin/avaliacoes'
+      path: '/avaliacoes'
+      fullPath: '/admin/avaliacoes'
+      preLoaderRoute: typeof AdminAvaliacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/assinatura': {
+      id: '/admin/assinatura'
+      path: '/assinatura'
+      fullPath: '/admin/assinatura'
+      preLoaderRoute: typeof AdminAssinaturaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/aparencia': {
+      id: '/admin/aparencia'
+      path: '/aparencia'
+      fullPath: '/admin/aparencia'
+      preLoaderRoute: typeof AdminAparenciaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/adicionais': {
+      id: '/admin/adicionais'
+      path: '/adicionais'
+      fullPath: '/admin/adicionais'
+      preLoaderRoute: typeof AdminAdicionaisRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/$slug/promocoes': {
+      id: '/$slug/promocoes'
+      path: '/promocoes'
+      fullPath: '/$slug/promocoes'
+      preLoaderRoute: typeof SlugPromocoesRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/pedido-confirmado': {
+      id: '/$slug/pedido-confirmado'
       path: '/pedido-confirmado'
-      fullPath: '/loja/$slug/pedido-confirmado'
-      preLoaderRoute: typeof LojaSlugPedidoConfirmadoRouteImport
-      parentRoute: typeof LojaSlugRoute
+      fullPath: '/$slug/pedido-confirmado'
+      preLoaderRoute: typeof SlugPedidoConfirmadoRouteImport
+      parentRoute: typeof SlugRoute
     }
-    '/lovable/email/events': {
-      id: '/lovable/email/events'
-      path: '/lovable/email/events'
-      fullPath: '/lovable/email/events'
-      preLoaderRoute: typeof LovableEmailEventsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/$slug/destaques': {
+      id: '/$slug/destaques'
+      path: '/destaques'
+      fullPath: '/$slug/destaques'
+      preLoaderRoute: typeof SlugDestaquesRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/cupons': {
+      id: '/$slug/cupons'
+      path: '/cupons'
+      fullPath: '/$slug/cupons'
+      preLoaderRoute: typeof SlugCuponsRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/$slug/$produtoSlug': {
+      id: '/$slug/$produtoSlug'
+      path: '/$produtoSlug'
+      fullPath: '/$slug/$produtoSlug'
+      preLoaderRoute: typeof SlugProdutoSlugRouteImport
+      parentRoute: typeof SlugRoute
     }
     '/platform/guia/': {
       id: '/platform/guia/'
@@ -1437,25 +1324,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformGuiaIndexRouteImport
       parentRoute: typeof PlatformGuiaRoute
     }
-    '/platform/guia/categorias': {
-      id: '/platform/guia/categorias'
-      path: '/categorias'
-      fullPath: '/platform/guia/categorias'
-      preLoaderRoute: typeof PlatformGuiaCategoriasRouteImport
-      parentRoute: typeof PlatformGuiaRoute
+    '/admin/configuracoes/': {
+      id: '/admin/configuracoes/'
+      path: '/'
+      fullPath: '/admin/configuracoes/'
+      preLoaderRoute: typeof AdminConfiguracoesIndexRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
     }
-    '/platform/guia/planos': {
-      id: '/platform/guia/planos'
-      path: '/planos'
-      fullPath: '/platform/guia/planos'
-      preLoaderRoute: typeof PlatformGuiaPlanosRouteImport
-      parentRoute: typeof PlatformGuiaRoute
+    '/platform/tenants/novo': {
+      id: '/platform/tenants/novo'
+      path: '/platform/tenants/novo'
+      fullPath: '/platform/tenants/novo'
+      preLoaderRoute: typeof PlatformTenantsNovoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/platform/guia/secoes': {
-      id: '/platform/guia/secoes'
-      path: '/secoes'
-      fullPath: '/platform/guia/secoes'
-      preLoaderRoute: typeof PlatformGuiaSecoesRouteImport
+    '/platform/guia/solicitacoes': {
+      id: '/platform/guia/solicitacoes'
+      path: '/solicitacoes'
+      fullPath: '/platform/guia/solicitacoes'
+      preLoaderRoute: typeof PlatformGuiaSolicitacoesRouteImport
       parentRoute: typeof PlatformGuiaRoute
     }
     '/platform/guia/slots': {
@@ -1465,39 +1352,158 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformGuiaSlotsRouteImport
       parentRoute: typeof PlatformGuiaRoute
     }
-    '/platform/guia/solicitacoes': {
-      id: '/platform/guia/solicitacoes'
-      path: '/solicitacoes'
-      fullPath: '/platform/guia/solicitacoes'
-      preLoaderRoute: typeof PlatformGuiaSolicitacoesRouteImport
+    '/platform/guia/secoes': {
+      id: '/platform/guia/secoes'
+      path: '/secoes'
+      fullPath: '/platform/guia/secoes'
+      preLoaderRoute: typeof PlatformGuiaSecoesRouteImport
       parentRoute: typeof PlatformGuiaRoute
     }
-    '/platform/tenants/novo': {
-      id: '/platform/tenants/novo'
-      path: '/platform/tenants/novo'
-      fullPath: '/platform/tenants/novo'
-      preLoaderRoute: typeof PlatformTenantsNovoRouteImport
+    '/platform/guia/planos': {
+      id: '/platform/guia/planos'
+      path: '/planos'
+      fullPath: '/platform/guia/planos'
+      preLoaderRoute: typeof PlatformGuiaPlanosRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
+    '/platform/guia/categorias': {
+      id: '/platform/guia/categorias'
+      path: '/categorias'
+      fullPath: '/platform/guia/categorias'
+      preLoaderRoute: typeof PlatformGuiaCategoriasRouteImport
+      parentRoute: typeof PlatformGuiaRoute
+    }
+    '/lovable/email/events': {
+      id: '/lovable/email/events'
+      path: '/lovable/email/events'
+      fullPath: '/lovable/email/events'
+      preLoaderRoute: typeof LovableEmailEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/manifest/$slug': {
-      id: '/api/public/manifest/$slug'
-      path: '/api/public/manifest/$slug'
-      fullPath: '/api/public/manifest/$slug'
-      preLoaderRoute: typeof ApiPublicManifestSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/loja/$slug/acompanhar/$orderId': {
-      id: '/loja/$slug/acompanhar/$orderId'
-      path: '/acompanhar/$orderId'
-      fullPath: '/loja/$slug/acompanhar/$orderId'
-      preLoaderRoute: typeof LojaSlugAcompanharOrderIdRouteImport
+    '/loja/$slug/pedido-confirmado': {
+      id: '/loja/$slug/pedido-confirmado'
+      path: '/pedido-confirmado'
+      fullPath: '/loja/$slug/pedido-confirmado'
+      preLoaderRoute: typeof LojaSlugPedidoConfirmadoRouteImport
       parentRoute: typeof LojaSlugRoute
     }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+    '/guia/produto/$id': {
+      id: '/guia/produto/$id'
+      path: '/guia/produto/$id'
+      fullPath: '/guia/produto/$id'
+      preLoaderRoute: typeof GuiaProdutoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/qz-cert.crt': {
+      id: '/api/public/qz-cert.crt'
+      path: '/api/public/qz-cert.crt'
+      fullPath: '/api/public/qz-cert.crt'
+      preLoaderRoute: typeof ApiPublicQzCertDotcrtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/qz': {
+      id: '/api/public/qz'
+      path: '/api/public/qz'
+      fullPath: '/api/public/qz'
+      preLoaderRoute: typeof ApiPublicQzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/order-push': {
+      id: '/api/public/order-push'
+      path: '/api/public/order-push'
+      fullPath: '/api/public/order-push'
+      preLoaderRoute: typeof ApiPublicOrderPushRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mp-order-webhook': {
+      id: '/api/public/mp-order-webhook'
+      path: '/api/public/mp-order-webhook'
+      fullPath: '/api/public/mp-order-webhook'
+      preLoaderRoute: typeof ApiPublicMpOrderWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mp-oauth-callback': {
+      id: '/api/public/mp-oauth-callback'
+      path: '/api/public/mp-oauth-callback'
+      fullPath: '/api/public/mp-oauth-callback'
+      preLoaderRoute: typeof ApiPublicMpOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/menuzin-mp-webhook': {
+      id: '/api/public/menuzin-mp-webhook'
+      path: '/api/public/menuzin-mp-webhook'
+      fullPath: '/api/public/menuzin-mp-webhook'
+      preLoaderRoute: typeof ApiPublicMenuzinMpWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/manifest-admin': {
+      id: '/api/public/manifest-admin'
+      path: '/api/public/manifest-admin'
+      fullPath: '/api/public/manifest-admin'
+      preLoaderRoute: typeof ApiPublicManifestAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/guia-click': {
+      id: '/api/public/guia-click'
+      path: '/api/public/guia-click'
+      fullPath: '/api/public/guia-click'
+      preLoaderRoute: typeof ApiPublicGuiaClickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/configuracoes/whatsapp': {
+      id: '/admin/configuracoes/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/admin/configuracoes/whatsapp'
+      preLoaderRoute: typeof AdminConfiguracoesWhatsappRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/promocao': {
+      id: '/admin/configuracoes/promocao'
+      path: '/promocao'
+      fullPath: '/admin/configuracoes/promocao'
+      preLoaderRoute: typeof AdminConfiguracoesPromocaoRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/pedidos': {
+      id: '/admin/configuracoes/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/configuracoes/pedidos'
+      preLoaderRoute: typeof AdminConfiguracoesPedidosRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/pagamentos': {
+      id: '/admin/configuracoes/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/admin/configuracoes/pagamentos'
+      preLoaderRoute: typeof AdminConfiguracoesPagamentosRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/configuracoes/impressora': {
+      id: '/admin/configuracoes/impressora'
+      path: '/impressora'
+      fullPath: '/admin/configuracoes/impressora'
+      preLoaderRoute: typeof AdminConfiguracoesImpressoraRouteImport
+      parentRoute: typeof AdminConfiguracoesRoute
+    }
+    '/admin/cardapio/novo': {
+      id: '/admin/cardapio/novo'
+      path: '/cardapio/novo'
+      fullPath: '/admin/cardapio/novo'
+      preLoaderRoute: typeof AdminCardapioNovoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/$slug/acompanhar/$orderId': {
+      id: '/$slug/acompanhar/$orderId'
+      path: '/acompanhar/$orderId'
+      fullPath: '/$slug/acompanhar/$orderId'
+      preLoaderRoute: typeof SlugAcompanharOrderIdRouteImport
+      parentRoute: typeof SlugRoute
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/webhook': {
@@ -1507,11 +1513,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loja/$slug/acompanhar/$orderId': {
+      id: '/loja/$slug/acompanhar/$orderId'
+      path: '/acompanhar/$orderId'
+      fullPath: '/loja/$slug/acompanhar/$orderId'
+      preLoaderRoute: typeof LojaSlugAcompanharOrderIdRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/api/public/manifest/$slug': {
+      id: '/api/public/manifest/$slug'
+      path: '/api/public/manifest/$slug'
+      fullPath: '/api/public/manifest/$slug'
+      preLoaderRoute: typeof ApiPublicManifestSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1673,6 +1693,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicMpOauthCallbackRoute: ApiPublicMpOauthCallbackRoute,
   ApiPublicMpOrderWebhookRoute: ApiPublicMpOrderWebhookRoute,
+  ApiPublicOrderPushRoute: ApiPublicOrderPushRoute,
   ApiPublicQzRoute: ApiPublicQzRoute,
   ApiPublicQzCertDotcrtRoute: ApiPublicQzCertDotcrtRoute,
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
