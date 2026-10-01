@@ -131,8 +131,13 @@ export const Route = createFileRoute("/$slug")({
           { property: "og:image", content: tenant.logoUrl },
           { name: "twitter:image", content: tenant.logoUrl },
         ] : []),
+        { name: "apple-mobile-web-app-title", content: tenant.name },
       ],
-      links: [{ rel: "canonical", href: url }],
+      links: [
+        { rel: "canonical", href: url },
+        { rel: "manifest", href: `/api/public/manifest/${params.slug}` },
+        ...(tenant.logoUrl ? [{ rel: "apple-touch-icon", href: tenant.logoUrl }] : []),
+      ],
       scripts: [
         {
           type: "application/ld+json",

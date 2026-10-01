@@ -92,7 +92,10 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://menuzin.app" },
     ],
-    links: [{ rel: "canonical", href: "https://menuzin.app" }],
+    links: [
+      { rel: "canonical", href: "https://menuzin.app" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+    ],
     scripts: [
       {
         type: "application/ld+json",
