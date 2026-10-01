@@ -47,6 +47,31 @@ export const subscribeCustomerPush = createServerFn({ method: "POST" })
     return { success: true, subscription: row };
   });
 
+// Endpoint Admin: inscreve o aparelho do lojista para avisos de novo pedido
+export const subscribeAdminPush = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      tenantId: z.string().uuid(),
+      endpoint: z.string().url().max(2000),
+      p256dh: z.string().min(1).max(500),
+      auth: z.string().min(1).max(500),
+      userAgent: z.string().max(500).optional().nullable(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    const { data: allowed } = await supabase.rpc("has_tenant_role", {
+      _user_id: userId,
+      _tenant_id: data.tenantId,
+      _roles: ["tenant_owner", "tenant_admin"],
+    });
+    const { data: isPlatform } = await supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" });
+    if (!allowed && !isPlatform) throw new Error("Só o dono ou um administrador da loja pode ativar.");
+    const { saveAdminPushSubscriptionServer } = await import("./push-notifications.server");
+    return saveAdminPushSubscriptionServer({ ...data, userId });
+  });
+
 // Endpoint Admin: Métricas e estatísticas de notificações push
 export const getPushStatsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
