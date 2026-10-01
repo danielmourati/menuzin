@@ -714,3 +714,29 @@ export const listPublicHighlightPlans = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return ((data ?? []) as PlanRow[]).map(mapPlan);
   });
+
+// Upload de imagem do Guia (superadmin): grava no storage e devolve URL pública.
+// Evita salvar imagens embutidas (base64) no banco, que deixavam a home lenta.
+export const adminUploadGuiaImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        base64: z.string().min(10).max(8_000_000),
+        contentType: z.string().regex(/^image\/(png|jpeg|webp|gif|svg\+xml)$/),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin");
+    if (!isAdmin) throw new Error("Apenas administradores da plataforma.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const ext = data.contentType.split("/")[1].replace("+xml", "").replace("jpeg", "jpg");
+    const path = `guia/${crypto.randomUUID()}.${ext}`;
+    const bytes = Buffer.from(data.base64, "base64");
+    const { error } = await supabaseAdmin.storage
+      .from("tenant-assets")
+      .upload(path, bytes, { contentType: data.contentType, cacheControl: "31536000", upsert: false });
+    if (error) throw new Error(error.message);
+    return { url: supabaseAdmin.storage.from("tenant-assets").getPublicUrl(path).data.publicUrl };
+  });
