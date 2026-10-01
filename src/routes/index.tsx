@@ -166,6 +166,14 @@ function GuiaHome() {
     if (!availableVerticals.some((v) => v.id === vertical)) setVertical("restaurantes");
   }, [availableVerticals, vertical]);
 
+  // Todos os hooks precisam rodar antes de qualquer return antecipado.
+  const featured = useMemo(() => {
+    const items = featData?.items ?? [];
+    if (!location?.city) return items;
+    const target = location.city.trim().toLowerCase();
+    return items.filter((s) => s.city && s.city.trim().toLowerCase() === target);
+  }, [featData?.items, location?.city]);
+
   const isInitialLoading =
     (!catsData || !featData || !storesData || !home) &&
     (catsLoading || featLoading || storesLoading || homeLoading);
@@ -177,13 +185,6 @@ function GuiaHome() {
   if (!catsData || !featData || !storesData || !home) {
     return <GuiaHomeSkeleton />;
   }
-
-  const featured = useMemo(() => {
-    const items = featData.items ?? [];
-    if (!location?.city) return items;
-    const target = location.city.trim().toLowerCase();
-    return items.filter((s) => s.city && s.city.trim().toLowerCase() === target);
-  }, [featData.items, location?.city]);
 
   const byKind = (kind: GuiaSlot["kind"]) => home.slots.filter((s) => s.kind === kind && s.active);
   const heroSlots = byKind("hero");

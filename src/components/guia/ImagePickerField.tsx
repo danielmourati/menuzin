@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Upload, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { convertToWebp } from "@/lib/storage";
+import { adminUploadGuiaImage } from "@/lib/guia-admin.functions";
 import { SLOT_IMAGE_SPECS, type GuiaSlotKind } from "@/lib/guia-types";
 
 type SpecKey = GuiaSlotKind | "category";
@@ -21,6 +23,7 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
   const [mode, setMode] = useState<"upload" | "url">("upload");
   const [urlInput, setUrlInput] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -33,16 +36,28 @@ export function ImagePickerField({ specKey, value, fit = "cover", onChange }: Pr
         `Imagem com ${Math.round(kb)}KB. Recomendado até ${spec.maxKB}KB — considere comprimir.`,
       );
     }
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string, fit);
-    reader.onerror = () => toast.error("Falha ao ler o arquivo.");
-    reader.readAsDataURL(file);
+    setUploading(true);
+    (async () => {
+      try {
+        const blob = (await convertToWebp(file)) ?? file;
+        const type = blob === file ? file.type : "image/webp";
+        const buf = new Uint8Array(await blob.arrayBuffer());
+        let bin = "";
+        for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+        const { url } = await adminUploadGuiaImage({ data: { base64: btoa(bin), contentType: type } });
+        onChange(url, fit);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao enviar a imagem.");
+      } finally {
+        setUploading(false);
+      }
+    })();
   };
 
   const applyUrl = () => {
     const v = urlInput.trim();
     if (!v) return;
-    if (!/^https?:\/\//i.test(v) && !v.startsWith("data:image/")) {
+    if (!/^https?:\/\//i.test(v)) {
       toast.error("Cole uma URL http(s) válida.");
       return;
     }

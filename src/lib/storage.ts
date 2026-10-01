@@ -24,7 +24,7 @@ async function getCurrentTenantId(): Promise<string> {
  * a canvas.toBlob('image/webp'), etc.) — o caller deve usar o arquivo
  * original como fallback nesse caso.
  */
-async function convertToWebp(file: File): Promise<Blob | null> {
+export async function convertToWebp(file: File): Promise<Blob | null> {
   // Skip vetorial e GIF (animado): subir como está
   if (file.type === "image/svg+xml" || file.type === "image/gif") return null;
   if (typeof document === "undefined") return null;
