@@ -16,6 +16,7 @@ import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
 import { Route as ContatoRouteImport } from './routes/contato'
 import { Route as ComeceAgoraRouteImport } from './routes/comece-agora'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuiaIndexRouteImport } from './routes/guia.index'
@@ -70,6 +71,7 @@ import { Route as ApiPublicQzRouteImport } from './routes/api.public.qz'
 import { Route as ApiPublicMpOrderWebhookRouteImport } from './routes/api.public.mp-order-webhook'
 import { Route as ApiPublicMpOauthCallbackRouteImport } from './routes/api.public.mp-oauth-callback'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
+import { Route as ApiPublicManifestAdminRouteImport } from './routes/api.public.manifest-admin'
 import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
 import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
 import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
@@ -82,6 +84,7 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LojaSlugAcompanharOrderIdRouteImport } from './routes/loja.$slug.acompanhar.$orderId'
+import { Route as ApiPublicManifestSlugRouteImport } from './routes/api.public.manifest.$slug'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -118,6 +121,11 @@ const ComeceAgoraRoute = ComeceAgoraRouteImport.update({
   path: '/comece-agora',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SlugRoute = SlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -134,9 +142,9 @@ const GuiaIndexRoute = GuiaIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const PlatformSuporteRoute = PlatformSuporteRouteImport.update({
   id: '/platform/suporte',
@@ -179,109 +187,109 @@ const GuiaCategoriaRoute = GuiaCategoriaRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTrocarSenhaRoute = AdminTrocarSenhaRouteImport.update({
-  id: '/admin/trocar-senha',
-  path: '/admin/trocar-senha',
-  getParentRoute: () => rootRouteImport,
+  id: '/trocar-senha',
+  path: '/trocar-senha',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminTaxasEntregaRoute = AdminTaxasEntregaRouteImport.update({
-  id: '/admin/taxas-entrega',
-  path: '/admin/taxas-entrega',
-  getParentRoute: () => rootRouteImport,
+  id: '/taxas-entrega',
+  path: '/taxas-entrega',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminRelatoriosRoute = AdminRelatoriosRouteImport.update({
-  id: '/admin/relatorios',
-  path: '/admin/relatorios',
-  getParentRoute: () => rootRouteImport,
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminRedefinirSenhaRoute = AdminRedefinirSenhaRouteImport.update({
-  id: '/admin/redefinir-senha',
-  path: '/admin/redefinir-senha',
-  getParentRoute: () => rootRouteImport,
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminRecuperarSenhaRoute = AdminRecuperarSenhaRouteImport.update({
-  id: '/admin/recuperar-senha',
-  path: '/admin/recuperar-senha',
-  getParentRoute: () => rootRouteImport,
+  id: '/recuperar-senha',
+  path: '/recuperar-senha',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
-  id: '/admin/produtos',
-  path: '/admin/produtos',
-  getParentRoute: () => rootRouteImport,
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
-  id: '/admin/pedidos',
-  path: '/admin/pedidos',
-  getParentRoute: () => rootRouteImport,
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminPdvRoute = AdminPdvRouteImport.update({
-  id: '/admin/pdv',
-  path: '/admin/pdv',
-  getParentRoute: () => rootRouteImport,
+  id: '/pdv',
+  path: '/pdv',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminObservacoesRoute = AdminObservacoesRouteImport.update({
-  id: '/admin/observacoes',
-  path: '/admin/observacoes',
-  getParentRoute: () => rootRouteImport,
+  id: '/observacoes',
+  path: '/observacoes',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminNotificacoesRoute = AdminNotificacoesRouteImport.update({
-  id: '/admin/notificacoes',
-  path: '/admin/notificacoes',
-  getParentRoute: () => rootRouteImport,
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin/login',
-  path: '/admin/login',
-  getParentRoute: () => rootRouteImport,
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminEntregadoresRoute = AdminEntregadoresRouteImport.update({
-  id: '/admin/entregadores',
-  path: '/admin/entregadores',
-  getParentRoute: () => rootRouteImport,
+  id: '/entregadores',
+  path: '/entregadores',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminDiretorioRoute = AdminDiretorioRouteImport.update({
-  id: '/admin/diretorio',
-  path: '/admin/diretorio',
-  getParentRoute: () => rootRouteImport,
+  id: '/diretorio',
+  path: '/diretorio',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
-  id: '/admin/dashboard',
-  path: '/admin/dashboard',
-  getParentRoute: () => rootRouteImport,
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminCuponsRoute = AdminCuponsRouteImport.update({
-  id: '/admin/cupons',
-  path: '/admin/cupons',
-  getParentRoute: () => rootRouteImport,
+  id: '/cupons',
+  path: '/cupons',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
-  id: '/admin/configuracoes',
-  path: '/admin/configuracoes',
-  getParentRoute: () => rootRouteImport,
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
-  id: '/admin/categorias',
-  path: '/admin/categorias',
-  getParentRoute: () => rootRouteImport,
+  id: '/categorias',
+  path: '/categorias',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
-  id: '/admin/avaliacoes',
-  path: '/admin/avaliacoes',
-  getParentRoute: () => rootRouteImport,
+  id: '/avaliacoes',
+  path: '/avaliacoes',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
-  id: '/admin/assinatura',
-  path: '/admin/assinatura',
-  getParentRoute: () => rootRouteImport,
+  id: '/assinatura',
+  path: '/assinatura',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
-  id: '/admin/aparencia',
-  path: '/admin/aparencia',
-  getParentRoute: () => rootRouteImport,
+  id: '/aparencia',
+  path: '/aparencia',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdicionaisRoute = AdminAdicionaisRouteImport.update({
-  id: '/admin/adicionais',
-  path: '/admin/adicionais',
-  getParentRoute: () => rootRouteImport,
+  id: '/adicionais',
+  path: '/adicionais',
+  getParentRoute: () => AdminRoute,
 } as any)
 const SlugPromocoesRoute = SlugPromocoesRouteImport.update({
   id: '/promocoes',
@@ -392,6 +400,11 @@ const ApiPublicMenuzinMpWebhookRoute =
     path: '/api/public/menuzin-mp-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicManifestAdminRoute = ApiPublicManifestAdminRouteImport.update({
+  id: '/api/public/manifest-admin',
+  path: '/api/public/manifest-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicGuiaClickRoute = ApiPublicGuiaClickRouteImport.update({
   id: '/api/public/guia-click',
   path: '/api/public/guia-click',
@@ -428,9 +441,9 @@ const AdminConfiguracoesImpressoraRoute =
     getParentRoute: () => AdminConfiguracoesRoute,
   } as any)
 const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
-  id: '/admin/cardapio/novo',
-  path: '/admin/cardapio/novo',
-  getParentRoute: () => rootRouteImport,
+  id: '/cardapio/novo',
+  path: '/cardapio/novo',
+  getParentRoute: () => AdminRoute,
 } as any)
 const SlugAcompanharOrderIdRoute = SlugAcompanharOrderIdRouteImport.update({
   id: '/acompanhar/$orderId',
@@ -459,10 +472,16 @@ const LojaSlugAcompanharOrderIdRoute =
     path: '/acompanhar/$orderId',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const ApiPublicManifestSlugRoute = ApiPublicManifestSlugRouteImport.update({
+  id: '/api/public/manifest/$slug',
+  path: '/api/public/manifest/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
   '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -514,6 +533,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
+  '/api/public/manifest-admin': typeof ApiPublicManifestAdminRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
@@ -530,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
+  '/api/public/manifest/$slug': typeof ApiPublicManifestSlugRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -587,6 +608,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
+  '/api/public/manifest-admin': typeof ApiPublicManifestAdminRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
@@ -603,6 +625,7 @@ export interface FileRoutesByTo {
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/platform/guia': typeof PlatformGuiaIndexRoute
+  '/api/public/manifest/$slug': typeof ApiPublicManifestSlugRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -612,6 +635,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$slug': typeof SlugRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
   '/comece-agora': typeof ComeceAgoraRoute
   '/contato': typeof ContatoRoute
   '/meus-pedidos': typeof MeusPedidosRoute
@@ -663,6 +687,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
+  '/api/public/manifest-admin': typeof ApiPublicManifestAdminRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
   '/api/public/mp-oauth-callback': typeof ApiPublicMpOauthCallbackRoute
   '/api/public/mp-order-webhook': typeof ApiPublicMpOrderWebhookRoute
@@ -679,6 +704,7 @@ export interface FileRoutesById {
   '/platform/tenants/novo': typeof PlatformTenantsNovoRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/platform/guia/': typeof PlatformGuiaIndexRoute
+  '/api/public/manifest/$slug': typeof ApiPublicManifestSlugRoute
   '/loja/$slug/acompanhar/$orderId': typeof LojaSlugAcompanharOrderIdRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -689,6 +715,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$slug'
+    | '/admin'
     | '/comece-agora'
     | '/contato'
     | '/meus-pedidos'
@@ -740,6 +767,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/promocao'
     | '/admin/configuracoes/whatsapp'
     | '/api/public/guia-click'
+    | '/api/public/manifest-admin'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
     | '/api/public/mp-order-webhook'
@@ -756,6 +784,7 @@ export interface FileRouteTypes {
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
     | '/platform/guia/'
+    | '/api/public/manifest/$slug'
     | '/loja/$slug/acompanhar/$orderId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -813,6 +842,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/promocao'
     | '/admin/configuracoes/whatsapp'
     | '/api/public/guia-click'
+    | '/api/public/manifest-admin'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
     | '/api/public/mp-order-webhook'
@@ -829,6 +859,7 @@ export interface FileRouteTypes {
     | '/platform/tenants/novo'
     | '/admin/configuracoes'
     | '/platform/guia'
+    | '/api/public/manifest/$slug'
     | '/loja/$slug/acompanhar/$orderId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -837,6 +868,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$slug'
+    | '/admin'
     | '/comece-agora'
     | '/contato'
     | '/meus-pedidos'
@@ -888,6 +920,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/promocao'
     | '/admin/configuracoes/whatsapp'
     | '/api/public/guia-click'
+    | '/api/public/manifest-admin'
     | '/api/public/menuzin-mp-webhook'
     | '/api/public/mp-oauth-callback'
     | '/api/public/mp-order-webhook'
@@ -904,6 +937,7 @@ export interface FileRouteTypes {
     | '/platform/tenants/novo'
     | '/admin/configuracoes/'
     | '/platform/guia/'
+    | '/api/public/manifest/$slug'
     | '/loja/$slug/acompanhar/$orderId'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -913,6 +947,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
   ComeceAgoraRoute: typeof ComeceAgoraRoute
   ContatoRoute: typeof ContatoRoute
   MeusPedidosRoute: typeof MeusPedidosRoute
@@ -920,27 +955,6 @@ export interface RootRouteChildren {
   PrivacidadeRoute: typeof PrivacidadeRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
-  AdminAdicionaisRoute: typeof AdminAdicionaisRoute
-  AdminAparenciaRoute: typeof AdminAparenciaRoute
-  AdminAssinaturaRoute: typeof AdminAssinaturaRoute
-  AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
-  AdminCategoriasRoute: typeof AdminCategoriasRoute
-  AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
-  AdminCuponsRoute: typeof AdminCuponsRoute
-  AdminDashboardRoute: typeof AdminDashboardRoute
-  AdminDiretorioRoute: typeof AdminDiretorioRoute
-  AdminEntregadoresRoute: typeof AdminEntregadoresRoute
-  AdminLoginRoute: typeof AdminLoginRoute
-  AdminNotificacoesRoute: typeof AdminNotificacoesRoute
-  AdminObservacoesRoute: typeof AdminObservacoesRoute
-  AdminPdvRoute: typeof AdminPdvRoute
-  AdminPedidosRoute: typeof AdminPedidosRoute
-  AdminProdutosRoute: typeof AdminProdutosRoute
-  AdminRecuperarSenhaRoute: typeof AdminRecuperarSenhaRoute
-  AdminRedefinirSenhaRoute: typeof AdminRedefinirSenhaRoute
-  AdminRelatoriosRoute: typeof AdminRelatoriosRoute
-  AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
-  AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
   GuiaCategoriaRoute: typeof GuiaCategoriaRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
   PlatformAssinaturasRoute: typeof PlatformAssinaturasRoute
@@ -949,10 +963,9 @@ export interface RootRouteChildren {
   PlatformLojasRoute: typeof PlatformLojasRoute
   PlatformPlanosRoute: typeof PlatformPlanosRoute
   PlatformSuporteRoute: typeof PlatformSuporteRoute
-  AdminIndexRoute: typeof AdminIndexRoute
   GuiaIndexRoute: typeof GuiaIndexRoute
-  AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
+  ApiPublicManifestAdminRoute: typeof ApiPublicManifestAdminRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
   ApiPublicMpOauthCallbackRoute: typeof ApiPublicMpOauthCallbackRoute
   ApiPublicMpOrderWebhookRoute: typeof ApiPublicMpOrderWebhookRoute
@@ -961,6 +974,7 @@ export interface RootRouteChildren {
   GuiaProdutoIdRoute: typeof GuiaProdutoIdRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   PlatformTenantsNovoRoute: typeof PlatformTenantsNovoRoute
+  ApiPublicManifestSlugRoute: typeof ApiPublicManifestSlugRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -1017,6 +1031,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ComeceAgoraRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$slug': {
       id: '/$slug'
       path: '/$slug'
@@ -1040,10 +1061,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/': {
       id: '/admin/'
-      path: '/admin'
+      path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/platform/suporte': {
       id: '/platform/suporte'
@@ -1103,150 +1124,150 @@ declare module '@tanstack/react-router' {
     }
     '/admin/trocar-senha': {
       id: '/admin/trocar-senha'
-      path: '/admin/trocar-senha'
+      path: '/trocar-senha'
       fullPath: '/admin/trocar-senha'
       preLoaderRoute: typeof AdminTrocarSenhaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/taxas-entrega': {
       id: '/admin/taxas-entrega'
-      path: '/admin/taxas-entrega'
+      path: '/taxas-entrega'
       fullPath: '/admin/taxas-entrega'
       preLoaderRoute: typeof AdminTaxasEntregaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/relatorios': {
       id: '/admin/relatorios'
-      path: '/admin/relatorios'
+      path: '/relatorios'
       fullPath: '/admin/relatorios'
       preLoaderRoute: typeof AdminRelatoriosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/redefinir-senha': {
       id: '/admin/redefinir-senha'
-      path: '/admin/redefinir-senha'
+      path: '/redefinir-senha'
       fullPath: '/admin/redefinir-senha'
       preLoaderRoute: typeof AdminRedefinirSenhaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/recuperar-senha': {
       id: '/admin/recuperar-senha'
-      path: '/admin/recuperar-senha'
+      path: '/recuperar-senha'
       fullPath: '/admin/recuperar-senha'
       preLoaderRoute: typeof AdminRecuperarSenhaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/produtos': {
       id: '/admin/produtos'
-      path: '/admin/produtos'
+      path: '/produtos'
       fullPath: '/admin/produtos'
       preLoaderRoute: typeof AdminProdutosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/pedidos': {
       id: '/admin/pedidos'
-      path: '/admin/pedidos'
+      path: '/pedidos'
       fullPath: '/admin/pedidos'
       preLoaderRoute: typeof AdminPedidosRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/pdv': {
       id: '/admin/pdv'
-      path: '/admin/pdv'
+      path: '/pdv'
       fullPath: '/admin/pdv'
       preLoaderRoute: typeof AdminPdvRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/observacoes': {
       id: '/admin/observacoes'
-      path: '/admin/observacoes'
+      path: '/observacoes'
       fullPath: '/admin/observacoes'
       preLoaderRoute: typeof AdminObservacoesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/notificacoes': {
       id: '/admin/notificacoes'
-      path: '/admin/notificacoes'
+      path: '/notificacoes'
       fullPath: '/admin/notificacoes'
       preLoaderRoute: typeof AdminNotificacoesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/login': {
       id: '/admin/login'
-      path: '/admin/login'
+      path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/entregadores': {
       id: '/admin/entregadores'
-      path: '/admin/entregadores'
+      path: '/entregadores'
       fullPath: '/admin/entregadores'
       preLoaderRoute: typeof AdminEntregadoresRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/diretorio': {
       id: '/admin/diretorio'
-      path: '/admin/diretorio'
+      path: '/diretorio'
       fullPath: '/admin/diretorio'
       preLoaderRoute: typeof AdminDiretorioRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/dashboard': {
       id: '/admin/dashboard'
-      path: '/admin/dashboard'
+      path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/cupons': {
       id: '/admin/cupons'
-      path: '/admin/cupons'
+      path: '/cupons'
       fullPath: '/admin/cupons'
       preLoaderRoute: typeof AdminCuponsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/configuracoes': {
       id: '/admin/configuracoes'
-      path: '/admin/configuracoes'
+      path: '/configuracoes'
       fullPath: '/admin/configuracoes'
       preLoaderRoute: typeof AdminConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/categorias': {
       id: '/admin/categorias'
-      path: '/admin/categorias'
+      path: '/categorias'
       fullPath: '/admin/categorias'
       preLoaderRoute: typeof AdminCategoriasRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/avaliacoes': {
       id: '/admin/avaliacoes'
-      path: '/admin/avaliacoes'
+      path: '/avaliacoes'
       fullPath: '/admin/avaliacoes'
       preLoaderRoute: typeof AdminAvaliacoesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/assinatura': {
       id: '/admin/assinatura'
-      path: '/admin/assinatura'
+      path: '/assinatura'
       fullPath: '/admin/assinatura'
       preLoaderRoute: typeof AdminAssinaturaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/aparencia': {
       id: '/admin/aparencia'
-      path: '/admin/aparencia'
+      path: '/aparencia'
       fullPath: '/admin/aparencia'
       preLoaderRoute: typeof AdminAparenciaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/adicionais': {
       id: '/admin/adicionais'
-      path: '/admin/adicionais'
+      path: '/adicionais'
       fullPath: '/admin/adicionais'
       preLoaderRoute: typeof AdminAdicionaisRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/$slug/promocoes': {
       id: '/$slug/promocoes'
@@ -1395,6 +1416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMenuzinMpWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/manifest-admin': {
+      id: '/api/public/manifest-admin'
+      path: '/api/public/manifest-admin'
+      fullPath: '/api/public/manifest-admin'
+      preLoaderRoute: typeof ApiPublicManifestAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/guia-click': {
       id: '/api/public/guia-click'
       path: '/api/public/guia-click'
@@ -1439,10 +1467,10 @@ declare module '@tanstack/react-router' {
     }
     '/admin/cardapio/novo': {
       id: '/admin/cardapio/novo'
-      path: '/admin/cardapio/novo'
+      path: '/cardapio/novo'
       fullPath: '/admin/cardapio/novo'
       preLoaderRoute: typeof AdminCardapioNovoRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/$slug/acompanhar/$orderId': {
       id: '/$slug/acompanhar/$orderId'
@@ -1478,6 +1506,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/loja/$slug/acompanhar/$orderId'
       preLoaderRoute: typeof LojaSlugAcompanharOrderIdRouteImport
       parentRoute: typeof LojaSlugRoute
+    }
+    '/api/public/manifest/$slug': {
+      id: '/api/public/manifest/$slug'
+      path: '/api/public/manifest/$slug'
+      fullPath: '/api/public/manifest/$slug'
+      preLoaderRoute: typeof ApiPublicManifestSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -1523,6 +1558,60 @@ const AdminConfiguracoesRouteChildren: AdminConfiguracoesRouteChildren = {
 const AdminConfiguracoesRouteWithChildren =
   AdminConfiguracoesRoute._addFileChildren(AdminConfiguracoesRouteChildren)
 
+interface AdminRouteChildren {
+  AdminAdicionaisRoute: typeof AdminAdicionaisRoute
+  AdminAparenciaRoute: typeof AdminAparenciaRoute
+  AdminAssinaturaRoute: typeof AdminAssinaturaRoute
+  AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
+  AdminCategoriasRoute: typeof AdminCategoriasRoute
+  AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
+  AdminCuponsRoute: typeof AdminCuponsRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminDiretorioRoute: typeof AdminDiretorioRoute
+  AdminEntregadoresRoute: typeof AdminEntregadoresRoute
+  AdminLoginRoute: typeof AdminLoginRoute
+  AdminNotificacoesRoute: typeof AdminNotificacoesRoute
+  AdminObservacoesRoute: typeof AdminObservacoesRoute
+  AdminPdvRoute: typeof AdminPdvRoute
+  AdminPedidosRoute: typeof AdminPedidosRoute
+  AdminProdutosRoute: typeof AdminProdutosRoute
+  AdminRecuperarSenhaRoute: typeof AdminRecuperarSenhaRoute
+  AdminRedefinirSenhaRoute: typeof AdminRedefinirSenhaRoute
+  AdminRelatoriosRoute: typeof AdminRelatoriosRoute
+  AdminTaxasEntregaRoute: typeof AdminTaxasEntregaRoute
+  AdminTrocarSenhaRoute: typeof AdminTrocarSenhaRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdicionaisRoute: AdminAdicionaisRoute,
+  AdminAparenciaRoute: AdminAparenciaRoute,
+  AdminAssinaturaRoute: AdminAssinaturaRoute,
+  AdminAvaliacoesRoute: AdminAvaliacoesRoute,
+  AdminCategoriasRoute: AdminCategoriasRoute,
+  AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
+  AdminCuponsRoute: AdminCuponsRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+  AdminDiretorioRoute: AdminDiretorioRoute,
+  AdminEntregadoresRoute: AdminEntregadoresRoute,
+  AdminLoginRoute: AdminLoginRoute,
+  AdminNotificacoesRoute: AdminNotificacoesRoute,
+  AdminObservacoesRoute: AdminObservacoesRoute,
+  AdminPdvRoute: AdminPdvRoute,
+  AdminPedidosRoute: AdminPedidosRoute,
+  AdminProdutosRoute: AdminProdutosRoute,
+  AdminRecuperarSenhaRoute: AdminRecuperarSenhaRoute,
+  AdminRedefinirSenhaRoute: AdminRedefinirSenhaRoute,
+  AdminRelatoriosRoute: AdminRelatoriosRoute,
+  AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
+  AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
+  AdminIndexRoute: AdminIndexRoute,
+  AdminCardapioNovoRoute: AdminCardapioNovoRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface LojaSlugRouteChildren {
   LojaSlugPedidoConfirmadoRoute: typeof LojaSlugPedidoConfirmadoRoute
   LojaSlugAcompanharOrderIdRoute: typeof LojaSlugAcompanharOrderIdRoute
@@ -1562,6 +1651,7 @@ const PlatformGuiaRouteWithChildren = PlatformGuiaRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
   ComeceAgoraRoute: ComeceAgoraRoute,
   ContatoRoute: ContatoRoute,
   MeusPedidosRoute: MeusPedidosRoute,
@@ -1569,27 +1659,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacidadeRoute: PrivacidadeRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
-  AdminAdicionaisRoute: AdminAdicionaisRoute,
-  AdminAparenciaRoute: AdminAparenciaRoute,
-  AdminAssinaturaRoute: AdminAssinaturaRoute,
-  AdminAvaliacoesRoute: AdminAvaliacoesRoute,
-  AdminCategoriasRoute: AdminCategoriasRoute,
-  AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
-  AdminCuponsRoute: AdminCuponsRoute,
-  AdminDashboardRoute: AdminDashboardRoute,
-  AdminDiretorioRoute: AdminDiretorioRoute,
-  AdminEntregadoresRoute: AdminEntregadoresRoute,
-  AdminLoginRoute: AdminLoginRoute,
-  AdminNotificacoesRoute: AdminNotificacoesRoute,
-  AdminObservacoesRoute: AdminObservacoesRoute,
-  AdminPdvRoute: AdminPdvRoute,
-  AdminPedidosRoute: AdminPedidosRoute,
-  AdminProdutosRoute: AdminProdutosRoute,
-  AdminRecuperarSenhaRoute: AdminRecuperarSenhaRoute,
-  AdminRedefinirSenhaRoute: AdminRedefinirSenhaRoute,
-  AdminRelatoriosRoute: AdminRelatoriosRoute,
-  AdminTaxasEntregaRoute: AdminTaxasEntregaRoute,
-  AdminTrocarSenhaRoute: AdminTrocarSenhaRoute,
   GuiaCategoriaRoute: GuiaCategoriaRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
   PlatformAssinaturasRoute: PlatformAssinaturasRoute,
@@ -1598,10 +1667,9 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformLojasRoute: PlatformLojasRoute,
   PlatformPlanosRoute: PlatformPlanosRoute,
   PlatformSuporteRoute: PlatformSuporteRoute,
-  AdminIndexRoute: AdminIndexRoute,
   GuiaIndexRoute: GuiaIndexRoute,
-  AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
+  ApiPublicManifestAdminRoute: ApiPublicManifestAdminRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
   ApiPublicMpOauthCallbackRoute: ApiPublicMpOauthCallbackRoute,
   ApiPublicMpOrderWebhookRoute: ApiPublicMpOrderWebhookRoute,
@@ -1610,6 +1678,7 @@ const rootRouteChildren: RootRouteChildren = {
   GuiaProdutoIdRoute: GuiaProdutoIdRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   PlatformTenantsNovoRoute: PlatformTenantsNovoRoute,
+  ApiPublicManifestSlugRoute: ApiPublicManifestSlugRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
