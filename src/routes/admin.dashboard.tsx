@@ -109,8 +109,7 @@ function DashboardPage() {
 
   const hasDeliveryFees = Boolean(
     tenantData &&
-      ((tenantData as { delivery_mode?: string }).delivery_mode === "single" ||
-        (tenantData as { delivery_mode?: string }).delivery_mode === "neighborhood")
+      ["single", "neighborhood", "km"].includes((tenantData as { delivery_mode?: string }).delivery_mode || "")
   );
 
   const hasPrinter = (tenantPrintersData?.printers ?? []).some(
