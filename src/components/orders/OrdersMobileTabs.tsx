@@ -21,7 +21,7 @@ export function OrdersMobileTabs({
   onCancel,
   onUpdateStatus,
 }: OrdersMobileTabsProps) {
-  const [activeTab, setActiveTab] = useState<TabType>("novo");
+  const [activeTab, setActiveTab] = useState<TabType>("preparo");
 
   const byStatus = (statuses: OrderStatus[]) =>
     orders.filter((o) => statuses.includes(o.status));
