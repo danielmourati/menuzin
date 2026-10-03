@@ -794,35 +794,6 @@ function ProductsPage() {
                     folder="produtos"
                   />
 
-                  <div>
-                    <Label className="text-xs font-semibold">Tempo de preparo</Label>
-                    <Input
-                      value={editing.prep_time ?? ""}
-                      onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })}
-                      className="mt-1"
-                      placeholder="Ex: 25 min"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
-                      <Label className="text-xs font-medium cursor-pointer">Disponível</Label>
-                      <Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
-                      <Label className="text-xs font-medium cursor-pointer">Em destaque</Label>
-                      <Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
-                      <Label className="text-xs font-medium cursor-pointer">🔥 Mais vendido</Label>
-                      <Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} />
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
-                      <Label className="text-xs font-medium cursor-pointer">Aceita observação</Label>
-                      <Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} />
-                    </div>
-                  </div>
-
                   <div className="rounded-xl border bg-card p-3 space-y-3">
                     <h4 className="font-semibold text-sm">Preços e tamanhos</h4>
                   <div className="grid grid-cols-2 gap-3">
@@ -853,6 +824,36 @@ function ProductsPage() {
                     </div>
                   )}
                   </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold">Tempo de preparo</Label>
+                    <Input
+                      value={editing.prep_time ?? ""}
+                      onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })}
+                      className="mt-1"
+                      placeholder="Ex: 25 min"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">Disponível</Label>
+                      <Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">Em destaque</Label>
+                      <Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">🔥 Mais vendido</Label>
+                      <Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-2.5">
+                      <Label className="text-xs font-medium cursor-pointer">Aceita observação</Label>
+                      <Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} />
+                    </div>
+                  </div>
+
                 </div>
 
                 {/* LADO DIREITO: Observações e Complementos (Fixado ao rolar a página / modal) */}
