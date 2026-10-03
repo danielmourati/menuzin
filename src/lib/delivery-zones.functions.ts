@@ -387,7 +387,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
 // ---- Public delivery-fee range (min/max) ----
 
 export type DeliveryFeeRange = {
-  mode: "none" | "single" | "neighborhood";
+  mode: "none" | "single" | "neighborhood" | "km";
   min: number;
   max: number;
 };
@@ -404,10 +404,10 @@ export const getDeliveryFeeRange = createServerFn({ method: "GET" })
       .eq("active", true)
       .maybeSingle();
     if (!tenant) return { mode: "single", min: 0, max: 0 };
-    const mode = (tenant.delivery_mode ?? "single") as "none" | "single" | "neighborhood";
+    const mode = (tenant.delivery_mode ?? "single") as "none" | "single" | "neighborhood" | "km";
     const baseFee = Number(tenant.delivery_fee ?? 0);
     if (mode === "none") return { mode, min: 0, max: 0 };
-    if (mode === "single") return { mode, min: baseFee, max: baseFee };
+    if (mode === "single" || mode === "km") return { mode, min: baseFee, max: baseFee };
     const { data: zones } = await supabaseAdmin
       .from("delivery_zones")
       .select("fee")
