@@ -794,18 +794,6 @@ function ProductsPage() {
                     folder="produtos"
                   />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs font-semibold">Preço base</Label>
-                      <CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1" disabled={editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0} />
-                      {editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0 && <p className="mt-1 text-[11px] text-muted-foreground">Definido pelo menor tamanho.</p>}
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold">Preço promo (opcional)</Label>
-                      <CurrencyInput value={editing.promo_price ?? 0} onChange={(v) => setEditing({ ...editing, promo_price: v > 0 ? v : null })} className="mt-1" />
-                    </div>
-                  </div>
-
                   <div>
                     <Label className="text-xs font-semibold">Tempo de preparo</Label>
                     <Input
@@ -835,14 +823,27 @@ function ProductsPage() {
                     </div>
                   </div>
 
+                  <div className="rounded-xl border bg-card p-3 space-y-3">
+                    <h4 className="font-semibold text-sm">Preços e tamanhos</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs font-semibold">Preço base</Label>
+                      <CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1" disabled={editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0} />
+                      {editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0 && <p className="mt-1 text-[11px] text-muted-foreground">Definido pelo menor tamanho.</p>}
+                    </div>
+                    <div>
+                      <Label className="text-xs font-semibold">Preço promo (opcional)</Label>
+                      <CurrencyInput value={editing.promo_price ?? 0} onChange={(v) => setEditing({ ...editing, promo_price: v > 0 ? v : null })} className="mt-1" />
+                    </div>
+                  </div>
                   {editing.type !== "pizza" && !currentProduct && (
-                    <div className="border-t pt-3 mt-2 text-xs text-muted-foreground">
+                    <div className="border-t pt-3 text-xs text-muted-foreground">
                       <h4 className="font-semibold mb-1">Tamanhos e preços</h4>
                       Salve o produto para cadastrar tamanhos (ex.: Pequeno e Grande) com preços diferentes.
                     </div>
                   )}
                   {editing.type !== "pizza" && currentProduct && (
-                    <div className="border-t pt-3 mt-2">
+                    <div className="border-t pt-3">
                       <h4 className="font-semibold text-xs text-muted-foreground mb-2">Tamanhos e preços</h4>
                       <SizesEditor
                         productId={currentProduct.id}
@@ -851,6 +852,7 @@ function ProductsPage() {
                       />
                     </div>
                   )}
+                  </div>
                 </div>
 
                 {/* LADO DIREITO: Observações e Complementos (Fixado ao rolar a página / modal) */}
