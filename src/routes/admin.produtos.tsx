@@ -797,7 +797,8 @@ function ProductsPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs font-semibold">Preço base</Label>
-                      <CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1" />
+                      <CurrencyInput value={editing.price} onChange={(v) => setEditing({ ...editing, price: v })} className="mt-1" disabled={editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0} />
+                      {editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0 && <p className="mt-1 text-[11px] text-muted-foreground">Definido pelo menor tamanho.</p>}
                     </div>
                     <div>
                       <Label className="text-xs font-semibold">Preço promo (opcional)</Label>
@@ -834,9 +835,15 @@ function ProductsPage() {
                     </div>
                   </div>
 
-                  {isPizzaria && currentProduct && (
+                  {editing.type !== "pizza" && !currentProduct && (
+                    <div className="border-t pt-3 mt-2 text-xs text-muted-foreground">
+                      <h4 className="font-semibold mb-1">Tamanhos e preços</h4>
+                      Salve o produto para cadastrar tamanhos (ex.: Pequeno e Grande) com preços diferentes.
+                    </div>
+                  )}
+                  {editing.type !== "pizza" && currentProduct && (
                     <div className="border-t pt-3 mt-2">
-                      <h4 className="font-semibold text-xs text-muted-foreground mb-2">Tamanhos (Pizzaria)</h4>
+                      <h4 className="font-semibold text-xs text-muted-foreground mb-2">Tamanhos e preços</h4>
                       <SizesEditor
                         productId={currentProduct.id}
                         sizes={currentProduct.sizes ?? []}
@@ -848,122 +855,6 @@ function ProductsPage() {
 
                 {/* LADO DIREITO: Observações e Complementos (Fixado ao rolar a página / modal) */}
                 <div className="space-y-4 lg:sticky lg:top-0">
-                  {/* Grupos de Observação */}
-                  <div className="rounded-xl border p-4 bg-card space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                          <MessageSquare className="h-4 w-4 text-primary" /> Grupos de Observação
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Perguntas/opções que o cliente escolhe (ex: Ponto da carne).
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-xs gap-1 shrink-0"
-                        onClick={() => openInlineGroupModal("observacao")}
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Criar novo grupo
-                      </Button>
-                    </div>
-
-                    {obsGroups.length === 0 ? (
-                      <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
-                        <p className="text-xs text-muted-foreground font-medium">Nenhum grupo de observações cadastrado ainda.</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Ponto da carne", "Remover ingredientes".</p>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          className="mt-2.5 h-7 text-xs gap-1"
-                          onClick={() => openInlineGroupModal("observacao")}
-                        >
-                          <Plus className="h-3 w-3" /> + Cadastrar primeiro grupo
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
-                        {obsGroups.map((g, idx) => {
-                          const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
-                          const isChecked = selectedGroupIds.includes(g.id);
-                          const optionsText = g.options.map((o) => o.name).join(", ");
-                          return (
-                            <div
-                              key={g.id}
-                              onClick={() => {
-                                setSelectedGroupIds((prev) =>
-                                  prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
-                                );
-                              }}
-                              className={`flex items-center gap-2.5 rounded-xl border p-2.5 cursor-pointer transition-all hover:border-primary/50 ${
-                                isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
-                              }`}
-                            >
-                              <div onClick={(e) => e.stopPropagation()}>
-                                <ReorderButtons
-                                  entity="addonGroup"
-                                  id={g.id}
-                                  invalidateKeys={[["admin", "addon-groups"]]}
-                                  isFirst={idx === 0}
-                                  isLast={idx === obsGroups.length - 1}
-                                  siblingIds={obsGroups.map((x) => x.id)}
-                                />
-                              </div>
-                              <Checkbox
-                                checked={isChecked}
-                                onCheckedChange={() => {}}
-                                className="mt-0.5 pointer-events-none"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="font-semibold text-sm">{g.name}</span>
-                                  {g.required ? (
-                                    <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="h-4 text-[10px] px-1 text-muted-foreground">Opcional</Badge>
-                                  )}
-                                  {isCategoryTarget && (
-                                    <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
-                                  )}
-                                </div>
-                                {optionsText && (
-                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                    Opções: {optionsText}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  title="Editar grupo"
-                                  onClick={() => openEditInlineGroupModal(g)}
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                  title="Excluir grupo"
-                                  onClick={() => handleDeleteGroup(g.id, g.name)}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Categorias de Adicionais */}
                   <div className="rounded-xl border p-4 bg-card space-y-3">
                     <div className="flex items-center justify-between gap-2">
@@ -1068,6 +959,122 @@ function ProductsPage() {
                                   variant="ghost"
                                   className="h-7 w-7 text-destructive hover:bg-destructive/10"
                                   title="Excluir categoria de adicionais"
+                                  onClick={() => handleDeleteGroup(g.id, g.name)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Grupos de Observação */}
+                  <div className="rounded-xl border p-4 bg-card space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-semibold text-sm flex items-center gap-1.5">
+                          <MessageSquare className="h-4 w-4 text-primary" /> Grupos de Observação
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Perguntas/opções que o cliente escolhe (ex: Ponto da carne).
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs gap-1 shrink-0"
+                        onClick={() => openInlineGroupModal("observacao")}
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Criar novo grupo
+                      </Button>
+                    </div>
+
+                    {obsGroups.length === 0 ? (
+                      <div className="rounded-lg border border-dashed p-4 text-center bg-muted/20">
+                        <p className="text-xs text-muted-foreground font-medium">Nenhum grupo de observações cadastrado ainda.</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Ex: "Ponto da carne", "Remover ingredientes".</p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="mt-2.5 h-7 text-xs gap-1"
+                          onClick={() => openInlineGroupModal("observacao")}
+                        >
+                          <Plus className="h-3 w-3" /> + Cadastrar primeiro grupo
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 pt-1 max-h-56 overflow-y-auto pr-1">
+                        {obsGroups.map((g, idx) => {
+                          const isCategoryTarget = !!editing.category_id && g.targets.some((t) => t.category_id === editing.category_id);
+                          const isChecked = selectedGroupIds.includes(g.id);
+                          const optionsText = g.options.map((o) => o.name).join(", ");
+                          return (
+                            <div
+                              key={g.id}
+                              onClick={() => {
+                                setSelectedGroupIds((prev) =>
+                                  prev.includes(g.id) ? prev.filter((id) => id !== g.id) : [...prev, g.id]
+                                );
+                              }}
+                              className={`flex items-center gap-2.5 rounded-xl border p-2.5 cursor-pointer transition-all hover:border-primary/50 ${
+                                isChecked ? "border-primary/60 bg-primary/5" : "bg-background"
+                              }`}
+                            >
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <ReorderButtons
+                                  entity="addonGroup"
+                                  id={g.id}
+                                  invalidateKeys={[["admin", "addon-groups"]]}
+                                  isFirst={idx === 0}
+                                  isLast={idx === obsGroups.length - 1}
+                                  siblingIds={obsGroups.map((x) => x.id)}
+                                />
+                              </div>
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={() => {}}
+                                className="mt-0.5 pointer-events-none"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="font-semibold text-sm">{g.name}</span>
+                                  {g.required ? (
+                                    <Badge variant="destructive" className="h-4 text-[10px] px-1">Obrigatório</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="h-4 text-[10px] px-1 text-muted-foreground">Opcional</Badge>
+                                  )}
+                                  {isCategoryTarget && (
+                                    <Badge variant="secondary" className="h-4 text-[10px] px-1 text-primary">Toda a Categoria</Badge>
+                                  )}
+                                </div>
+                                {optionsText && (
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    Opções: {optionsText}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  title="Editar grupo"
+                                  onClick={() => openEditInlineGroupModal(g)}
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  title="Excluir grupo"
                                   onClick={() => handleDeleteGroup(g.id, g.name)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -1556,7 +1563,7 @@ function SizesEditor({ productId, sizes, onChanged }: {
   });
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">Quando há tamanhos, o preço do produto é definido pelo tamanho escolhido.</p>
+      <p className="text-xs text-muted-foreground">Com tamanhos cadastrados, o cliente paga o preço do tamanho escolhido e o cardápio mostra "A partir de". O preço base passa a ser o menor tamanho.</p>
       <div className="space-y-2">
         {sizes.length === 0 && <p className="text-sm text-muted-foreground">Sem tamanhos cadastrados.</p>}
         {sizes.map((s) => (
