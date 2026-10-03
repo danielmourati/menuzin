@@ -373,6 +373,12 @@ const SizeInput = z.object({
   fraction_prices: z.record(z.string(), z.number().min(0).max(99999)).nullable().optional(),
 });
 
+async function syncPriceFromSizes(sb: SB, productId: string) {
+  const { data } = await sb.from("product_sizes").select("price").eq("product_id", productId);
+  const ps = ((data ?? []) as { price: number }[]).map((r) => Number(r.price)).filter((n) => n > 0);
+  if (ps.length) await sb.from("products").update({ price: Math.min(...ps) } as never).eq("id", productId);
+}
+
 export const saveProductSize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => SizeInput.parse(d))
@@ -388,6 +394,7 @@ export const saveProductSize = createServerFn({ method: "POST" })
         fraction_prices: fracs,
       } as never).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await syncPriceFromSizes(sb, data.product_id);
       return { id: data.id };
     }
     const { data: row, error } = await sb.from("product_sizes").insert({
@@ -396,6 +403,7 @@ export const saveProductSize = createServerFn({ method: "POST" })
       fraction_prices: fracs,
     } as never).select("id").single();
     if (error) throw new Error(error.message);
+    await syncPriceFromSizes(sb, data.product_id);
     return { id: row.id as string };
   });
 
@@ -406,8 +414,10 @@ export const deleteProductSize = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase as SB;
     await getAuthorizedTenantId(sb, context.userId);
+    const { data: sz } = await sb.from("product_sizes").select("product_id").eq("id", data.id).maybeSingle();
     const { error } = await sb.from("product_sizes").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (sz) await syncPriceFromSizes(sb, (sz as { product_id: string }).product_id);
     return { ok: true };
   });
 
