@@ -583,29 +583,29 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             {/* Badges de informações em linha única abaixo da descrição */}
             <div className="mt-2 flex flex-nowrap items-center gap-x-4 overflow-hidden border-t pt-2 text-[11px] font-medium text-muted-foreground">
               <span className="inline-flex shrink-0 items-center gap-1">
-                <Bike className="h-3 w-3 text-primary" /> {deliveryLabel}
+                <Bike className="h-3 w-3 text-primary" />
+                {deliveryRangeQ.data?.mode === "none" ? deliveryLabel : (
+                  <>{deliveryRangeQ.data && deliveryRangeQ.data.min !== deliveryRangeQ.data.max ? "A partir de " : "Entrega "}{deliveryRangeQ.data ? brl(deliveryRangeQ.data.min) : deliveryLabel}</>
+                )}
               </span>
               {tenant.deliveryTime || tenant.takeoutTime ? (
                 <>
                   {tenant.deliveryTime && (
                     <span className="inline-flex shrink-0 items-center gap-1" title="Tempo médio de entrega">
-                      <Clock className="h-3 w-3 text-primary" /> {tenant.deliveryTime}
+                      <Clock className="h-3 w-3 text-primary" /> Delivery ≈ {tenant.deliveryTime}
                     </span>
                   )}
                   {tenant.takeoutTime && (
                     <span className="inline-flex shrink-0 items-center gap-1" title="Tempo médio para retirada">
-                      <ShoppingBag className="h-3 w-3 text-primary" /> {tenant.takeoutTime}
+                      <ShoppingBag className="h-3 w-3 text-primary" /> Retirada ≈ {tenant.takeoutTime}
                     </span>
                   )}
                 </>
               ) : (
                 <span className="inline-flex shrink-0 items-center gap-1">
-                  <Clock className="h-3 w-3 text-primary" /> {tenant.prepTime || "—"}
+                  <Clock className="h-3 w-3 text-primary" /> Preparo ≈ {tenant.prepTime || "—"}
                 </span>
               )}
-              <span className="inline-flex shrink-0 items-center gap-1">
-                <Wallet className="h-3 w-3 text-primary" /> Mín. {brl(tenant.minOrder)}
-              </span>
             </div>
 
           </button>
