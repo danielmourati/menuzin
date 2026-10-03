@@ -585,7 +585,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               <span className="inline-flex shrink-0 items-center gap-1">
                 <Bike className="h-3 w-3 text-primary" />
                 {deliveryRangeQ.data?.mode === "none" ? deliveryLabel : (
-                  <>{deliveryRangeQ.data && deliveryRangeQ.data.min !== deliveryRangeQ.data.max ? "A partir de " : "Entrega "}{deliveryRangeQ.data ? brl(deliveryRangeQ.data.min) : deliveryLabel}</>
+                  <>{deliveryRangeQ.data && (deliveryRangeQ.data.mode === "neighborhood" || deliveryRangeQ.data.mode === "km" || deliveryRangeQ.data.min !== deliveryRangeQ.data.max) ? "A partir de " : "Entrega "}{deliveryRangeQ.data ? brl(deliveryRangeQ.data.min) : deliveryLabel}</>
                 )}
               </span>
               {tenant.deliveryTime || tenant.takeoutTime ? (
