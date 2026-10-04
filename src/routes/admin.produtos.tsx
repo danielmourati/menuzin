@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ChevronUp, ChevronDown } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -99,6 +99,9 @@ function ProductsPage() {
   const [catFilter, setCatFilter] = useState("todas");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [draftSizes, setDraftSizes] = useState<{ name: string; price: number }[]>([]);
+  const editingKey = editing ? (editing.id ?? "new") : null;
+  useEffect(() => { setDraftSizes([]); }, [editingKey]);
   const [open, setOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
@@ -226,6 +229,11 @@ function ProductsPage() {
       const payload: Editing = isPizzaCategory ? { ...input, type: "pizza" } : input;
       const res = await saveProduct({ data: payload });
       const pid = res.id;
+      if (!input.id && payload.type !== "pizza" && draftSizes.length > 0) {
+        for (let i = 0; i < draftSizes.length; i++) {
+          await saveProductSize({ data: { product_id: pid, name: draftSizes[i].name, price: draftSizes[i].price, sort_order: i } });
+        }
+      }
 
       // Synchronize addon group targets for selected/unselected groups
       for (const g of addonGroups) {
@@ -796,7 +804,7 @@ function ProductsPage() {
 
                   <div className="rounded-xl border bg-card p-3 space-y-3">
                     <h4 className="font-semibold text-sm">Preços e tamanhos</h4>
-                  {!(editing.type !== "pizza" && (currentProduct?.sizes?.length ?? 0) > 0) && (
+                  {!(editing.type !== "pizza" && ((currentProduct?.sizes?.length ?? 0) > 0 || (!currentProduct && draftSizes.length > 0))) && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs font-semibold">Preço base</Label>
@@ -809,9 +817,9 @@ function ProductsPage() {
                   </div>
                   )}
                   {editing.type !== "pizza" && !currentProduct && (
-                    <div className="border-t pt-3 text-xs text-muted-foreground">
-                      <h4 className="font-semibold mb-1">Tamanhos e preços</h4>
-                      Salve o produto para cadastrar tamanhos (ex.: Pequeno e Grande) com preços diferentes.
+                    <div className="border-t pt-3">
+                      <h4 className="font-semibold text-xs text-muted-foreground mb-2">Tamanhos e preços</h4>
+                      <DraftSizesEditor sizes={draftSizes} onChange={setDraftSizes} />
                     </div>
                   )}
                   {editing.type !== "pizza" && currentProduct && (
@@ -1554,6 +1562,15 @@ function SizesEditor({ productId, sizes, onChanged }: {
   onChanged: () => void;
 }) {
   const [draft, setDraft] = useState({ name: "", price: 0 });
+  const sortedSizes = [...sizes].sort((a, b) => a.sort_order - b.sort_order);
+  const swap = async (i: number, j: number) => {
+    try {
+      const list = [...sortedSizes];
+      [list[i], list[j]] = [list[j], list[i]];
+      await Promise.all(list.map((x, k) => saveProductSize({ data: { id: x.id, product_id: productId, name: x.name, price: Number(x.price), sort_order: k } })));
+      onChanged();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao reordenar"); }
+  };
   const saveMut = useMutation({
     mutationFn: (input: { id?: string; product_id: string; name: string; price: number; sort_order: number }) =>
       saveProductSize({ data: input }),
@@ -1570,8 +1587,12 @@ function SizesEditor({ productId, sizes, onChanged }: {
       <p className="text-xs text-muted-foreground">Com tamanhos cadastrados, o cliente paga o preço do tamanho escolhido e o cardápio mostra "A partir de". O preço base passa a ser o menor tamanho.</p>
       <div className="space-y-2">
         {sizes.length === 0 && <p className="text-sm text-muted-foreground">Sem tamanhos cadastrados.</p>}
-        {sizes.map((s) => (
+        {sortedSizes.map((s, idx) => (
           <div key={s.id} className="flex items-center gap-2 rounded-xl border p-2">
+            <div className="flex flex-col">
+              <Button type="button" size="icon" variant="ghost" className="h-5 w-6" disabled={idx === 0 || saveMut.isPending} onClick={() => swap(idx, idx - 1)}><ChevronUp className="h-3 w-3" /></Button>
+              <Button type="button" size="icon" variant="ghost" className="h-5 w-6" disabled={idx === sortedSizes.length - 1 || saveMut.isPending} onClick={() => swap(idx, idx + 1)}><ChevronDown className="h-3 w-3" /></Button>
+            </div>
             <Input className="flex-1" defaultValue={s.name}
               onBlur={(e) => e.target.value !== s.name && saveMut.mutate({ id: s.id, product_id: productId, name: e.target.value, price: Number(s.price), sort_order: s.sort_order })} />
             <CurrencyBlurInput className="w-32" initialValue={Number(s.price)}
@@ -1590,6 +1611,46 @@ function SizesEditor({ productId, sizes, onChanged }: {
           if (!draft.name) return;
           saveMut.mutate({ product_id: productId, name: draft.name, price: draft.price, sort_order: sizes.length });
         }} disabled={saveMut.isPending || !draft.name}><Plus className="h-4 w-4" /></Button>
+      </div>
+    </div>
+  );
+}
+
+function DraftSizesEditor({ sizes, onChange }: {
+  sizes: { name: string; price: number }[];
+  onChange: (next: { name: string; price: number }[]) => void;
+}) {
+  const [draft, setDraft] = useState({ name: "", price: 0 });
+  const update = (i: number, patch: Partial<{ name: string; price: number }>) =>
+    onChange(sizes.map((s, k) => (k === i ? { ...s, ...patch } : s)));
+  const move = (i: number, j: number) => {
+    const list = [...sizes];
+    [list[i], list[j]] = [list[j], list[i]];
+    onChange(list);
+  };
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">Os tamanhos serão gravados ao salvar o produto. O preço base passa a ser o menor tamanho.</p>
+      <div className="space-y-2">
+        {sizes.length === 0 && <p className="text-sm text-muted-foreground">Sem tamanhos cadastrados.</p>}
+        {sizes.map((s, idx) => (
+          <div key={idx} className="flex items-center gap-2 rounded-xl border p-2">
+            <div className="flex flex-col">
+              <Button type="button" size="icon" variant="ghost" className="h-5 w-6" disabled={idx === 0} onClick={() => move(idx, idx - 1)}><ChevronUp className="h-3 w-3" /></Button>
+              <Button type="button" size="icon" variant="ghost" className="h-5 w-6" disabled={idx === sizes.length - 1} onClick={() => move(idx, idx + 1)}><ChevronDown className="h-3 w-3" /></Button>
+            </div>
+            <Input className="flex-1" value={s.name} onChange={(e) => update(idx, { name: e.target.value })} />
+            <CurrencyInput className="w-32" value={s.price} onChange={(v) => update(idx, { price: v })} />
+            <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => onChange(sizes.filter((_, k) => k !== idx))}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-end gap-2 border-t pt-3">
+        <div className="flex-1"><Label className="text-xs">Novo tamanho</Label><Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ex: Grande" className="mt-1" /></div>
+        <div className="w-32"><Label className="text-xs">Preço</Label><CurrencyInput value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} className="mt-1" /></div>
+        <Button type="button" disabled={!draft.name.trim()} onClick={() => { onChange([...sizes, { name: draft.name.trim(), price: draft.price }]); setDraft({ name: "", price: 0 }); }}><Plus className="h-4 w-4" /></Button>
       </div>
     </div>
   );
