@@ -72,7 +72,7 @@ export const getCatalog = createServerFn({ method: "POST" })
       getTenantPlan(tenantId),
       isTenantBlocked(tenantId),
       supabaseAdmin.from("categories").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order").order("created_at"),
-      supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).order("sort_order").order("created_at"),
+      supabaseAdmin.from("products").select("*").eq("tenant_id", tenantId).eq("available", true).order("sort_order").order("created_at"),
       supabaseAdmin.from("addon_groups").select("*").eq("tenant_id", tenantId).eq("active", true).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     ]);
 
