@@ -222,7 +222,7 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
 
         <div className="relative mt-6 h-1.5 rounded-full bg-muted">
           <div className={`h-full rounded-full transition-all ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ width: `${progress}%` }} />
-          <span className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ left: `${progress}%` }} />
+          <span className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ left: `calc(${progress}% - ${progress >= 100 ? 8 : 0}px)` }} />
         </div>
         {forecast && !isCancelled && order.status !== "finalizado" && (
           <p className="mt-4 flex items-center justify-center gap-2 text-sm italic text-muted-foreground">
