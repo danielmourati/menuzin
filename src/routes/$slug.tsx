@@ -569,7 +569,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                 </div>
                 <p className={`mt-0.5 flex items-center gap-1 text-[11px] font-semibold md:text-xs ${storeOpen ? "text-success" : "text-destructive"}`}>
                   <span className={`inline-block h-1.5 w-1.5 rounded-full ${storeOpen ? "bg-success" : "bg-destructive"}`} />
-                  {storeOpen ? "Aberta" : "Fechada - Agendar pedido"}
+                  {storeOpen ? "Aberta" : canOrder ? "Fechada - Agendar pedido" : "Fechada"}
                 </p>
               </div>
 
@@ -821,7 +821,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </div>
         )}
 
-        <div className={`mt-6 space-y-8 ${!storeOpen ? "opacity-60" : ""}`}>
+        <div className={`mt-6 space-y-8 ${!canOrder ? "opacity-60" : ""}`}>
 
           {grouped.length === 0 ? (
             <div className="rounded-2xl border bg-card p-10 text-center text-muted-foreground">
