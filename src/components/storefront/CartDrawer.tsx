@@ -424,6 +424,7 @@ export function CartDrawer({
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setCouponInput("");
+    setScheduledFor(null);
   };
 
   // Dynamic CEP search (ViaCEP) with debounce + abort.
@@ -1728,6 +1729,11 @@ export function CartDrawer({
                     )}
                     {mode && modeLabelMap[mode]}
                   </div>
+                  {scheduledFor && (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                      Agendado: {formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}
+                    </span>
+                  )}
                   <button
                     onClick={() => setStep("mode")}
                     className="text-sm font-semibold text-primary"
