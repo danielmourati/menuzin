@@ -11,9 +11,9 @@ import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
 import { useOrdersRealtime, playNotificationSound } from "@/hooks/useOrdersRealtime";
 import { uploadTenantAudio } from "@/lib/storage";
 import { updateMyTenant, getMyTenant } from "@/lib/tenants.functions";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWebPush } from "@/hooks/useWebPush";
-import { ArrowLeft, Volume2, Bell, Upload, Music, X, Loader2 } from "lucide-react";
+import { CalendarClock, ArrowLeft, Volume2, Bell, Upload, Music, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/configuracoes/pedidos")({
@@ -112,6 +112,7 @@ function OrderSettingsPage() {
     >
       <SettingsBreadcrumb current="Pedidos" />
       <div className="max-w-2xl mx-auto space-y-6">
+        <SchedulingCard tenant={tenantData?.tenant as SchedTenant | undefined} />
         {/* Painel de Alertas */}
         <Card>
           <CardHeader>
@@ -308,5 +309,68 @@ function OrderSettingsPage() {
 
       </div>
     </AdminLayout>
+  );
+}
+
+type SchedTenant = { scheduling_enabled?: boolean | null; scheduling_slot_minutes?: number | null; scheduling_days_ahead?: number | null; plan?: string };
+
+function SchedulingCard({ tenant }: { tenant?: SchedTenant }) {
+  const qc = useQueryClient();
+  const [enabled, setEnabled] = useState(false);
+  const [slot, setSlot] = useState(10);
+  const [days, setDays] = useState(7);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!tenant) return;
+    setEnabled(!!tenant.scheduling_enabled);
+    setSlot(tenant.scheduling_slot_minutes ?? 10);
+    setDays(tenant.scheduling_days_ahead ?? 7);
+  }, [tenant]);
+  const save = async () => {
+    setSaving(true);
+    try {
+      await updateMyTenant({ data: { scheduling_enabled: enabled, scheduling_slot_minutes: slot, scheduling_days_ahead: days } });
+      await qc.invalidateQueries({ queryKey: ["my-tenant"] });
+      toast.success("Agendamento salvo.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+          <CalendarClock className="h-5 w-5 text-primary" /> Pedidos agendados
+        </CardTitle>
+        <CardDescription>
+          O cliente escolhe o dia e a faixa de horário para receber ou retirar, inclusive com a loja fechada. Os horários seguem o seu horário de funcionamento.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="sched-on">Permitir pedidos agendados</Label>
+          <Switch id="sched-on" checked={enabled} onCheckedChange={setEnabled} />
+        </div>
+        {enabled && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Intervalo entre horários</Label>
+              <select value={slot} onChange={(e) => setSlot(Number(e.target.value))} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm">
+                {[10, 15, 20, 30, 60].map((n) => <option key={n} value={n}>{n} min</option>)}
+              </select>
+            </div>
+            <div>
+              <Label>Dias à frente</Label>
+              <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="mt-1.5 h-10 w-full rounded-md border bg-background px-3 text-sm">
+                {[0, 1, 2, 3, 5, 7, 14].map((n) => <option key={n} value={n}>{n === 0 ? "Só hoje" : `${n} dias`}</option>)}
+              </select>
+            </div>
+          </div>
+        )}
+        <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
+      </CardContent>
+    </Card>
   );
 }

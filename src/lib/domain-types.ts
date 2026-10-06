@@ -133,6 +133,7 @@ export type Order = {
   };
   table?: string;
   pickupTime?: string;
+  scheduledFor?: string | null;
   note?: string;
   createdAt: string;
   acceptedAt?: string;
@@ -189,6 +190,13 @@ export type Tenant = {
   prepTime: string;
   deliveryTime?: string | null;
   takeoutTime?: string | null;
+  deliveryTimeMin?: number | null;
+  deliveryTimeMax?: number | null;
+  takeoutTimeMin?: number | null;
+  takeoutTimeMax?: number | null;
+  schedulingEnabled?: boolean;
+  schedulingSlotMinutes?: number;
+  schedulingDaysAhead?: number;
   minOrder: number;
   deliveryFee: number;
   deliveryBaseKm?: number | null;

@@ -44,6 +44,7 @@ export function dbOrderToUi(o: DbOrder, history: OrderStatusHistoryEntry[] = [])
     address: o.address ?? undefined,
     table: o.table_label ?? undefined,
     pickupTime: o.pickup_time ?? undefined,
+    scheduledFor: o.scheduled_for ?? null,
     note: o.note ?? undefined,
     createdAt: o.created_at,
     acceptedAt: o.accepted_at ?? undefined,

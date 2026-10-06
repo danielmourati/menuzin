@@ -6,6 +6,7 @@
 import { formatDateTime, modeLabel } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
+import { formatScheduledShort } from "@/lib/scheduling";
 import {
   center,
   lineOf,
@@ -52,6 +53,7 @@ export function buildKitchenTicket(order: Order, cols: number): string {
 
   const mode = stripAccents(modeLabel[order.mode] ?? order.mode).toUpperCase();
   out.push(center(mode, bigCols));
+  if (order.scheduledFor) out.push(center(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols));
 
   if (order.mode === "consumo_local" && order.table) {
     wrap(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) => out.push(center(l, bigCols)));

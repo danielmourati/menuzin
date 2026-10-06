@@ -21,6 +21,9 @@ export type DbTenant = {
   delivery_time_max?: number | null;
   takeout_time_min?: number | null;
   takeout_time_max?: number | null;
+  scheduling_enabled?: boolean | null;
+  scheduling_slot_minutes?: number | null;
+  scheduling_days_ahead?: number | null;
   min_order: number;
   delivery_fee: number;
   hours: string;
@@ -224,6 +227,7 @@ export type DbOrder = {
   address: Record<string, string> | null;
   table_label: string | null;
   pickup_time: string | null;
+  scheduled_for?: string | null;
   note: string | null;
   cancel_reason: string | null;
   accepted_at: string | null;

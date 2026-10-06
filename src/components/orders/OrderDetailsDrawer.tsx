@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl, modeLabel, formatDateTime, whatsappOrderMessage } from "@/lib/format";
+import { formatScheduledShort } from "@/lib/scheduling";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -55,6 +56,7 @@ export function OrderDetailsDrawer({
       `Cliente: ${order.customerName}`,
       `WhatsApp: ${order.whatsapp}`,
     ];
+    if (order.scheduledFor) lines.push(`Agendado para: ${formatScheduledShort(order.scheduledFor)}`);
 
     if (order.mode === "entrega" && order.address) {
       lines.push(`Endereço: ${order.address.street}, ${order.address.number} — ${order.address.neighborhood}`);
@@ -113,6 +115,7 @@ export function OrderDetailsDrawer({
           <DialogTitle className="text-xl font-bold">Pedido #{order.number}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-2 mt-1">
             <Badge variant="secondary" className="font-semibold">{modeLabel[order.mode]}</Badge>
+            {order.scheduledFor && <Badge className="font-semibold">Agendado {formatScheduledShort(order.scheduledFor)}</Badge>}
             <OrderStatusBadge status={order.status} />
             <PaymentStatusBadge status={order.paymentStatus} />
             <Button variant="outline" size="sm" onClick={handleCopySummary} className="h-7 text-xs gap-1.5 ml-auto">

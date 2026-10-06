@@ -10,6 +10,7 @@ import { Clock, MapPin, Utensils, Eye, Check, ArrowRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
+import { formatScheduledShort } from "@/lib/scheduling";
 
 interface OrderCardProps {
   order: Order;
@@ -90,6 +91,9 @@ export function OrderCard({
       <div className="px-4 pt-3 pl-5 flex items-center gap-2 flex-wrap">
         <span className="font-extrabold text-sm text-foreground">#{order.number}</span>
         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">{modeLabel[order.mode]}</Badge>
+        {order.scheduledFor && (
+          <Badge className="text-[10px] px-1.5 py-0 h-5">Agendado {formatScheduledShort(order.scheduledFor)}</Badge>
+        )}
         <OrderStatusBadge status={order.status} className="text-[10px] px-1.5 py-0 h-5" />
         <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
           <Clock className="h-3 w-3" />

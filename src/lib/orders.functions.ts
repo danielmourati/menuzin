@@ -28,6 +28,7 @@ const CreateOrderInput = z.object({
   address: z.record(z.string(), z.string()).nullable().optional(),
   table_label: z.string().max(50).nullable().optional(),
   pickup_time: z.string().max(50).nullable().optional(),
+  scheduled_for: z.string().datetime().nullable().optional(),
   note: z.string().max(500).nullable().optional(),
   coupon_code: z.string().min(2).max(40).regex(/^[A-Z0-9_-]+$/i).nullable().optional(),
   items: z.array(ItemSchema).min(1).max(50),
@@ -39,7 +40,7 @@ export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((d) => CreateOrderInput.parse(d))
   .handler(async ({ data }) => {
     const { data: tenant, error: tErr } = await supabaseAdmin
-      .from("tenants").select("id, plan").eq("slug", data.tenant_slug).eq("active", true).maybeSingle();
+      .from("tenants").select("id, plan, hours_schedule, scheduling_enabled, scheduling_slot_minutes, scheduling_days_ahead").eq("slug", data.tenant_slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
     if (!tenant) throw new Error("Loja não encontrada");
 
@@ -75,6 +76,17 @@ export const createOrder = createServerFn({ method: "POST" })
       }
     }
 
+
+    if (data.scheduled_for) {
+      if (!tenant.scheduling_enabled) throw new Error("Esta loja não aceita pedidos agendados.");
+      const { isValidSlot } = await import("@/lib/scheduling");
+      const ok = isValidSlot({
+        hoursSchedule: tenant.hours_schedule,
+        slotMinutes: tenant.scheduling_slot_minutes,
+        daysAhead: tenant.scheduling_days_ahead,
+      }, data.scheduled_for);
+      if (!ok) throw new Error("Horário de agendamento indisponível. Escolha outro horário.");
+    }
 
     // unit_price já inclui tamanho, sabores e adicionais (computeUnitPrice no carrinho).
     // Os "addons" gravados são apenas o detalhamento do item — não somar de novo.
@@ -161,6 +173,7 @@ export const createOrder = createServerFn({ method: "POST" })
         address: data.address ?? null,
         table_label: data.table_label ?? null,
         pickup_time: data.pickup_time ?? null,
+        scheduled_for: data.scheduled_for ?? null,
         note: data.note ?? null,
         delivery_fee_source: data.delivery_fee_source ?? null,
         delivery_neighborhood_snapshot: data.delivery_neighborhood_snapshot ?? null,
