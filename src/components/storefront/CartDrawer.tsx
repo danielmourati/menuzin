@@ -212,8 +212,23 @@ export function CartDrawer({
     if (!pref) return;
     setMode((m) => m ?? pref.mode);
     if (pref.mode === "entrega") {
-      if (pref.cep) setCep((v) => v || pref.cep!);
-      if (pref.neighborhood) setNeighborhood((v) => v || pref.neighborhood!);
+      if (pref.cep) {
+        // Endereço calculado na loja é a escolha mais recente: tem prioridade.
+        const savedCep = (readCustomerProfile()?.address?.cep ?? "").replace(/\D/g, "");
+        const sameCep = savedCep === pref.cep.replace(/\D/g, "");
+        setCep(pref.cep);
+        if (pref.street) setStreet(pref.street);
+        if (pref.neighborhood) setNeighborhood(pref.neighborhood);
+        if (pref.city) setCity(pref.city);
+        if (pref.state) setState(pref.state);
+        if (!sameCep) {
+          setNumber("");
+          setComplement("");
+          setReference("");
+        }
+      } else if (pref.neighborhood) {
+        setNeighborhood((v) => v || pref.neighborhood!);
+      }
       if (pref.zoneId) setSelectedZoneId((v) => v ?? pref.zoneId!);
     }
   }, [open, slug]);

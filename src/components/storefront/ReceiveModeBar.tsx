@@ -117,7 +117,7 @@ function DeliveryCalcDialog({ open, onOpenChange, tenant }: { open: boolean; onO
   const [zoneId, setZoneId] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [result, setResult] = useState<{ fee: number; label: string; cep?: string; neighborhood?: string; zoneId?: string } | null>(null);
+  const [result, setResult] = useState<{ fee: number; label: string; cep?: string; neighborhood?: string; zoneId?: string; street?: string; city?: string; state?: string } | null>(null);
 
   const { data: zonesData } = useQuery({
     queryKey: ["public-delivery-zones", slug],
@@ -168,6 +168,9 @@ function DeliveryCalcDialog({ open, onOpenChange, tenant }: { open: boolean; onO
         label: `Entregar em ${a.bairro || a.logradouro || a.localidade}`,
         cep: `${d.slice(0, 5)}-${d.slice(5)}`,
         neighborhood: res.neighborhood ?? a.bairro,
+        street: a.logradouro,
+        city: a.localidade,
+        state: a.uf,
       });
     } catch {
       setMsg("Não foi possível calcular agora. Tente de novo.");
@@ -185,6 +188,9 @@ function DeliveryCalcDialog({ open, onOpenChange, tenant }: { open: boolean; onO
       cep: result.cep ?? null,
       neighborhood: result.neighborhood ?? null,
       zoneId: result.zoneId ?? null,
+      street: result.street ?? null,
+      city: result.city ?? null,
+      state: result.state ?? null,
     });
     onOpenChange(false);
   };
