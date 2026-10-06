@@ -158,6 +158,8 @@ export function CartDrawer({
   const [street, setStreet] = useState("");
   const [number, setNumber] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
+  // Bairro só fica travado quando o CEP trouxe o bairro (ele define a taxa).
+  const [cepHasNeighborhood, setCepHasNeighborhood] = useState(true);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [complement, setComplement] = useState("");
   const [reference, setReference] = useState("");
@@ -459,13 +461,16 @@ export function CartDrawer({
       setCepLoading(false);
       if (res.status === "ok") {
         const r = res.results[0];
+        setCepHasNeighborhood(!!r.bairro);
         setStreet((cur) => cur || r.logradouro);
         setNeighborhood((cur) => cur || r.bairro);
         setCity((cur) => cur || r.localidade);
         setState((cur) => cur || r.uf);
       } else if (res.status === "empty") {
+        setCepHasNeighborhood(false);
         setCepError("CEP não encontrado");
       } else if (res.status === "error") {
+        setCepHasNeighborhood(false);
         setCepError("Falha ao buscar CEP. Preencha manualmente.");
       }
     }, 400);
@@ -1291,8 +1296,7 @@ export function CartDrawer({
                   <Input
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
-                    readOnly
-                    className="mt-1.5 h-11 cursor-not-allowed bg-muted/40"
+                    className="mt-1.5 h-11"
                   />
                 </div>
                 <div>
@@ -1353,13 +1357,13 @@ export function CartDrawer({
                     <Input
                       value={neighborhood}
                       onChange={(e) => setNeighborhood(e.target.value)}
-                      readOnly
-                      className="mt-1.5 h-11 cursor-not-allowed bg-muted/40"
+                      readOnly={cepHasNeighborhood}
+                      className={`mt-1.5 h-11 ${cepHasNeighborhood ? "cursor-not-allowed bg-muted/40" : ""}`}
                     />
                   )}
                 </div>
                 <p className="col-span-2 -mt-1 text-[11px] text-muted-foreground">
-                  Rua e bairro são preenchidos automaticamente pelo CEP para garantir o cálculo correto da taxa de entrega.
+                  Preenchemos rua e bairro pelo CEP. Se o nome da rua vier incompleto, você pode corrigir.
                 </p>
                 <div className="col-span-2">
                   <Label>Complemento</Label>
