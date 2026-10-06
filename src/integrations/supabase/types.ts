@@ -1303,6 +1303,7 @@ export type Database = {
           payment_label: string
           payment_status: Database["public"]["Enums"]["payment_status"]
           pickup_time: string | null
+          scheduled_for: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           table_label: string | null
@@ -1339,6 +1340,7 @@ export type Database = {
           payment_label?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pickup_time?: string | null
+          scheduled_for?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           table_label?: string | null
@@ -1375,6 +1377,7 @@ export type Database = {
           payment_label?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pickup_time?: string | null
+          scheduled_for?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           table_label?: string | null
@@ -2626,6 +2629,9 @@ export type Database = {
           plan: string
           pos_paper_width: string
           prep_time: string | null
+          scheduling_days_ahead: number
+          scheduling_enabled: boolean
+          scheduling_slot_minutes: number
           slug: string
           social: Json
           state: string | null
@@ -2675,6 +2681,9 @@ export type Database = {
           plan?: string
           pos_paper_width?: string
           prep_time?: string | null
+          scheduling_days_ahead?: number
+          scheduling_enabled?: boolean
+          scheduling_slot_minutes?: number
           slug: string
           social?: Json
           state?: string | null
@@ -2724,6 +2733,9 @@ export type Database = {
           plan?: string
           pos_paper_width?: string
           prep_time?: string | null
+          scheduling_days_ahead?: number
+          scheduling_enabled?: boolean
+          scheduling_slot_minutes?: number
           slug?: string
           social?: Json
           state?: string | null
