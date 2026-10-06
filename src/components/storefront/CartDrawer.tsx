@@ -77,6 +77,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UpsellSuggestions } from "@/components/storefront/UpsellSuggestions";
 import type { Tenant } from "@/lib/domain-types";
+import { ScheduleStep } from "@/components/storefront/ScheduleStep";
+import { formatScheduledLong } from "@/lib/scheduling";
+import { readReceivePref } from "@/lib/receive-pref";
 
 type Step =
   | "cart"
@@ -89,6 +92,7 @@ type Step =
   | "payment-online-card"
   | "payment-pix"
   | "customer"
+  | "when"
   | "review";
 
 type Mode = "entrega" | "retirada" | "consumo_local";
@@ -97,10 +101,12 @@ export function CartDrawer({
   open,
   onOpenChange,
   tenant: storefrontTenant,
+  storeOpen = true,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   tenant?: Tenant;
+  storeOpen?: boolean;
 }) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
@@ -158,6 +164,7 @@ export function CartDrawer({
   const [table, setTable] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
+  const [scheduledFor, setScheduledFor] = useState<string | null>(null);
 
   // payment
   const [paymentWhen, setPaymentWhen] = useState<"agora" | "na_retirada" | null>(null);
@@ -197,6 +204,19 @@ export function CartDrawer({
       setState((v) => v || a.state || "");
     }
   }, [open]);
+
+  // Preferência escolhida no topo da loja (Entregar / Retirar / Consumir)
+  useEffect(() => {
+    if (!open || !slug) return;
+    const pref = readReceivePref(slug);
+    if (!pref) return;
+    setMode((m) => m ?? pref.mode);
+    if (pref.mode === "entrega") {
+      if (pref.cep) setCep((v) => v || pref.cep!);
+      if (pref.neighborhood) setNeighborhood((v) => v || pref.neighborhood!);
+      if (pref.zoneId) setSelectedZoneId((v) => v ?? pref.zoneId!);
+    }
+  }, [open, slug]);
 
   const forgetSavedProfile = () => {
     clearCustomerProfile();
@@ -261,6 +281,7 @@ export function CartDrawer({
     if (name) lines.push(`*Cliente:* ${name}`);
     if (phone) lines.push(`*WhatsApp:* ${phone}`);
     if (mode) lines.push(`*Modalidade:* ${modeLabels[mode] ?? mode}`);
+    if (scheduledFor) lines.push(`*Agendado para:* ${formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}`);
     lines.push("");
     lines.push("*Itens:*");
     for (const i of items) {
@@ -556,8 +577,22 @@ export function CartDrawer({
   const hasOnlinePayment = !!settings?.mp_connected && !!(settings?.pix_enabled || settings?.credit_card_enabled || settings?.debit_card_enabled);
   const hasManualPayment = !!(settings?.cash_enabled || settings?.pix_manual_enabled || settings?.card_on_delivery_enabled);
 
+  const schedulingEnabled = !isPresencaOnly && !!storefrontTenant?.schedulingEnabled;
   const confirmCustomer = () => {
     if (!name || !phone) return toast.error("Informe nome e telefone");
+    if (schedulingEnabled || !storeOpen) {
+      goTo("when");
+      return;
+    }
+    proceedToPayment();
+  };
+
+  const confirmWhen = () => {
+    if (!storeOpen && !scheduledFor) return toast.error("Escolha um horário para agendar");
+    proceedToPayment();
+  };
+
+  const proceedToPayment = () => {
     if (isPresencaOnly) {
       setPaymentWhen(null);
       setSelectedMethod(null);
@@ -619,6 +654,7 @@ export function CartDrawer({
             table_label: mode === "consumo_local" ? table : null,
             note: generalNote || null,
             coupon_code: appliedCoupon?.code ?? null,
+            scheduled_for: scheduledFor,
             idempotency_key: getCheckoutKey(),
 
             items: items.map((i) => {
@@ -1607,6 +1643,36 @@ export function CartDrawer({
                 Confirmar
               </Button>
             </div>
+          </>
+        )}
+
+        {/* WHEN (agora / agendar) */}
+        {step === "when" && mode && (
+          <>
+            <Header title={mode === "entrega" ? "Entregar meu pedido" : mode === "retirada" ? "Retirar meu pedido" : "Consumir no local"} />
+            <ScheduleStep
+              mode={mode}
+              storeName={tenant?.name ?? ""}
+              addressLines={
+                mode === "entrega"
+                  ? [`${street}${number ? ", " + number : ""}`, neighborhood, [city, state].filter(Boolean).join(", ") + (cep ? ` - ${cep}` : "")]
+                  : [
+                      `${tenantAddress}${storefrontTenant?.addressNumber ? ", " + storefrontTenant.addressNumber : ""}`,
+                      storefrontTenant?.neighborhood ?? "",
+                      [storefrontTenant?.city, storefrontTenant?.state].filter(Boolean).join(", ") + (storefrontTenant?.cep ? ` - ${storefrontTenant.cep}` : ""),
+                    ]
+              }
+              storeOpen={storeOpen}
+              nowLabel={(mode === "entrega" ? storefrontTenant?.deliveryTime : storefrontTenant?.takeoutTime) ?? storefrontTenant?.prepTime ?? null}
+              hoursSchedule={storefrontTenant?.hoursSchedule ?? []}
+              slotMinutes={storefrontTenant?.schedulingSlotMinutes ?? 10}
+              daysAhead={storefrontTenant?.schedulingDaysAhead ?? 7}
+              leadMinutes={(mode === "entrega" ? storefrontTenant?.deliveryTimeMin : storefrontTenant?.takeoutTimeMin) ?? 30}
+              value={scheduledFor}
+              onChange={setScheduledFor}
+              onChangeMode={() => goTo("mode")}
+              onContinue={confirmWhen}
+            />
           </>
         )}
 
