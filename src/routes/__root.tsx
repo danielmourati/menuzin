@@ -44,6 +44,17 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
   console.error(error);
   const router = useRouter();
   useEffect(() => {
+    // Após atualização do app, abas abertas podem chamar funções antigas do servidor
+    // ("Invalid server function ID" / 500). Recarrega uma vez para pegar a versão nova.
+    const msg = String(error?.message ?? "");
+    const stale = /Invalid server function ID|server function info not found|Failed to fetch dynamically imported module|500/i.test(msg);
+    const KEY = "menuzin:stale-reload";
+    const last = Number(sessionStorage.getItem(KEY) || 0);
+    if (stale && Date.now() - last > 30_000) {
+      sessionStorage.setItem(KEY, String(Date.now()));
+      window.location.reload();
+      return;
+    }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
   const isConfigError = /Missing Supabase environment variable/i.test(error?.message ?? "");
