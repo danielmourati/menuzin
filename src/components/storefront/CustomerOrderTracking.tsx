@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
 import { dbTenantToUi } from "@/lib/db-adapters";
 import { brl } from "@/lib/format";
-import { OrderStatusTimeline } from "../orders/OrderStatusTimeline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { MessageCircle, ArrowLeft, ShoppingBag, MapPin, Utensils, Clock, Loader2, Truck } from "lucide-react";
+import { useState } from "react";
+import { MessageCircle, ArrowLeft, MapPin, Loader2, ChevronRight, Store as StoreIcon, Timer, CheckCircle2, XCircle, PhoneCall, Globe } from "lucide-react";
+import { formatScheduledFull, formatScheduledShort, formatHourSp } from "@/lib/scheduling";
+import { formatPhoneNumber } from "@/lib/format";
+import type { Order, Tenant } from "@/lib/domain-types";
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
-import { OrderStatusBadge, PaymentStatusBadge } from "../orders/OrderStatusBadge";
+import { PaymentStatusBadge } from "../orders/OrderStatusBadge";
 import { OrderRatingCard } from "./OrderRatingCard";
 
 interface CustomerOrderTrackingProps {
@@ -87,175 +89,248 @@ export function CustomerOrderTracking({ slug, orderId }: CustomerOrderTrackingPr
     );
   }
 
-  const isCancelled = order.status === "cancelado";
+  return <TrackingView order={order} tenant={tenant} slug={slug} />;
+}
 
-  return (
-    <div className="min-h-screen bg-muted/10 pb-12">
-      <h1 className="sr-only">
-        Acompanhamento do pedido #{order.number} — {tenant.name}
-      </h1>
-      <div className="gradient-brand text-primary-foreground py-6 px-4 shadow-sm" style={{ paddingTop: "calc(1.5rem + env(safe-area-inset-top, 0px))" }}>
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {tenant.logoUrl ? (
-              <img src={tenant.logoUrl} alt={`Logo ${tenant.name}`} className="h-10 w-auto object-contain rounded" />
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-lg font-bold">
-                {tenant.logoLetter}
-              </div>
-            )}
+const STEP_COPY: Record<string, { title: string; text: string }> = {
+  novo: { title: "Efetuado", text: "Seu pedido foi realizado e está aguardando a confirmação do estabelecimento." },
+  aceito: { title: "Confirmado", text: "Seu pedido foi confirmado e está sendo preparado." },
+  preparo: { title: "Em preparo", text: "Seu pedido está sendo preparado com carinho." },
+  saiu_entrega: { title: "Saiu para entrega", text: "Seu pedido está a caminho." },
+  pronto_retirada: { title: "Pronto para retirada", text: "Seu pedido está pronto. Pode vir buscar!" },
+  servido: { title: "Servido", text: "Seu pedido foi servido. Bom apetite!" },
+  finalizado: { title: "Finalizado", text: "Pedido concluído. Obrigado pela preferência!" },
+  cancelado: { title: "Cancelado", text: "Seu pedido foi cancelado." },
+  mal_sucedido: { title: "Não concluído", text: "Não foi possível concluir o pedido." },
+};
+
+const PROGRESS: Record<string, number> = {
+  novo: 15, aceito: 40, preparo: 60, saiu_entrega: 80, pronto_retirada: 80, servido: 90, finalizado: 100, cancelado: 100,
+};
+
+function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; slug: string }) {
+  const [details, setDetails] = useState(false);
+  const isCancelled = order.status === "cancelado";
+  const current = STEP_COPY[order.status] ?? STEP_COPY.novo;
+  const progress = PROGRESS[order.status] ?? 15;
+
+  const modeTitle = order.mode === "entrega" ? "Entregar meu pedido" : order.mode === "retirada" ? "Retirar meu pedido" : "Consumir no local";
+  const addressLines =
+    order.mode === "entrega" && order.address
+      ? [
+          `${order.address.street ?? ""}${order.address.number ? ", " + order.address.number : ""}${order.address.complement ? " — " + order.address.complement : ""}`,
+          order.address.neighborhood ?? "",
+          order.address.cep ? `CEP ${order.address.cep}` : "",
+        ]
+      : [
+          `${tenant.address}${tenant.addressNumber ? ", " + tenant.addressNumber : ""}`,
+          tenant.neighborhood ?? "",
+          [tenant.city, tenant.state].filter(Boolean).join(", ") + (tenant.cep ? ` - ${tenant.cep}` : ""),
+        ];
+
+  const forecast = (() => {
+    if (order.scheduledFor) return new Date(order.scheduledFor);
+    const max = order.mode === "entrega" ? tenant.deliveryTimeMax ?? tenant.deliveryTimeMin : tenant.takeoutTimeMax ?? tenant.takeoutTimeMin;
+    if (!max) return null;
+    const base = new Date(order.acceptedAt ?? order.createdAt).getTime();
+    return new Date(base + max * 60_000);
+  })();
+
+  const history = [...order.statusHistory].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const phoneDigits = tenant.whatsapp.replace(/\D/g, "");
+
+  if (details) {
+    return (
+      <div className="min-h-screen bg-background pb-12">
+        <Header title="Detalhes do pedido" onBack={() => setDetails(false)} />
+        <div className="mx-auto max-w-lg space-y-6 px-4 pt-4">
+          <div className="flex items-center justify-center gap-3 rounded-2xl bg-muted/60 p-5">
+            <Globe className="h-8 w-8 text-primary" />
             <div>
-              <p className="font-bold text-sm tracking-wide uppercase">{tenant.name}</p>
-              <p className="text-xs opacity-80">Acompanhamento do Pedido</p>
+              <p className="font-bold">{current.title}</p>
+              <p className="text-sm text-muted-foreground">Pedido feito pelo site</p>
             </div>
           </div>
-          <Badge variant="outline" className="border-white/30 text-white font-bold text-xs uppercase px-2.5 py-0.5">
-            #{order.number}
-          </Badge>
-        </div>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 mt-6 space-y-5">
-        <Card className="overflow-hidden">
-          <CardContent className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block">
-                  Status Atual
-                </span>
-                <h3 className="font-extrabold text-lg mt-0.5 text-foreground">
-                  {isCancelled ? "Pedido Cancelado" : "Pedido em Processamento"}
-                </h3>
-              </div>
-              <OrderStatusBadge status={order.status} className="text-sm px-3 py-1 font-bold" />
+          {order.scheduledFor && (
+            <section>
+              <h3 className="font-bold">Agendado para</h3>
+              <p className="mt-1">{formatScheduledFull(order.scheduledFor, tenant.schedulingSlotMinutes ?? 10)}</p>
+            </section>
+          )}
+          <section>
+            <h3 className="font-bold">{modeTitle}</h3>
+            {order.mode === "consumo_local" && order.table && <p className="mt-1">Mesa: {order.table}</p>}
+            <div className="mt-1 text-muted-foreground">
+              {addressLines.filter(Boolean).map((l, i) => <p key={i}>{l}</p>)}
             </div>
-
-            <div className="border-t pt-4">
-              <OrderStatusTimeline order={order} audience="customer" orientation="horizontal" />
-            </div>
-
-            {order.driverName && (
-              <div className="mt-4 flex items-center gap-3 p-3.5 rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/80 dark:bg-blue-950/40 text-blue-950 dark:text-blue-100 shadow-xs">
-                <div className="h-10 w-10 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 text-xl font-bold">
-                  🛵
-                </div>
-                <div>
-                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block">
-                    Entregador Responsável
-                  </span>
-                  <span className="font-extrabold text-base text-foreground">
-                    {order.driverName}
-                  </span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5 space-y-4">
-            <h3 className="font-bold text-sm text-foreground flex items-center gap-1.5 border-b pb-2">
-              <ShoppingBag className="h-4 w-4" /> Detalhes do seu pedido
-            </h3>
-
-            <div className="divide-y text-sm">
+          </section>
+          <section>
+            <h3 className="border-b pb-2 font-bold">Itens</h3>
+            <div className="divide-y">
               {order.items.map((item, idx) => (
-                <div key={idx} className="py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-foreground">
-                      {item.qty}x {item.name}
-                    </span>
-                    <span className="font-medium text-muted-foreground">
-                      {brl(item.unitPrice * item.qty)}
-                    </span>
+                <div key={idx} className="flex gap-3 py-3">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-sm font-bold">{item.qty}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex justify-between gap-2">
+                      <span className="font-semibold">{item.name}</span>
+                      <span className="shrink-0">{brl(item.unitPrice * item.qty)}</span>
+                    </div>
+                    {item.addons?.map((a, i) => <p key={i} className="text-sm text-muted-foreground">{a.name}</p>)}
+                    {item.note && <p className="text-sm italic text-muted-foreground">Obs: {item.note}</p>}
                   </div>
-                  {item.addons && item.addons.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1 pl-3">
-                      Adicionais: {item.addons.map((a) => a.name).join(", ")}
-                    </p>
-                  )}
-                  {item.note && (
-                    <p className="text-xs text-amber-600 dark:text-amber-500 italic mt-1 pl-3">
-                      Obs: {item.note}
-                    </p>
-                  )}
                 </div>
               ))}
             </div>
-
-            <div className="border-t pt-3 text-xs space-y-2 text-muted-foreground">
-              {order.mode === "entrega" && order.address && (
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-foreground block">Endereço de Entrega:</span>
-                    <span>
-                      {order.address.street}, {order.address.number}
-                      {order.address.complement ? ` — ${order.address.complement}` : ""}
-                      <br />
-                      {order.address.neighborhood}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {order.mode === "consumo_local" && order.table && (
-                <div className="flex items-center gap-2 text-primary font-semibold">
-                  <Utensils className="h-4 w-4 shrink-0" />
-                  <span>Consumo Local na {order.table}</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 pt-1 border-t border-dashed">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Forma de Pagamento: <strong className="text-foreground uppercase">{order.payment}</strong></span>
-                <PaymentStatusBadge status={order.paymentStatus} className="text-[10px] py-0 px-1" />
-              </div>
+          </section>
+          <section className="space-y-2 border-t pt-3">
+            <Row label="Subtotal" value={brl(order.subtotal)} />
+            {order.deliveryFee > 0 && <Row label="Taxa de entrega" value={brl(order.deliveryFee)} />}
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total</span>
+              <span>{brl(order.total)}</span>
             </div>
-
-            <div className="border-t pt-3 space-y-1.5 text-sm">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Subtotal</span>
-                <span>{brl(order.subtotal)}</span>
-              </div>
-              {order.deliveryFee > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Taxa de Entrega</span>
-                  <span>{brl(order.deliveryFee)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-base border-t border-dashed pt-2">
-                <span>Total Pago</span>
-                <span className="text-primary">{brl(order.total)}</span>
-              </div>
+            <div className="flex items-center gap-2 pt-1 text-sm">
+              <span className="font-semibold">{order.payment}</span>
+              <PaymentStatusBadge status={order.paymentStatus} className="px-1 py-0 text-[10px]" />
             </div>
-          </CardContent>
-        </Card>
+          </section>
+        </div>
+      </div>
+    );
+  }
 
-        {(["saiu_entrega", "pronto_retirada", "servido", "finalizado"] as const).includes(order.status as never) && (
-          <OrderRatingCard orderId={order.id} />
+  return (
+    <div className="min-h-screen bg-background pb-12">
+      <h1 className="sr-only">Acompanhamento do pedido #{order.number} — {tenant.name}</h1>
+      <Header title={tenant.name} backTo={slug} logo={tenant.logoUrl} />
+      <div className="mx-auto max-w-lg px-4 pt-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-extrabold">Pedido #{order.number}</h2>
+          <button type="button" onClick={() => setDetails(true)} className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+            Ver detalhes <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <p className="mt-4 font-semibold">{modeTitle}</p>
+        <div className="mt-2 flex gap-3">
+          {order.mode === "entrega" ? <MapPin className="h-6 w-6 shrink-0" /> : <StoreIcon className="h-6 w-6 shrink-0" />}
+          <div className="text-sm text-muted-foreground">
+            {addressLines.filter(Boolean).map((l, i) => <p key={i}>{l}</p>)}
+            {order.mode === "consumo_local" && order.table && <p>Mesa: {order.table}</p>}
+          </div>
+        </div>
+
+        <div className="relative mt-6 h-1.5 rounded-full bg-muted">
+          <div className={`h-full rounded-full transition-all ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ width: `${progress}%` }} />
+          <span className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ left: `${progress}%` }} />
+        </div>
+        {forecast && !isCancelled && order.status !== "finalizado" && (
+          <p className="mt-4 flex items-center justify-center gap-2 text-sm italic text-muted-foreground">
+            <Timer className="h-4 w-4" /> Previsto para {formatForecast(forecast)}
+          </p>
         )}
 
-        <div className="space-y-2">
-          <Button asChild className="h-12 w-full bg-success hover:bg-success/90 text-success-foreground font-semibold">
-            <a
-              href={whatsappLink(
-                tenant.whatsapp,
-                `Olá, equipe ${tenant.name}! Tenho uma dúvida sobre o meu pedido #${order.number}.`
-              )}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <MessageCircle className="mr-2 h-5 w-5" /> Falar com o estabelecimento
-            </a>
-          </Button>
+        <div className="mt-6 flex items-center gap-4 rounded-2xl bg-muted/60 p-5 shadow-sm">
+          <div className="min-w-0 flex-1">
+            <p className="font-bold">{current.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{current.text}</p>
+          </div>
+          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${isCancelled ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
+            {isCancelled ? <XCircle className="h-6 w-6" /> : <Loader2 className={`h-6 w-6 ${order.status === "finalizado" ? "" : "animate-spin"}`} />}
+          </span>
+        </div>
 
-          <Button asChild variant="outline" className="w-full h-11">
-            <Link to="/$slug" params={{ slug }}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Cardápio
-            </Link>
+        {order.driverName && (
+          <p className="mt-3 rounded-xl bg-muted/60 p-3 text-sm">
+            Entregador: <strong>{order.driverName}</strong>
+          </p>
+        )}
+
+        {history.length > 0 && (
+          <section className="mt-8">
+            <h3 className="text-base">Linha do tempo</h3>
+            <ol className="mt-3 space-y-4">
+              {history.map((h) => {
+                const c = STEP_COPY[h.newStatus] ?? { title: h.newStatus, text: "" };
+                return (
+                  <li key={h.id} className="flex gap-3">
+                    <span className="w-12 shrink-0 text-sm text-muted-foreground">{formatHourSp(h.createdAt)}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold">{c.title}</p>
+                      <p className="text-sm text-muted-foreground">{c.text}</p>
+                    </div>
+                    <CheckCircle2 className="h-6 w-6 shrink-0 text-success" />
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
+
+        {(["saiu_entrega", "pronto_retirada", "servido", "finalizado"] as const).includes(order.status as never) && (
+          <div className="mt-6">
+            <OrderRatingCard orderId={order.id} />
+          </div>
+        )}
+
+        <section className="mt-8 border-y py-5">
+          <h3 className="text-base">Precisa de ajuda? Fale conosco</h3>
+          <a
+            href={whatsappLink(tenant.whatsapp, `Olá, equipe ${tenant.name}! Tenho uma dúvida sobre o meu pedido #${order.number}.`)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 flex items-center gap-3"
+          >
+            <MessageCircle className="h-6 w-6" /> Chat
+          </a>
+          {phoneDigits && (
+            <a href={`tel:+55${phoneDigits}`} className="mt-4 flex items-center gap-3">
+              <PhoneCall className="h-6 w-6" /> Ligar para {formatPhoneNumber(phoneDigits)}
+            </a>
+          )}
+        </section>
+
+        <div className="mt-6 flex justify-center">
+          <Button asChild variant="outline" className="h-12 w-48 font-semibold">
+            <Link to="/$slug" params={{ slug }}>Voltar</Link>
           </Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function formatForecast(d: Date) {
+  const iso = d.toISOString();
+  const [date] = formatScheduledShort(iso).split(" ");
+  return `${date} às ${formatHourSp(iso)}`;
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between text-sm">
+      <span>{label}</span>
+      <span className="font-semibold">{value}</span>
+    </div>
+  );
+}
+
+function Header({ title, onBack, backTo, logo }: { title: string; onBack?: () => void; backTo?: string; logo?: string }) {
+  const icon = (
+    <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground">
+      <ArrowLeft className="h-5 w-5" />
+    </span>
+  );
+  return (
+    <div className="border-b bg-card" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
+        {onBack ? (
+          <button type="button" onClick={onBack} aria-label="Voltar">{icon}</button>
+        ) : backTo ? (
+          <Link to="/$slug" params={{ slug: backTo }} aria-label="Voltar ao cardápio">{icon}</Link>
+        ) : null}
+        {logo && <img src={logo} alt="" className="h-8 w-8 rounded-full object-cover" />}
+        <p className="truncate text-lg font-bold">{title}</p>
       </div>
     </div>
   );
