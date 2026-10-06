@@ -133,6 +133,7 @@ export type Order = {
   };
   table?: string;
   pickupTime?: string;
+  scheduledFor?: string | null;
   note?: string;
   createdAt: string;
   acceptedAt?: string;
