@@ -4,6 +4,7 @@
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
+import { formatScheduledShort } from "@/lib/scheduling";
 import type { PrinterSettings } from "@/lib/printer-types";
 import { columnsFor } from "@/lib/printer-types";
 
@@ -194,6 +195,7 @@ export function buildReceipt(
   out.push(sep);
 
   /* 9. Info adicionais */
+  if (order.scheduledFor) out.push(`AGENDADO PARA: ${formatScheduledShort(order.scheduledFor)}`);
   if (order.mode === "retirada") {
     const pick = order.pickupTime ? `Retirada: ${order.pickupTime}` : "Retirada no local";
     out.push(pick);
