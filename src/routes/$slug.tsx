@@ -492,8 +492,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         <div className="absolute inset-0 bg-black/25" />
 
         {/* Container para os botões do cabeçalho sobre a capa */}
-        <div className="container mx-auto max-w-3xl px-4 pt-3 pb-4 flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-2">
+        <div className="container mx-auto max-w-3xl px-4 pt-3 pb-4 flex items-center justify-between gap-2 relative z-10">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -502,6 +502,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             >
               <Menu className="h-4 w-4 md:h-5 md:w-5" />
             </button>
+            <ReceiveModeBar tenant={tenant} variant="pill" />
           </div>
 
           <div className="flex items-center gap-2">
@@ -614,7 +615,6 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </button>
         </div>
 
-        <ReceiveModeBar tenant={tenant} />
 
         {/* Search input (fixo) */}
         <div className="relative mt-2 mb-4">
