@@ -47,6 +47,7 @@ import { getActivePromoModal } from "@/lib/promo-modal.functions";
 import { useQuery } from "@tanstack/react-query";
 import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
+import { ReceiveModeBar } from "@/components/storefront/ReceiveModeBar";
 import { MobileBottomNav } from "@/components/storefront/MobileBottomNav";
 import { whatsappLink } from "@/lib/whatsapp";
 import { getCatalog } from "@/lib/catalog.functions";
@@ -343,6 +344,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     // tick é dependência intencional para re-avaliar no fuso atual.
     [tenant.openMode, tenant.hoursSchedule, tenant.open, tick],
   );
+  // Com agendamento ativo, a loja aceita pedidos mesmo fechada.
+  const canOrder = storeOpen || (tenant.plan === "pro" && !!tenant.schedulingEnabled);
 
 
 
@@ -611,6 +614,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </button>
         </div>
 
+        <ReceiveModeBar tenant={tenant} />
+
         {/* Search input (fixo) */}
         <div className="relative mt-2 mb-4">
           <label htmlFor="storefront-search" className="sr-only">Buscar produtos no cardápio</label>
@@ -644,7 +649,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               title="Mais vendidos"
               viewAllHref={`/${tenant.slug}/destaques`}
               onSelect={(p) => {
-                if (!storeOpen) return;
+                if (!canOrder) return;
                 setSelectedProduct(p);
                 setModalOpen(true);
               }}
@@ -665,7 +670,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   title="Promoções"
                   viewAllHref={`/${tenant.slug}/promocoes`}
                   onSelect={(p) => {
-                    if (!storeOpen) return;
+                    if (!canOrder) return;
                     setSelectedProduct(p);
                     setModalOpen(true);
                   }}
@@ -681,7 +686,9 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           <div className="mt-4 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-center">
             <p className="text-sm font-semibold text-destructive">Loja fechada no momento</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              O cardápio está disponível para visualização, mas novos pedidos estão temporariamente indisponíveis.
+              {canOrder
+                ? "Você pode fazer seu pedido agora e agendar o horário de entrega ou retirada."
+                : "O cardápio está disponível para visualização, mas novos pedidos estão temporariamente indisponíveis."}
             </p>
           </div>
         )}
@@ -855,7 +862,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                                 product={p}
                                 view={viewMode}
                                 onClick={() => {
-                                  if (!storeOpen) return;
+                                  if (!canOrder) return;
                                   setSelectedProduct(p);
                                   setModalOpen(true);
                                 }}
@@ -879,7 +886,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                           product={p}
                           view={viewMode}
                           onClick={() => {
-                            if (!storeOpen) return;
+                            if (!canOrder) return;
                             setSelectedProduct(p);
                             setModalOpen(true);
                           }}
@@ -895,7 +902,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       </div>
 
 
-      {storeOpen && count > 0 && (
+      {canOrder && count > 0 && (
         <button
           onClick={() => setCartOpen(true)}
           className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between bg-primary px-5 py-3.5 text-primary-foreground shadow-[var(--shadow-pop)]"
@@ -911,7 +918,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         </button>
       )}
 
-      {!storeOpen && (
+      {!canOrder && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-card px-5 py-3 text-center">
           <p className="text-sm font-semibold text-destructive">Loja fechada — pedidos indisponíveis</p>
         </div>
@@ -919,7 +926,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
       <ProductModal
         product={selectedProduct}
-        open={modalOpen && storeOpen}
+        open={modalOpen && canOrder}
         onOpenChange={setModalOpen}
         tenantSlug={tenant.slug}
         tenantInfo={{ name: tenant.name, logoUrl: tenant.logoUrl ?? null, logoLetter: tenant.logoLetter ?? null, ratingAvg: (tenant as { ratingAvg?: number | null }).ratingAvg ?? null, prepTimeLabel: tenant.prepTime ?? null }}
@@ -942,11 +949,11 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
       />
-      <CartDrawer open={cartOpen && storeOpen} onOpenChange={setCartOpen} tenant={tenant} />
+      <CartDrawer open={cartOpen && canOrder} onOpenChange={setCartOpen} tenant={tenant} storeOpen={storeOpen} />
       <MobileBottomNav
         slug={tenant.slug}
-        onOpenCart={() => storeOpen && setCartOpen(true)}
-        hidden={cartOpen || (storeOpen && count > 0) || !storeOpen}
+        onOpenCart={() => canOrder && setCartOpen(true)}
+        hidden={cartOpen || (canOrder && count > 0) || !canOrder}
       />
       {promoQ.data && storeOpen ? (
         <PromoModal
