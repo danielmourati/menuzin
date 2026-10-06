@@ -77,12 +77,14 @@ export function CepGateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (v || dismissible) onOpenChange(v); }}>
-      <DialogContent
-        className="max-w-sm rounded-xl"
-        onInteractOutside={(e) => !dismissible && e.preventDefault()}
-        onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
-      >
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v && !dismissible) writeCustomerProfile({ cepAsked: true });
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-sm rounded-xl">
         <DialogHeader>
           <div className="mx-auto mb-2 grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
             <MapPin className="h-6 w-6" />
