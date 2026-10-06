@@ -63,6 +63,9 @@ export default defineConfig({
   },
   vite: {
     define: publicDefines,
+    // Pré-compila as funções do servidor ao iniciar a prévia; sem isso, abas já abertas
+    // recebem "Invalid server function ID" logo após um reinício.
+    server: { warmup: { ssrFiles: ["./src/lib/**/*.functions.ts"] } },
     resolve: {
       alias: {
         // React Email's htmlparser2 path needs entities v4.5.0; force the hoisted copy.
