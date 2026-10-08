@@ -3,6 +3,7 @@ import { createSign } from "crypto";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { getQzConfig } from "@/lib/qz-config.server";
+import { fetchSharedCert, hasSharedSecret, signShared } from "@/lib/qz-shared.server";
 
 const SignRequestSchema = z.object({
   request: z.string().min(1).max(64_000),
@@ -37,6 +38,14 @@ export const Route = createFileRoute("/api/public/qz")({
   server: {
     handlers: {
       GET: async () => {
+        if (hasSharedSecret()) {
+          try {
+            const cert = await fetchSharedCert();
+            return json({ cert, configured: true as const, subjectCN: "Degust PDV", source: "shared" as const });
+          } catch (err) {
+            console.error("[qz-api] cert compartilhado indisponível, usando local", String(err));
+          }
+        }
         const cfg = getQzConfig();
         if (!cfg.ok) {
           return json({ cert: "", configured: false as const, error: cfg.reason });
@@ -45,19 +54,13 @@ export const Route = createFileRoute("/api/public/qz")({
           cert: cfg.cert,
           configured: true as const,
           subjectCN: cfg.subjectCN,
+          source: "local" as const,
         });
       },
       POST: async ({ request }) => {
-        // QZ Tray signing requires an authenticated admin session — the private
-        // key never signs payloads for anonymous callers, otherwise anyone on
-        // the internet could push print jobs to clients trusting our cert.
+        // QZ Tray signing requires an authenticated admin session.
         const authErr = await requireAuthenticatedCaller(request);
         if (authErr) return authErr;
-
-        const cfg = getQzConfig();
-        if (!cfg.ok) {
-          return json({ signature: "", configured: false as const, error: cfg.reason });
-        }
 
         let body: unknown;
         try {
@@ -71,12 +74,28 @@ export const Route = createFileRoute("/api/public/qz")({
           return json({ error: "Requisição de assinatura inválida." }, 400);
         }
 
+        // Mesma origem do GET: se o cert compartilhado está disponível, assina lá.
+        if (hasSharedSecret()) {
+          try {
+            await fetchSharedCert();
+            const signature = await signShared(parsed.data.request);
+            return json({ signature, configured: true as const, source: "shared" as const });
+          } catch (err) {
+            console.error("[qz-api] assinatura compartilhada falhou, usando local", String(err));
+          }
+        }
+
+        const cfg = getQzConfig();
+        if (!cfg.ok) {
+          return json({ signature: "", configured: false as const, error: cfg.reason });
+        }
+
         try {
           const signer = createSign("RSA-SHA512");
           signer.update(parsed.data.request);
           signer.end();
           const signature = signer.sign(cfg.privateKey).toString("base64");
-          return json({ signature, configured: true as const });
+          return json({ signature, configured: true as const, source: "local" as const });
         } catch (err) {
           console.error("[qz-api] Falha ao assinar requisição QZ Tray", {
             message: err instanceof Error ? err.message : String(err),
