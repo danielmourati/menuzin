@@ -42,10 +42,11 @@ const QZ_API = "/api/public/qz";
 /** URL pública do cert PEM cru — usada pelo instalador .bat e por docs. */
 export const QZ_CERT_URL = "/api/public/qz-cert.crt";
 
-
 /** Erro tipado para a UI distinguir “QZ Tray não está aberto” de outros erros. */
 export class QzNotRunningError extends Error {
-  constructor(message = "QZ Tray não encontrado. Verifique se o aplicativo está instalado e aberto.") {
+  constructor(
+    message = "QZ Tray não encontrado. Verifique se o aplicativo está instalado e aberto.",
+  ) {
     super(message);
     this.name = "QzNotRunningError";
   }
@@ -150,7 +151,7 @@ async function signQzPayload(request: string): Promise<{ signature: string; conf
 }
 
 async function parseQzApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
-  const payload = await response.json().catch(() => null) as { error?: string } | null;
+  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
   if (!response.ok) {
     throw new Error(payload?.error || fallbackMessage);
   }
@@ -203,8 +204,7 @@ export async function ensureQzConnected(): Promise<QZ> {
   const active = wsAny.isActive();
   const conn = wsAny.connection;
   const stale =
-    active &&
-    (!conn || typeof (conn as { sendData?: unknown }).sendData !== "function");
+    active && (!conn || typeof (conn as { sendData?: unknown }).sendData !== "function");
   if (stale) {
     try {
       await qz.websocket.disconnect();
@@ -337,7 +337,7 @@ export async function printQzTextTest(
 export async function printQzReceipt(
   printerName: string | undefined,
   text: string,
-  opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" },
+  opts?: { feedLines?: number; cutType?: "none" | "partial" | "full"; copies?: number },
 ): Promise<{ printer: string }> {
   return withQzRetry(async (qz) => {
     let target = printerName?.trim();
@@ -354,10 +354,14 @@ export async function printQzReceipt(
     const cut = getCutSequence(opts?.cutType);
 
     const payload = text + "\n".repeat(feed) + cut;
+    const copies = Math.max(1, Math.min(2, Math.trunc(opts?.copies ?? 1)));
     const config = qz.configs.create(target, { encoding: "CP860" });
     await withTimeout(
-      qz.print(config, [payload]),
-      15_000,
+      qz.print(
+        config,
+        Array.from({ length: copies }, () => payload),
+      ),
+      copies > 1 ? 30_000 : 15_000,
       new QzPrintTimeoutError(),
     );
     return { printer: target };
@@ -368,8 +372,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, err: Error): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(() => reject(err), ms);
     p.then(
-      (v) => { clearTimeout(t); resolve(v); },
-      (e) => { clearTimeout(t); reject(e); },
+      (v) => {
+        clearTimeout(t);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(t);
+        reject(e);
+      },
     );
   });
 }
@@ -389,7 +399,11 @@ export async function getQzPrinterStatus(
   const qz = await ensureQzConnected();
   let target = printerName?.trim();
   if (!target) {
-    try { target = await qz.printers.getDefault(); } catch { /* ignore */ }
+    try {
+      target = await qz.printers.getDefault();
+    } catch {
+      /* ignore */
+    }
   }
   if (!target) {
     return { ok: false, reason: "Nenhuma impressora configurada." };
@@ -421,13 +435,17 @@ export async function getQzPrinterStatus(
       getStatus?: () => Promise<unknown>;
     };
     if (typeof printersApi.getStatus === "function") {
-      try { await printersApi.startListening?.(target); } catch { /* ignore */ }
-      const raw = await withTimeout(
-        printersApi.getStatus(),
-        3_000,
-        new Error("status-timeout"),
-      );
-      try { await printersApi.stopListening?.(); } catch { /* ignore */ }
+      try {
+        await printersApi.startListening?.(target);
+      } catch {
+        /* ignore */
+      }
+      const raw = await withTimeout(printersApi.getStatus(), 3_000, new Error("status-timeout"));
+      try {
+        await printersApi.stopListening?.();
+      } catch {
+        /* ignore */
+      }
       const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
       const bad = list.find((s: unknown) => {
         const obj = s as { statusText?: string; severity?: string; code?: string };
@@ -447,7 +465,11 @@ export async function getQzPrinterStatus(
           NOT_AVAILABLE: "Impressora indisponível.",
           NO_TONER: "Sem toner/tinta na impressora.",
         };
-        return { ok: false, reason: map[code] || `Impressora com erro (${code || "desconhecido"}).`, code };
+        return {
+          ok: false,
+          reason: map[code] || `Impressora com erro (${code || "desconhecido"}).`,
+          code,
+        };
       }
     }
   } catch {

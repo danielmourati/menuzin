@@ -25,6 +25,8 @@ export type PrinterLayoutOverrides = {
   show_thank_message?: boolean;
   thank_message?: string;
   full_kitchen_receipt?: boolean;
+  double_kitchen_font?: boolean;
+  duplicate_new_order?: boolean;
 };
 
 export type TenantPrinter = {
@@ -59,6 +61,8 @@ const LayoutOverridesSchema = z
     show_thank_message: z.boolean().optional(),
     thank_message: z.string().max(120).optional(),
     full_kitchen_receipt: z.boolean().optional(),
+    double_kitchen_font: z.boolean().optional(),
+    duplicate_new_order: z.boolean().optional(),
   })
   .nullable()
   .optional();
@@ -83,11 +87,18 @@ const SaveInput = z.object({
 
 const DeleteInput = z.object({ id: z.string().uuid() });
 
-function parsePrinterNameAndFonts(rawPrinterName?: string, rawFontFamily?: string): {
+function parsePrinterNameAndFonts(
+  rawPrinterName?: string,
+  rawFontFamily?: string,
+): {
   printerName: string;
   fontFamily: TenantPrinter["font_family"];
 } {
-  if (!rawPrinterName) return { printerName: "", fontFamily: (rawFontFamily as TenantPrinter["font_family"]) ?? "mono" };
+  if (!rawPrinterName)
+    return {
+      printerName: "",
+      fontFamily: (rawFontFamily as TenantPrinter["font_family"]) ?? "mono",
+    };
   if (rawPrinterName.includes("::ff:")) {
     const [pName, family] = rawPrinterName.split("::ff:");
     return {
@@ -112,7 +123,7 @@ function rowToPrinter(row: Record<string, unknown>): TenantPrinter {
     name: (row.name as string) ?? "",
     role: (row.role as TenantPrinterRole) ?? "kitchen",
     printer_name: printerName,
-    paper_width: ((row.paper_width as string) === "55mm" ? "55mm" : "80mm"),
+    paper_width: (row.paper_width as string) === "55mm" ? "55mm" : "80mm",
     font_size: (row.font_size as TenantPrinter["font_size"]) ?? "normal",
     font_family: fontFamily,
     is_active: row.is_active !== false,

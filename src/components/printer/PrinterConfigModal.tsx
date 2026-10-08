@@ -3,12 +3,7 @@
 // rodapé. É a única tela de configuração de impressora do sistema.
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,10 +40,7 @@ import {
   type PrinterSettings,
 } from "@/lib/printer-types";
 import { center } from "@/lib/receipt-builder";
-import {
-  getMyPrinterSettings,
-  saveMyPrinterSettings,
-} from "@/lib/printer-settings.functions";
+import { getMyPrinterSettings, saveMyPrinterSettings } from "@/lib/printer-settings.functions";
 import {
   deleteTenantPrinter,
   listMyTenantPrinters,
@@ -112,6 +104,8 @@ const DEFAULT_OVERRIDES: PrinterLayoutOverrides = {
   show_thank_message: false,
   thank_message: "",
   full_kitchen_receipt: false,
+  double_kitchen_font: false,
+  duplicate_new_order: false,
 };
 
 function fromTenantPrinter(p: TenantPrinter): ExtraDraft {
@@ -153,8 +147,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
   const [caixa, setCaixa] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
   const [drafts, setDrafts] = useState<ExtraDraft[]>([]);
-  
-  const isMobile = typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const isMobile =
+    typeof window !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   const [selectedId, setSelectedId] = useState<string>(isMobile ? "device" : "caixa");
 
   const [systemPrinters, setSystemPrinters] = useState<QzPrinter[]>([]);
@@ -188,7 +183,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       setQzStatus("connected");
       if (!silent) {
         if (res.printers.length > 0) {
-          toast.success(`${res.printers.length} impressora(s) instalada(s) encontrada(s) no Windows.`);
+          toast.success(
+            `${res.printers.length} impressora(s) instalada(s) encontrada(s) no Windows.`,
+          );
         } else {
           toast.warning("Nenhuma impressora instalada foi encontrada no Windows.");
         }
@@ -201,7 +198,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           setGuideOpen(true);
         } else {
           toast.error(
-            err instanceof Error ? err.message : "Não foi possível procurar impressoras no Windows.",
+            err instanceof Error
+              ? err.message
+              : "Não foi possível procurar impressoras no Windows.",
           );
         }
       }
@@ -216,7 +215,6 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       setAdvancedOpen(false);
       void detect(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const selected = useMemo(
@@ -226,9 +224,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
   const isCaixa = selectedId === "caixa";
 
   const updateDraft = (patch: Partial<ExtraDraft>) => {
-    setDrafts((prev) =>
-      prev.map((d) => (d.localId === selectedId ? { ...d, ...patch } : d)),
-    );
+    setDrafts((prev) => prev.map((d) => (d.localId === selectedId ? { ...d, ...patch } : d)));
   };
 
   const deleteMut = useMutation({
@@ -276,10 +272,14 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     try {
       const width = isCaixa ? caixa.paper_width : (selected?.paper_width ?? "80mm");
       const fontSz = isCaixa
-        ? (caixa.use_default_typography ? "normal" : caixa.font_size)
+        ? caixa.use_default_typography
+          ? "normal"
+          : caixa.font_size
         : (selected?.layout_overrides?.font_size ?? "normal");
       const fontFam = isCaixa
-        ? (caixa.use_default_typography ? "mono" : caixa.font_family)
+        ? caixa.use_default_typography
+          ? "mono"
+          : caixa.font_family
         : (selected?.layout_overrides?.font_family ?? "mono");
       const cols = columnsFor(width, fontSz, fontFam);
       const feed = isCaixa ? caixa.feed_lines : (selected?.layout_overrides?.feed_lines ?? 3);
@@ -455,8 +455,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           {isCaixa ? (
             <>
               <p className="text-xs text-muted-foreground">
-                Aparência do cupom da loja. Se não mexer aqui, usamos a configuração
-                recomendada.
+                Aparência do cupom da loja. Se não mexer aqui, usamos a configuração recomendada.
               </p>
               <ReceiptLayoutFields
                 value={caixa}
@@ -499,6 +498,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
               {selected.layout_overrides && (
                 <ReceiptLayoutFields
                   value={selected.layout_overrides}
+                  showKitchenOptions
                   onChange={(patch) =>
                     updateDraft({
                       layout_overrides: { ...selected.layout_overrides, ...patch },
@@ -540,7 +540,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                     onClick={() => setSelectedId("device")}
                     className={
                       "flex w-full shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors " +
-                      (selectedId === "device" ? "border bg-background shadow-sm" : "hover:bg-muted/60")
+                      (selectedId === "device"
+                        ? "border bg-background shadow-sm"
+                        : "hover:bg-muted/60")
                     }
                   >
                     <MonitorSmartphone className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -589,9 +591,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                           {d.name || "Sem nome"}
                         </span>
                         <span className="block truncate text-[11px] text-muted-foreground">
-                          {d.is_active
-                            ? d.printer_name || "Nenhuma escolhida"
-                            : "Não está em uso"}
+                          {d.is_active ? d.printer_name || "Nenhuma escolhida" : "Não está em uso"}
                         </span>
                       </span>
                     </button>
@@ -635,7 +635,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                         onClick={() => {
                           setCaixa((p) => ({ ...p, printer_name: "" }));
                           setDevicePrinter("");
-                          toast.info("Impressora do Caixa desvinculada. Clique em Salvar para confirmar.");
+                          toast.info(
+                            "Impressora do Caixa desvinculada. Clique em Salvar para confirmar.",
+                          );
                         }}
                         title="Desvincular impressora do Caixa"
                       >
@@ -664,9 +666,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                       </div>
                       <Switch
                         checked={caixa.auto_accept_orders}
-                        onCheckedChange={(v) =>
-                          setCaixa((p) => ({ ...p, auto_accept_orders: v }))
-                        }
+                        onCheckedChange={(v) => setCaixa((p) => ({ ...p, auto_accept_orders: v }))}
                       />
                     </div>
                   ) : (
@@ -739,7 +739,8 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                     <div className="space-y-0.5">
                       <span className="text-sm font-medium">Imprimir pedido completo</span>
                       <p className="text-xs text-muted-foreground">
-                        Imprime o recibo completo (valores, totais, dados do cliente e pagamento), assim como no caixa.
+                        Imprime o recibo completo (valores, totais, dados do cliente e pagamento),
+                        assim como no caixa.
                       </p>
                     </div>
                     <Switch
@@ -777,59 +778,64 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
             {selectedId !== "device" ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="flex items-center gap-1.5 text-xs">
-                {qzStatus === "connected" ? (
-                  <>
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Impressão ligada
-                  </>
-                ) : qzStatus === "offline" ? (
-                  <>
-                    <XCircle className="h-3.5 w-3.5 text-destructive" /> Programa de impressão não
-                    encontrado
-                  </>
-                ) : (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />{" "}
-                    Verificando impressão…
-                  </>
-                )}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 text-xs"
-                onClick={() => setGuideOpen(true)}
-              >
-                <HelpCircle className="h-3.5 w-3.5" /> Ajuda
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-muted-foreground"
-                onClick={() => setDiagOpen(true)}
-              >
-                Diagnóstico
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1.5 text-xs"
-                onClick={testPrint}
-                disabled={testing}
-              >
-                {testing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Printer className="h-3.5 w-3.5" />
-                )}
-                Imprimir teste
-              </Button>
-            </div>
+                  {qzStatus === "connected" ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Impressão ligada
+                    </>
+                  ) : qzStatus === "offline" ? (
+                    <>
+                      <XCircle className="h-3.5 w-3.5 text-destructive" /> Programa de impressão não
+                      encontrado
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />{" "}
+                      Verificando impressão…
+                    </>
+                  )}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => setGuideOpen(true)}
+                >
+                  <HelpCircle className="h-3.5 w-3.5" /> Ajuda
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground"
+                  onClick={() => setDiagOpen(true)}
+                >
+                  Diagnóstico
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={testPrint}
+                  disabled={testing}
+                >
+                  {testing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Printer className="h-3.5 w-3.5" />
+                  )}
+                  Imprimir teste
+                </Button>
+              </div>
             ) : (
               <div />
             )}
 
             <div className="ml-auto flex items-center gap-2">
-              <Button size="sm" className="gap-1.5" onClick={() => void handleSave(false)} disabled={saving}>
+              <Button
+                size="sm"
+                className="gap-1.5"
+                onClick={() => void handleSave(false)}
+                disabled={saving}
+              >
                 {saving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (

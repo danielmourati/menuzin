@@ -8,14 +8,12 @@ import { useNavigate } from "@tanstack/react-router";
 import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import { printKitchenTicket } from "@/lib/print-kitchen";
+import { printKitchenTicket, printKitchenTicketViaBluetooth } from "@/lib/print-kitchen";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
-import { buildKitchenTicket } from "@/lib/kitchen-ticket";
 import { getQzPrinterStatus, QzNotRunningError, QzPrintTimeoutError } from "@/lib/qz-tray";
-import { columnsFor } from "@/lib/printer-types";
 
 interface PrintKitchenButtonProps {
   order: Order;
@@ -64,9 +62,7 @@ export function PrintKitchenButton({
 
   if (!can("kitchenPrinter")) return null;
 
-  const kitchenPrinter = (data?.printers ?? []).find(
-    (p) => p.role === "kitchen" && p.is_active,
-  );
+  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active);
 
   const handlePrint = async () => {
     if (printing) return;
@@ -94,21 +90,17 @@ export function PrintKitchenButton({
 
       if (devSettings.useBluetooth) {
         if (!webBluetoothPrinter.isConnected()) {
-          toast.error("Impressora Bluetooth não conectada. Vá em Configurações para parear.", { id: toastId });
+          toast.error("Impressora Bluetooth não conectada. Vá em Configurações para parear.", {
+            id: toastId,
+          });
           setPrinting(false);
           return;
         }
 
         toast.loading("Enviando comanda via Bluetooth...", { id: toastId });
-        
-        // Bluetooth type -> force 55mm as requested by user
-        const cols = columnsFor("55mm", "normal", "mono");
-        const text = buildKitchenTicket(order, cols);
-        
-        const encoder = new TextEncoder();
-        await webBluetoothPrinter.print(encoder.encode(text));
-        toast.success(`Comanda enviada via Bluetooth`, { id: toastId });
 
+        await printKitchenTicketViaBluetooth(order, kitchenPrinter);
+        toast.success(`Comanda enviada via Bluetooth`, { id: toastId });
       } else {
         const status = await getQzPrinterStatus(kitchenPrinter.printer_name);
         if (!status.ok) {
@@ -131,7 +123,9 @@ export function PrintKitchenButton({
           action: { label: "Tentar novamente", onClick: () => handlePrint() },
         });
       } else {
-        toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", { id: toastId });
+        toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", {
+          id: toastId,
+        });
       }
     } finally {
       setPrinting(false);
@@ -152,9 +146,13 @@ export function PrintKitchenButton({
       title={finalLabel}
     >
       {printing ? (
-        <Loader2 className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"} />
+        <Loader2
+          className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"}
+        />
       ) : (
-        <ChefHat className={size === "icon" ? "h-3.5 w-3.5 text-warning" : "mr-2 h-4 w-4 text-warning"} />
+        <ChefHat
+          className={size === "icon" ? "h-3.5 w-3.5 text-warning" : "mr-2 h-4 w-4 text-warning"}
+        />
       )}
       {size !== "icon" && (printing ? "Imprimindo..." : finalLabel)}
     </Button>

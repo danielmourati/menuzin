@@ -11,14 +11,12 @@ import type { Order, OrderStatus } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import { printKitchenTicket } from "@/lib/print-kitchen";
+import { printKitchenTicket, printKitchenTicketViaBluetooth } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
-import { buildKitchenTicket } from "@/lib/kitchen-ticket";
-import { columnsFor } from "@/lib/printer-types";
 
 export function isOnlinePaymentOrder(order: { payment?: string | null }): boolean {
   if (!order?.payment) return false;
@@ -45,10 +43,7 @@ type UpdateStatusFn = (
  * impressão automática da comanda de cozinha sempre que o pedido entra em
  * "preparo" (fluxo simplificado: clicar em Aceitar já manda para preparo).
  */
-export function useAcceptOrderWithKitchenPrint(
-  orders: Order[],
-  updateOrderStatus: UpdateStatusFn,
-) {
+export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatus: UpdateStatusFn) {
   const { isAuthenticated } = useAuth();
   const { can } = useTenantPlan();
   const navigate = useNavigate();
@@ -78,9 +73,7 @@ export function useAcceptOrderWithKitchenPrint(
     | null
     | undefined;
 
-  const kitchenPrinter = (data?.printers ?? []).find(
-    (p) => p.role === "kitchen" && p.is_active,
-  );
+  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active);
 
   const { data: printerSettings } = useQuery({
     queryKey: ["printer-settings-auto-accept"],
@@ -94,11 +87,11 @@ export function useAcceptOrderWithKitchenPrint(
     can("kitchenPrinter") && printerSettings?.settings?.auto_accept_orders === true;
 
   const printKitchenFor = useCallback(
-    async (order: Order) => {
+    async (order: Order, options?: { automaticNewOrder?: boolean }) => {
       if (!can("kitchenPrinter")) return;
-      
+
       const devSettings = getDeviceSettings();
-      
+
       if (!devSettings.useBluetooth && !kitchenPrinter) {
         toast.info("Pedido aceito. Configure a impressora da cozinha para impressão automática.", {
           action: {
@@ -114,10 +107,7 @@ export function useAcceptOrderWithKitchenPrint(
             toast.error("Impressão automática falhou: Bluetooth não conectado.");
             return;
           }
-          const cols = columnsFor("55mm", "normal", "mono");
-          const text = buildKitchenTicket(order, cols);
-          const encoder = new TextEncoder();
-          await webBluetoothPrinter.print(encoder.encode(text));
+          await printKitchenTicketViaBluetooth(order, kitchenPrinter, options);
           toast.success(`Comanda impressa automaticamente via Bluetooth`);
         } else {
           if (!kitchenPrinter) return;
@@ -129,7 +119,9 @@ export function useAcceptOrderWithKitchenPrint(
             storePixKey: tenant?.social?.pix,
             storeCnpj: tenant?.social?.cnpj,
           };
-          const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
+          const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo, {
+            automaticNewOrder: options?.automaticNewOrder,
+          });
           toast.success(`Comanda enviada automaticamente para ${printer}`);
         }
       } catch (err) {
@@ -140,9 +132,13 @@ export function useAcceptOrderWithKitchenPrint(
           },
         };
         if (err instanceof QzNotRunningError) {
-          toast.error("Pedido aceito, mas o QZ Tray não está aberto para imprimir.", { action: retry });
+          toast.error("Pedido aceito, mas o QZ Tray não está aberto para imprimir.", {
+            action: retry,
+          });
         } else {
-          toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", { action: retry });
+          toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", {
+            action: retry,
+          });
         }
       }
     },
@@ -167,14 +163,15 @@ export function useAcceptOrderWithKitchenPrint(
         toast.error(err instanceof Error ? err.message : "Falha ao aceitar pedido automaticamente");
         return;
       }
-      await printKitchenFor(order);
+      await printKitchenFor(order, { automaticNewOrder: true });
     },
     [updateOrderStatus, printKitchenFor],
   );
 
   const acceptOrder = useCallback(
     async (orderOrId: string | Order) => {
-      const order = typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
+      const order =
+        typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
       const orderId = typeof orderOrId === "string" ? orderOrId : orderOrId.id;
       await updateOrderStatus(orderId, "preparo", "Pedido aceito — iniciou preparo");
       if (order) await printKitchenFor(order);
