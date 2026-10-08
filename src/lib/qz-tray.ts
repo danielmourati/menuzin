@@ -495,7 +495,7 @@ export function downloadQzProperties(): void {
  * Tray Community — por isso o prompt continuava avisando mesmo executando
  * como administrador.
  */
-export const QZ_INSTALLER_VERSION = 5;
+export const QZ_INSTALLER_VERSION = 6;
 export function buildQzWindowsInstaller(certPem: string): string {
   const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
   const certB64 = encodeBase64Utf8(cleanedCert);
