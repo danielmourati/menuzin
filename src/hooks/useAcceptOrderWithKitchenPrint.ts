@@ -33,7 +33,12 @@ export function isOnlinePaymentOrder(order: { payment?: string | null }): boolea
   );
 }
 
-type UpdateStatusFn = (orderId: string, status: OrderStatus, note?: string) => Promise<unknown>;
+type UpdateStatusFn = (
+  orderId: string,
+  status: OrderStatus,
+  note?: string,
+  opts?: { keepSound?: boolean },
+) => Promise<unknown>;
 
 /**
  * Devolve handlers de "aceitar" e "atualizar status" que disparam a
@@ -156,7 +161,8 @@ export function useAcceptOrderWithKitchenPrint(
         return;
       }
       try {
-        await updateOrderStatus(order.id, "preparo", "Aceito automaticamente");
+        // Aceite automático não corta o som: o lojista precisa ouvir que chegou pedido.
+        await updateOrderStatus(order.id, "preparo", "Aceito automaticamente", { keepSound: true });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Falha ao aceitar pedido automaticamente");
         return;

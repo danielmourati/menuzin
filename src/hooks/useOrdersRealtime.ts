@@ -350,15 +350,16 @@ export function useOrdersRealtime() {
   }, []);
 
   const updateOrderStatus = useCallback(
-    async (orderId: string, newStatus: OrderStatus, note?: string) => {
+    async (orderId: string, newStatus: OrderStatus, note?: string, opts?: { keepSound?: boolean }) => {
       try {
         // Ao alterar o status (aceitar, enviar para preparo, cancelar, etc.),
         // marca como visto e cancela o alerta visual/sonoro ativo para ele.
+        // No aceite automático o som continua tocando até o fim.
         markOrderAsSeen(orderId);
-        alertChannel?.postMessage({ type: "handled", orderId });
+        if (!opts?.keepSound) alertChannel?.postMessage({ type: "handled", orderId });
         if (globalNewOrderAlert?.id === orderId) {
           globalNewOrderAlert = null;
-          stopNotificationSound();
+          if (!opts?.keepSound) stopNotificationSound();
         }
 
         await updateOrderStatusFn({
@@ -453,13 +454,13 @@ export function useOrdersRealtime() {
     setIsSimulating(active);
   };
 
-  const dismissAlert = () => {
+  const dismissAlert = (opts?: { keepSound?: boolean }) => {
     if (globalNewOrderAlert?.id) {
       markOrderAsSeen(globalNewOrderAlert.id);
     }
     globalNewOrderAlert = null;
     setNewOrderAlert(null);
-    stopNotificationSound();
+    if (!opts?.keepSound) stopNotificationSound();
     notifyListeners();
   };
 
