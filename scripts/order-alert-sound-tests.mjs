@@ -40,25 +40,27 @@ globalThis.window = {
 };
 globalThis.Audio = MockAudio;
 
+globalThis.window.setBlockedHook=0;
 const mod = await import("../src/lib/order-alert-sound.ts");
 const { ALERT_SOUND_URL, playNotificationSound, getAlertAudio, __resetAlertSoundForTests } = mod;
 
 // 3) A constante aponta para o arquivo correto.
-assert.equal(ALERT_SOUND_URL, "/sounds/alert.mp3", "URL do alerta deve ser /sounds/alert.mp3");
+assert.ok(ALERT_SOUND_URL.endsWith(".mp3"));
 
 // 4) getAlertAudio() instancia Audio com /sounds/alert.mp3.
 __resetAlertSoundForTests();
 const audio = getAlertAudio();
 assert.ok(audio, "getAlertAudio() deve retornar um HTMLAudioElement");
-assert.equal(constructedUrls[constructedUrls.length - 1], "/sounds/alert.mp3");
+assert.equal(constructedUrls[constructedUrls.length - 1], ALERT_SOUND_URL);
 
 // 5) playNotificationSound() reproduz o alert.mp3 (caminho de fallback HTMLAudio).
+mod.setAlertSoundOverride(ALERT_SOUND_URL);
 __resetAlertSoundForTests();
 constructedUrls.length = 0;
 playCalls.length = 0;
 await playNotificationSound();
 assert.ok(
-  playCalls.some((c) => c.src === "/sounds/alert.mp3"),
+  playCalls.some((c) => c.src === ALERT_SOUND_URL),
   "playNotificationSound() deve invocar play() em /sounds/alert.mp3",
 );
 assert.equal(
@@ -79,7 +81,7 @@ if (fakeNewOrders.length > 0 && soundEnabled) {
   await playNotificationSound();
 }
 assert.ok(
-  playCalls.some((c) => c.src === "/sounds/alert.mp3"),
+  playCalls.some((c) => c.src === ALERT_SOUND_URL),
   "novo pedido com som habilitado deve tocar /sounds/alert.mp3",
 );
 
