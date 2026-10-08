@@ -66,7 +66,7 @@ export function buildKitchenTicket(
 
   if (!options?.doubleBody) out.push(ESC_NORMAL);
 
-  // ── ITENS (fonte grande) ──────────────────────────────────
+  // ── ITENS (fonte normal ou dupla, conforme a impressora) ──
   for (const item of order.items) {
     const head = `${item.qty}x ${stripAccents(item.name).toUpperCase()}`;
     wrap(head, bodyCols).forEach((l) => out.push(l));
