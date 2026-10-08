@@ -8,7 +8,10 @@ import { useNavigate } from "@tanstack/react-router";
 import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import { buildKitchenTicketForPrinter, printKitchenTicket } from "@/lib/print-kitchen";
+import {
+  printKitchenTicket,
+  printKitchenTicketViaBluetooth,
+} from "@/lib/print-kitchen";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
@@ -99,10 +102,7 @@ export function PrintKitchenButton({
 
         toast.loading("Enviando comanda via Bluetooth...", { id: toastId });
 
-        const text = buildKitchenTicketForPrinter(order, kitchenPrinter);
-
-        const encoder = new TextEncoder();
-        await webBluetoothPrinter.print(encoder.encode(text));
+        await printKitchenTicketViaBluetooth(order, kitchenPrinter);
         toast.success(`Comanda enviada via Bluetooth`, { id: toastId });
       } else {
         const status = await getQzPrinterStatus(kitchenPrinter.printer_name);

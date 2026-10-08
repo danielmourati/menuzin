@@ -5,6 +5,7 @@ import { buildReceipt, type ReceiptStoreInfo } from "@/lib/receipt-builder";
 import { DEFAULT_PRINTER_SETTINGS, type PrinterSettings } from "@/lib/printer-types";
 import { printQzReceipt } from "@/lib/qz-tray";
 import type { TenantPrinter } from "@/lib/tenant-printers.functions";
+import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
 
 export function buildKitchenTicketForPrinter(order: Order, printer: TenantPrinter): string {
   const ov = printer.layout_overrides ?? null;
@@ -12,6 +13,22 @@ export function buildKitchenTicketForPrinter(order: Order, printer: TenantPrinte
   const fontFamily = ov?.font_family ?? printer.font_family;
   const cols = kitchenColumnsFor(printer.paper_width, fontSize, fontFamily);
   return buildKitchenTicket(order, cols, { doubleBody: ov?.double_kitchen_font === true });
+}
+
+export async function printKitchenTicketViaBluetooth(
+  order: Order,
+  printer?: TenantPrinter,
+  options?: { automaticNewOrder?: boolean },
+): Promise<void> {
+  const text = printer
+    ? buildKitchenTicketForPrinter(order, printer)
+    : buildKitchenTicket(order, 32);
+  const copies =
+    options?.automaticNewOrder && printer?.layout_overrides?.duplicate_new_order ? 2 : 1;
+  const payload = new TextEncoder().encode(text);
+  for (let copy = 0; copy < copies; copy += 1) {
+    await webBluetoothPrinter.print(payload);
+  }
 }
 
 export async function printKitchenTicket(
