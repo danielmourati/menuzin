@@ -19,7 +19,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { ConfirmDialogHost } from "@/hooks/useConfirm";
 import { AppSplashScreen } from "@/components/storefront/AppSplashScreen";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -30,7 +29,10 @@ function NotFoundComponent() {
           O endereço que você tentou acessar não existe.
         </p>
         <div className="mt-6">
-          <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
             Voltar para o início
           </Link>
         </div>
@@ -117,7 +119,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap",
+      },
     ],
     scripts: [
       {
@@ -142,8 +147,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">
-      <head><HeadContent /></head>
-      <body>{children}<Scripts /></body>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        {children}
+        <Scripts />
+      </body>
     </html>
   );
 }
@@ -154,7 +164,9 @@ function AuthStateInvalidator() {
   useEffect(() => {
     // Falha de configuração do backend não pode derrubar toda a árvore React.
     try {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
         if (event === "SIGNED_OUT") {
           queryClient.removeQueries();
           router.invalidate();
@@ -190,4 +202,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-
