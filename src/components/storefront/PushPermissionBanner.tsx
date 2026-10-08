@@ -67,6 +67,8 @@ export function PushPermissionBanner({
   const [show, setShow] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const isIOS = typeof window !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   useEffect(() => {
     // Verifica se o navegador suporta Web Push
@@ -94,8 +96,13 @@ export function PushPermissionBanner({
 
   const handleDismiss = () => {
     setShow(false);
+    setShowIOSGuide(false);
     // Não incomoda o cliente pelos próximos 14 dias
-    localStorage.setItem(`menuzin_push_dismiss_${tenantSlug}`, String(Date.now() + 14 * 24 * 60 * 60 * 1000));
+    try {
+      localStorage.setItem(`menuzin_push_dismiss_${tenantSlug}`, String(Date.now() + 14 * 24 * 60 * 60 * 1000));
+    } catch {
+      /* navegador anônimo: só fecha */
+    }
   };
 
   const handleSubscribe = async () => {
@@ -156,8 +163,6 @@ export function PushPermissionBanner({
     }
   };
 
-  const isIOS = typeof window !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const [showIOSGuide, setShowIOSGuide] = useState(false);
 
   const handleSubscribeClick = () => {
     if (isIOS && !window.matchMedia("(display-mode: standalone)").matches) {
@@ -170,14 +175,18 @@ export function PushPermissionBanner({
   if (!show) return null;
 
   return (
-    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-[100] animate-in fade-in slide-in-from-top-5 duration-300">
+    <div className="fixed top-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-[100] pointer-events-auto animate-in fade-in slide-in-from-top-5 duration-300"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <div className="relative rounded-2xl border border-primary/30 bg-card/95 backdrop-blur-md p-4 shadow-2xl ring-1 ring-primary/20">
         <button
+          type="button"
           onClick={handleDismiss}
-          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted/50 transition-colors"
+          className="absolute top-1.5 right-1.5 z-10 grid h-10 w-10 place-items-center text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors touch-manipulation"
           title="Fechar"
+          aria-label="Fechar"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
 
         {showIOSGuide ? (
@@ -201,7 +210,7 @@ export function PushPermissionBanner({
               </p>
             </div>
             <div className="flex justify-end gap-2 pt-1 border-t">
-              <Button size="sm" variant="outline" onClick={() => setShowIOSGuide(false)} className="h-8 text-xs font-medium">
+              <Button size="sm" variant="outline" onClick={handleDismiss} className="h-8 text-xs font-medium">
                 Entendi
               </Button>
             </div>
