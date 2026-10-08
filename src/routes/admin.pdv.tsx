@@ -6,6 +6,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -54,6 +55,7 @@ function PdvPage() {
   const [whatsapp, setWhatsapp] = useState("");
   const [mode, setMode] = useState<OrderMode>("balcao");
   const [tableLabel, setTableLabel] = useState("");
+  const [orderNote, setOrderNote] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved">("approved");
   const [paymentLabel, setPaymentLabel] = useState("Dinheiro");
 
@@ -186,6 +188,7 @@ function PdvPage() {
           initial_status: paymentStatus === "approved" ? "preparo" : "novo",
           delivery_fee: mode === "entrega" ? deliveryFee : 0,
           table_label: tableLabel || null,
+          note: orderNote.trim() || null,
           address: address as any,
           items,
         }
@@ -197,6 +200,7 @@ function PdvPage() {
       setCustomerName("");
       setWhatsapp("");
       setTableLabel("");
+      setOrderNote("");
       setCep("");
       setStreet("");
       setNumber("");
@@ -399,6 +403,18 @@ function PdvPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Observações do pedido (Opcional)</Label>
+                <Textarea
+                  value={orderNote}
+                  onChange={(e) => setOrderNote(e.target.value)}
+                  maxLength={500}
+                  rows={2}
+                  placeholder="Ex: sem cebola, entregar na portaria, troco para R$ 50"
+                  className="mt-1 text-base lg:text-sm resize-none"
+                />
               </div>
             </div>
 
