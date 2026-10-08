@@ -11,10 +11,7 @@ import type { Order, OrderStatus } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import {
-  printKitchenTicket,
-  printKitchenTicketViaBluetooth,
-} from "@/lib/print-kitchen";
+import { printKitchenTicket, printKitchenTicketViaBluetooth } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";

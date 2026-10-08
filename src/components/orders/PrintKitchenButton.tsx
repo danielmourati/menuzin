@@ -8,10 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import {
-  printKitchenTicket,
-  printKitchenTicketViaBluetooth,
-} from "@/lib/print-kitchen";
+import { printKitchenTicket, printKitchenTicketViaBluetooth } from "@/lib/print-kitchen";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
