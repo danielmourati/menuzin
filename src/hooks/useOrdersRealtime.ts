@@ -83,7 +83,7 @@ const CLIENT_NAMES = [
   "Fernanda Lima",
 ];
 
-function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
+function processNewOrders(newOnes: Order[], soundEnabled: boolean, isFresh?: (o: Order) => boolean) {
   if (newOnes.length === 0) return;
 
   const currentStoreId = newOnes[0]?.storeId;
@@ -99,7 +99,7 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
 
   if (alertable.length === 0) return;
   // Só pedidos realmente recentes tocam som (evita alarme atrasado após o aparelho dormir).
-  const fresh = alertable.filter((o) => Date.now() - new Date(o.createdAt).getTime() <= ALERT_MAX_AGE_MS);
+  const fresh = alertable.filter(isFresh ?? (() => true));
 
   const sorted = [...alertable].sort((a, b) => {
     const ta = new Date(a.createdAt).getTime();
@@ -142,7 +142,6 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean) {
   if (soundEnabled && fresh.some((o) => claimSoundForOrder(o.id))) playNotificationSound();
 }
 
-const ALERT_MAX_AGE_MS = 3 * 60 * 1000;
 const SOUND_CLAIM_PREFIX = "menuzin_alert_sound_";
 
 function claimSoundForOrder(orderId: string): boolean {
@@ -176,6 +175,120 @@ alertChannel?.addEventListener("message", (ev) => {
   }
 });
 
+// ===== Conferência única por aba (compartilhada por todas as partes do painel) =====
+const ALERT_WINDOW_MS = 10 * 60 * 1000;
+let globalOrders: Order[] = [];
+let globalBaselineMs: number | null = null; // maior createdAt (relógio do servidor) do 1º snapshot
+let pollerUsers = 0;
+let pollerTimer: number | undefined;
+let pollerChannel: ReturnType<typeof supabase.channel> | null = null;
+let pollerChannelTenant: string | null = null;
+let tickInFlight: Promise<void> | null = null;
+let tickAgain = false;
+let soundEnabledGlobal = true;
+const orderListeners = new Set<(o: Order[]) => void>();
+
+function ts(o: Order) {
+  return new Date(o.createdAt).getTime() || 0;
+}
+
+function ensureChannel(tenantId: string | undefined) {
+  if (!tenantId || pollerChannelTenant === tenantId) return;
+  if (pollerChannel) void supabase.removeChannel(pollerChannel);
+  pollerChannelTenant = tenantId;
+  let debounce: number | undefined;
+  pollerChannel = supabase
+    .channel(`tenant-orders:${tenantId}`)
+    .on("broadcast", { event: "order" }, () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => void sharedTick(), 300);
+    })
+    .subscribe();
+}
+
+async function runTick() {
+  const res = await listOrdersForMyTenant();
+  const ui = res.orders.map((o) => dbOrderToUi(o));
+  const storeId = ui[0]?.storeId;
+  if (storeId) purgeForeignNotifications(storeId);
+
+  for (const o of ui) if (o.status !== "novo") markOrderAsSeen(o.id);
+
+  if (globalNewOrderAlert) {
+    const cur = ui.find((o) => o.id === globalNewOrderAlert?.id);
+    if (!cur || cur.status !== "novo") {
+      globalNewOrderAlert = null;
+      stopNotificationSound();
+      notifyListeners();
+    }
+  }
+
+  globalOrders = ui;
+  orderListeners.forEach((l) => l(ui));
+  ensureChannel(storeId);
+
+  const newestMs = ui.reduce((m, o) => Math.max(m, ts(o)), 0);
+  if (!globalHasLoadedOrderSnapshot || globalBaselineMs === null) {
+    // 1º carregamento: nada toca; guarda a linha de base pelo horário do servidor.
+    for (const o of ui) markOrderAsSeen(o.id);
+    globalBaselineMs = newestMs;
+    globalHasLoadedOrderSnapshot = true;
+    notifyListeners();
+    return;
+  }
+
+  const newOnes = ui.filter((o) => o.status === "novo" && !globalSeenOrderIds.has(o.id));
+  if (newOnes.length > 0) {
+    const base = globalBaselineMs;
+    processNewOrders(newOnes, soundEnabledGlobal, (o) => ts(o) > base && newestMs - ts(o) <= ALERT_WINDOW_MS);
+  }
+}
+
+export function sharedTick(): Promise<void> {
+  if (tickInFlight) {
+    tickAgain = true;
+    return tickInFlight;
+  }
+  tickInFlight = runTick()
+    .catch((err) => console.error("Falha ao recarregar pedidos:", err))
+    .finally(() => {
+      tickInFlight = null;
+      if (tickAgain) {
+        tickAgain = false;
+        void sharedTick();
+      }
+    });
+  return tickInFlight;
+}
+
+function onWake() {
+  if (document.visibilityState === "visible") void sharedTick();
+}
+
+function startPoller() {
+  pollerUsers++;
+  if (pollerUsers > 1) return;
+  void sharedTick();
+  pollerTimer = window.setInterval(() => void sharedTick(), 10000);
+  document.addEventListener("visibilitychange", onWake);
+  window.addEventListener("focus", onWake);
+  window.addEventListener("online", onWake);
+  window.addEventListener("pageshow", onWake);
+}
+
+function stopPoller() {
+  pollerUsers = Math.max(0, pollerUsers - 1);
+  if (pollerUsers > 0) return;
+  window.clearInterval(pollerTimer);
+  document.removeEventListener("visibilitychange", onWake);
+  window.removeEventListener("focus", onWake);
+  window.removeEventListener("online", onWake);
+  window.removeEventListener("pageshow", onWake);
+  if (pollerChannel) void supabase.removeChannel(pollerChannel);
+  pollerChannel = null;
+  pollerChannelTenant = null;
+}
+
 export function useOrdersRealtime() {
   const queryClient = useQueryClient();
   const authCtx = useContext(AuthContext);
@@ -183,7 +296,7 @@ export function useOrdersRealtime() {
   // Só consulta pedidos com sessão pronta — evita 401 durante hidratação/logout.
   const canFetch = !!authCtx && !authCtx.loading && authCtx.isAuthenticated;
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(globalOrders);
   const [notifications, setNotifications] = useState<AdminNotification[]>(globalNotifications);
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(globalNewOrderAlert);
   const [isSimulating, setIsSimulating] = useState(autoSimulationActive);
@@ -205,122 +318,24 @@ export function useOrdersRealtime() {
 
   useEffect(() => {
     soundEnabledRef.current = prefs.soundEnabled;
+    soundEnabledGlobal = prefs.soundEnabled;
   }, [prefs.soundEnabled]);
 
-  // Carrega inicial + refetch manual
-  const refetch = useCallback(async () => {
-    try {
-      const res = await listOrdersForMyTenant();
-      const ui = res.orders.map((o) => dbOrderToUi(o));
-      const currentStoreId = ui[0]?.storeId;
-      if (currentStoreId) {
-        purgeForeignNotifications(currentStoreId);
-      }
-      setOrders(ui);
+  const refetch = useCallback(() => sharedTick(), []);
 
-      // Atualiza IDs vistos com pedidos já aceitos / em produção
-      for (const o of ui) {
-        if (o.status !== "novo") {
-          markOrderAsSeen(o.id);
-        }
-      }
-    } catch (err) {
-      console.error("Falha ao carregar pedidos:", err);
-    }
+  useEffect(() => {
+    orderListeners.add(setOrders);
+    return () => {
+      orderListeners.delete(setOrders);
+    };
   }, []);
 
   useEffect(() => {
-    if (!canFetch) return;
-    refetch();
-  }, [refetch, canFetch]);
-
-  // Polling periódico a cada 10s
-  useEffect(() => {
     unlockAudioOnFirstGesture();
     if (!canFetch) return;
-    let cancelled = false;
-
-    const tick = async () => {
-      try {
-        const res = await listOrdersForMyTenant();
-        if (cancelled) return;
-
-        const ui = res.orders.map((o) => dbOrderToUi(o));
-        const currentStoreId = ui[0]?.storeId;
-        if (currentStoreId) {
-          purgeForeignNotifications(currentStoreId);
-        }
-
-        // 1. Qualquer pedido que NÃO esteja com status "novo" (já aceito, em preparo, concluído, etc.)
-        // é imediatamente marcado como visto para nunca disparar alerta sonoro/visual.
-        for (const o of ui) {
-          if (o.status !== "novo") {
-            markOrderAsSeen(o.id);
-          }
-        }
-
-        // 2. Se o alerta visual ativo no momento já mudou de status (ex: foi aceito em outra tela/dispositivo),
-        // remove o alerta visual imediatamente.
-        if (globalNewOrderAlert) {
-          const currentAlertOrder = ui.find((o) => o.id === globalNewOrderAlert?.id);
-          if (!currentAlertOrder || currentAlertOrder.status !== "novo") {
-            globalNewOrderAlert = null;
-            stopNotificationSound();
-            notifyListeners();
-          }
-        }
-
-        // 3. No primeiro carregamento da plataforma (login ou F5):
-        // Todos os pedidos existentes são registrados como vistos e NUNCA disparam alarme/toast.
-        const isFirstLoad = !globalHasLoadedOrderSnapshot;
-        if (isFirstLoad) {
-          for (const o of ui) {
-            markOrderAsSeen(o.id);
-          }
-          globalHasLoadedOrderSnapshot = true;
-          setOrders(ui);
-          notifyListeners();
-          return;
-        }
-
-        // 4. Em ticks subsequentes: filtrar somente novos pedidos com status "novo" ainda não vistos
-        const newOnes = ui.filter(
-          (o) => o.status === "novo" && !globalSeenOrderIds.has(o.id)
-        );
-
-        setOrders(ui);
-        if (newOnes.length > 0) {
-          processNewOrders(newOnes, soundEnabledRef.current);
-        }
-      } catch (err) {
-        console.error("Falha ao recarregar pedidos:", err);
-      }
-    };
-
-    void tick();
-    const id = window.setInterval(tick, 10000);
-    // Aviso imediato: qualquer INSERT/UPDATE de pedido da loja dispara uma conferência na hora.
-    let debounce: number | undefined;
-    const channel = profileTenantId
-      ? supabase
-          .channel(`orders-live-${profileTenantId}-${Math.random().toString(36).slice(2)}`)
-          .on(
-            "postgres_changes",
-            { event: "*", schema: "public", table: "orders", filter: `tenant_id=eq.${profileTenantId}` },
-            () => {
-              window.clearTimeout(debounce);
-              debounce = window.setTimeout(() => void tick(), 400);
-            },
-          )
-          .subscribe()
-      : null;
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-      window.clearTimeout(debounce);
-      if (channel) void supabase.removeChannel(channel);
-    };
-  }, [canFetch, profileTenantId]);
+    startPoller();
+    return () => stopPoller();
+  }, [canFetch]);
 
   // Bridge para listeners locais (notificações)
   useEffect(() => {
@@ -423,7 +438,8 @@ export function useOrdersRealtime() {
       const createdOrder = ui.find((o) => o.id === created.order.id);
 
       globalHasLoadedOrderSnapshot = true;
-      setOrders(ui);
+      globalOrders = ui;
+      orderListeners.forEach((l) => l(ui));
       if (createdOrder) {
         processNewOrders([createdOrder], soundEnabledRef.current);
       }
