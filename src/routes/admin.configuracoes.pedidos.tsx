@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from "react";
+import { getAudioState, subscribeAudioState } from "@/lib/order-alert-sound";
 import { useEffect, useRef, useState } from "react";
 import { isIOSDevice, getBluefyPref, setBluefyPref, bluefyLink } from "@/lib/bluefy";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -133,6 +135,7 @@ function OrderSettingsPage() {
                 <p className="text-xs text-muted-foreground">
                   Tocar um som sinalizador quando um novo pedido for recebido.
                 </p>
+                <AudioStateBadge />
               </div>
               <div className="flex items-center gap-3">
                 <Button
@@ -372,5 +375,14 @@ function SchedulingCard({ tenant }: { tenant?: SchedTenant }) {
         <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}</Button>
       </CardContent>
     </Card>
+  );
+}
+
+function AudioStateBadge() {
+  const state = useSyncExternalStore(subscribeAudioState, getAudioState, () => "active" as const);
+  return state === "blocked" ? (
+    <p className="text-xs font-semibold text-destructive">Som bloqueado — toque na tela para ativar</p>
+  ) : (
+    <p className="text-xs font-semibold text-primary">Som ativo</p>
   );
 }
