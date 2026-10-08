@@ -70,7 +70,8 @@ export function OrdersRealtimeListener() {
       });
     }
 
-    dismissAlert();
+    // Só limpa o alerta visual; o som do pedido novo toca até o fim.
+    dismissAlert({ keepSound: true });
   }, [
     newOrderAlert,
     prefs.toastEnabled,

@@ -454,13 +454,13 @@ export function useOrdersRealtime() {
     setIsSimulating(active);
   };
 
-  const dismissAlert = () => {
+  const dismissAlert = (opts?: { keepSound?: boolean }) => {
     if (globalNewOrderAlert?.id) {
       markOrderAsSeen(globalNewOrderAlert.id);
     }
     globalNewOrderAlert = null;
     setNewOrderAlert(null);
-    stopNotificationSound();
+    if (!opts?.keepSound) stopNotificationSound();
     notifyListeners();
   };
 
