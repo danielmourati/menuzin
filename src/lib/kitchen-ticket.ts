@@ -7,20 +7,11 @@ import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
 import { formatScheduledShort } from "@/lib/scheduling";
-import {
-  center,
-  lineOf,
-  stripAccents,
-  wrap,
-} from "@/lib/receipt-builder";
+import { center, lineOf, stripAccents, wrap } from "@/lib/receipt-builder";
 import { columnsFor, type PaperWidth, type FontSize, type FontFamily } from "@/lib/printer-types";
 
 // ...
-export function kitchenColumnsFor(
-  paper: PaperWidth,
-  fontSize?: FontSize,
-  fontFamily?: FontFamily,
-) {
+export function kitchenColumnsFor(paper: PaperWidth, fontSize?: FontSize, fontFamily?: FontFamily) {
   return columnsFor(paper, fontSize, fontFamily);
 }
 
@@ -61,10 +52,13 @@ export function buildKitchenTicket(
   out.push(center(`PEDIDO #${order.number}`, bigCols));
   out.push(bigSep);
 
-  if (order.scheduledFor) out.push(center(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols));
+  if (order.scheduledFor)
+    out.push(center(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols));
 
   if (order.mode === "consumo_local" && order.table) {
-    wrap(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) => out.push(center(l, bigCols)));
+    wrap(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) =>
+      out.push(center(l, bigCols)),
+    );
   } else if (order.customerName) {
     wrap(stripAccents(order.customerName), bigCols).forEach((l) => out.push(center(l, bigCols)));
   }
@@ -94,12 +88,16 @@ export function buildKitchenTicket(
     }
 
     if (sizes.length) wrap(` Tam: ${sizes.join(", ")}`, bodyCols).forEach((l) => out.push(l));
-    if (flavors.length) wrap(` Sabores: ${flavors.join(" + ")}`, bodyCols).forEach((l) => out.push(l));
+    if (flavors.length)
+      wrap(` Sabores: ${flavors.join(" + ")}`, bodyCols).forEach((l) => out.push(l));
     for (const [g, opts] of Object.entries(groups)) {
       wrap(` ${g}: ${opts.join(", ")}`, bodyCols).forEach((l) => out.push(l));
     }
     if (extras.length) wrap(` + ${extras.join(", ")}`, bodyCols).forEach((l) => out.push(l));
-    if (item.note) wrap(` >> OBS: ${stripAccents(item.note).toUpperCase()}`, bodyCols).forEach((l) => out.push(l));
+    if (item.note)
+      wrap(` >> OBS: ${stripAccents(item.note).toUpperCase()}`, bodyCols).forEach((l) =>
+        out.push(l),
+      );
 
     out.push("");
   }

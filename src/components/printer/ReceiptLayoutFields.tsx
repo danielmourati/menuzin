@@ -71,9 +71,13 @@ export function ReceiptLayoutFields({
           <Select
             disabled={typographyDisabled}
             value={typographyDisabled ? "mono" : (value.font_family ?? "mono")}
-            onValueChange={(v) => onChange({ font_family: v as ReceiptLayoutValues["font_family"] })}
+            onValueChange={(v) =>
+              onChange({ font_family: v as ReceiptLayoutValues["font_family"] })
+            }
           >
-            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="mono">Monoespaçada (Padrão Thermal)</SelectItem>
               <SelectItem value="condensed">Condensada (Compacta Font B)</SelectItem>
@@ -88,7 +92,9 @@ export function ReceiptLayoutFields({
             value={typographyDisabled ? "normal" : (value.font_size ?? "normal")}
             onValueChange={(v) => onChange({ font_size: v as ReceiptLayoutValues["font_size"] })}
           >
-            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="compact">Compacta (Pequena)</SelectItem>
               <SelectItem value="normal">Normal (Média)</SelectItem>
@@ -102,7 +108,9 @@ export function ReceiptLayoutFields({
             value={value.separator_char ?? "-"}
             onValueChange={(v) => onChange({ separator_char: v })}
           >
-            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="-">Traços ( - )</SelectItem>
               <SelectItem value="=">Iguais ( = )</SelectItem>
@@ -117,7 +125,9 @@ export function ReceiptLayoutFields({
             value={value.cut_type ?? "none"}
             onValueChange={(v) => onChange({ cut_type: v as ReceiptLayoutValues["cut_type"] })}
           >
-            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="mt-1.5">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Sem corte</SelectItem>
               <SelectItem value="partial">Corte parcial</SelectItem>
@@ -141,15 +151,51 @@ export function ReceiptLayoutFields({
       </div>
 
       <div className="grid gap-2 md:grid-cols-2">
-        <Toggle label="Negrito em títulos" value={value.use_bold_titles ?? true} onChange={(v) => onChange({ use_bold_titles: v })} />
-        <Toggle label="Fonte dupla no total" value={value.use_double_total ?? true} onChange={(v) => onChange({ use_double_total: v })} />
-        <Toggle label="Exibir nome da loja" value={value.show_store_name ?? true} onChange={(v) => onChange({ show_store_name: v })} />
-        <Toggle label="Exibir endereço" value={value.show_address ?? true} onChange={(v) => onChange({ show_address: v })} />
-        <Toggle label="Exibir CNPJ/CPF" value={value.show_document ?? true} onChange={(v) => onChange({ show_document: v })} />
-        <Toggle label="Exibir WhatsApp" value={value.show_whatsapp ?? true} onChange={(v) => onChange({ show_whatsapp: v })} />
-        <Toggle label="Exibir PIX" value={value.show_pix ?? true} onChange={(v) => onChange({ show_pix: v })} />
-        <Toggle label="Exibir Instagram" value={value.show_instagram ?? true} onChange={(v) => onChange({ show_instagram: v })} />
-        <Toggle label="Exibir mensagem de agradecimento" value={value.show_thank_message ?? true} onChange={(v) => onChange({ show_thank_message: v })} />
+        <Toggle
+          label="Negrito em títulos"
+          value={value.use_bold_titles ?? true}
+          onChange={(v) => onChange({ use_bold_titles: v })}
+        />
+        <Toggle
+          label="Fonte dupla no total"
+          value={value.use_double_total ?? true}
+          onChange={(v) => onChange({ use_double_total: v })}
+        />
+        <Toggle
+          label="Exibir nome da loja"
+          value={value.show_store_name ?? true}
+          onChange={(v) => onChange({ show_store_name: v })}
+        />
+        <Toggle
+          label="Exibir endereço"
+          value={value.show_address ?? true}
+          onChange={(v) => onChange({ show_address: v })}
+        />
+        <Toggle
+          label="Exibir CNPJ/CPF"
+          value={value.show_document ?? true}
+          onChange={(v) => onChange({ show_document: v })}
+        />
+        <Toggle
+          label="Exibir WhatsApp"
+          value={value.show_whatsapp ?? true}
+          onChange={(v) => onChange({ show_whatsapp: v })}
+        />
+        <Toggle
+          label="Exibir PIX"
+          value={value.show_pix ?? true}
+          onChange={(v) => onChange({ show_pix: v })}
+        />
+        <Toggle
+          label="Exibir Instagram"
+          value={value.show_instagram ?? true}
+          onChange={(v) => onChange({ show_instagram: v })}
+        />
+        <Toggle
+          label="Exibir mensagem de agradecimento"
+          value={value.show_thank_message ?? true}
+          onChange={(v) => onChange({ show_thank_message: v })}
+        />
       </div>
 
       {showKitchenOptions && (
@@ -168,7 +214,8 @@ export function ReceiptLayoutFields({
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            A segunda via vale apenas para a impressão automática. Reimpressões manuais geram uma via.
+            A segunda via vale apenas para a impressão automática. Reimpressões manuais geram uma
+            via.
           </p>
         </div>
       )}

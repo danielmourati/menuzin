@@ -44,10 +44,7 @@ type UpdateStatusFn = (
  * impressão automática da comanda de cozinha sempre que o pedido entra em
  * "preparo" (fluxo simplificado: clicar em Aceitar já manda para preparo).
  */
-export function useAcceptOrderWithKitchenPrint(
-  orders: Order[],
-  updateOrderStatus: UpdateStatusFn,
-) {
+export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatus: UpdateStatusFn) {
   const { isAuthenticated } = useAuth();
   const { can } = useTenantPlan();
   const navigate = useNavigate();
@@ -77,9 +74,7 @@ export function useAcceptOrderWithKitchenPrint(
     | null
     | undefined;
 
-  const kitchenPrinter = (data?.printers ?? []).find(
-    (p) => p.role === "kitchen" && p.is_active,
-  );
+  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active);
 
   const { data: printerSettings } = useQuery({
     queryKey: ["printer-settings-auto-accept"],
@@ -95,9 +90,9 @@ export function useAcceptOrderWithKitchenPrint(
   const printKitchenFor = useCallback(
     async (order: Order) => {
       if (!can("kitchenPrinter")) return;
-      
+
       const devSettings = getDeviceSettings();
-      
+
       if (!devSettings.useBluetooth && !kitchenPrinter) {
         toast.info("Pedido aceito. Configure a impressora da cozinha para impressão automática.", {
           action: {
@@ -145,9 +140,13 @@ export function useAcceptOrderWithKitchenPrint(
           },
         };
         if (err instanceof QzNotRunningError) {
-          toast.error("Pedido aceito, mas o QZ Tray não está aberto para imprimir.", { action: retry });
+          toast.error("Pedido aceito, mas o QZ Tray não está aberto para imprimir.", {
+            action: retry,
+          });
         } else {
-          toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", { action: retry });
+          toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", {
+            action: retry,
+          });
         }
       }
     },
@@ -179,7 +178,8 @@ export function useAcceptOrderWithKitchenPrint(
 
   const acceptOrder = useCallback(
     async (orderOrId: string | Order) => {
-      const order = typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
+      const order =
+        typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
       const orderId = typeof orderOrId === "string" ? orderOrId : orderOrId.id;
       await updateOrderStatus(orderId, "preparo", "Pedido aceito — iniciou preparo");
       if (order) await printKitchenFor(order);

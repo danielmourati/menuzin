@@ -62,9 +62,7 @@ export function PrintKitchenButton({
 
   if (!can("kitchenPrinter")) return null;
 
-  const kitchenPrinter = (data?.printers ?? []).find(
-    (p) => p.role === "kitchen" && p.is_active,
-  );
+  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active);
 
   const handlePrint = async () => {
     if (printing) return;
@@ -92,19 +90,20 @@ export function PrintKitchenButton({
 
       if (devSettings.useBluetooth) {
         if (!webBluetoothPrinter.isConnected()) {
-          toast.error("Impressora Bluetooth não conectada. Vá em Configurações para parear.", { id: toastId });
+          toast.error("Impressora Bluetooth não conectada. Vá em Configurações para parear.", {
+            id: toastId,
+          });
           setPrinting(false);
           return;
         }
 
         toast.loading("Enviando comanda via Bluetooth...", { id: toastId });
-        
+
         const text = buildKitchenTicketForPrinter(order, kitchenPrinter);
-        
+
         const encoder = new TextEncoder();
         await webBluetoothPrinter.print(encoder.encode(text));
         toast.success(`Comanda enviada via Bluetooth`, { id: toastId });
-
       } else {
         const status = await getQzPrinterStatus(kitchenPrinter.printer_name);
         if (!status.ok) {
@@ -127,7 +126,9 @@ export function PrintKitchenButton({
           action: { label: "Tentar novamente", onClick: () => handlePrint() },
         });
       } else {
-        toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", { id: toastId });
+        toast.error(err instanceof Error ? err.message : "Falha ao imprimir comanda", {
+          id: toastId,
+        });
       }
     } finally {
       setPrinting(false);
@@ -148,9 +149,13 @@ export function PrintKitchenButton({
       title={finalLabel}
     >
       {printing ? (
-        <Loader2 className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"} />
+        <Loader2
+          className={size === "icon" ? "h-3.5 w-3.5 animate-spin" : "mr-2 h-4 w-4 animate-spin"}
+        />
       ) : (
-        <ChefHat className={size === "icon" ? "h-3.5 w-3.5 text-warning" : "mr-2 h-4 w-4 text-warning"} />
+        <ChefHat
+          className={size === "icon" ? "h-3.5 w-3.5 text-warning" : "mr-2 h-4 w-4 text-warning"}
+        />
       )}
       {size !== "icon" && (printing ? "Imprimindo..." : finalLabel)}
     </Button>
