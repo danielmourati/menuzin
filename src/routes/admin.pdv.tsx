@@ -73,6 +73,89 @@ function PdvPage() {
   const [state, setState] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(0);
 
+  // ===== Rascunho automático (localStorage, por loja, expira em 24h) =====
+  const tenantId = (tenantData?.tenant as { id?: string } | undefined)?.id ?? null;
+  const draftKey = tenantId ? `menuzin:pdv-draft:${tenantId}` : null;
+  const [draftHydrated, setDraftHydrated] = useState(false);
+
+  useEffect(() => {
+    if (!draftKey || draftHydrated) return;
+    try {
+      const raw = window.localStorage.getItem(draftKey);
+      if (raw) {
+        const d = JSON.parse(raw);
+        const fresh = d?.v === 1 && Date.now() - Number(d.savedAt ?? 0) < 24 * 60 * 60 * 1000;
+        if (fresh && (d.cart?.length || d.customerName)) {
+          setCart(d.cart ?? []);
+          setCustomerName(d.customerName ?? "");
+          setWhatsapp(d.whatsapp ?? "");
+          setMode(d.mode ?? "balcao");
+          setTableLabel(d.tableLabel ?? "");
+          setOrderNote(d.orderNote ?? "");
+          setPaymentStatus(d.paymentStatus ?? "approved");
+          setPaymentLabel(d.paymentLabel ?? "Dinheiro");
+          setCep(d.cep ?? "");
+          setStreet(d.street ?? "");
+          setNumber(d.number ?? "");
+          setNeighborhood(d.neighborhood ?? "");
+          setComplement(d.complement ?? "");
+          setReference(d.reference ?? "");
+          setCity(d.city ?? "");
+          setState(d.state ?? "");
+          setDeliveryFee(Number(d.deliveryFee ?? 0));
+          toast.info("Pedido em andamento restaurado");
+        } else if (!fresh) {
+          window.localStorage.removeItem(draftKey);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    setDraftHydrated(true);
+  }, [draftKey, draftHydrated]);
+
+  useEffect(() => {
+    if (!draftKey || !draftHydrated) return;
+    const t = setTimeout(() => {
+      try {
+        if (cart.length === 0 && !customerName) {
+          window.localStorage.removeItem(draftKey);
+          return;
+        }
+        window.localStorage.setItem(draftKey, JSON.stringify({
+          v: 1, savedAt: Date.now(), cart, customerName, whatsapp, mode, tableLabel, orderNote,
+          paymentStatus, paymentLabel, cep, street, number, neighborhood, complement, reference,
+          city, state, deliveryFee,
+        }));
+      } catch {
+        /* ignore */
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [draftKey, draftHydrated, cart, customerName, whatsapp, mode, tableLabel, orderNote,
+    paymentStatus, paymentLabel, cep, street, number, neighborhood, complement, reference,
+    city, state, deliveryFee]);
+
+  const resetDraft = () => {
+    setCart([]);
+    setCustomerName("");
+    setWhatsapp("");
+    setTableLabel("");
+    setOrderNote("");
+    setCep("");
+    setStreet("");
+    setNumber("");
+    setNeighborhood("");
+    setComplement("");
+    setReference("");
+    setDeliveryFee(0);
+    try {
+      if (draftKey) window.localStorage.removeItem(draftKey);
+    } catch {
+      /* ignore */
+    }
+  };
+
   // Dynamic CEP search
   useEffect(() => {
     const digits = cep.replace(/\D/g, "");
@@ -196,18 +279,7 @@ function PdvPage() {
     },
     onSuccess: async (data) => {
       toast.success(`Pedido #${data.displayId} lançado com sucesso!`);
-      setCart([]);
-      setCustomerName("");
-      setWhatsapp("");
-      setTableLabel("");
-      setOrderNote("");
-      setCep("");
-      setStreet("");
-      setNumber("");
-      setNeighborhood("");
-      setComplement("");
-      setReference("");
-      setDeliveryFee(0);
+      resetDraft();
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -282,8 +354,21 @@ function PdvPage() {
 
         {/* Lado Direito: Carrinho / Resumo */}
         <div id="pdv-comanda" className="flex flex-col lg:h-full bg-background border rounded-xl overflow-hidden shadow-sm scroll-mt-4">
-          <div className="p-4 border-b bg-muted/30">
+          <div className="p-4 border-b bg-muted/30 flex items-center justify-between gap-2">
             <h2 className="font-semibold flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Comanda Atual</h2>
+            {(cart.length > 0 || customerName) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-destructive"
+                onClick={() => {
+                  if (window.confirm("Descartar a comanda atual?")) resetDraft();
+                }}
+              >
+                Limpar comanda
+              </Button>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 max-h-[50vh] lg:max-h-none">
