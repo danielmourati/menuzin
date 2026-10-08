@@ -43,20 +43,25 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
   const error = rawError as Error;
   console.error(error);
   const router = useRouter();
+  const queryClient = useQueryClient();
   useEffect(() => {
     // Após atualização do app, abas abertas podem chamar funções antigas do servidor
-    // ("Invalid server function ID" / 500). Recarrega uma vez para pegar a versão nova.
+    // ("Invalid server function ID" / 500). Limpa o cache e recarrega para pegar a versão nova.
     const msg = String(error?.message ?? "");
-    const stale = /Invalid server function ID|server function info not found|Failed to fetch dynamically imported module|500/i.test(msg);
+    const stale =
+      /Invalid server function ID|server function info not found|Failed to fetch dynamically imported module|The app returned 500 while handling (?:GET|POST) \/_serverFn\//i.test(
+        msg,
+      );
     const KEY = "menuzin:stale-reload";
     const last = Number(sessionStorage.getItem(KEY) || 0);
     if (stale && Date.now() - last > 30_000) {
       sessionStorage.setItem(KEY, String(Date.now()));
+      queryClient.clear();
       window.location.reload();
       return;
     }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+  }, [error, queryClient]);
   const isConfigError = /Missing Supabase environment variable/i.test(error?.message ?? "");
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -68,7 +73,14 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
             : "Tente recarregar a página."}
         </p>
         <div className="mt-6 flex justify-center gap-2">
-          <button onClick={() => { router.invalidate(); reset(); }} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+          <button
+            onClick={() => {
+              queryClient.clear();
+              void router.invalidate();
+              reset();
+            }}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
             Tentar novamente
           </button>
           <Link to="/" className="rounded-md border px-4 py-2 text-sm font-medium">
