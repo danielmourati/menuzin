@@ -215,7 +215,6 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       setAdvancedOpen(false);
       void detect(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const selected = useMemo(
