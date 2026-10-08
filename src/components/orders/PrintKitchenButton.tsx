@@ -8,14 +8,12 @@ import { useNavigate } from "@tanstack/react-router";
 import type { Order } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import { printKitchenTicket } from "@/lib/print-kitchen";
+import { buildKitchenTicketForPrinter, printKitchenTicket } from "@/lib/print-kitchen";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
-import { buildKitchenTicket } from "@/lib/kitchen-ticket";
 import { getQzPrinterStatus, QzNotRunningError, QzPrintTimeoutError } from "@/lib/qz-tray";
-import { columnsFor } from "@/lib/printer-types";
 
 interface PrintKitchenButtonProps {
   order: Order;
@@ -101,9 +99,7 @@ export function PrintKitchenButton({
 
         toast.loading("Enviando comanda via Bluetooth...", { id: toastId });
         
-        // Bluetooth type -> force 55mm as requested by user
-        const cols = columnsFor("55mm", "normal", "mono");
-        const text = buildKitchenTicket(order, cols);
+        const text = buildKitchenTicketForPrinter(order, kitchenPrinter);
         
         const encoder = new TextEncoder();
         await webBluetoothPrinter.print(encoder.encode(text));

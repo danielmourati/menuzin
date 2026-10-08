@@ -6,10 +6,19 @@ import { DEFAULT_PRINTER_SETTINGS, type PrinterSettings } from "@/lib/printer-ty
 import { printQzReceipt } from "@/lib/qz-tray";
 import type { TenantPrinter } from "@/lib/tenant-printers.functions";
 
+export function buildKitchenTicketForPrinter(order: Order, printer: TenantPrinter): string {
+  const ov = printer.layout_overrides ?? null;
+  const fontSize = ov?.font_size ?? printer.font_size;
+  const fontFamily = ov?.font_family ?? printer.font_family;
+  const cols = kitchenColumnsFor(printer.paper_width, fontSize, fontFamily);
+  return buildKitchenTicket(order, cols, { doubleBody: ov?.double_kitchen_font === true });
+}
+
 export async function printKitchenTicket(
   order: Order,
   printer: TenantPrinter,
   storeInfo?: ReceiptStoreInfo,
+  options?: { automaticNewOrder?: boolean },
 ): Promise<{ printer: string }> {
   const ov = printer.layout_overrides ?? null;
   const fontSize = ov?.font_size ?? printer.font_size;
@@ -42,11 +51,14 @@ export async function printKitchenTicket(
     };
     text = buildReceipt(order, cols, settings, storeInfo ?? {});
   } else {
-    text = buildKitchenTicket(order, cols);
+    text = buildKitchenTicketForPrinter(order, printer);
   }
+
+  const copies = options?.automaticNewOrder && ov?.duplicate_new_order ? 2 : 1;
 
   return printQzReceipt(printer.printer_name, text, {
     feedLines: ov?.feed_lines ?? 4,
     cutType: ov?.cut_type ?? "partial",
+    copies,
   });
 }

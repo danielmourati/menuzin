@@ -3,7 +3,7 @@
 // Foco: informação operacional para preparo, com fonte ampliada nos itens
 // para leitura rápida de longe pela cozinha.
 
-import { formatDateTime, modeLabel } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
 import { formatScheduledShort } from "@/lib/scheduling";
@@ -29,16 +29,26 @@ export function kitchenColumnsFor(
 // - GS ! n        (\x1d!n)       : char size; high nibble = altura, low = largura
 //   0x00 = normal · 0x11 = 2x largura+altura · 0x01 = só 2x largura
 const ESC_INIT = "\x1b@";
-const ESC_BIG = "\x1d!\x00"; // fonte normal (reduzida 50% vs. 2x)
+const ESC_BIG = "\x1d!\x11";
 const ESC_NORMAL = "\x1d!\x00";
 
-export function buildKitchenTicket(order: Order, cols: number): string {
+const KITCHEN_MODE_TITLE: Record<Order["mode"], string> = {
+  entrega: "DELIVERY",
+  retirada: "RETIRADA",
+  consumo_local: "CONSUMO",
+};
+
+export function buildKitchenTicket(
+  order: Order,
+  cols: number,
+  options?: { doubleBody?: boolean },
+): string {
   const sep = lineOf("=", cols);
   const sepThin = lineOf("-", cols);
-  // Fonte normal: usa a largura total do papel.
-  const bigCols = cols;
-  const bigSep = sep;
-  const bigSepThin = sepThin;
+  const bigCols = Math.max(12, Math.floor(cols / 2));
+  const bodyCols = options?.doubleBody ? bigCols : cols;
+  const bigSep = lineOf("=", bigCols);
+  const bodySepThin = lineOf("-", bodyCols);
 
   const out: string[] = [];
 
@@ -47,12 +57,10 @@ export function buildKitchenTicket(order: Order, cols: number): string {
 
   // ── CABEÇALHO (fonte grande) ─────────────────────────────
   out.push(ESC_BIG);
-  out.push(center(`COZINHA`, bigCols));
+  out.push(center(KITCHEN_MODE_TITLE[order.mode], bigCols));
   out.push(center(`PEDIDO #${order.number}`, bigCols));
   out.push(bigSep);
 
-  const mode = stripAccents(modeLabel[order.mode] ?? order.mode).toUpperCase();
-  out.push(center(mode, bigCols));
   if (order.scheduledFor) out.push(center(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols));
 
   if (order.mode === "consumo_local" && order.table) {
@@ -60,12 +68,14 @@ export function buildKitchenTicket(order: Order, cols: number): string {
   } else if (order.customerName) {
     wrap(stripAccents(order.customerName), bigCols).forEach((l) => out.push(center(l, bigCols)));
   }
-  out.push(bigSepThin);
+  out.push(bodySepThin);
+
+  if (!options?.doubleBody) out.push(ESC_NORMAL);
 
   // ── ITENS (fonte grande) ──────────────────────────────────
   for (const item of order.items) {
     const head = `${item.qty}x ${stripAccents(item.name).toUpperCase()}`;
-    wrap(head, bigCols).forEach((l) => out.push(l));
+    wrap(head, bodyCols).forEach((l) => out.push(l));
 
     const sizes: string[] = [];
     const flavors: string[] = [];
@@ -83,13 +93,13 @@ export function buildKitchenTicket(order: Order, cols: number): string {
       } else extras.push(label);
     }
 
-    if (sizes.length) wrap(` Tam: ${sizes.join(", ")}`, bigCols).forEach((l) => out.push(l));
-    if (flavors.length) wrap(` Sabores: ${flavors.join(" + ")}`, bigCols).forEach((l) => out.push(l));
+    if (sizes.length) wrap(` Tam: ${sizes.join(", ")}`, bodyCols).forEach((l) => out.push(l));
+    if (flavors.length) wrap(` Sabores: ${flavors.join(" + ")}`, bodyCols).forEach((l) => out.push(l));
     for (const [g, opts] of Object.entries(groups)) {
-      wrap(` ${g}: ${opts.join(", ")}`, bigCols).forEach((l) => out.push(l));
+      wrap(` ${g}: ${opts.join(", ")}`, bodyCols).forEach((l) => out.push(l));
     }
-    if (extras.length) wrap(` + ${extras.join(", ")}`, bigCols).forEach((l) => out.push(l));
-    if (item.note) wrap(` >> OBS: ${stripAccents(item.note).toUpperCase()}`, bigCols).forEach((l) => out.push(l));
+    if (extras.length) wrap(` + ${extras.join(", ")}`, bodyCols).forEach((l) => out.push(l));
+    if (item.note) wrap(` >> OBS: ${stripAccents(item.note).toUpperCase()}`, bodyCols).forEach((l) => out.push(l));
 
     out.push("");
   }

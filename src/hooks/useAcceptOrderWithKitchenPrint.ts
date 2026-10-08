@@ -11,14 +11,13 @@ import type { Order, OrderStatus } from "@/lib/domain-types";
 import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
-import { printKitchenTicket } from "@/lib/print-kitchen";
+import { buildKitchenTicketForPrinter, printKitchenTicket } from "@/lib/print-kitchen";
 import { QzNotRunningError } from "@/lib/qz-tray";
 import { useAuth } from "@/lib/auth-context";
 import { useTenantPlan } from "@/lib/plan-features";
 import { getDeviceSettings } from "@/lib/device-printer";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
 import { buildKitchenTicket } from "@/lib/kitchen-ticket";
-import { columnsFor } from "@/lib/printer-types";
 
 export function isOnlinePaymentOrder(order: { payment?: string | null }): boolean {
   if (!order?.payment) return false;
@@ -114,10 +113,14 @@ export function useAcceptOrderWithKitchenPrint(
             toast.error("Impressão automática falhou: Bluetooth não conectado.");
             return;
           }
-          const cols = columnsFor("55mm", "normal", "mono");
-          const text = buildKitchenTicket(order, cols);
+          const text = kitchenPrinter
+            ? buildKitchenTicketForPrinter(order, kitchenPrinter)
+            : buildKitchenTicket(order, 32);
           const encoder = new TextEncoder();
-          await webBluetoothPrinter.print(encoder.encode(text));
+          const copies = kitchenPrinter?.layout_overrides?.duplicate_new_order ? 2 : 1;
+          for (let copy = 0; copy < copies; copy += 1) {
+            await webBluetoothPrinter.print(encoder.encode(text));
+          }
           toast.success(`Comanda impressa automaticamente via Bluetooth`);
         } else {
           if (!kitchenPrinter) return;
@@ -129,7 +132,9 @@ export function useAcceptOrderWithKitchenPrint(
             storePixKey: tenant?.social?.pix,
             storeCnpj: tenant?.social?.cnpj,
           };
-          const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo);
+          const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo, {
+            automaticNewOrder: true,
+          });
           toast.success(`Comanda enviada automaticamente para ${printer}`);
         }
       } catch (err) {

@@ -25,6 +25,8 @@ export type PrinterLayoutOverrides = {
   show_thank_message?: boolean;
   thank_message?: string;
   full_kitchen_receipt?: boolean;
+  double_kitchen_font?: boolean;
+  duplicate_new_order?: boolean;
 };
 
 export type TenantPrinter = {
@@ -59,6 +61,8 @@ const LayoutOverridesSchema = z
     show_thank_message: z.boolean().optional(),
     thank_message: z.string().max(120).optional(),
     full_kitchen_receipt: z.boolean().optional(),
+    double_kitchen_font: z.boolean().optional(),
+    duplicate_new_order: z.boolean().optional(),
   })
   .nullable()
   .optional();

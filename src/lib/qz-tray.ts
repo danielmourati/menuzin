@@ -337,7 +337,7 @@ export async function printQzTextTest(
 export async function printQzReceipt(
   printerName: string | undefined,
   text: string,
-  opts?: { feedLines?: number; cutType?: "none" | "partial" | "full" },
+  opts?: { feedLines?: number; cutType?: "none" | "partial" | "full"; copies?: number },
 ): Promise<{ printer: string }> {
   return withQzRetry(async (qz) => {
     let target = printerName?.trim();
@@ -354,10 +354,11 @@ export async function printQzReceipt(
     const cut = getCutSequence(opts?.cutType);
 
     const payload = text + "\n".repeat(feed) + cut;
+    const copies = Math.max(1, Math.min(2, Math.trunc(opts?.copies ?? 1)));
     const config = qz.configs.create(target, { encoding: "CP860" });
     await withTimeout(
-      qz.print(config, [payload]),
-      15_000,
+      qz.print(config, Array.from({ length: copies }, () => payload)),
+      copies > 1 ? 30_000 : 15_000,
       new QzPrintTimeoutError(),
     );
     return { printer: target };

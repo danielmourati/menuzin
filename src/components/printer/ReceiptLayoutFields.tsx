@@ -27,6 +27,8 @@ export type ReceiptLayoutValues = {
   show_instagram?: boolean;
   show_thank_message?: boolean;
   thank_message?: string;
+  double_kitchen_font?: boolean;
+  duplicate_new_order?: boolean;
 };
 
 function Toggle({
@@ -51,12 +53,15 @@ export interface ReceiptLayoutFieldsProps {
   onChange: (patch: ReceiptLayoutValues) => void;
   /** Desabilita fonte/tamanho (quando a tipografia padrão do sistema está ativa). */
   typographyDisabled?: boolean;
+  /** Exibe opções exclusivas das comandas de produção. */
+  showKitchenOptions?: boolean;
 }
 
 export function ReceiptLayoutFields({
   value,
   onChange,
   typographyDisabled = false,
+  showKitchenOptions = false,
 }: ReceiptLayoutFieldsProps) {
   return (
     <div className="space-y-4">
@@ -146,6 +151,27 @@ export function ReceiptLayoutFields({
         <Toggle label="Exibir Instagram" value={value.show_instagram ?? true} onChange={(v) => onChange({ show_instagram: v })} />
         <Toggle label="Exibir mensagem de agradecimento" value={value.show_thank_message ?? true} onChange={(v) => onChange({ show_thank_message: v })} />
       </div>
+
+      {showKitchenOptions && (
+        <div className="space-y-2 border-t pt-4">
+          <p className="text-xs font-medium text-muted-foreground">Comanda de produção</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            <Toggle
+              label="Fonte dupla na comanda"
+              value={value.double_kitchen_font ?? false}
+              onChange={(v) => onChange({ double_kitchen_font: v })}
+            />
+            <Toggle
+              label="Imprimir duas vias do novo pedido"
+              value={value.duplicate_new_order ?? false}
+              onChange={(v) => onChange({ duplicate_new_order: v })}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            A segunda via vale apenas para a impressão automática. Reimpressões manuais geram uma via.
+          </p>
+        </div>
+      )}
 
       {(value.show_thank_message ?? true) && (
         <div>

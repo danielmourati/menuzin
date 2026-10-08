@@ -112,6 +112,8 @@ const DEFAULT_OVERRIDES: PrinterLayoutOverrides = {
   show_thank_message: false,
   thank_message: "",
   full_kitchen_receipt: false,
+  double_kitchen_font: false,
+  duplicate_new_order: false,
 };
 
 function fromTenantPrinter(p: TenantPrinter): ExtraDraft {
@@ -499,6 +501,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
               {selected.layout_overrides && (
                 <ReceiptLayoutFields
                   value={selected.layout_overrides}
+                  showKitchenOptions
                   onChange={(patch) =>
                     updateDraft({
                       layout_overrides: { ...selected.layout_overrides, ...patch },
