@@ -218,6 +218,10 @@ export const createOrder = createServerFn({ method: "POST" })
       note: "Pedido criado pelo cliente.",
       changed_by_name: "Sistema",
     });
+    {
+      const { signalNewOrder } = await import("@/lib/order-signal.server");
+      await signalNewOrder(tenant.id, order.id);
+    }
 
     // Universal customer profile (no account): store name/phone/last address.
     let customer: { id: string; phone: string; token: string } | null = null;

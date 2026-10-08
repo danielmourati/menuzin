@@ -89,21 +89,42 @@ export async function unlockNotificationAudio(): Promise<boolean> {
   return unlocked;
 }
 
+let _audioBlocked = false;
+const _stateListeners = new Set<() => void>();
+function setBlocked(v: boolean) {
+  if (_audioBlocked === v) return;
+  _audioBlocked = v;
+  _stateListeners.forEach((l) => l());
+}
+export function getAudioState(): "active" | "blocked" {
+  return _audioBlocked ? "blocked" : "active";
+}
+export function subscribeAudioState(l: () => void) {
+  _stateListeners.add(l);
+  return () => {
+    _stateListeners.delete(l);
+  };
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("timeout")), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
+
+// Listeners permanentes: a cada toque, reabre o áudio se o navegador voltou a bloquear.
 export function unlockAudioOnFirstGesture() {
-  if (typeof window === "undefined" || _audioUnlocked || _unlockListenersAttached) return;
+  if (typeof window === "undefined" || _unlockListenersAttached) return;
   const unlock = () => {
-    void unlockNotificationAudio().then((ok) => {
-      if (!ok) return;
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-      window.removeEventListener("touchstart", unlock);
-      _unlockListenersAttached = false;
-    });
+    const ctxState = _audioContext?.state as string | undefined;
+    if (_audioUnlocked && !_audioBlocked && (ctxState === undefined || ctxState === "running")) return;
+    void unlockNotificationAudio().then((ok) => { if (ok) setBlocked(false); });
   };
   _unlockListenersAttached = true;
-  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("pointerdown", unlock, { passive: true });
   window.addEventListener("keydown", unlock);
-  window.addEventListener("touchstart", unlock);
+  window.addEventListener("touchstart", unlock, { passive: true });
 }
 
 function playGeneratedChime(context: AudioContext) {
@@ -124,31 +145,42 @@ function playGeneratedChime(context: AudioContext) {
   });
 }
 
+async function tryChime(): Promise<boolean> {
+  const context = getAudioContext();
+  if (!context) return false;
+  if (context.state !== "running") {
+    try { await withTimeout(context.resume(), 2000); } catch { return false; }
+  }
+  if (context.state !== "running") return false;
+  playGeneratedChime(context);
+  return true;
+}
+
+async function tryFile(): Promise<boolean> {
+  const audio = getAlertAudio();
+  if (!audio) return false;
+  try {
+    audio.currentTime = 0;
+    await withTimeout(audio.play(), 2000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function playNotificationSound() {
   const play = async () => {
-    // Quando o admin enviou um som customizado, sempre tocamos esse arquivo.
-    if (!_overrideUrl) {
-      const context = getAudioContext();
-      if (context) {
-        if (context.state === "suspended") await context.resume();
-        if (context.state === "running") {
-          playGeneratedChime(context);
-          _audioUnlocked = true;
-          return;
-        }
-      }
-    }
-
-    const audio = getAlertAudio();
-    if (!audio) return;
-    audio.currentTime = 0;
-    await audio.play();
+    // Som do arquivo primeiro (quando configurado); se travar, usa o som gerado.
+    const ok = _overrideUrl ? (await tryFile()) || (await tryChime()) : (await tryChime()) || (await tryFile());
+    if (!ok) throw new Error("áudio bloqueado");
     _audioUnlocked = true;
+    setBlocked(false);
   };
 
   return play().catch((e) => {
     // Não guarda para tocar depois: o som perdido é descartado.
     console.warn("Falha ao tocar alerta sonoro de novo pedido:", e);
+    setBlocked(true);
     void import("sonner").then(({ toast }) =>
       toast.warning("Novo pedido! Toque na tela para ativar o som dos avisos.", { id: "audio-blocked" }),
     );
