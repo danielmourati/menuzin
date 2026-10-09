@@ -88,7 +88,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           "- Quando a ferramenta devolver ready=true, diga ao cliente para conferir o resumo que apareceu na tela e tocar em 'Confirmar pedido'. Você NÃO confirma pedidos; só o cliente confirma pelo botão.",
           "- Sugira no máximo um adicional ou bebida por conversa, sem insistir.",
           "- Não fale de assuntos fora da loja e do pedido.",
-          `Loja: ${t.name}. Endereço: ${[t.address, t.address_number, t.neighborhood, t.city].filter(Boolean).join(", ") || "não informado"}. Aberta agora: ${t.is_open === false ? "não" : "sim"}.`,
+          `Loja: ${t.name}. Endereço: ${[t.address, t.address_number, t.neighborhood, t.city].filter(Boolean).join(", ") || "não informado"}. Aberta agora: ${t.open === false ? "não" : "sim"}.`,
           `Tempo de entrega: ${t.delivery_time_min && t.delivery_time_max ? `${t.delivery_time_min}–${t.delivery_time_max} min` : "consulte a loja"}.`,
           ctx.coupons.length
             ? `CUPONS VÁLIDOS: ${ctx.coupons.map((c) => `${c.code} (${c.discount_type === "percent" ? `${c.discount_value}%` : `R$ ${c.discount_value}`}${c.min_order_total ? `, mínimo R$ ${c.min_order_total}` : ""})`).join("; ")}`
