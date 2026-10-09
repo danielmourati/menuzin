@@ -26,6 +26,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
+import { ChangePaymentDialog } from "./ChangePaymentDialog";
 
 interface OrderDetailsDrawerProps {
   order: Order | null;
@@ -48,6 +49,9 @@ export function OrderDetailsDrawer({
   const { data: tenantData } = useQuery({ queryKey: ["my-tenant"], queryFn: () => getMyTenant(), staleTime: 60_000 });
   const paperWidth = ((tenantData?.tenant as { pos_paper_width?: string } | null)?.pos_paper_width === "55mm" ? "55mm" : "80mm") as "55mm" | "80mm";
   const [copied, setCopied] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  const ps = (tenantData as { paymentSettings?: { cash_accepts_100?: boolean; cash_accepts_200?: boolean } } | undefined)?.paymentSettings;
+  const billRules = { accepts100: ps?.cash_accepts_100 ?? true, accepts200: ps?.cash_accepts_200 ?? true };
 
   if (!order) return null;
 
@@ -196,7 +200,16 @@ export function OrderDetailsDrawer({
                       </span>
                     </div>
                     <CashChangeBadge order={order} />
+                    {order.status !== "cancelado" && order.paymentStatus !== "approved" && (
+                      <Button size="sm" variant="outline" className="mt-2 h-8 w-full text-xs" onClick={() => setPayOpen(true)}>
+                        Alterar forma de pagamento
+                      </Button>
+                    )}
+                    {order.paymentStatus === "approved" && (
+                      <p className="pt-1 text-[11px]">Pago — forma de pagamento não pode ser alterada.</p>
+                    )}
                   </div>
+                  <ChangePaymentDialog open={payOpen} onOpenChange={setPayOpen} orderId={order.id} total={order.total} rules={billRules} />
                 </div>
               </div>
             </div>
