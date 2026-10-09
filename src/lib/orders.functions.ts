@@ -377,6 +377,66 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const OFFLINE_PAYMENT_LABELS = {
+  dinheiro: "Pagar na entrega · Dinheiro em Espécie",
+  credito: "Pagar na entrega · Maquininha (Crédito)",
+  debito: "Pagar na entrega · Maquininha (Débito)",
+  pix_manual: "Pix manual (chave da loja)",
+} as const;
+
+export const updateOrderPaymentMethod = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      order_id: z.string().uuid(),
+      method: z.enum(["dinheiro", "credito", "debito", "pix_manual"]),
+      change_for: z.number().min(0).max(99999).nullable().optional(),
+      no_change: z.boolean().optional(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    // RLS restricts to tenant staff
+    const { data: o } = await supabase.from("orders")
+      .select("id, tenant_id, status, total, payment_label, payment_status, mp_payment_id")
+      .eq("id", data.order_id).maybeSingle();
+    if (!o) throw new Error("Pedido não encontrado.");
+    if (o.status === "cancelado") throw new Error("Pedido cancelado não pode ter o pagamento alterado.");
+    if (o.mp_payment_id && o.payment_status === "approved") throw new Error("Pedido já pago online pelo Mercado Pago — não é possível alterar.");
+    const { data: allowed } = await supabase.rpc("has_tenant_role", {
+      _user_id: userId, _tenant_id: o.tenant_id, _roles: ["owner", "admin", "staff"],
+    });
+    if (!allowed) throw new Error("Acesso negado.");
+
+    const total = Number(o.total);
+    let change_for: number | null = null;
+    let no_change = false;
+    if (data.method === "dinheiro") {
+      const { isPaymentAllowed } = await import("@/lib/cash-change");
+      const { data: ps } = await supabase.from("store_payment_settings")
+        .select("cash_accepts_100, cash_accepts_200").eq("tenant_id", o.tenant_id).maybeSingle();
+      const rules = { accepts100: ps?.cash_accepts_100 ?? true, accepts200: ps?.cash_accepts_200 ?? true };
+      if (data.no_change || !data.change_for) { no_change = true; change_for = total; }
+      else {
+        if (!isPaymentAllowed(total, data.change_for, rules)) throw new Error("Valor de troco inválido para esta loja.");
+        change_for = data.change_for;
+      }
+    }
+    const label = OFFLINE_PAYMENT_LABELS[data.method];
+    const { error } = await supabase.from("orders").update({
+      payment_label: label, change_for, no_change,
+      payment_status: o.payment_status === "approved" ? "approved" : "manual",
+    } as never).eq("id", o.id);
+    if (error) throw new Error(error.message);
+    const { data: prof } = await supabase.from("profiles").select("full_name, email").eq("id", userId).maybeSingle();
+    await supabase.from("order_status_history").insert({
+      order_id: o.id, previous_status: o.status, new_status: o.status, changed_by: userId,
+      changed_by_name: prof?.full_name || prof?.email || null,
+      note: `Pagamento alterado de "${o.payment_label || "—"}" para "${label}"`,
+    });
+    return { ok: true, payment_label: label };
+  });
+
 const ManualOrderInput = z.object({
   customer_name: z.string().min(1).max(120),
   whatsapp: z.string().max(20).optional().nullable(),
