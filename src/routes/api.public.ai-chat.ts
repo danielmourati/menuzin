@@ -145,7 +145,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
                   ready: priced.ready, missing: priced.missing, errors: priced.errors,
                   lines: priced.lines.map((l) => ({ name: l.name, qty: l.qty, details: l.details, line_total: l.line_total })),
                   subtotal: priced.subtotal, discount: priced.discount, delivery_fee: priced.delivery_fee,
-                  total: priced.total, change_back: priced.change_back,
+                  total: priced.total, change_back: priced.change_back, address: draft.address,
                 };
               },
             }),
