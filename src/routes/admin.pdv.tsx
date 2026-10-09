@@ -59,9 +59,9 @@ function PdvPage() {
       const needs = requiresCustomization(p, { categoryKind: kind, groups });
       const base = { productId: p.id, categoryId: p.category_id, categoryName: c?.name ?? "Sem categoria", needsChoice: needs };
       const sizes = (p as { sizes?: { id: string; name: string; price: number }[] }).sizes ?? [];
-      const code = p.id.slice(0, 4);
+      const code = p.id.slice(-4);
       if (sizes.length > 0 && kind !== "pizza" && p.type !== "pizza") {
-        for (const s of sizes) rows.push({ ...base, key: `${p.id}:${s.id}`, code: s.id.slice(0, 4), name: `${p.name} (${s.name})`, price: Number(s.price), sizeId: s.id });
+        for (const s of sizes) rows.push({ ...base, key: `${p.id}:${s.id}`, code: s.id.slice(-4), name: `${p.name} (${s.name})`, price: Number(s.price), sizeId: s.id });
       } else {
         rows.push({ ...base, key: p.id, code, name: p.name, price: Number(p.promo_price ?? p.price) });
       }
