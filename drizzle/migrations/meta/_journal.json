@@ -85,6 +85,13 @@
       "when": 1791507657557,
       "tag": "0011_cash_change_and_register",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791509360499,
+      "tag": "0012_driver_fee_settlements",
+      "breakpoints": true
     }
   ]
 }

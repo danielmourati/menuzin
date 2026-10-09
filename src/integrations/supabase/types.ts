@@ -119,6 +119,9 @@ export type Database = {
           driver_id: string | null
           driver_name: string | null
           id: string
+          kind: string
+          movement_id: string | null
+          payment_method: string | null
           session_id: string
           settled_at: string
           settled_by: string | null
@@ -129,6 +132,9 @@ export type Database = {
           driver_id?: string | null
           driver_name?: string | null
           id?: string
+          kind?: string
+          movement_id?: string | null
+          payment_method?: string | null
           session_id: string
           settled_at?: string
           settled_by?: string | null
@@ -139,12 +145,22 @@ export type Database = {
           driver_id?: string | null
           driver_name?: string | null
           id?: string
+          kind?: string
+          movement_id?: string | null
+          payment_method?: string | null
           session_id?: string
           settled_at?: string
           settled_by?: string | null
           tenant_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cash_driver_settlements_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "cash_movements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cash_driver_settlements_session_id_fkey"
             columns: ["session_id"]
