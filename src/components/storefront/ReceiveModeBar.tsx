@@ -157,7 +157,7 @@ function DeliveryCalcDialog({ open, onOpenChange, tenant }: { open: boolean; onO
       }
       const a = r.results[0];
       const res = await resolveDeliveryFee({
-        data: { tenant_slug: slug, cep: d, neighborhood: a.bairro, street: a.logradouro, number: "1", city: a.localidade, state: a.uf },
+        data: { tenant_slug: slug, cep: d, neighborhood: a.bairro, street: a.logradouro, city: a.localidade, state: a.uf },
       });
       if (!res.available) {
         setMsg(res.message || "Não entregamos neste endereço.");
