@@ -165,3 +165,113 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
       text: ((r.parts as any[]) ?? []).filter((p) => p?.type === "text").map((p) => p.text).join("\n"),
     }));
   });
+
+// ---------- Atalhos (mensagens rápidas) ----------
+export const DEFAULT_QUICK_REPLIES = ["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"];
+
+export const listMyQuickReplies = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const tenantId = await tenantFor(context);
+    const { data, error } = await context.supabase.from("ai_quick_replies")
+      .select("id, label, message, active, sort_order").eq("tenant_id", tenantId).order("sort_order");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as { id: string; label: string; message: string; active: boolean; sort_order: number }[];
+  });
+
+export const saveMyQuickReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    id: z.string().uuid().nullable(),
+    label: z.string().trim().min(1).max(80),
+    message: z.string().trim().max(80),
+    active: z.boolean(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    const { data: all } = await context.supabase.from("ai_quick_replies").select("id, active, sort_order").eq("tenant_id", tenantId);
+    const activeOthers = (all ?? []).filter((r: any) => r.active && r.id !== data.id).length;
+    if (data.active && activeOthers >= 8) throw new Error("Máximo de 8 atalhos ativos.");
+    if (data.id) {
+      const { error } = await context.supabase.from("ai_quick_replies")
+        .update({ label: data.label, message: data.message, active: data.active }).eq("id", data.id).eq("tenant_id", tenantId);
+      if (error) throw new Error(error.message);
+    } else {
+      const max = Math.max(-1, ...(all ?? []).map((r: any) => r.sort_order));
+      const { error } = await context.supabase.from("ai_quick_replies")
+        .insert({ tenant_id: tenantId, label: data.label, message: data.message, active: data.active, sort_order: max + 1 });
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+export const deleteMyQuickReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    const { error } = await context.supabase.from("ai_quick_replies").delete().eq("id", data.id).eq("tenant_id", tenantId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const reorderMyQuickReplies = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ ids: z.array(z.string().uuid()).max(50) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    for (let i = 0; i < data.ids.length; i++) {
+      const { error } = await context.supabase.from("ai_quick_replies").update({ sort_order: i }).eq("id", data.ids[i]).eq("tenant_id", tenantId);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+// ---------- Atendente humano ----------
+export const requestHumanHandoff = createServerFn({ method: "POST" })
+  .inputValidator((d) => ConvInput.parse(d))
+  .handler(async ({ data }) => {
+    const { getConversation, notifyHandoff } = await import("@/lib/ai-agent.server");
+    const conv = await getConversation(data.id, data.accessKey);
+    if (!conv || conv.status !== "open") throw new Error("Conversa indisponível.");
+    if ((conv as any).handoff_status === "requested" || (conv as any).handoff_status === "human") return { ok: true };
+    await notifyHandoff(conv.id, conv.tenant_id);
+    return { ok: true };
+  });
+
+export const listMyHandoffCount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const tenantId = await tenantFor(context);
+    const { data } = await supabaseAdmin.from("ai_conversations")
+      .select("id, customer_name, handoff_requested_at").eq("tenant_id", tenantId).eq("status", "open")
+      .eq("handoff_status", "requested").order("handoff_requested_at", { ascending: false }).limit(20);
+    return data ?? [];
+  });
+
+export const sendStaffReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), text: z.string().trim().min(1).max(1000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    const { data: conv } = await supabaseAdmin.from("ai_conversations").select("id, status").eq("id", data.id).eq("tenant_id", tenantId).maybeSingle();
+    if (!conv) throw new Error("Conversa não encontrada");
+    const { error } = await supabaseAdmin.from("ai_messages").insert({
+      conversation_id: conv.id, ai_message_id: `staff-${crypto.randomUUID()}`, role: "assistant",
+      parts: [{ type: "text", text: data.text }, { type: "data-staff", data: { by: "loja" } }] as never,
+    });
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("ai_conversations").update({ handoff_status: "human", updated_at: new Date().toISOString() }).eq("id", conv.id);
+    return { ok: true };
+  });
+
+export const setHandoffStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), status: z.enum(["none", "human", "closed"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    const { error } = await supabaseAdmin.from("ai_conversations")
+      .update({ handoff_status: data.status, updated_at: new Date().toISOString() }).eq("id", data.id).eq("tenant_id", tenantId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
