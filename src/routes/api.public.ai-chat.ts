@@ -31,6 +31,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         const conv = await srv.getConversation(conversationId, accessKey);
         if (!conv) return json(404, { error: "Conversa não encontrada." });
         if (conv.status !== "open") return json(409, { error: "Esta conversa já virou pedido. Inicie uma nova." });
+        if ((conv as any).handoff_status === "closed") return json(409, { error: "A loja encerrou este atendimento. Inicie uma nova conversa." });
         if (conv.message_count >= MAX_MESSAGES_PER_CONVERSATION) {
           return json(429, { error: "Limite de mensagens desta conversa atingido. Finalize pelo cardápio." });
         }
