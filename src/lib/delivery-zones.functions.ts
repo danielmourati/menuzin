@@ -187,7 +187,28 @@ export type DeliveryFeeResolution = {
   min_order_total: number;
   estimated_minutes: number | null;
   message: string | null;
+  distance_km?: number;
 };
+
+export type KmRounding = "ceil" | "half" | "exact";
+
+/** Taxa por KM: base + km extras × valor/km, com arredondamento configurável. */
+export function computeKmFee(km: number, o: { base: number; baseKm: number; perKm: number; rounding: KmRounding }) {
+  const raw = Math.max(0, km - o.baseKm);
+  const extra = o.rounding === "ceil" ? Math.ceil(raw - 1e-9) : o.rounding === "half" ? Math.ceil(raw * 2 - 1e-9) / 2 : raw;
+  return Math.round((o.base + extra * o.perKm) * 100) / 100;
+}
+
+async function geocode(address: string, key: string): Promise<{ lat: number; lng: number } | null> {
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=br&language=pt-BR&components=country:BR&key=${key}`;
+  const j = (await (await fetch(url)).json()) as any;
+  if (j.status !== "OK") {
+    if (j.status !== "ZERO_RESULTS") console.error(`[km] Geocoding [${j.status}]: ${j.error_message ?? ""}`);
+    return null;
+  }
+  const loc = j.results?.[0]?.geometry?.location;
+  return loc ? { lat: loc.lat, lng: loc.lng } : null;
+}
 
 const ResolveInput = z.object({
   tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
@@ -205,7 +226,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<DeliveryFeeResolution> => {
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
-      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, address, address_number, neighborhood, city, state")
+      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, delivery_km_rounding, geo_lat, geo_lng, geo_address, cep, address, address_number, neighborhood, city, state")
       .eq("slug", data.tenant_slug)
       .eq("active", true)
       .maybeSingle();
@@ -235,84 +256,87 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
     }
 
     if (mode === "km") {
-      if (!data.street || !data.number) {
+      const destCep = cepDigits(data.cep);
+      if (!data.street && destCep.length !== 8) {
         return {
           mode, available: false, fee: 0, source: null,
           neighborhood: null, min_order_total: 0, estimated_minutes: null,
-          message: "Preencha a rua e o número para calcular a taxa de entrega",
+          message: "Informe o CEP ou a rua para calcular a taxa de entrega",
         };
       }
-      const destStr = `${data.street}, ${data.number}, ${data.neighborhood || ""}, ${data.city || ""}, ${data.state || ""}`.trim().replace(/,\s*,/g, ",");
-      const origStr = `${formatTenantAddress(tenant)}, ${tenant.city}, ${tenant.state}`.trim();
-      
       const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      const fail = (message: string): DeliveryFeeResolution => ({
+        mode, available: false, fee: 0, source: null,
+        neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null, message,
+      });
       if (!apiKey) {
-        console.error("GOOGLE_MAPS_API_KEY não configurada.");
-        return {
-          mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "single_fee",
-          neighborhood: null, min_order_total: 0, estimated_minutes: null,
-          message: "Não foi possível calcular a distância, aplicando taxa base.",
-        };
+        console.error("[km] GOOGLE_MAPS_API_KEY não configurada.");
+        return fail("Não foi possível calcular a entrega agora. Tente novamente em instantes.");
       }
+
+      const fmtCep = (c: string) => (c.length === 8 ? `${c.slice(0, 5)}-${c.slice(5)}` : "");
+      const t = tenant as typeof tenant & { cep?: string | null; geo_lat?: number | null; geo_lng?: number | null; geo_address?: string | null; delivery_km_rounding?: string | null };
+      const origAddr = [formatTenantAddress(t).replace(/,\s*S\/?N\b/i, ""), t.city, t.state, fmtCep(cepDigits(t.cep)), "Brasil"].filter(Boolean).join(", ");
+      const destAddr = [
+        data.street ? `${data.street}${data.number ? ", " + data.number : ""}` : "",
+        data.neighborhood, data.city, data.state, fmtCep(destCep), "Brasil",
+      ].filter((s) => s && String(s).trim()).join(", ");
 
       try {
-        const cacheKey = `${tenant.id}|${destStr.toLowerCase().replace(/\s+/g, " ")}`;
+        // Ponto da loja (guardado no banco; recalculado se o endereço mudar)
+        let orig: { lat: number; lng: number } | null =
+          t.geo_lat != null && t.geo_lng != null && t.geo_address === origAddr ? { lat: t.geo_lat, lng: t.geo_lng } : null;
+        if (!orig) {
+          orig = await geocode(origAddr, apiKey);
+          if (orig) {
+            await supabaseAdmin.from("tenants").update({ geo_lat: orig.lat, geo_lng: orig.lng, geo_address: origAddr }).eq("id", tenant.id);
+          }
+        }
+        if (!orig) {
+          console.error(`[km] Não localizei o endereço da loja ${data.tenant_slug}: ${origAddr}`);
+          return fail("Não foi possível calcular a entrega agora. Fale com a loja.");
+        }
+
+        const cacheKey = `${tenant.id}|${destAddr.toLowerCase().replace(/\s+/g, " ")}`;
         const cached = distanceCache.get(cacheKey);
-        let meters: number | null = null;
-        let matrix: any = null;
-        if (cached && cached.expires > Date.now()) {
-          meters = cached.meters;
-        } else {
-          const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origStr)}&destinations=${encodeURIComponent(destStr)}&region=br&language=pt-BR&key=${apiKey}`;
-          const res = await fetch(url);
-          matrix = await res.json() as any;
-          if (matrix.status === "REQUEST_DENIED" || matrix.error_message) {
-            console.error(`Google Distance Matrix recusou [${matrix.status}]: ${matrix.error_message ?? "sem detalhes"} — verifique se a Distance Matrix API está ativada e se a chave não tem restrição por referenciador HTTP.`);
+        let meters: number | null = cached && cached.expires > Date.now() ? cached.meters : null;
+        if (meters === null) {
+          const dest = await geocode(destAddr, apiKey);
+          if (!dest) {
+            console.warn(`[km] Endereço do cliente não localizado: ${destAddr}`);
+            return fail("Não encontramos esse endereço no mapa. Confira rua, número e CEP.");
           }
-          if (matrix.status === "OK" && matrix.rows?.[0]?.elements?.[0]?.status === "OK") {
-            meters = matrix.rows[0].elements[0].distance.value as number;
-            distanceCache.set(cacheKey, { meters, expires: Date.now() + 10 * 60 * 1000 });
-            if (distanceCache.size > 500) distanceCache.delete(distanceCache.keys().next().value as string);
+          const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${orig.lat},${orig.lng}&destinations=${dest.lat},${dest.lng}&mode=driving&avoid=highways&region=br&language=pt-BR&key=${apiKey}`;
+          const matrix = (await (await fetch(url)).json()) as any;
+          const el = matrix?.rows?.[0]?.elements?.[0];
+          if (matrix.status !== "OK" || el?.status !== "OK") {
+            console.error(`[km] Distance Matrix falhou [${matrix.status}/${el?.status}]: ${matrix.error_message ?? ""}`);
+            return fail("Não foi possível calcular a entrega agora. Tente novamente em instantes.");
           }
+          meters = el.distance.value as number;
+          distanceCache.set(cacheKey, { meters, expires: Date.now() + 10 * 60 * 1000 });
+          if (distanceCache.size > 500) distanceCache.delete(distanceCache.keys().next().value as string);
         }
 
-        if (meters !== null) {
-          const km = meters / 1000;
-          const baseKm = Number(tenant.delivery_base_km ?? 0);
-          const feePerKm = Number(tenant.delivery_fee_per_km ?? 0);
-          const maxKm = tenant.delivery_max_km ? Number(tenant.delivery_max_km) : null;
-
-          if (maxKm !== null && maxKm > 0 && km > maxKm) {
-            return {
-              mode, available: false, fee: 0, source: null,
-              neighborhood: null, min_order_total: 0, estimated_minutes: null,
-              message: `Desculpe, só entregamos até ${maxKm}km. Você está a ${km.toFixed(1)}km.`,
-            };
-          }
-
-          let extraKm = Math.max(0, km - baseKm);
-          extraKm = Math.ceil(extraKm); // Arredonda pra cima como pedido
-          const totalFee = Number(tenant.delivery_fee ?? 0) + (extraKm * feePerKm);
-
-          return {
-            mode, available: true, fee: totalFee, source: "distance_km",
-            neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null, message: null,
-          };
-        } else {
-          console.warn("Google Maps Matrix falhou ou endereço não encontrado:", matrix);
-          return {
-            mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "distance_km",
-            neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null,
-            message: "Endereço exato não encontrado, aplicando taxa base.",
-          };
+        const km = meters / 1000;
+        const maxKm = tenant.delivery_max_km ? Number(tenant.delivery_max_km) : null;
+        if (maxKm !== null && maxKm > 0 && km > maxKm) {
+          return fail(`Desculpe, só entregamos até ${maxKm} km. Você está a ${km.toFixed(1).replace(".", ",")} km.`);
         }
-      } catch (err) {
-        console.error("Erro na API do Google Maps:", err);
+        const fee = computeKmFee(km, {
+          base: Number(tenant.delivery_fee ?? 0),
+          baseKm: Number(tenant.delivery_base_km ?? 0),
+          perKm: Number(tenant.delivery_fee_per_km ?? 0),
+          rounding: (t.delivery_km_rounding as KmRounding) ?? "half",
+        });
         return {
-          mode, available: true, fee: Number(tenant.delivery_fee ?? 0), source: "distance_km",
-          neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null,
-          message: "Erro de conexão, aplicando taxa base.",
+          mode, available: true, fee, source: "distance_km",
+          neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null, message: null,
+          distance_km: Math.round(km * 10) / 10,
         };
+      } catch (err) {
+        console.error("[km] Erro na API do Google Maps:", err);
+        return fail("Não foi possível calcular a entrega agora. Tente novamente em instantes.");
       }
     }
 
