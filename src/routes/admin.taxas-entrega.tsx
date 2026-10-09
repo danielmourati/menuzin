@@ -805,3 +805,43 @@ function ViaCepSearch({
     </div>
   );
 }
+
+function KmSimulator({ slug }: { slug: string }) {
+  const [cep, setCep] = useState("");
+  const [num, setNum] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState<string | null>(null);
+  const run = async () => {
+    const d = cep.replace(/\D/g, "");
+    if (d.length !== 8 || !slug) return setOut("Digite um CEP válido.");
+    setBusy(true);
+    setOut(null);
+    try {
+      const r = await lookupByCep(d);
+      const a = r.status === "ok" ? r.results[0] : null;
+      const res = await resolveDeliveryFee({
+        data: { tenant_slug: slug, cep: d, street: a?.logradouro || null, number: num || null, neighborhood: a?.bairro || null, city: a?.localidade || null, state: a?.uf || null },
+      });
+      setOut(res.available
+        ? `${a?.logradouro ? a.logradouro + " — " : ""}${res.distance_km != null ? String(res.distance_km).replace(".", ",") + " km · " : ""}Taxa ${brl(res.fee)}`
+        : res.message || "Não foi possível calcular.");
+    } catch {
+      setOut("Não foi possível calcular agora.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-dashed p-3">
+      <Label>Simular taxa (usa a configuração já salva)</Label>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        <Input className="w-36" placeholder="CEP" inputMode="numeric" value={cep} onChange={(e) => setCep(e.target.value)} />
+        <Input className="w-24" placeholder="Nº" value={num} onChange={(e) => setNum(e.target.value)} />
+        <Button type="button" variant="outline" onClick={run} disabled={busy}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simular"}
+        </Button>
+      </div>
+      {out && <p className="mt-2 text-sm font-medium">{out}</p>}
+    </div>
+  );
+}
