@@ -203,7 +203,6 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
       </form>
-      <button onClick={onNew} className="hidden" aria-hidden />
     </>
   );
 }

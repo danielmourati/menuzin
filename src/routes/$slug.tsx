@@ -47,6 +47,7 @@ import { getActivePromoModal } from "@/lib/promo-modal.functions";
 import { useQuery } from "@tanstack/react-query";
 import { FeaturedScroller } from "@/components/storefront/FeaturedScroller";
 import { CartDrawer } from "@/components/storefront/CartDrawer";
+import { AiOrderChatLauncher } from "@/components/storefront/AiOrderChat";
 import { ReceiveModeBar } from "@/components/storefront/ReceiveModeBar";
 import { MobileBottomNav } from "@/components/storefront/MobileBottomNav";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -950,6 +951,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
       />
       <CartDrawer open={cartOpen && canOrder} onOpenChange={setCartOpen} tenant={tenant} storeOpen={storeOpen} />
+      {canOrder && storeOpen && <AiOrderChatLauncher slug={tenant.slug} />}
       <MobileBottomNav
         slug={tenant.slug}
         onOpenCart={() => canOrder && setCartOpen(true)}
