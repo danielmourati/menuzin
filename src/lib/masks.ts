@@ -34,3 +34,17 @@ export function maskPhone(value: string): string {
 }
 
 export const unmask = (value: string) => value.replace(/\D/g, "");
+
+// Máscara de moeda BRL: digita só números e vira centavos (15050 -> "R$ 150,50").
+export function maskBRL(value: string): string {
+  const d = value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 9);
+  if (!d) return "";
+  const padded = d.padStart(3, "0");
+  const int = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `R$ ${int},${padded.slice(-2)}`;
+}
+
+export function parseBRL(masked: string): number {
+  const d = masked.replace(/\D/g, "");
+  return d ? Number(d) / 100 : NaN;
+}
