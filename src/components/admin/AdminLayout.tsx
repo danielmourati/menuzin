@@ -23,6 +23,7 @@ import { getWhatsappVerificationStatus } from "@/lib/otp.functions";
 import { WhatsappOtpModal } from "@/components/admin/WhatsappOtpModal";
 import { ShieldAlert } from "lucide-react";
 import { CashShiftBadge } from "@/components/admin/CashShiftBadge";
+import { HandoffAlert } from "@/components/admin/HandoffAlert";
 
 
 const sections = [
@@ -362,6 +363,7 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
       <div className="flex h-screen overflow-hidden bg-muted/30">
         <GlobalPrintQueueServer />
         <OrdersRealtimeListener />
+        <HandoffAlert />
         <SupportChatWidget />
         <aside
           className={`hidden shrink-0 border-r border-sidebar-border lg:block h-screen sticky top-0 transition-[width] duration-200 ${

@@ -2,16 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
-import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, ShoppingBag, CreditCard, Flag } from "lucide-react";
+import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, ShoppingBag, CreditCard, Flag, Headset, MessageCircle } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  getAgentPublicInfo, startAgentConversation, getAgentConversation, confirmAgentOrder,
+  getAgentPublicInfo, startAgentConversation, getAgentConversation, confirmAgentOrder, requestHumanHandoff,
 } from "@/lib/ai-agent.functions";
 import { readCustomerProfile, writeCustomerProfile } from "@/lib/customer-profile";
 
 type Stored = { id: string; accessKey: string };
+type QR = { label: string; message: string };
+type Info = { enabled: boolean; name: string; greeting: string; quickReplies: QR[]; whatsapp: string };
 type Priced = {
   lines: { name: string; qty: number; details: string[]; line_total: number; note: string | null }[];
   subtotal: number; discount: number; delivery_fee: number; total: number; change_back: number | null;
@@ -24,7 +26,7 @@ const PAY: Record<string, string> = { dinheiro: "Dinheiro", credito: "Maquininha
 const MODE: Record<string, string> = { entrega: "Entrega", retirada: "Retirada", consumo_local: "Consumo no local" };
 
 export function AiOrderChatLauncher({ slug }: { slug: string }) {
-  const [info, setInfo] = useState<{ enabled: boolean; name: string; greeting: string } | null>(null);
+  const [info, setInfo] = useState<Info | null>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     getAgentPublicInfo({ data: { slug } }).then(setInfo).catch(() => setInfo(null));
@@ -41,12 +43,14 @@ export function AiOrderChatLauncher({ slug }: { slug: string }) {
           <ChefHat className="h-5 w-5" /> Pedir conversando
         </Button>
       )}
-      {open && <AiOrderChatWindow slug={slug} name={info.name} greeting={info.greeting} onClose={() => setOpen(false)} />}
+      {open && <AiOrderChatWindow slug={slug} info={info} onClose={() => setOpen(false)} />}
     </>
   );
 }
 
-function AiOrderChatWindow({ slug, name, greeting, onClose }: { slug: string; name: string; greeting: string; onClose: () => void }) {
+function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; onClose: () => void }) {
+  const { name, greeting } = info;
+  const [handoff, setHandoff] = useState("none");
   const [conv, setConv] = useState<Stored | null>(null);
   const [initial, setInitial] = useState<UIMessage[] | null>(null);
   const [priced, setPriced] = useState<Priced | null>(null);
@@ -63,14 +67,14 @@ function AiOrderChatWindow({ slug, name, greeting, onClose }: { slug: string; na
       if (stored) {
         const c = await getAgentConversation({ data: stored });
         if (c && c.status === "open") {
-          setConv(stored); setPriced(c.priced); setInitial(c.messages as UIMessage[]);
+          setConv(stored); setPriced(c.priced); setHandoff(c.handoff_status); setInitial(c.messages as UIMessage[]);
           return;
         }
       }
       const p = readCustomerProfile();
       const created = await startAgentConversation({ data: { slug, customer_name: p?.name ?? null, whatsapp: p?.phone || null } });
       localStorage.setItem(key(slug), JSON.stringify(created));
-      setConv(created); setPriced(null); setInitial([]);
+      setConv(created); setPriced(null); setHandoff("none"); setInitial([]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Atendente indisponível.");
     }
@@ -88,6 +92,11 @@ function AiOrderChatWindow({ slug, name, greeting, onClose }: { slug: string; na
           </div>
         </div>
         <div className="flex gap-1">
+          {conv && handoff === "none" && (
+            <Button variant="ghost" size="icon" onClick={async () => {
+              try { await requestHumanHandoff({ data: conv }); setHandoff("requested"); } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao chamar atendente."); }
+            }} className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Falar com atendente" title="Falar com atendente"><Headset className="h-4 w-4" /></Button>
+          )}
           <Button variant="ghost" size="icon" onClick={() => boot(true)} className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Nova conversa" title="Nova conversa"><RotateCcw className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Fechar"><X className="h-5 w-5" /></Button>
         </div>
@@ -98,13 +107,14 @@ function AiOrderChatWindow({ slug, name, greeting, onClose }: { slug: string; na
         <div className="flex flex-1 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
         <ChatBody key={conv.id} slug={slug} conv={conv} initial={initial} greeting={greeting} name={name}
-          priced={priced} setPriced={setPriced} onNew={() => boot(true)} onClose={onClose} />
+          priced={priced} setPriced={setPriced} info={info} handoff={handoff} setHandoff={setHandoff} onNew={() => boot(true)} onClose={onClose} />
       )}
     </div>
   );
 }
 
-function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNew, onClose }: {
+function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info, handoff, setHandoff, onNew, onClose }: {
+  info: Info; handoff: string; setHandoff: (h: string) => void;
   slug: string; conv: Stored; initial: UIMessage[]; greeting: string; name: string; priced: Priced | null;
   setPriced: (p: Priced | null) => void; onNew: () => void; onClose: () => void;
 }) {
@@ -118,14 +128,27 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
     () => new DefaultChatTransport({ api: "/api/public/ai-chat", body: { slug, conversationId: conv.id, accessKey: conv.accessKey } }),
     [slug, conv.id, conv.accessKey],
   );
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, sendMessage, status, error, setMessages } = useChat({
     id: conv.id, messages: initial, transport,
     onFinish: async () => {
       const c = await getAgentConversation({ data: conv }).catch(() => null);
-      if (c) setPriced(c.priced);
+      if (c) { setPriced(c.priced); setHandoff(c.handoff_status); }
       inputRef.current?.focus();
     },
   });
+  const humanMode = handoff === "requested" || handoff === "human";
+  useEffect(() => {
+    if (!humanMode) return;
+    const t = setInterval(async () => {
+      if (status === "submitted" || status === "streaming") return;
+      const c = await getAgentConversation({ data: conv }).catch(() => null);
+      if (!c) return;
+      setHandoff(c.handoff_status);
+      setPriced(c.priced);
+      setMessages(c.messages as UIMessage[]);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [humanMode, conv, status, setMessages, setHandoff, setPriced]);
   const busy = status === "submitted" || status === "streaming";
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, status, priced]);
   useEffect(() => { inputRef.current?.focus(); }, []);
@@ -177,19 +200,21 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
         <Bubble role="assistant" text={welcome} />
         {messages.length === 0 && (
           <div className="flex flex-wrap gap-2">
-            {["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"].map((s) => (
-              <Button key={s} variant="outline" size="sm" onClick={() => send(s)} className="h-auto rounded-full bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary">{s}</Button>
+            {info.quickReplies.map((q) => (
+              <Button key={q.label} variant="outline" size="sm" onClick={() => send(q.message)} className="h-auto rounded-full bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary">{q.label}</Button>
             ))}
           </div>
         )}
         {messages.map((m) => {
           const text = m.parts.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("");
-          const usedTool = m.parts.some((p) => p.type.startsWith("tool-"));
+          const usedTool = m.parts.some((p) => p.type === "tool-update_draft");
+          const staff = m.parts.some((p) => p.type === "data-staff");
           return (
             <div key={m.id} className="space-y-1">
               {usedTool && m.role === "assistant" && (
                 <p className="pl-1 text-[11px] text-muted-foreground">🧾 Pedido atualizado</p>
               )}
+              {staff && <p className="pl-1 text-[11px] font-medium text-primary">Atendente da loja</p>}
               {text && <Bubble role={m.role} text={text} />}
             </div>
           );
@@ -200,10 +225,23 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
           </div>
         )}
         {error && <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{error.message || "Falha ao responder."}</p>}
+        {humanMode && (
+          <div className="space-y-2 rounded-xl border border-primary/30 bg-card p-3 text-xs">
+            <p>{handoff === "requested" ? "Chamamos alguém da loja, aguarde um instante 🙂 Pode ir escrevendo por aqui." : "Você está falando com a equipe da loja."}</p>
+            {info.whatsapp && (
+              <a target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary underline"
+                href={`https://wa.me/55${info.whatsapp.replace(/^55/, "")}?text=${encodeURIComponent(`Olá! Estava fazendo um pedido pelo chat.${priced?.lines.length ? "\n" + priced.lines.map((l) => `${l.qty}x ${l.name}`).join("\n") : ""}`)}`}>
+                <MessageCircle className="h-3.5 w-3.5" /> Chamar no WhatsApp da loja
+              </a>
+            )}
+          </div>
+        )}
         <div className="flex flex-wrap gap-2" aria-label="Ações do pedido">
-          <Button variant="outline" size="sm" onClick={showCart} disabled={busy} className="rounded-full bg-card">
-            <ShoppingBag /> Ver carrinho
-          </Button>
+          {priced?.lines.length ? (
+            <Button variant="outline" size="sm" onClick={showCart} disabled={busy} className="rounded-full bg-card">
+              <ShoppingBag /> Ver carrinho
+            </Button>
+          ) : null}
           {priced?.lines.length ? (
             <Button variant="outline" size="sm" onClick={() => send("Quero seguir para o pagamento.")} disabled={busy || !!priced.draft.payment} className="rounded-full bg-card">
               <CreditCard /> {priced.draft.payment ? "Pagamento informado" : "Seguir para pagamento"}
