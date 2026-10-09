@@ -1500,6 +1500,7 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"]
           pickup_time: string | null
           scheduled_for: string | null
+          source: string
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           table_label: string | null
@@ -1538,6 +1539,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pickup_time?: string | null
           scheduled_for?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           table_label?: string | null
@@ -1576,6 +1578,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           pickup_time?: string | null
           scheduled_for?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           table_label?: string | null
