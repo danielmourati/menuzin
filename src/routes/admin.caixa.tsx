@@ -12,7 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDialog } from "@/hooks/useConfirm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { maskBRL, parseBRL } from "@/lib/masks";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   getCashOverview, openCashSession, addCashWithdrawal, deleteCashWithdrawal,
   closeCashSession, settleDriver, payDriverFees, undoDriverFees,
@@ -58,6 +59,7 @@ function CashPage() {
   const [wAmount, setWAmount] = useState("");
   const [wReason, setWReason] = useState("");
   const [counted, setCounted] = useState("");
+  const [closeOpen, setCloseOpen] = useState(false);
   const [result, setResult] = useState<CloseResult | null>(null);
   const [feeDriver, setFeeDriver] = useState<{ id: string; name: string; total: number } | null>(null);
 
@@ -92,7 +94,7 @@ function CashPage() {
   });
   const closeM = useMutation({
     mutationFn: (v: number) => closeCashSession({ data: { counted_amount: v } }),
-    onSuccess: (r) => { setResult(r); setCounted(""); refresh(); },
+    onSuccess: (r) => { setResult(r); setCounted(""); setCloseOpen(false); refresh(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -182,7 +184,7 @@ function CashPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base"><Lock className="h-4 w-4" /> Fechar caixa</CardTitle>
-                    <CardDescription>Conte o dinheiro físico da gaveta e digite o valor. O sistema compara só depois.</CardDescription>
+                    <CardDescription>Ao fechar, você informa o dinheiro contado na gaveta. O sistema compara só depois.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {open.pending.length > 0 && (
@@ -190,14 +192,9 @@ function CashPage() {
                         {open.pending.length} pedido(s) em dinheiro ainda não finalizado(s) ({open.pending.map((p) => `#${p.number}`).join(", ")}) — não entram no esperado.
                       </p>
                     )}
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Input inputMode="decimal" placeholder="Dinheiro contado na gaveta" value={counted} onChange={(e) => setCounted(e.target.value)} className="h-11 text-lg" />
-                      <Button variant="destructive" className="h-11" disabled={closeM.isPending} onClick={async () => {
-                        const v = parseMoney(counted);
-                        if (!(v >= 0)) return toast.error("Informe o valor contado.");
-                        if (await confirmDialog({ title: "Fechar o turno?", description: `Valor contado: ${brl(v)}. Depois de fechar não é possível alterar.` })) closeM.mutate(v);
-                      }}>Fechar turno</Button>
-                    </div>
+                    <Button variant="destructive" className="h-11 w-full sm:w-auto" onClick={() => { setCounted(""); setCloseOpen(true); }}>
+                      Fechar turno
+                    </Button>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -276,6 +273,35 @@ function CashPage() {
             </Tabs>
           </>
         )}
+
+
+        <Dialog open={closeOpen} onOpenChange={(v) => { if (!closeM.isPending) { setCloseOpen(v); if (!v) setCounted(""); } }}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Fechar turno</DialogTitle>
+              <DialogDescription>Conte o dinheiro físico da gaveta e digite o valor. O sistema compara só depois.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="counted">Dinheiro contado na gaveta</Label>
+              <Input
+                id="counted" inputMode="numeric" autoFocus placeholder="R$ 0,00"
+                value={counted} onChange={(e) => setCounted(maskBRL(e.target.value))}
+                className="h-12 text-xl font-bold"
+              />
+              <p className="text-xs text-muted-foreground">Depois de fechar não é possível alterar.</p>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" disabled={closeM.isPending} onClick={() => { setCloseOpen(false); setCounted(""); }}>Cancelar</Button>
+              <Button variant="destructive" disabled={!counted || closeM.isPending} onClick={() => {
+                const v = parseBRL(counted);
+                if (!(v >= 0)) return toast.error("Informe o valor contado.");
+                closeM.mutate(v);
+              }}>
+                {closeM.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Confirmar fechamento
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {(data?.history?.length ?? 0) > 0 && (
           <Card>
