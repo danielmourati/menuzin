@@ -11,10 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ChefHat } from "lucide-react";
+import { Loader2, ChefHat, ArrowUp, ArrowDown, Trash2, Plus, Headset } from "lucide-react";
 import { toast } from "sonner";
 import {
   getMyAgentSettings, saveMyAgentSettings, listMyAgentConversations, getMyAgentConversationMessages,
+  listMyQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus,
 } from "@/lib/ai-agent.functions";
 
 export const Route = createFileRoute("/admin/atendente-ia")({
@@ -31,12 +32,14 @@ export const Route = createFileRoute("/admin/atendente-ia")({
   component: () => (
     <PlanGate min="pro" title="Atendente IA" featureLabel="Atendente IA">
       <AdminLayout title="Atendente IA">
-        <Tabs defaultValue="config" className="space-y-4">
+        <Tabs defaultValue={typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "conversas" ? "conversas" : "config"} className="space-y-4">
           <TabsList>
             <TabsTrigger value="config">Configurações</TabsTrigger>
+            <TabsTrigger value="atalhos">Atalhos</TabsTrigger>
             <TabsTrigger value="conversas">Conversas</TabsTrigger>
           </TabsList>
           <TabsContent value="config"><SettingsTab /></TabsContent>
+          <TabsContent value="atalhos"><QuickRepliesTab /></TabsContent>
           <TabsContent value="conversas"><ConversationsTab /></TabsContent>
         </Tabs>
       </AdminLayout>
@@ -108,25 +111,104 @@ function SettingsTab() {
   );
 }
 
+type QRow = { id: string | null; label: string; message: string; active: boolean };
+function QuickRepliesTab() {
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["ai-quick-replies"], queryFn: () => listMyQuickReplies() });
+  const [edit, setEdit] = useState<QRow | null>(null);
+  const refresh = () => qc.invalidateQueries({ queryKey: ["ai-quick-replies"] });
+  const save = useMutation({
+    mutationFn: (r: QRow) => saveMyQuickReply({ data: r }),
+    onSuccess: () => { toast.success("Atalho salvo!"); setEdit(null); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const del = useMutation({ mutationFn: (id: string) => deleteMyQuickReply({ data: { id } }), onSuccess: refresh, onError: (e: Error) => toast.error(e.message) });
+  const move = useMutation({
+    mutationFn: (ids: string[]) => reorderMyQuickReplies({ data: { ids } }), onSuccess: refresh,
+    onError: (e: Error) => { toast.error(e.message); refresh(); },
+  });
+  if (isLoading) return <Loader2 className="h-6 w-6 animate-spin text-primary" />;
+  const rows = data ?? [];
+  const swap = (i: number, j: number) => { const ids = rows.map((r) => r.id); [ids[i], ids[j]] = [ids[j], ids[i]]; move.mutate(ids); };
+  return (
+    <Card className="max-w-2xl">
+      <CardHeader>
+        <CardTitle>Atalhos da conversa</CardTitle>
+        <CardDescription>Botões que aparecem no início do chat para o cliente tocar. Sem atalhos cadastrados, mostramos os 3 padrões. Até 8 ativos.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {rows.length === 0 && <p className="text-sm text-muted-foreground">Usando os padrões: "O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?".</p>}
+        {rows.map((r, i) => (
+          <div key={r.id} className="flex items-center gap-2 rounded-xl border p-2">
+            <div className="flex flex-col">
+              <Button variant="ghost" size="icon" className="h-6 w-6" disabled={i === 0 || move.isPending} onClick={() => swap(i, i - 1)} aria-label="Subir"><ArrowUp className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6" disabled={i === rows.length - 1 || move.isPending} onClick={() => swap(i, i + 1)} aria-label="Descer"><ArrowDown className="h-3.5 w-3.5" /></Button>
+            </div>
+            <button className="flex-1 text-left" onClick={() => setEdit({ id: r.id, label: r.label, message: r.message, active: r.active })}>
+              <p className="text-sm font-medium">{r.label}</p>
+              {r.message && r.message !== r.label && <p className="text-xs text-muted-foreground">Envia: {r.message}</p>}
+            </button>
+            <Switch checked={r.active} onCheckedChange={(v) => save.mutate({ id: r.id, label: r.label, message: r.message, active: v })} />
+            <Button variant="ghost" size="icon" onClick={() => del.mutate(r.id)} aria-label="Apagar"><Trash2 className="h-4 w-4" /></Button>
+          </div>
+        ))}
+        {edit ? (
+          <div className="space-y-2 rounded-xl border p-3">
+            <Label>Texto do botão</Label>
+            <Input maxLength={80} value={edit.label} onChange={(e) => setEdit({ ...edit, label: e.target.value })} placeholder="Ex.: Tem promoção hoje?" />
+            <Label>Mensagem enviada (opcional)</Label>
+            <Input maxLength={80} value={edit.message} onChange={(e) => setEdit({ ...edit, message: e.target.value })} placeholder="Se vazio, envia o próprio texto" />
+            <div className="flex gap-2">
+              <Button onClick={() => save.mutate(edit)} disabled={!edit.label.trim() || save.isPending}>Salvar</Button>
+              <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="outline" onClick={() => setEdit({ id: null, label: "", message: "", active: true })}><Plus className="mr-1 h-4 w-4" /> Novo atalho</Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function ConversationsTab() {
-  const { data, isLoading } = useQuery({ queryKey: ["ai-agent-conversations"], queryFn: () => listMyAgentConversations(), refetchInterval: 30000 });
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({ queryKey: ["ai-agent-conversations"], queryFn: () => listMyAgentConversations(), refetchInterval: 10000 });
   const [selected, setSelected] = useState<string | null>(null);
+  const [onlyWaiting, setOnlyWaiting] = useState(false);
+  const [reply, setReply] = useState("");
   const msgs = useQuery({
     queryKey: ["ai-agent-conv", selected],
     queryFn: () => getMyAgentConversationMessages({ data: { id: selected! } }),
-    enabled: !!selected,
+    enabled: !!selected, refetchInterval: 5000,
+  });
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["ai-agent-conversations"] }); qc.invalidateQueries({ queryKey: ["ai-agent-conv", selected] }); };
+  const send = useMutation({
+    mutationFn: () => sendStaffReply({ data: { id: selected!, text: reply } }),
+    onSuccess: () => { setReply(""); refresh(); }, onError: (e: Error) => toast.error(e.message),
+  });
+  const setStatus = useMutation({
+    mutationFn: (status: "none" | "closed") => setHandoffStatus({ data: { id: selected!, status } }),
+    onSuccess: refresh, onError: (e: Error) => toast.error(e.message),
   });
   if (isLoading) return <Loader2 className="h-6 w-6 animate-spin text-primary" />;
   if (!data?.length) return <p className="text-sm text-muted-foreground">Nenhuma conversa ainda.</p>;
+  const waiting = (c: any) => c.status === "open" && (c.handoff_status === "requested" || c.handoff_status === "human");
+  const list = onlyWaiting ? data.filter(waiting) : data;
+  const cur: any = data.find((c) => c.id === selected);
   return (
     <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
       <div className="space-y-2">
-        {data.map((c) => (
+        <label className="flex items-center gap-2 text-sm"><Switch checked={onlyWaiting} onCheckedChange={setOnlyWaiting} /> Só aguardando atendente</label>
+        {list.map((c: any) => (
           <button key={c.id} onClick={() => setSelected(c.id)}
             className={`w-full rounded-xl border p-3 text-left text-sm transition hover:border-primary ${selected === c.id ? "border-primary bg-primary/5" : "bg-card"}`}>
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{c.customer_name || "Cliente"}</span>
-              {c.status === "ordered" ? <Badge>Pedido #{c.order_number ?? "—"}</Badge> : <Badge variant="outline">Sem pedido</Badge>}
+              {c.status === "ordered" ? <Badge>Pedido #{c.order_number ?? "—"}</Badge>
+                : c.handoff_status === "requested" ? <Badge variant="destructive">Aguardando atendente</Badge>
+                : c.handoff_status === "human" ? <Badge variant="secondary">Com a loja</Badge>
+                : <Badge variant="outline">Sem pedido</Badge>}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {c.customer_phone || "sem WhatsApp"} · {new Date(c.updated_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
@@ -135,16 +217,33 @@ function ConversationsTab() {
         ))}
       </div>
       <Card>
-        <CardContent className="max-h-[70vh] space-y-2 overflow-y-auto p-4">
+        <CardContent className="space-y-2 p-4">
+          <div className="max-h-[60vh] space-y-2 overflow-y-auto">
           {!selected ? <p className="text-sm text-muted-foreground">Escolha uma conversa.</p>
             : msgs.isLoading ? <Loader2 className="h-5 w-5 animate-spin" />
             : (msgs.data ?? []).filter((m) => m.text).map((m) => (
               <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{m.text}</div>
+                <div className={`max-w-[80%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : m.staff ? "border border-primary bg-card" : "bg-muted"}`}>
+                  {m.staff && <p className="mb-0.5 text-[10px] font-semibold text-primary">Loja</p>}{m.text}
+                </div>
               </div>
             ))}
-          {selected && data.find((c) => c.id === selected)?.order_id && (
-            <Link to="/admin/pedidos" className="block pt-2 text-xs text-primary underline">Ver nos pedidos</Link>
+          </div>
+          {cur?.order_id && <Link to="/admin/pedidos" className="block pt-2 text-xs text-primary underline">Ver nos pedidos</Link>}
+          {cur && cur.status === "open" && (
+            <div className="space-y-2 border-t pt-3">
+              <div className="flex gap-2">
+                <Input value={reply} maxLength={1000} placeholder="Responder ao cliente…" onChange={(e) => setReply(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && reply.trim()) send.mutate(); }} />
+                <Button onClick={() => send.mutate()} disabled={!reply.trim() || send.isPending}><Headset className="mr-1 h-4 w-4" />Enviar</Button>
+              </div>
+              {waiting(cur) && (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setStatus.mutate("none")}>Devolver para a IA</Button>
+                  <Button size="sm" variant="outline" onClick={() => setStatus.mutate("closed")}>Encerrar</Button>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
