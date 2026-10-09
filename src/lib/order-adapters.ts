@@ -46,7 +46,7 @@ export function dbOrderToUi(o: DbOrder, history: OrderStatusHistoryEntry[] = [])
     table: o.table_label ?? undefined,
     pickupTime: o.pickup_time ?? undefined,
     scheduledFor: o.scheduled_for ?? null,
-    source: o.source === "pdv" ? "pdv" : "storefront",
+    source: o.source === "pdv" ? "pdv" : o.source === "ai_agent" ? "ai_agent" : "storefront",
     note: o.note ?? undefined,
     createdAt: o.created_at,
     acceptedAt: o.accepted_at ?? undefined,

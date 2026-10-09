@@ -113,6 +113,150 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_agent_settings: {
+        Row: {
+          agent_name: string
+          enabled: boolean
+          extra_instructions: string
+          greeting: string
+          tenant_id: string
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          agent_name?: string
+          enabled?: boolean
+          extra_instructions?: string
+          greeting?: string
+          tenant_id: string
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_name?: string
+          enabled?: boolean
+          extra_instructions?: string
+          greeting?: string
+          tenant_id?: string
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_agent_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_conversations: {
+        Row: {
+          access_key: string
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          draft: Json | null
+          id: string
+          message_count: number
+          order_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_key: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          draft?: Json | null
+          id?: string
+          message_count?: number
+          order_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_key?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          draft?: Json | null
+          id?: string
+          message_count?: number
+          order_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_conversations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_messages: {
+        Row: {
+          ai_message_id: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          parts: Json
+          role: string
+        }
+        Insert: {
+          ai_message_id?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          parts?: Json
+          role: string
+        }
+        Update: {
+          ai_message_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          parts?: Json
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_driver_settlements: {
         Row: {
           amount: number

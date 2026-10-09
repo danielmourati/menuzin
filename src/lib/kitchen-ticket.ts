@@ -55,6 +55,7 @@ export function buildKitchenTicket(
 
   if (order.scheduledFor)
     out.push(center(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols));
+  if (order.source === "ai_agent") out.push(center("VIA ATENDENTE IA", bigCols));
 
   if (order.mode === "consumo_local" && order.table) {
     wrap(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) =>

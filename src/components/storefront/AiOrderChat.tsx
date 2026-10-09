@@ -1,0 +1,260 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import ReactMarkdown from "react-markdown";
+import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import {
+  getAgentPublicInfo, startAgentConversation, getAgentConversation, confirmAgentOrder,
+} from "@/lib/ai-agent.functions";
+import { readCustomerProfile, writeCustomerProfile } from "@/lib/customer-profile";
+
+type Stored = { id: string; accessKey: string };
+type Priced = {
+  lines: { name: string; qty: number; details: string[]; line_total: number; note: string | null }[];
+  subtotal: number; discount: number; delivery_fee: number; total: number; change_back: number | null;
+  ready: boolean; coupon_code: string | null;
+  draft: { mode: string | null; payment: string | null; customer_name: string | null; address: Record<string, string | null> | null; table_label: string | null };
+};
+const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const key = (slug: string) => `menuzin:ai-chat:${slug}`;
+const PAY: Record<string, string> = { dinheiro: "Dinheiro", credito: "Maquininha (crédito)", debito: "Maquininha (débito)", pix_manual: "Pix manual" };
+const MODE: Record<string, string> = { entrega: "Entrega", retirada: "Retirada", consumo_local: "Consumo no local" };
+
+export function AiOrderChatLauncher({ slug }: { slug: string }) {
+  const [info, setInfo] = useState<{ enabled: boolean; name: string; greeting: string } | null>(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    getAgentPublicInfo({ data: { slug } }).then(setInfo).catch(() => setInfo(null));
+  }, [slug]);
+  if (!info?.enabled) return null;
+  return (
+    <>
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition hover:scale-105"
+          aria-label="Pedir conversando"
+        >
+          <ChefHat className="h-5 w-5" /> Pedir conversando
+        </button>
+      )}
+      {open && <AiOrderChatWindow slug={slug} name={info.name} greeting={info.greeting} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function AiOrderChatWindow({ slug, name, greeting, onClose }: { slug: string; name: string; greeting: string; onClose: () => void }) {
+  const [conv, setConv] = useState<Stored | null>(null);
+  const [initial, setInitial] = useState<UIMessage[] | null>(null);
+  const [priced, setPriced] = useState<Priced | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const boot = async (forceNew = false) => {
+    setError(null);
+    setInitial(null);
+    try {
+      let stored: Stored | null = null;
+      if (!forceNew) {
+        try { stored = JSON.parse(localStorage.getItem(key(slug)) || "null"); } catch { stored = null; }
+      }
+      if (stored) {
+        const c = await getAgentConversation({ data: stored });
+        if (c && c.status === "open") {
+          setConv(stored); setPriced(c.priced); setInitial(c.messages as UIMessage[]);
+          return;
+        }
+      }
+      const p = readCustomerProfile();
+      const created = await startAgentConversation({ data: { slug, customer_name: p?.name ?? null, whatsapp: p?.phone || null } });
+      localStorage.setItem(key(slug), JSON.stringify(created));
+      setConv(created); setPriced(null); setInitial([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Atendente indisponível.");
+    }
+  };
+  useEffect(() => { void boot(); }, [slug]);
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-50 flex h-[85dvh] flex-col overflow-hidden rounded-t-2xl border bg-card shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:h-[620px] sm:w-[400px] sm:rounded-2xl">
+      <div className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/15"><ChefHat className="h-5 w-5" /></div>
+          <div>
+            <p className="text-sm font-semibold leading-none">{name}</p>
+            <p className="mt-1 text-xs opacity-80">Atendente virtual · faça seu pedido conversando</p>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          <button onClick={() => boot(true)} className="rounded-lg p-1.5 hover:bg-primary-foreground/10" aria-label="Nova conversa" title="Nova conversa"><RotateCcw className="h-4 w-4" /></button>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-primary-foreground/10" aria-label="Fechar"><X className="h-5 w-5" /></button>
+        </div>
+      </div>
+      {error ? (
+        <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">{error}</div>
+      ) : !conv || !initial ? (
+        <div className="flex flex-1 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : (
+        <ChatBody key={conv.id} slug={slug} conv={conv} initial={initial} greeting={greeting} name={name}
+          priced={priced} setPriced={setPriced} onNew={() => boot(true)} onClose={onClose} />
+      )}
+    </div>
+  );
+}
+
+function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNew, onClose }: {
+  slug: string; conv: Stored; initial: UIMessage[]; greeting: string; name: string; priced: Priced | null;
+  setPriced: (p: Priced | null) => void; onNew: () => void; onClose: () => void;
+}) {
+  const navigate = useNavigate();
+  const [input, setInput] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: "/api/public/ai-chat", body: { slug, conversationId: conv.id, accessKey: conv.accessKey } }),
+    [slug, conv.id, conv.accessKey],
+  );
+  const { messages, sendMessage, status, error } = useChat({
+    id: conv.id, messages: initial, transport,
+    onFinish: async () => {
+      const c = await getAgentConversation({ data: conv }).catch(() => null);
+      if (c) setPriced(c.priced);
+      inputRef.current?.focus();
+    },
+  });
+  const busy = status === "submitted" || status === "streaming";
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, status, priced]);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const send = (text: string) => {
+    const t = text.trim();
+    if (!t || busy) return;
+    void sendMessage({ text: t });
+    setInput("");
+  };
+
+  const confirm = async () => {
+    setConfirming(true);
+    try {
+      const r = await confirmAgentOrder({ data: { ...conv, slug } });
+      if (r.customer) writeCustomerProfile({ phone: r.customer.phone, name: priced?.draft.customer_name ?? undefined, token: r.customer.token } as never);
+      localStorage.removeItem(key(slug));
+      toast.success("Pedido enviado para a loja!");
+      onClose();
+      navigate({ to: "/$slug/acompanhar/$orderId", params: { slug, orderId: r.orderId } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível confirmar.");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const welcome = greeting || `Oi! Eu sou o ${name} 👋 Me conta o que você quer pedir hoje que eu monto tudo pra você.`;
+
+  return (
+    <>
+      <div className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-4">
+        <Bubble role="assistant" text={welcome} />
+        {messages.length === 0 && (
+          <div className="flex flex-wrap gap-2">
+            {["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"].map((s) => (
+              <button key={s} onClick={() => send(s)} className="rounded-full border bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary">{s}</button>
+            ))}
+          </div>
+        )}
+        {messages.map((m) => {
+          const text = m.parts.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("");
+          const usedTool = m.parts.some((p) => p.type.startsWith("tool-"));
+          return (
+            <div key={m.id} className="space-y-1">
+              {usedTool && m.role === "assistant" && (
+                <p className="pl-1 text-[11px] text-muted-foreground">🧾 Pedido atualizado</p>
+              )}
+              {text && <Bubble role={m.role} text={text} />}
+            </div>
+          );
+        })}
+        {status === "submitted" && (
+          <div className="flex w-fit gap-1 rounded-2xl bg-card px-3 py-2">
+            {[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" style={{ animationDelay: `${i * 0.15}s` }} />)}
+          </div>
+        )}
+        {error && <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{error.message || "Falha ao responder."}</p>}
+        {priced && priced.lines.length > 0 && <Summary priced={priced} confirming={confirming} busy={busy} onConfirm={confirm} onChange={() => { setInput("Quero alterar: "); inputRef.current?.focus(); }} />}
+        <div ref={endRef} />
+      </div>
+      <form
+        onSubmit={(e) => { e.preventDefault(); send(input); }}
+        className="flex items-end gap-2 border-t bg-card p-3"
+      >
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+          rows={1}
+          maxLength={800}
+          placeholder="Ex.: 2 pastéis de carne grandes, entrega…"
+          className="max-h-28 min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+        />
+        <button type="submit" disabled={busy || !input.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-50" aria-label="Enviar">
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </button>
+      </form>
+    </>
+  );
+}
+
+function Bubble({ role, text }: { role: string; text: string }) {
+  const user = role === "user";
+  return (
+    <div className={`flex ${user ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${user ? "rounded-tr-sm bg-primary text-primary-foreground" : "rounded-tl-sm bg-card text-card-foreground"}`}>
+        {user ? text : <div className="prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_ul]:my-1"><ReactMarkdown>{text}</ReactMarkdown></div>}
+      </div>
+    </div>
+  );
+}
+
+function Summary({ priced, confirming, busy, onConfirm, onChange }: { priced: Priced; confirming: boolean; busy: boolean; onConfirm: () => void; onChange: () => void }) {
+  const d = priced.draft;
+  const addr = d.address ? [d.address.street, d.address.number, d.address.neighborhood].filter(Boolean).join(", ") : "";
+  return (
+    <div className="rounded-2xl border-2 border-primary/30 bg-card p-3.5 text-sm shadow-sm">
+      <p className="mb-2 font-semibold">Resumo do pedido</p>
+      <ul className="space-y-1.5">
+        {priced.lines.map((l, i) => (
+          <li key={i} className="flex justify-between gap-2">
+            <div>
+              <span className="font-medium">{l.qty}× {l.name}</span>
+              {l.details.length > 0 && <p className="text-xs text-muted-foreground">{l.details.join(" · ")}</p>}
+              {l.note && <p className="text-xs italic text-muted-foreground">Obs.: {l.note}</p>}
+            </div>
+            <span className="shrink-0">{brl(l.line_total)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 space-y-0.5 border-t pt-2 text-xs text-muted-foreground">
+        <div className="flex justify-between"><span>Subtotal</span><span>{brl(priced.subtotal)}</span></div>
+        {priced.discount > 0 && <div className="flex justify-between"><span>Cupom {priced.coupon_code}</span><span>- {brl(priced.discount)}</span></div>}
+        {d.mode === "entrega" && <div className="flex justify-between"><span>Entrega</span><span>{brl(priced.delivery_fee)}</span></div>}
+        <div className="flex justify-between pt-1 text-sm font-bold text-foreground"><span>Total</span><span>{brl(priced.total)}</span></div>
+        {d.mode && <p>{MODE[d.mode]}{addr ? `: ${addr}` : ""}{d.table_label ? ` · Mesa ${d.table_label}` : ""}</p>}
+        {d.payment && <p>Pagamento: {PAY[d.payment]}{priced.change_back != null ? ` · troco ${brl(priced.change_back)}` : ""}</p>}
+        {d.customer_name && <p>Cliente: {d.customer_name}</p>}
+      </div>
+      {priced.ready ? (
+        <div className="mt-3 flex gap-2">
+          <button onClick={onChange} disabled={confirming} className="flex-1 rounded-xl border py-2 text-xs font-medium hover:bg-muted">Alterar</button>
+          <button onClick={onConfirm} disabled={confirming || busy} className="flex flex-[2] items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+            {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Confirmar pedido
+          </button>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">Continue a conversa para completar o pedido.</p>
+      )}
+    </div>
+  );
+}

@@ -95,6 +95,9 @@ export function OrderCard({
         {order.scheduledFor && (
           <Badge className="text-[10px] px-1.5 py-0 h-5">Agendado {formatScheduledShort(order.scheduledFor)}</Badge>
         )}
+        {order.source === "ai_agent" && (
+          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">Via atendente IA</Badge>
+        )}
         <OrderStatusBadge status={order.status} className="text-[10px] px-1.5 py-0 h-5" />
         <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
           <Clock className="h-3 w-3" />
