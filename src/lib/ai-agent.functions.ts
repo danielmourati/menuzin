@@ -11,8 +11,8 @@ const ConvInput = z.object({ id: z.string().uuid(), accessKey: z.string().min(20
 export const getAgentPublicInfo = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ slug: Slug }).parse(d))
   .handler(async ({ data }) => {
-    const { data: t } = await supabaseAdmin.from("tenants").select("id").eq("slug", data.slug).eq("active", true).maybeSingle();
-    if (!t) return { enabled: false, name: "", greeting: "", quickReplies: [] as { label: string; message: string }[] };
+    const { data: t } = await supabaseAdmin.from("tenants").select("id, whatsapp").eq("slug", data.slug).eq("active", true).maybeSingle();
+    if (!t) return { enabled: false, name: "", greeting: "", whatsapp: "", quickReplies: [] as { label: string; message: string }[] };
     const { getTenantPlan } = await import("@/lib/plan-server");
     const { loadAgentSettings } = await import("@/lib/ai-agent.server");
     const [plan, s, qr] = await Promise.all([
@@ -22,7 +22,7 @@ export const getAgentPublicInfo = createServerFn({ method: "POST" })
     const quickReplies = (qr.data ?? []).length
       ? (qr.data ?? []).map((r) => ({ label: r.label, message: r.message || r.label }))
       : ["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"].map((l) => ({ label: l, message: l }));
-    return { enabled: plan === "pro" && s.enabled, name: s.agent_name, greeting: s.greeting, quickReplies };
+    return { enabled: plan === "pro" && s.enabled, name: s.agent_name, greeting: s.greeting, quickReplies, whatsapp: (t.whatsapp ?? "").replace(/\D/g, "") };
   });
 
 export const startAgentConversation = createServerFn({ method: "POST" })
