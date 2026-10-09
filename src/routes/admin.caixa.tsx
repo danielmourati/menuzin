@@ -12,12 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDialog } from "@/hooks/useConfirm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   getCashOverview, openCashSession, addCashWithdrawal, deleteCashWithdrawal,
-  closeCashSession, settleDriver,
+  closeCashSession, settleDriver, payDriverFees, undoDriverFees,
 } from "@/lib/cash.functions";
 
 export const Route = createFileRoute("/admin/caixa")({
+  validateSearch: (s: Record<string, unknown>) => ({ tab: typeof s.tab === "string" ? s.tab : undefined }),
   head: () => ({
     meta: [
       { title: "Caixa — Menuzin" },
@@ -46,13 +48,18 @@ type CloseResult = Awaited<ReturnType<typeof closeCashSession>>;
 
 function CashPage() {
   const qc = useQueryClient();
+  const { tab } = Route.useSearch();
   const { data, isLoading } = useQuery({ queryKey: ["cash-overview"], queryFn: () => getCashOverview(), refetchInterval: 30000 });
-  const refresh = () => qc.invalidateQueries({ queryKey: ["cash-overview"] });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["cash-overview"] });
+    qc.invalidateQueries({ queryKey: ["cash-shift-status"] });
+  };
   const [float, setFloat] = useState("100,00");
   const [wAmount, setWAmount] = useState("");
   const [wReason, setWReason] = useState("");
   const [counted, setCounted] = useState("");
   const [result, setResult] = useState<CloseResult | null>(null);
+  const [feeDriver, setFeeDriver] = useState<{ id: string; name: string; total: number } | null>(null);
 
   const openM = useMutation({
     mutationFn: (v: number) => openCashSession({ data: { opening_float: v } }),
@@ -71,6 +78,16 @@ function CashPage() {
   const settleM = useMutation({
     mutationFn: (v: { driver_id: string; driver_name: string; amount: number }) => settleDriver({ data: v }),
     onSuccess: () => { toast.success("Acerto registrado."); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const payFeesM = useMutation({
+    mutationFn: (v: { driver_id: string; method: "cash" | "pix" }) => payDriverFees({ data: v }),
+    onSuccess: (r, v) => { toast.success(v.method === "cash" ? `Taxas pagas: sangria de ${brl(r.amount)} registrada.` : "Taxas pagas via Pix."); setFeeDriver(null); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const undoFeesM = useMutation({
+    mutationFn: (driver_id: string) => undoDriverFees({ data: { driver_id } }),
+    onSuccess: refresh,
     onError: (e: Error) => toast.error(e.message),
   });
   const closeM = useMutation({
@@ -125,7 +142,7 @@ function CashPage() {
               </CardContent>
             </Card>
 
-            <Tabs defaultValue="caixa">
+            <Tabs defaultValue={tab === "entregadores" ? "entregadores" : "caixa"}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="caixa">Caixa</TabsTrigger>
                 <TabsTrigger value="entregadores">Entregadores ({open.drivers.length})</TabsTrigger>
@@ -188,26 +205,73 @@ function CashPage() {
               <TabsContent value="entregadores" className="space-y-3">
                 {open.drivers.length === 0 ? (
                   <Card><CardContent className="p-6 text-center text-sm text-muted-foreground">
-                    Nenhuma entrega em dinheiro com entregador atribuído neste turno.
+                    Nenhuma entrega com entregador atribuído neste turno.
                   </CardContent></Card>
                 ) : open.drivers.map((d) => (
                   <Card key={d.driver_id ?? d.driver_name}>
-                    <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="text-sm">
-                        <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {d.driver_name} <span className="font-normal text-muted-foreground">· {d.orders} entrega(s)</span></p>
-                        <p className="mt-1">Saiu com <b>{brl(d.to_collect)}</b> em entregas a cobrar e <b>{brl(d.change_out)}</b> em troco.</p>
-                        <p className="text-base">Deve entregar <b className="text-primary">{brl(d.must_return)}</b> ao retornar.</p>
+                    <CardContent className="space-y-4 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm">
+                          <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {d.driver_name} <span className="font-normal text-muted-foreground">· {d.deliveries.length} entrega(s)</span></p>
+                          {d.orders > 0 ? (
+                            <>
+                              <p className="mt-1">Saiu com <b>{brl(d.to_collect)}</b> em entregas a cobrar e <b>{brl(d.change_out)}</b> em troco.</p>
+                              <p className="text-base">Deve entregar <b className="text-primary">{brl(d.must_return)}</b> ao retornar.</p>
+                            </>
+                          ) : <p className="mt-1 text-muted-foreground">Nenhuma entrega em dinheiro para acertar.</p>}
+                        </div>
+                        {d.orders > 0 && (d.settled_at ? (
+                          <Badge variant="secondary" className="gap-1 self-start"><CheckCircle2 className="h-3.5 w-3.5" /> Acertado {fmtDate(d.settled_at)}</Badge>
+                        ) : (
+                          <Button disabled={settleM.isPending || !d.driver_id} onClick={() => d.driver_id && settleM.mutate({ driver_id: d.driver_id, driver_name: d.driver_name, amount: d.must_return })}>
+                            Marcar acerto recebido
+                          </Button>
+                        ))}
                       </div>
-                      {d.settled_at ? (
-                        <Badge variant="secondary" className="gap-1 self-start"><CheckCircle2 className="h-3.5 w-3.5" /> Acertado {fmtDate(d.settled_at)}</Badge>
-                      ) : (
-                        <Button disabled={settleM.isPending || !d.driver_id} onClick={() => d.driver_id && settleM.mutate({ driver_id: d.driver_id, driver_name: d.driver_name, amount: d.must_return })}>
-                          Marcar acerto recebido
-                        </Button>
-                      )}
+
+                      <div className="rounded-lg border">
+                        <div className="border-b bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega</div>
+                        <ul className="divide-y text-sm">
+                          {d.deliveries.map((x) => (
+                            <li key={x.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
+                              <span>#{x.number} <span className="text-muted-foreground">· {x.neighborhood || "—"} · {x.is_cash ? "Dinheiro" : x.payment_label || "—"}</span></span>
+                              <b>{brl(x.fee)}</b>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+                          <span className="text-sm">Taxas a pagar ao entregador: <b className="text-primary text-base">{brl(d.fees_total)}</b></span>
+                          {d.fees_paid_at ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Pagas em {d.fees_paid_method === "cash" ? "Dinheiro" : "Pix"} {fmtDate(d.fees_paid_at)}</Badge>
+                              <Button size="sm" variant="ghost" disabled={undoFeesM.isPending} onClick={async () => {
+                                if (d.driver_id && await confirmDialog({ title: "Desfazer pagamento das taxas?", description: d.fees_paid_method === "cash" ? "A sangria gerada também será removida." : "O pagamento deixará de constar." })) undoFeesM.mutate(d.driver_id);
+                              }}>Desfazer</Button>
+                            </div>
+                          ) : (
+                            <Button size="sm" disabled={d.fees_total <= 0 || !d.driver_id} onClick={() => setFeeDriver({ id: d.driver_id!, name: d.driver_name, total: d.fees_total })}>
+                              Pagar taxas
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
+                <Dialog open={!!feeDriver} onOpenChange={(v) => !v && setFeeDriver(null)}>
+                  <DialogContent className="sm:max-w-sm">
+                    <DialogHeader><DialogTitle>Pagar taxas — {feeDriver?.name}</DialogTitle></DialogHeader>
+                    <p className="text-sm">Total: <b>{brl(feeDriver?.total ?? 0)}</b>. Como será pago?</p>
+                    <div className="grid gap-2">
+                      <Button disabled={payFeesM.isPending} onClick={() => feeDriver && payFeesM.mutate({ driver_id: feeDriver.id, method: "cash" })}>
+                        Dinheiro da gaveta (registra sangria)
+                      </Button>
+                      <Button variant="outline" disabled={payFeesM.isPending} onClick={() => feeDriver && payFeesM.mutate({ driver_id: feeDriver.id, method: "pix" })}>
+                        Pix
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </TabsContent>
             </Tabs>
           </>
