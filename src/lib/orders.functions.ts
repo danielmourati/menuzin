@@ -471,7 +471,9 @@ export const createManualOrder = createServerFn({ method: "POST" })
         tenant_id: tenantId,
         number: 0, // trigger preenche
         customer_id: null,
-        status: data.initial_status,
+        status: "preparo",
+        accepted_at: new Date().toISOString(),
+        source: "pdv",
         payment_status: data.payment_status,
         customer_name: data.customer_name,
         whatsapp: data.whatsapp || "",
@@ -492,7 +494,7 @@ export const createManualOrder = createServerFn({ method: "POST" })
 
     if (oErr || !order) throw new Error(oErr?.message || "Falha ao criar pedido no PDV");
 
-    const { error: iErr } = await supabaseAdmin
+    const { data: insertedItems, error: iErr } = await supabaseAdmin
       .from("order_items")
       .insert(data.items.map((it) => ({
         order_id: order.id,
@@ -502,18 +504,23 @@ export const createManualOrder = createServerFn({ method: "POST" })
         unit_price: it.unit_price,
         addons: it.addons,
         note: it.note ?? null,
-      })));
+      })))
+      .select("*");
     if (iErr) throw new Error(iErr.message);
 
     // Timeline entry
     await supabaseAdmin.from("order_status_history").insert({
       order_id: order.id,
       previous_status: null,
-      new_status: data.initial_status,
+      new_status: "preparo",
       note: "Pedido lançado via PDV",
       changed_by: userId,
     });
 
-    return { orderId: order.id, displayId: order.number };
+    return {
+      orderId: order.id,
+      displayId: order.number,
+      order: { ...(order as unknown as DbOrder), items: (insertedItems ?? []) as unknown as DbOrderItem[] },
+    };
   });
 

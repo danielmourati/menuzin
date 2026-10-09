@@ -229,6 +229,7 @@ export type DbOrder = {
   table_label: string | null;
   pickup_time: string | null;
   scheduled_for?: string | null;
+  source?: string | null;
   note: string | null;
   cancel_reason: string | null;
   accepted_at: string | null;
