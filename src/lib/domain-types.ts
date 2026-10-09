@@ -135,6 +135,8 @@ export type Order = {
   table?: string;
   pickupTime?: string;
   scheduledFor?: string | null;
+  /** Origem do pedido: loja online ou PDV (balcão). */
+  source?: "storefront" | "pdv";
   note?: string;
   createdAt: string;
   acceptedAt?: string;

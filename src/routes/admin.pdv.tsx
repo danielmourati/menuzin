@@ -19,6 +19,8 @@ import { requiresCustomization } from "@/lib/pdv-customization";
 import { useAuth } from "@/lib/auth-context";
 import { listMyCategories, listMyProducts, listAddonGroups } from "@/lib/catalog-admin.functions";
 import { createManualOrder } from "@/lib/orders.functions";
+import { dbOrderToUi } from "@/lib/order-adapters";
+import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
 import { brl } from "@/lib/format";
 type OrderMode = "entrega" | "retirada" | "consumo_local" | "balcao";
 import { getMyTenant } from "@/lib/tenants.functions";
@@ -40,6 +42,8 @@ function PdvPage() {
   const products = prodsData?.products ?? [];
 
   const { user, profile } = useAuth();
+  // Só precisamos da impressão da comanda; PDV não aceita pedidos.
+  const { printKitchenFor } = useAcceptOrderWithKitchenPrint([], async () => undefined);
   const operatorName = (profile as { full_name?: string | null } | null)?.full_name || user?.email || "Operador";
   const { data: groupsData } = useQuery({ queryKey: ["pdv-addon-groups"], queryFn: () => listAddonGroups() });
   const [finderOpen, setFinderOpen] = useState(false);
@@ -312,7 +316,7 @@ function PdvPage() {
           change_for: paymentLabel === "Dinheiro" && !cashChange.noChange ? cashChange.paid : null,
           no_change: paymentLabel === "Dinheiro" ? cashChange.noChange : false,
           payment_status: paymentStatus,
-          initial_status: paymentStatus === "approved" ? "preparo" : "novo",
+          initial_status: "preparo",
           delivery_fee: mode === "entrega" ? deliveryFee : 0,
           table_label: tableLabel || null,
           note: orderNote.trim() || null,
@@ -324,6 +328,12 @@ function PdvPage() {
     onSuccess: async (data) => {
       toast.success(`Pedido #${data.displayId} lançado com sucesso!`);
       resetDraft();
+      // Impressão automática da comanda; falhas não desfazem o pedido (há botão Reimprimir).
+      try {
+        await printKitchenFor(dbOrderToUi(data.order), { automaticNewOrder: true });
+      } catch (err) {
+        console.error("Falha ao imprimir pedido do PDV:", err);
+      }
     },
     onError: (err: Error) => toast.error(err.message),
   });

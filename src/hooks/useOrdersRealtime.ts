@@ -94,7 +94,7 @@ function processNewOrders(newOnes: Order[], soundEnabled: boolean, isFresh?: (o:
   // REGRA ESTRITA: Apenas pedidos com status "novo" (pendentes de aceite)
   // e que NUNCA foram notificados ou vistos anteriormente.
   const alertable = newOnes.filter(
-    (o) => o.status === "novo" && !globalSeenOrderIds.has(o.id)
+    (o) => o.status === "novo" && o.source !== "pdv" && !globalSeenOrderIds.has(o.id)
   );
 
   if (alertable.length === 0) return;
@@ -212,7 +212,8 @@ async function runTick() {
   const storeId = ui[0]?.storeId;
   if (storeId) purgeForeignNotifications(storeId);
 
-  for (const o of ui) if (o.status !== "novo") markOrderAsSeen(o.id);
+  // Pedidos do PDV nunca geram toast, sino nem som.
+  for (const o of ui) if (o.status !== "novo" || o.source === "pdv") markOrderAsSeen(o.id);
 
   if (globalNewOrderAlert) {
     const cur = ui.find((o) => o.id === globalNewOrderAlert?.id);
