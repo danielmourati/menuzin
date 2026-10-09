@@ -823,7 +823,7 @@ function KmSimulator({ slug }: { slug: string }) {
         data: { tenant_slug: slug, cep: d, street: a?.logradouro || null, number: num || null, neighborhood: a?.bairro || null, city: a?.localidade || null, state: a?.uf || null },
       });
       setOut(res.available
-        ? `${a?.logradouro ? a.logradouro + " — " : ""}${res.distance_km != null ? String(res.distance_km).replace(".", ",") + " km · " : ""}Taxa ${brl(res.fee)}`
+        ? `${a?.logradouro ? a.logradouro + " — " : ""}${res.distance_km != null ? String(res.distance_km).replace(".", ",") + " km · " : ""}Taxa ${brl(res.fee)}${res.origin ? ` · Saída: ${res.origin === "manual" ? "ponto definido por você" : "endereço cadastrado"}` : ""}`
         : res.message || "Não foi possível calcular.");
     } catch {
       setOut("Não foi possível calcular agora.");

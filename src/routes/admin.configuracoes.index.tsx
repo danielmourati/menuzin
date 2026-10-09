@@ -13,10 +13,11 @@ import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2, AlertTriangle } from "lucide-react";
+import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2, AlertTriangle, LocateFixed, Search, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { formatCep, formatCnpjCpf } from "@/lib/format";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
+import { setStoreDeparturePoint } from "@/lib/delivery-zones.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
 import { listMyCategories, listMyProducts } from "@/lib/catalog-admin.functions";
 import {
@@ -62,6 +63,112 @@ type FormState = {
   accepts_dinein: boolean;
   business_types: BusinessType[];
 };
+
+type DepartureTenant = {
+  delivery_mode?: string | null;
+  geo_manual?: boolean | null;
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_address?: string | null;
+};
+
+function DeparturePoint({ tenant, semNumero, onChanged }: { tenant?: DepartureTenant; semNumero: boolean; onChanged: () => void }) {
+  const [query, setQuery] = useState("");
+  const [busy, setBusy] = useState<null | "search" | "gps" | "clear">(null);
+  const manual = !!tenant?.geo_manual && tenant?.geo_lat != null && tenant?.geo_lng != null;
+  const usesKm = tenant?.delivery_mode === "km";
+
+  const run = async (kind: "search" | "gps" | "clear", fn: () => Promise<{ ok: boolean; message?: string }>, okMsg: string) => {
+    setBusy(kind);
+    try {
+      const r = await fn();
+      if (r.ok) { toast.success(okMsg); setQuery(""); onChanged(); }
+      else toast.error(r.message || "Não foi possível salvar o local.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível salvar o local.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const useGps = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      toast.error("Seu aparelho não permite descobrir a localização.");
+      return;
+    }
+    setBusy("gps");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setBusy(null);
+        void run("gps", () => setStoreDeparturePoint({ data: { action: "coords", lat: pos.coords.latitude, lng: pos.coords.longitude } }), "Local de saída salvo");
+      },
+      (err) => {
+        setBusy(null);
+        toast.error(err.code === 1 ? "Permita o acesso à localização no navegador e tente de novo." : "Não conseguimos pegar sua localização agora.");
+      },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  };
+
+  return (
+    <div className="rounded-xl border border-dashed p-3 space-y-3">
+      <div>
+        <Label>Local de saída das entregas <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Para lojas sem endereço fixo (ex.: trailer). A taxa por KM passa a medir a distância a partir deste ponto.
+        </p>
+      </div>
+
+      {usesKm && semNumero && !manual && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          Sem número, a distância pode ficar imprecisa. Defina o local de saída.
+        </div>
+      )}
+
+      {manual ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/50 p-2 text-sm">
+          <MapPin className="h-4 w-4 text-primary" />
+          <span className="font-medium">Ponto definido por você</span>
+          {tenant?.geo_address && <span className="text-muted-foreground">· {tenant.geo_address}</span>}
+          <a
+            href={`https://www.google.com/maps?q=${tenant?.geo_lat},${tenant?.geo_lng}`}
+            target="_blank" rel="noreferrer"
+            className="ml-auto text-xs font-medium text-primary underline"
+          >
+            Conferir no mapa
+          </a>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">Hoje a medição usa o endereço cadastrado acima.</p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <Input
+          className="min-w-[200px] flex-1"
+          placeholder="Buscar local (praça, ponto conhecido ou endereço)"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && query.trim().length >= 3) { e.preventDefault(); void run("search", () => setStoreDeparturePoint({ data: { action: "search", query: query.trim() } }), "Local de saída salvo"); } }}
+        />
+        <Button type="button" variant="outline" disabled={busy !== null || query.trim().length < 3}
+          onClick={() => run("search", () => setStoreDeparturePoint({ data: { action: "search", query: query.trim() } }), "Local de saída salvo")}>
+          {busy === "search" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}Buscar
+        </Button>
+        <Button type="button" variant="outline" disabled={busy !== null} onClick={useGps}>
+          {busy === "gps" ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="mr-1.5 h-4 w-4" />}Usar minha localização atual
+        </Button>
+        {manual && (
+          <Button type="button" variant="ghost" disabled={busy !== null}
+            onClick={() => run("clear", () => setStoreDeparturePoint({ data: { action: "clear" } }), "Voltamos a usar o endereço cadastrado")}>
+            {busy === "clear" && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Voltar para o endereço
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">O local de saída é salvo na hora, sem precisar clicar em "Salvar Configurações".</p>
+    </div>
+  );
+}
 
 function SettingsPage() {
   const qc = useQueryClient();
@@ -388,6 +495,13 @@ function SettingsPage() {
                   <div className="col-span-4 md:col-span-2"><Label>Cidade</Label><Input value={form.city} onChange={(e) => set("city", e.target.value)} className="mt-1.5" /></div>
                   <div className="col-span-2 md:col-span-1"><Label>UF</Label><Input value={form.state} onChange={(e) => set("state", e.target.value.toUpperCase().slice(0, 2))} className="mt-1.5" maxLength={2} /></div>
                   <div className="col-span-6"><Label>Ponto de referência <span className="font-normal text-muted-foreground">(opcional)</span></Label><Input value={form.address_reference} onChange={(e) => set("address_reference", e.target.value)} placeholder="Ex.: ao lado da farmácia" className="mt-1.5" maxLength={200} /></div>
+                  <div className="col-span-6">
+                    <DeparturePoint
+                      tenant={tenant as unknown as DepartureTenant | undefined}
+                      semNumero={form.address_number.trim().toUpperCase() === "S/N"}
+                      onChanged={() => qc.invalidateQueries({ queryKey: ["my-tenant"] })}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="md:col-span-2">
