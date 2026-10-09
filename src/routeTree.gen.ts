@@ -28,6 +28,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
+import { Route as AdminAtendenteIaRouteImport } from './routes/admin.atendente-ia'
 import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
 import { Route as AdminCaixaRouteImport } from './routes/admin.caixa'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
@@ -182,6 +183,11 @@ const AdminAparenciaRoute = AdminAparenciaRouteImport.update({
 const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
   id: '/assinatura',
   path: '/assinatura',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAtendenteIaRoute = AdminAtendenteIaRouteImport.update({
+  id: '/atendente-ia',
+  path: '/atendente-ia',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
@@ -515,6 +521,7 @@ export interface FileRoutesByFullPath {
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
+  '/admin/atendente-ia': typeof AdminAtendenteIaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/caixa': typeof AdminCaixaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
@@ -595,6 +602,7 @@ export interface FileRoutesByTo {
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
+  '/admin/atendente-ia': typeof AdminAtendenteIaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/caixa': typeof AdminCaixaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
@@ -675,6 +683,7 @@ export interface FileRoutesById {
   '/admin/adicionais': typeof AdminAdicionaisRoute
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
+  '/admin/atendente-ia': typeof AdminAtendenteIaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
   '/admin/caixa': typeof AdminCaixaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
@@ -758,6 +767,7 @@ export interface FileRouteTypes {
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/assinatura'
+    | '/admin/atendente-ia'
     | '/admin/avaliacoes'
     | '/admin/caixa'
     | '/admin/categorias'
@@ -838,6 +848,7 @@ export interface FileRouteTypes {
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/assinatura'
+    | '/admin/atendente-ia'
     | '/admin/avaliacoes'
     | '/admin/caixa'
     | '/admin/categorias'
@@ -917,6 +928,7 @@ export interface FileRouteTypes {
     | '/admin/adicionais'
     | '/admin/aparencia'
     | '/admin/assinatura'
+    | '/admin/atendente-ia'
     | '/admin/avaliacoes'
     | '/admin/caixa'
     | '/admin/categorias'
@@ -1151,6 +1163,13 @@ declare module '@tanstack/react-router' {
       path: '/assinatura'
       fullPath: '/admin/assinatura'
       preLoaderRoute: typeof AdminAssinaturaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/atendente-ia': {
+      id: '/admin/atendente-ia'
+      path: '/atendente-ia'
+      fullPath: '/admin/atendente-ia'
+      preLoaderRoute: typeof AdminAtendenteIaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/avaliacoes': {
@@ -1621,6 +1640,7 @@ interface AdminRouteChildren {
   AdminAdicionaisRoute: typeof AdminAdicionaisRoute
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminAssinaturaRoute: typeof AdminAssinaturaRoute
+  AdminAtendenteIaRoute: typeof AdminAtendenteIaRoute
   AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
   AdminCaixaRoute: typeof AdminCaixaRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
@@ -1648,6 +1668,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdicionaisRoute: AdminAdicionaisRoute,
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminAssinaturaRoute: AdminAssinaturaRoute,
+  AdminAtendenteIaRoute: AdminAtendenteIaRoute,
   AdminAvaliacoesRoute: AdminAvaliacoesRoute,
   AdminCaixaRoute: AdminCaixaRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
