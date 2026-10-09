@@ -316,7 +316,7 @@ function PdvPage() {
           change_for: paymentLabel === "Dinheiro" && !cashChange.noChange ? cashChange.paid : null,
           no_change: paymentLabel === "Dinheiro" ? cashChange.noChange : false,
           payment_status: paymentStatus,
-          initial_status: paymentStatus === "approved" ? "preparo" : "novo",
+          initial_status: "preparo",
           delivery_fee: mode === "entrega" ? deliveryFee : 0,
           table_label: tableLabel || null,
           note: orderNote.trim() || null,
