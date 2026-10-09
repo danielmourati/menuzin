@@ -19,7 +19,7 @@ export function CashShiftBadge() {
     : "";
   return data.open ? (
     <Link
-      to="/admin/caixa"
+      to="/admin/caixa" search={{ tab: undefined }}
       title={`Turno aberto desde ${time}`}
       className="hidden sm:inline-flex h-8 items-center gap-1.5 rounded-lg border border-success/40 bg-success/10 px-2.5 text-xs font-semibold text-success hover:bg-success/20"
     >
@@ -28,7 +28,7 @@ export function CashShiftBadge() {
     </Link>
   ) : (
     <Link
-      to="/admin/caixa"
+      to="/admin/caixa" search={{ tab: undefined }}
       title="Nenhum turno aberto — clique para abrir"
       className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-warning/50 bg-warning/10 px-2.5 text-xs font-semibold text-warning-foreground hover:bg-warning/20"
     >
