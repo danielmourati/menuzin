@@ -12,11 +12,17 @@ export const getAgentPublicInfo = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ slug: Slug }).parse(d))
   .handler(async ({ data }) => {
     const { data: t } = await supabaseAdmin.from("tenants").select("id").eq("slug", data.slug).eq("active", true).maybeSingle();
-    if (!t) return { enabled: false, name: "", greeting: "" };
+    if (!t) return { enabled: false, name: "", greeting: "", quickReplies: [] as { label: string; message: string }[] };
     const { getTenantPlan } = await import("@/lib/plan-server");
     const { loadAgentSettings } = await import("@/lib/ai-agent.server");
-    const [plan, s] = await Promise.all([getTenantPlan(t.id), loadAgentSettings(t.id)]);
-    return { enabled: plan === "pro" && s.enabled, name: s.agent_name, greeting: s.greeting };
+    const [plan, s, qr] = await Promise.all([
+      getTenantPlan(t.id), loadAgentSettings(t.id),
+      supabaseAdmin.from("ai_quick_replies").select("label, message").eq("tenant_id", t.id).eq("active", true).order("sort_order").limit(8),
+    ]);
+    const quickReplies = (qr.data ?? []).length
+      ? (qr.data ?? []).map((r) => ({ label: r.label, message: r.message || r.label }))
+      : ["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"].map((l) => ({ label: l, message: l }));
+    return { enabled: plan === "pro" && s.enabled, name: s.agent_name, greeting: s.greeting, quickReplies };
   });
 
 export const startAgentConversation = createServerFn({ method: "POST" })
@@ -49,6 +55,7 @@ export const getAgentConversation = createServerFn({ method: "POST" })
     return {
       status: conv.status as string,
       order_id: conv.order_id as string | null,
+      handoff_status: ((conv as any).handoff_status ?? "none") as string,
       priced: (conv.draft as any)?.lines ? (conv.draft as any) : null,
       messages: (rows ?? []).map((r) => ({ id: r.ai_message_id ?? crypto.randomUUID(), role: r.role, parts: r.parts as any[] })),
     };
@@ -146,7 +153,7 @@ export const listMyAgentConversations = createServerFn({ method: "POST" })
     const tenantId = await tenantFor(context);
     const { data } = await supabaseAdmin
       .from("ai_conversations")
-      .select("id, customer_name, customer_phone, status, order_id, message_count, created_at, updated_at, orders(number)")
+      .select("id, customer_name, customer_phone, status, order_id, message_count, handoff_status, handoff_requested_at, created_at, updated_at, orders(number)")
       .eq("tenant_id", tenantId).gt("message_count", 0).order("updated_at", { ascending: false }).limit(100);
     return (data ?? []).map((c: any) => ({ ...c, order_number: c.orders?.number ?? null }));
   });
@@ -162,6 +169,7 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
       .from("ai_messages").select("id, role, parts, created_at").eq("conversation_id", data.id).order("created_at");
     return (rows ?? []).map((r) => ({
       id: r.id, role: r.role, created_at: r.created_at,
+      staff: ((r.parts as any[]) ?? []).some((p) => p?.type === "data-staff"),
       text: ((r.parts as any[]) ?? []).filter((p) => p?.type === "text").map((p) => p.text).join("\n"),
     }));
   });
