@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
-import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2 } from "lucide-react";
+import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, ShoppingBag, CreditCard, Flag } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   getAgentPublicInfo, startAgentConversation, getAgentConversation, confirmAgentOrder,
 } from "@/lib/ai-agent.functions";
@@ -14,7 +15,7 @@ type Stored = { id: string; accessKey: string };
 type Priced = {
   lines: { name: string; qty: number; details: string[]; line_total: number; note: string | null }[];
   subtotal: number; discount: number; delivery_fee: number; total: number; change_back: number | null;
-  ready: boolean; coupon_code: string | null;
+  ready: boolean; coupon_code: string | null; missing: string[]; errors: string[];
   draft: { mode: string | null; payment: string | null; customer_name: string | null; address: Record<string, string | null> | null; table_label: string | null };
 };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -32,13 +33,13 @@ export function AiOrderChatLauncher({ slug }: { slug: string }) {
   return (
     <>
       {!open && (
-        <button
+        <Button
           onClick={() => setOpen(true)}
           className="fixed bottom-24 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition hover:scale-105"
           aria-label="Pedir conversando"
         >
           <ChefHat className="h-5 w-5" /> Pedir conversando
-        </button>
+        </Button>
       )}
       {open && <AiOrderChatWindow slug={slug} name={info.name} greeting={info.greeting} onClose={() => setOpen(false)} />}
     </>
@@ -87,8 +88,8 @@ function AiOrderChatWindow({ slug, name, greeting, onClose }: { slug: string; na
           </div>
         </div>
         <div className="flex gap-1">
-          <button onClick={() => boot(true)} className="rounded-lg p-1.5 hover:bg-primary-foreground/10" aria-label="Nova conversa" title="Nova conversa"><RotateCcw className="h-4 w-4" /></button>
-          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-primary-foreground/10" aria-label="Fechar"><X className="h-5 w-5" /></button>
+          <Button variant="ghost" size="icon" onClick={() => boot(true)} className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Nova conversa" title="Nova conversa"><RotateCcw className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground" aria-label="Fechar"><X className="h-5 w-5" /></Button>
         </div>
       </div>
       {error ? (
@@ -112,6 +113,7 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
   const [confirming, setConfirming] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/public/ai-chat", body: { slug, conversationId: conv.id, accessKey: conv.accessKey } }),
     [slug, conv.id, conv.accessKey],
@@ -133,6 +135,22 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
     if (!t || busy) return;
     void sendMessage({ text: t });
     setInput("");
+  };
+
+  const showCart = () => {
+    if (!priced?.lines.length) {
+      send("Quero ver meu carrinho.");
+      return;
+    }
+    summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const finishOrder = () => {
+    if (priced?.ready) {
+      summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    send("Quero finalizar meu pedido. Me ajude com o que ainda falta.");
   };
 
   const confirm = async () => {
@@ -160,7 +178,7 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
         {messages.length === 0 && (
           <div className="flex flex-wrap gap-2">
             {["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"].map((s) => (
-              <button key={s} onClick={() => send(s)} className="rounded-full border bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary">{s}</button>
+              <Button key={s} variant="outline" size="sm" onClick={() => send(s)} className="h-auto rounded-full bg-card px-3 py-1.5 text-xs hover:border-primary hover:text-primary">{s}</Button>
             ))}
           </div>
         )}
@@ -182,7 +200,31 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
           </div>
         )}
         {error && <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{error.message || "Falha ao responder."}</p>}
-        {priced && priced.lines.length > 0 && <Summary priced={priced} confirming={confirming} busy={busy} onConfirm={confirm} onChange={() => { setInput("Quero alterar: "); inputRef.current?.focus(); }} />}
+        <div className="flex flex-wrap gap-2" aria-label="Ações do pedido">
+          <Button variant="outline" size="sm" onClick={showCart} disabled={busy} className="rounded-full bg-card">
+            <ShoppingBag /> Ver carrinho
+          </Button>
+          {priced?.lines.length ? (
+            <Button variant="outline" size="sm" onClick={() => send("Quero seguir para o pagamento.")} disabled={busy || !!priced.draft.payment} className="rounded-full bg-card">
+              <CreditCard /> {priced.draft.payment ? "Pagamento informado" : "Seguir para pagamento"}
+            </Button>
+          ) : null}
+          {priced?.lines.length ? (
+            <Button variant="outline" size="sm" onClick={() => send("Ok, já terminei de escolher meus itens.")} disabled={busy} className="rounded-full bg-card">
+              <CheckCircle2 /> Ok, já terminei
+            </Button>
+          ) : null}
+          {priced?.lines.length ? (
+            <Button size="sm" onClick={finishOrder} disabled={busy} className="rounded-full">
+              <Flag /> Finalizar pedido
+            </Button>
+          ) : null}
+        </div>
+        {priced && priced.lines.length > 0 && (
+          <div ref={summaryRef}>
+            <Summary priced={priced} confirming={confirming} busy={busy} onConfirm={confirm} onChange={() => { setInput("Quero alterar: "); inputRef.current?.focus(); }} />
+          </div>
+        )}
         <div ref={endRef} />
       </div>
       <form
@@ -199,9 +241,9 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, onNe
           placeholder="Ex.: 2 pastéis de carne grandes, entrega…"
           className="max-h-28 min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
         />
-        <button type="submit" disabled={busy || !input.trim()} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-50" aria-label="Enviar">
+        <Button type="submit" size="icon" disabled={busy || !input.trim()} className="h-11 w-11 shrink-0 rounded-xl" aria-label="Enviar">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </button>
+        </Button>
       </form>
     </>
   );
@@ -247,10 +289,10 @@ function Summary({ priced, confirming, busy, onConfirm, onChange }: { priced: Pr
       </div>
       {priced.ready ? (
         <div className="mt-3 flex gap-2">
-          <button onClick={onChange} disabled={confirming} className="flex-1 rounded-xl border py-2 text-xs font-medium hover:bg-muted">Alterar</button>
-          <button onClick={onConfirm} disabled={confirming || busy} className="flex flex-[2] items-center justify-center gap-1.5 rounded-xl bg-primary py-2 text-xs font-semibold text-primary-foreground disabled:opacity-50">
+          <Button variant="outline" size="sm" onClick={onChange} disabled={confirming} className="h-auto flex-1 rounded-xl py-2 text-xs">Alterar</Button>
+          <Button size="sm" onClick={onConfirm} disabled={confirming || busy} className="h-auto flex-[2] rounded-xl py-2 text-xs">
             {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Confirmar pedido
-          </button>
+          </Button>
         </div>
       ) : (
         <p className="mt-2 text-xs text-muted-foreground">Continue a conversa para completar o pedido.</p>
