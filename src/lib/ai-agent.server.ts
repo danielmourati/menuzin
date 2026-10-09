@@ -248,9 +248,40 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   let delivery_neighborhood: string | null = null;
   if (!draft.mode) missing.push("Entrega, retirada ou consumo no local");
   if (draft.mode === "entrega") {
-    const a = draft.address;
-    if (!a?.street || !a?.number || !(a.neighborhood || a.cep)) {
-      missing.push("Endereço completo (rua, número e bairro ou CEP)");
+    const t = ctx.tenant as any;
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const a: any = draft.address ? { ...draft.address } : null;
+    let cityError: string | null = null;
+    if (a) {
+      const cepDigits = String(a.cep ?? "").replace(/\D/g, "");
+      if (cepDigits.length === 8) {
+        a.cep = cepDigits;
+        try {
+          const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+          const j: any = res.ok ? await res.json() : null;
+          if (j && !j.erro) {
+            if (t.city && j.localidade && norm(j.localidade) !== norm(t.city)) {
+              cityError = `Esse CEP é de ${j.localidade}/${j.uf}. Só entregamos em ${t.city}${t.state ? `/${t.state}` : ""}.`;
+            }
+            if (!a.street && j.logradouro) a.street = j.logradouro;
+            if (!a.neighborhood && j.bairro) a.neighborhood = j.bairro;
+          } else if (j?.erro) {
+            cityError = "CEP não encontrado. Confira o número ou informe rua e bairro.";
+          }
+        } catch { /* segue sem completar */ }
+      }
+      if (t.city) a.city = t.city;
+      if (t.state) a.state = t.state;
+      draft.address = a;
+    }
+    if (cityError) {
+      errors.push(cityError);
+    } else if (!a?.street || !a?.number || !(a.neighborhood || a.cep)) {
+      missing.push(
+        a?.street && !a?.number
+          ? `Número da casa (rua: ${a.street}${a.neighborhood ? `, ${a.neighborhood}` : ""})`
+          : `Endereço em ${t.city ?? "nossa cidade"}: CEP, ou rua, número e bairro`,
+      );
     } else {
       const { resolveDeliveryFee } = await import("@/lib/delivery-zones.functions");
       const r = await resolveDeliveryFee({

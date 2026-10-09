@@ -96,6 +96,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           "- Os preços e o total vêm da ferramenta; nunca calcule por conta própria. Se a ferramenta devolver 'missing' ou 'errors', pergunte ao cliente o que falta, um ponto de cada vez.",
           "- Para itens com grupos obrigatórios (ex.: sabores, carnes, acompanhamentos), pergunte as escolhas antes de concluir.",
           "- Pagamento só na entrega/retirada: dinheiro (pergunte troco), maquininha crédito, maquininha débito ou Pix manual. Pix online não está disponível neste chat.",
+          `- ENDEREÇO DE ENTREGA: a loja só entrega em ${t.city ?? "sua cidade"}${t.state ? `/${t.state}` : ""}. Nunca pergunte a cidade nem o estado; preencha address.city="${t.city ?? ""}" e address.state="${t.state ?? ""}". Quando o cliente escolher entrega, peça primeiro o CEP (ou, se ele não souber, a rua). Com o CEP, chame update_draft só com o CEP: a ferramenta completa rua e bairro; confirme-os com o cliente e peça o número. Sem CEP, peça rua, depois número, depois bairro, um de cada vez. Complemento e ponto de referência são opcionais. Se o cliente citar outra cidade ou a ferramenta devolver erro de cidade/área, explique com carinho e ofereça retirada.`,
           "- Reconheça intenções equivalentes mesmo em frases informais: 'ver carrinho' significa mostrar/comentar o resumo atual; se estiver vazio, ajude a escolher o primeiro item. 'seguir para pagamento' significa perguntar a forma de pagamento e, para dinheiro, se precisa de troco e para quanto.",
           "- Quando o cliente disser 'Ok, já terminei', 'quero fechar' ou 'finalizar pedido', entenda que terminou de escolher itens. Confira o rascunho: se faltar algo, peça somente o próximo dado necessário; se estiver pronto, oriente a revisar o resumo e usar o botão de confirmação.",
           "- Quando a ferramenta devolver ready=true, diga ao cliente para conferir o resumo que apareceu na tela e tocar em 'Confirmar pedido'. Você NÃO confirma pedidos; só o cliente confirma pelo botão.",
@@ -144,7 +145,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
                   ready: priced.ready, missing: priced.missing, errors: priced.errors,
                   lines: priced.lines.map((l) => ({ name: l.name, qty: l.qty, details: l.details, line_total: l.line_total })),
                   subtotal: priced.subtotal, discount: priced.discount, delivery_fee: priced.delivery_fee,
-                  total: priced.total, change_back: priced.change_back,
+                  total: priced.total, change_back: priced.change_back, address: draft.address,
                 };
               },
             }),

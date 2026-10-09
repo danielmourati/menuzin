@@ -177,14 +177,37 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
 // ---------- Atalhos (mensagens rápidas) ----------
 export const DEFAULT_QUICK_REPLIES = ["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"];
 
+async function seedDefaults(supabase: any, tenantId: string) {
+  const { error } = await supabase.from("ai_quick_replies").insert(
+    DEFAULT_QUICK_REPLIES.map((label, i) => ({ tenant_id: tenantId, label, message: "", active: true, sort_order: i })),
+  );
+  if (error) throw new Error(error.message);
+}
+
 export const listMyQuickReplies = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const tenantId = await tenantFor(context);
-    const { data, error } = await context.supabase.from("ai_quick_replies")
+    const q = () => context.supabase.from("ai_quick_replies")
       .select("id, label, message, active, sort_order").eq("tenant_id", tenantId).order("sort_order");
+    let { data, error } = await q();
     if (error) throw new Error(error.message);
+    if (!data?.length) {
+      await seedDefaults(context.supabase, tenantId);
+      ({ data, error } = await q());
+      if (error) throw new Error(error.message);
+    }
     return (data ?? []) as { id: string; label: string; message: string; active: boolean; sort_order: number }[];
+  });
+
+export const restoreDefaultQuickReplies = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const tenantId = await tenantFor(context);
+    const { error } = await context.supabase.from("ai_quick_replies").delete().eq("tenant_id", tenantId);
+    if (error) throw new Error(error.message);
+    await seedDefaults(context.supabase, tenantId);
+    return { ok: true };
   });
 
 export const saveMyQuickReply = createServerFn({ method: "POST" })

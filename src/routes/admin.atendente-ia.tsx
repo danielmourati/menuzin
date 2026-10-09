@@ -15,7 +15,7 @@ import { Loader2, ChefHat, ArrowUp, ArrowDown, Trash2, Plus, Headset } from "luc
 import { toast } from "sonner";
 import {
   getMyAgentSettings, saveMyAgentSettings, listMyAgentConversations, getMyAgentConversationMessages,
-  listMyQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus,
+  listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus,
 } from "@/lib/ai-agent.functions";
 
 export const Route = createFileRoute("/admin/atendente-ia")({
@@ -127,6 +127,11 @@ function QuickRepliesTab() {
     mutationFn: (ids: string[]) => reorderMyQuickReplies({ data: { ids } }), onSuccess: refresh,
     onError: (e: Error) => { toast.error(e.message); refresh(); },
   });
+  const restore = useMutation({
+    mutationFn: () => restoreDefaultQuickReplies(),
+    onSuccess: () => { toast.success("Atalhos padrão restaurados."); refresh(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
   if (isLoading) return <Loader2 className="h-6 w-6 animate-spin text-primary" />;
   const rows = data ?? [];
   const swap = (i: number, j: number) => { const ids = rows.map((r) => r.id); [ids[i], ids[j]] = [ids[j], ids[i]]; move.mutate(ids); };
@@ -134,10 +139,14 @@ function QuickRepliesTab() {
     <Card className="max-w-2xl">
       <CardHeader>
         <CardTitle>Atalhos da conversa</CardTitle>
-        <CardDescription>Botões que aparecem no início do chat para o cliente tocar. Sem atalhos cadastrados, mostramos os 3 padrões. Até 8 ativos.</CardDescription>
+        <CardDescription>Botões que aparecem no início do chat para o cliente tocar. Toque em um atalho para editar. Até 8 ativos.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {rows.length === 0 && <p className="text-sm text-muted-foreground">Usando os padrões: "O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?".</p>}
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" disabled={restore.isPending} onClick={() => { if (confirm("Substituir todos os atalhos pelos 3 padrões?")) restore.mutate(); }}>
+            Restaurar padrões
+          </Button>
+        </div>
         {rows.map((r, i) => (
           <div key={r.id} className="flex items-center gap-2 rounded-xl border p-2">
             <div className="flex flex-col">
