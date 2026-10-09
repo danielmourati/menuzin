@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { tryResolveEffectiveTenantId, resolveEffectiveTenantId } from "@/lib/active-tenant.server";
 
 // Cache em memória das distâncias (evita cobranças repetidas no Google)
 const distanceCache = new Map<string, { meters: number; expires: number }>();
@@ -188,6 +188,7 @@ export type DeliveryFeeResolution = {
   estimated_minutes: number | null;
   message: string | null;
   distance_km?: number;
+  origin?: "manual" | "address";
 };
 
 export type KmRounding = "ceil" | "half" | "exact";
@@ -226,7 +227,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<DeliveryFeeResolution> => {
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
-      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, delivery_km_rounding, geo_lat, geo_lng, geo_address, cep, address, address_number, neighborhood, city, state")
+      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, delivery_km_rounding, geo_manual, geo_lat, geo_lng, geo_address, cep, address, address_number, neighborhood, city, state")
       .eq("slug", data.tenant_slug)
       .eq("active", true)
       .maybeSingle();
@@ -284,8 +285,10 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
 
       try {
         // Ponto da loja (guardado no banco; recalculado se o endereço mudar)
-        let orig: { lat: number; lng: number } | null =
-          t.geo_lat != null && t.geo_lng != null && t.geo_address === origAddr ? { lat: t.geo_lat, lng: t.geo_lng } : null;
+        const manual = !!(tenant as { geo_manual?: boolean }).geo_manual && t.geo_lat != null && t.geo_lng != null;
+        let orig: { lat: number; lng: number } | null = manual
+          ? { lat: t.geo_lat as number, lng: t.geo_lng as number }
+          : t.geo_lat != null && t.geo_lng != null && t.geo_address === origAddr ? { lat: t.geo_lat, lng: t.geo_lng } : null;
         if (!orig) {
           orig = await geocode(origAddr, apiKey);
           if (orig) {
@@ -297,7 +300,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
           return fail("Não foi possível calcular a entrega agora. Fale com a loja.");
         }
 
-        const cacheKey = `${tenant.id}|${destAddr.toLowerCase().replace(/\s+/g, " ")}`;
+        const cacheKey = `${tenant.id}|${orig.lat.toFixed(5)},${orig.lng.toFixed(5)}|${destAddr.toLowerCase().replace(/\s+/g, " ")}`;
         const cached = distanceCache.get(cacheKey);
         let meters: number | null = cached && cached.expires > Date.now() ? cached.meters : null;
         if (meters === null) {
@@ -333,6 +336,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
           mode, available: true, fee, source: "distance_km",
           neighborhood: data.neighborhood || null, min_order_total: 0, estimated_minutes: null, message: null,
           distance_km: Math.round(km * 10) / 10,
+          origin: manual ? "manual" : "address",
         };
       } catch (err) {
         console.error("[km] Erro na API do Google Maps:", err);
@@ -440,4 +444,52 @@ export const getDeliveryFeeRange = createServerFn({ method: "GET" })
     const fees = (zones ?? []).map((z) => Number(z.fee)).filter((n) => Number.isFinite(n));
     if (fees.length === 0) return { mode, min: baseFee, max: baseFee };
     return { mode, min: Math.min(...fees), max: Math.max(...fees) };
+  });
+
+
+// ---- Ponto de saída das entregas (lojas sem endereço fixo, ex.: trailer) ----
+
+const DepartureInput = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("search"), query: z.string().min(3).max(200) }),
+  z.object({ action: z.literal("coords"), lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }),
+  z.object({ action: z.literal("clear") }),
+]);
+
+export const setStoreDeparturePoint = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => DepartureInput.parse(d))
+  .handler(async ({ data, context }): Promise<{ ok: boolean; message?: string; lat?: number | null; lng?: number | null; label?: string | null }> => {
+    const { supabase, userId } = context;
+    const { tenantId, isPlatformAdmin } = await resolveEffectiveTenantId(supabase, userId);
+    if (!isPlatformAdmin) {
+      const { data: roles } = await supabase
+        .from("user_roles").select("role").eq("user_id", userId).eq("tenant_id", tenantId);
+      if (!(roles ?? []).some((r) => r.role === "owner" || r.role === "admin")) {
+        return { ok: false, message: "Sem permissão para editar esta loja." };
+      }
+    }
+
+    if (data.action === "clear") {
+      // geo_address vazio força o recálculo pelo endereço cadastrado
+      await supabaseAdmin.from("tenants")
+        .update({ geo_manual: false, geo_lat: null, geo_lng: null, geo_address: null }).eq("id", tenantId);
+      return { ok: true, lat: null, lng: null, label: null };
+    }
+
+    let lat: number, lng: number, label: string;
+    if (data.action === "coords") {
+      lat = data.lat; lng = data.lng; label = "Localização atual (GPS)";
+    } else {
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      if (!apiKey) return { ok: false, message: "Busca de local indisponível no momento." };
+      const { data: t } = await supabaseAdmin.from("tenants").select("city, state").eq("id", tenantId).maybeSingle();
+      const q = [data.query, t?.city, t?.state, "Brasil"].filter(Boolean).join(", ");
+      const pt = await geocode(q, apiKey);
+      if (!pt) return { ok: false, message: "Não encontramos esse local. Tente incluir a rua ou um ponto conhecido." };
+      lat = pt.lat; lng = pt.lng; label = data.query;
+    }
+    const { error } = await supabaseAdmin.from("tenants")
+      .update({ geo_manual: true, geo_lat: lat, geo_lng: lng, geo_address: label }).eq("id", tenantId);
+    if (error) return { ok: false, message: "Não foi possível salvar o local." };
+    return { ok: true, lat, lng, label };
   });
