@@ -64,6 +64,7 @@ import { Route as AdminConfiguracoesPagamentosRouteImport } from './routes/admin
 import { Route as AdminConfiguracoesPedidosRouteImport } from './routes/admin.configuracoes.pedidos'
 import { Route as AdminConfiguracoesPromocaoRouteImport } from './routes/admin.configuracoes.promocao'
 import { Route as AdminConfiguracoesWhatsappRouteImport } from './routes/admin.configuracoes.whatsapp'
+import { Route as ApiPublicAiChatRouteImport } from './routes/api.public.ai-chat'
 import { Route as ApiPublicGuiaClickRouteImport } from './routes/api.public.guia-click'
 import { Route as ApiPublicManifestAdminRouteImport } from './routes/api.public.manifest-admin'
 import { Route as ApiPublicMenuzinMpWebhookRouteImport } from './routes/api.public.menuzin-mp-webhook'
@@ -368,6 +369,11 @@ const AdminConfiguracoesWhatsappRoute =
     path: '/whatsapp',
     getParentRoute: () => AdminConfiguracoesRoute,
   } as any)
+const ApiPublicAiChatRoute = ApiPublicAiChatRouteImport.update({
+  id: '/api/public/ai-chat',
+  path: '/api/public/ai-chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicGuiaClickRoute = ApiPublicGuiaClickRouteImport.update({
   id: '/api/public/guia-click',
   path: '/api/public/guia-click',
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
+  '/api/public/ai-chat': typeof ApiPublicAiChatRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/manifest-admin': typeof ApiPublicManifestAdminRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
@@ -622,6 +629,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
+  '/api/public/ai-chat': typeof ApiPublicAiChatRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/manifest-admin': typeof ApiPublicManifestAdminRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
@@ -703,6 +711,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/pedidos': typeof AdminConfiguracoesPedidosRoute
   '/admin/configuracoes/promocao': typeof AdminConfiguracoesPromocaoRoute
   '/admin/configuracoes/whatsapp': typeof AdminConfiguracoesWhatsappRoute
+  '/api/public/ai-chat': typeof ApiPublicAiChatRoute
   '/api/public/guia-click': typeof ApiPublicGuiaClickRoute
   '/api/public/manifest-admin': typeof ApiPublicManifestAdminRoute
   '/api/public/menuzin-mp-webhook': typeof ApiPublicMenuzinMpWebhookRoute
@@ -785,6 +794,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
     | '/admin/configuracoes/whatsapp'
+    | '/api/public/ai-chat'
     | '/api/public/guia-click'
     | '/api/public/manifest-admin'
     | '/api/public/menuzin-mp-webhook'
@@ -862,6 +872,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
     | '/admin/configuracoes/whatsapp'
+    | '/api/public/ai-chat'
     | '/api/public/guia-click'
     | '/api/public/manifest-admin'
     | '/api/public/menuzin-mp-webhook'
@@ -942,6 +953,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/pedidos'
     | '/admin/configuracoes/promocao'
     | '/admin/configuracoes/whatsapp'
+    | '/api/public/ai-chat'
     | '/api/public/guia-click'
     | '/api/public/manifest-admin'
     | '/api/public/menuzin-mp-webhook'
@@ -988,6 +1000,7 @@ export interface RootRouteChildren {
   PlatformPlanosRoute: typeof PlatformPlanosRoute
   PlatformSuporteRoute: typeof PlatformSuporteRoute
   GuiaIndexRoute: typeof GuiaIndexRoute
+  ApiPublicAiChatRoute: typeof ApiPublicAiChatRoute
   ApiPublicGuiaClickRoute: typeof ApiPublicGuiaClickRoute
   ApiPublicManifestAdminRoute: typeof ApiPublicManifestAdminRoute
   ApiPublicMenuzinMpWebhookRoute: typeof ApiPublicMenuzinMpWebhookRoute
@@ -1392,6 +1405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesWhatsappRouteImport
       parentRoute: typeof AdminConfiguracoesRoute
     }
+    '/api/public/ai-chat': {
+      id: '/api/public/ai-chat'
+      path: '/api/public/ai-chat'
+      fullPath: '/api/public/ai-chat'
+      preLoaderRoute: typeof ApiPublicAiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/guia-click': {
       id: '/api/public/guia-click'
       path: '/api/public/guia-click'
@@ -1709,6 +1729,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlatformPlanosRoute: PlatformPlanosRoute,
   PlatformSuporteRoute: PlatformSuporteRoute,
   GuiaIndexRoute: GuiaIndexRoute,
+  ApiPublicAiChatRoute: ApiPublicAiChatRoute,
   ApiPublicGuiaClickRoute: ApiPublicGuiaClickRoute,
   ApiPublicManifestAdminRoute: ApiPublicManifestAdminRoute,
   ApiPublicMenuzinMpWebhookRoute: ApiPublicMenuzinMpWebhookRoute,
