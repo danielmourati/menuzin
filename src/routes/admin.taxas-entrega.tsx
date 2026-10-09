@@ -17,7 +17,7 @@ import { Plus, Edit2, Trash2, Loader2, MapPin, Ban, DollarSign, Map as MapIcon, 
 import { toast } from "sonner";
 import {
   listMyDeliveryZones, upsertDeliveryZone, deleteDeliveryZone, cleanNeighborhoodName,
-  type DeliveryZoneRow,
+  resolveDeliveryFee, type DeliveryZoneRow,
 } from "@/lib/delivery-zones.functions";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { searchCepRanges, type CepRangeResult } from "@/lib/cep-ranges.functions";
@@ -89,6 +89,7 @@ function DeliveryZonesPage() {
   const [kmBase, setKmBase] = useState<number>(0);
   const [kmFee, setKmFee] = useState<number>(0);
   const [kmMax, setKmMax] = useState<number>(0);
+  const [kmRounding, setKmRounding] = useState<"ceil" | "half" | "exact">("half");
 
   useEffect(() => {
     if (tenantData) {
@@ -97,6 +98,7 @@ function DeliveryZonesPage() {
       setKmBase(Number((tenantData as { delivery_base_km?: number }).delivery_base_km ?? 0));
       setKmFee(Number((tenantData as { delivery_fee_per_km?: number }).delivery_fee_per_km ?? 0));
       setKmMax(Number((tenantData as { delivery_max_km?: number }).delivery_max_km ?? 0));
+      setKmRounding(((tenantData as { delivery_km_rounding?: "ceil" | "half" | "exact" }).delivery_km_rounding ?? "half"));
     }
   }, [tenantData]);
 
@@ -113,7 +115,8 @@ function DeliveryZonesPage() {
             delivery_fee: singleFee, // we use singleFee as base fee for KM too
             delivery_base_km: kmBase,
             delivery_fee_per_km: kmFee,
-            delivery_max_km: kmMax || null
+            delivery_max_km: kmMax || null,
+            delivery_km_rounding: kmRounding,
           } : {}),
           ...(mode === "none" ? { delivery_fee: 0 } : {}),
         },
@@ -317,6 +320,20 @@ function DeliveryZonesPage() {
                   <Input type="number" min={0} step={0.1} className="mt-1.5" value={kmMax || ""} onChange={(e) => setKmMax(Number(e.target.value))} />
                   <p className="mt-1 text-[11px] text-muted-foreground">Deixe 0 para sem limite. Bloqueia pedidos acima disto.</p>
                 </div>
+                <div>
+                  <Label>Arredondamento dos KM extras</Label>
+                  <select
+                    className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={kmRounding}
+                    onChange={(e) => setKmRounding(e.target.value as "ceil" | "half" | "exact")}
+                  >
+                    <option value="half">De meio em meio km (recomendado)</option>
+                    <option value="ceil">Sempre para o km inteiro de cima</option>
+                    <option value="exact">Exato (proporcional)</option>
+                  </select>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Ex.: 2,1 km extras → meio km: 2,5 · para cima: 3 · exato: 2,1.</p>
+                </div>
+                <KmSimulator slug={(tenantData as { slug?: string } | undefined)?.slug ?? ""} />
               </div>
             )}
 
@@ -785,6 +802,46 @@ function ViaCepSearch({
             : "Faixa da base local aplicada. Ajuste se necessário."}
         </p>
       )}
+    </div>
+  );
+}
+
+function KmSimulator({ slug }: { slug: string }) {
+  const [cep, setCep] = useState("");
+  const [num, setNum] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState<string | null>(null);
+  const run = async () => {
+    const d = cep.replace(/\D/g, "");
+    if (d.length !== 8 || !slug) return setOut("Digite um CEP válido.");
+    setBusy(true);
+    setOut(null);
+    try {
+      const r = await lookupByCep(d);
+      const a = r.status === "ok" ? r.results[0] : null;
+      const res = await resolveDeliveryFee({
+        data: { tenant_slug: slug, cep: d, street: a?.logradouro || null, number: num || null, neighborhood: a?.bairro || null, city: a?.localidade || null, state: a?.uf || null },
+      });
+      setOut(res.available
+        ? `${a?.logradouro ? a.logradouro + " — " : ""}${res.distance_km != null ? String(res.distance_km).replace(".", ",") + " km · " : ""}Taxa ${brl(res.fee)}`
+        : res.message || "Não foi possível calcular.");
+    } catch {
+      setOut("Não foi possível calcular agora.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="sm:col-span-2 rounded-xl border border-dashed p-3">
+      <Label>Simular taxa (usa a configuração já salva)</Label>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        <Input className="w-36" placeholder="CEP" inputMode="numeric" value={cep} onChange={(e) => setCep(e.target.value)} />
+        <Input className="w-24" placeholder="Nº" value={num} onChange={(e) => setNum(e.target.value)} />
+        <Button type="button" variant="outline" onClick={run} disabled={busy}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simular"}
+        </Button>
+      </div>
+      {out && <p className="mt-2 text-sm font-medium">{out}</p>}
     </div>
   );
 }

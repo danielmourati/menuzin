@@ -2607,6 +2607,7 @@ export type Database = {
           delivery_base_km: number | null
           delivery_fee: number
           delivery_fee_per_km: number | null
+          delivery_km_rounding: string
           delivery_max_km: number | null
           delivery_mode: string
           delivery_time_max: number | null
@@ -2614,6 +2615,9 @@ export type Database = {
           description: string | null
           directory_opt_in: boolean
           document: string | null
+          geo_address: string | null
+          geo_lat: number | null
+          geo_lng: number | null
           hours: string | null
           hours_schedule: Json
           id: string
@@ -2659,6 +2663,7 @@ export type Database = {
           delivery_base_km?: number | null
           delivery_fee?: number
           delivery_fee_per_km?: number | null
+          delivery_km_rounding?: string
           delivery_max_km?: number | null
           delivery_mode?: string
           delivery_time_max?: number | null
@@ -2666,6 +2671,9 @@ export type Database = {
           description?: string | null
           directory_opt_in?: boolean
           document?: string | null
+          geo_address?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
           hours?: string | null
           hours_schedule?: Json
           id?: string
@@ -2711,6 +2719,7 @@ export type Database = {
           delivery_base_km?: number | null
           delivery_fee?: number
           delivery_fee_per_km?: number | null
+          delivery_km_rounding?: string
           delivery_max_km?: number | null
           delivery_mode?: string
           delivery_time_max?: number | null
@@ -2718,6 +2727,9 @@ export type Database = {
           description?: string | null
           directory_opt_in?: boolean
           document?: string | null
+          geo_address?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
           hours?: string | null
           hours_schedule?: Json
           id?: string
