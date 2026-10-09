@@ -1,3 +1,4 @@
+import { CashChangePicker, type CashChangeValue } from "@/components/payment/CashChangePicker";
 import type { DbCategoryPizzaSize } from "@/lib/db-types";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
@@ -58,6 +59,7 @@ function PdvPage() {
   const [orderNote, setOrderNote] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<"pending" | "approved">("approved");
   const [paymentLabel, setPaymentLabel] = useState("Dinheiro");
+  const [cashChange, setCashChange] = useState<CashChangeValue>({ noChange: false, paid: null });
 
   // Delivery / Address states
   const [addressModalOpen, setAddressModalOpen] = useState(false);
@@ -137,6 +139,7 @@ function PdvPage() {
     city, state, deliveryFee]);
 
   const resetDraft = () => {
+    setCashChange({ noChange: false, paid: null });
     setCart([]);
     setCustomerName("");
     setWhatsapp("");
@@ -267,6 +270,8 @@ function PdvPage() {
           whatsapp: whatsapp || null,
           mode: actualMode as any,
           payment_label: paymentLabel,
+          change_for: paymentLabel === "Dinheiro" && !cashChange.noChange ? cashChange.paid : null,
+          no_change: paymentLabel === "Dinheiro" ? cashChange.noChange : false,
           payment_status: paymentStatus,
           initial_status: paymentStatus === "approved" ? "preparo" : "novo",
           delivery_fee: mode === "entrega" ? deliveryFee : 0,
@@ -489,6 +494,10 @@ function PdvPage() {
                   </Select>
                 </div>
               </div>
+
+              {paymentLabel === "Dinheiro" && (
+                <CashChangePicker compact total={total} value={cashChange} onChange={setCashChange} rules={{ accepts100: true, accepts200: true }} />
+              )}
 
               <div>
                 <Label className="text-xs">Observações do pedido (Opcional)</Label>

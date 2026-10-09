@@ -113,6 +113,185 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_driver_settlements: {
+        Row: {
+          amount: number
+          driver_id: string | null
+          driver_name: string | null
+          id: string
+          session_id: string
+          settled_at: string
+          settled_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount?: number
+          driver_id?: string | null
+          driver_name?: string | null
+          id?: string
+          session_id: string
+          settled_at?: string
+          settled_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          driver_id?: string | null
+          driver_name?: string | null
+          id?: string
+          session_id?: string
+          settled_at?: string
+          settled_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_driver_settlements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_driver_settlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_driver_settlements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_movements: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          reason: string | null
+          session_id: string
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          session_id: string
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          session_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_sessions: {
+        Row: {
+          cash_sales: number | null
+          closed_at: string | null
+          closed_by: string | null
+          counted_amount: number | null
+          created_at: string
+          difference: number | null
+          expected_amount: number | null
+          id: string
+          opened_at: string
+          opened_by: string | null
+          opened_by_name: string | null
+          opening_float: number
+          status: string
+          tenant_id: string
+          withdrawals_total: number | null
+        }
+        Insert: {
+          cash_sales?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_amount?: number | null
+          created_at?: string
+          difference?: number | null
+          expected_amount?: number | null
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          opened_by_name?: string | null
+          opening_float?: number
+          status?: string
+          tenant_id: string
+          withdrawals_total?: number | null
+        }
+        Update: {
+          cash_sales?: number | null
+          closed_at?: string | null
+          closed_by?: string | null
+          counted_amount?: number | null
+          created_at?: string
+          difference?: number | null
+          expected_amount?: number | null
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          opened_by_name?: string | null
+          opening_float?: number
+          status?: string
+          tenant_id?: string
+          withdrawals_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           active: boolean
@@ -1298,6 +1477,7 @@ export type Database = {
           mp_payment_id: string | null
           mp_status: string | null
           mp_status_detail: string | null
+          no_change: boolean
           note: string | null
           number: number
           payment_label: string
@@ -1335,6 +1515,7 @@ export type Database = {
           mp_payment_id?: string | null
           mp_status?: string | null
           mp_status_detail?: string | null
+          no_change?: boolean
           note?: string | null
           number: number
           payment_label?: string
@@ -1372,6 +1553,7 @@ export type Database = {
           mp_payment_id?: string | null
           mp_status?: string | null
           mp_status_detail?: string | null
+          no_change?: boolean
           note?: string | null
           number?: number
           payment_label?: string
@@ -2160,6 +2342,8 @@ export type Database = {
       store_payment_settings: {
         Row: {
           card_on_delivery_enabled: boolean
+          cash_accepts_100: boolean
+          cash_accepts_200: boolean
           cash_enabled: boolean
           created_at: string
           credit_card_enabled: boolean
@@ -2186,6 +2370,8 @@ export type Database = {
         }
         Insert: {
           card_on_delivery_enabled?: boolean
+          cash_accepts_100?: boolean
+          cash_accepts_200?: boolean
           cash_enabled?: boolean
           created_at?: string
           credit_card_enabled?: boolean
@@ -2212,6 +2398,8 @@ export type Database = {
         }
         Update: {
           card_on_delivery_enabled?: boolean
+          cash_accepts_100?: boolean
+          cash_accepts_200?: boolean
           cash_enabled?: boolean
           created_at?: string
           credit_card_enabled?: boolean

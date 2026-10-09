@@ -29,6 +29,7 @@ import { Route as AdminAdicionaisRouteImport } from './routes/admin.adicionais'
 import { Route as AdminAparenciaRouteImport } from './routes/admin.aparencia'
 import { Route as AdminAssinaturaRouteImport } from './routes/admin.assinatura'
 import { Route as AdminAvaliacoesRouteImport } from './routes/admin.avaliacoes'
+import { Route as AdminCaixaRouteImport } from './routes/admin.caixa'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminCuponsRouteImport } from './routes/admin.cupons'
@@ -185,6 +186,11 @@ const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
 const AdminAvaliacoesRoute = AdminAvaliacoesRouteImport.update({
   id: '/avaliacoes',
   path: '/avaliacoes',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCaixaRoute = AdminCaixaRouteImport.update({
+  id: '/caixa',
+  path: '/caixa',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
@@ -504,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/caixa': typeof AdminCaixaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/cupons': typeof AdminCuponsRoute
@@ -582,6 +589,7 @@ export interface FileRoutesByTo {
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/caixa': typeof AdminCaixaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/cupons': typeof AdminCuponsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -660,6 +668,7 @@ export interface FileRoutesById {
   '/admin/aparencia': typeof AdminAparenciaRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesRoute
+  '/admin/caixa': typeof AdminCaixaRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRouteWithChildren
   '/admin/cupons': typeof AdminCuponsRoute
@@ -741,6 +750,7 @@ export interface FileRouteTypes {
     | '/admin/aparencia'
     | '/admin/assinatura'
     | '/admin/avaliacoes'
+    | '/admin/caixa'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/cupons'
@@ -819,6 +829,7 @@ export interface FileRouteTypes {
     | '/admin/aparencia'
     | '/admin/assinatura'
     | '/admin/avaliacoes'
+    | '/admin/caixa'
     | '/admin/categorias'
     | '/admin/cupons'
     | '/admin/dashboard'
@@ -896,6 +907,7 @@ export interface FileRouteTypes {
     | '/admin/aparencia'
     | '/admin/assinatura'
     | '/admin/avaliacoes'
+    | '/admin/caixa'
     | '/admin/categorias'
     | '/admin/configuracoes'
     | '/admin/cupons'
@@ -1133,6 +1145,13 @@ declare module '@tanstack/react-router' {
       path: '/avaliacoes'
       fullPath: '/admin/avaliacoes'
       preLoaderRoute: typeof AdminAvaliacoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/caixa': {
+      id: '/admin/caixa'
+      path: '/caixa'
+      fullPath: '/admin/caixa'
+      preLoaderRoute: typeof AdminCaixaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/categorias': {
@@ -1583,6 +1602,7 @@ interface AdminRouteChildren {
   AdminAparenciaRoute: typeof AdminAparenciaRoute
   AdminAssinaturaRoute: typeof AdminAssinaturaRoute
   AdminAvaliacoesRoute: typeof AdminAvaliacoesRoute
+  AdminCaixaRoute: typeof AdminCaixaRoute
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRouteWithChildren
   AdminCuponsRoute: typeof AdminCuponsRoute
@@ -1609,6 +1629,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAparenciaRoute: AdminAparenciaRoute,
   AdminAssinaturaRoute: AdminAssinaturaRoute,
   AdminAvaliacoesRoute: AdminAvaliacoesRoute,
+  AdminCaixaRoute: AdminCaixaRoute,
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRouteWithChildren,
   AdminCuponsRoute: AdminCuponsRoute,

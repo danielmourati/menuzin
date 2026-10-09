@@ -119,6 +119,7 @@ export type Order = {
   paymentStatus: PaymentStatus;
   payment: string;
   changeFor?: number;
+  noChange?: boolean;
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;

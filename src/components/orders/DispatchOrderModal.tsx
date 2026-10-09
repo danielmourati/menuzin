@@ -1,3 +1,4 @@
+import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -94,7 +95,7 @@ export function DispatchOrderModal({
       `💳 *FORMA DE PAGAMENTO:*\n` +
       `${order.payment}\n` +
       `💰 *Total:* R$ ${order.total.toFixed(2).replace(".", ",")}\n` +
-      (order.changeFor ? `💵 *Troco para:* R$ ${order.changeFor.toFixed(2).replace(".", ",")}\n` : "") +
+      (order.noChange ? `💵 *Sem troco* (valor exato)\n` : order.changeFor && order.changeFor > order.total ? `💵 *Pagamento em:* R$ ${order.changeFor.toFixed(2).replace(".", ",")} · *Levar troco:* R$ ${(order.changeFor - order.total).toFixed(2).replace(".", ",")}\n` : "") +
       `\n📦 *ITENS DO PEDIDO:*\n` +
       `${itemsSummary}\n` +
       `-----------------------------------\n` +
@@ -242,11 +243,7 @@ export function DispatchOrderModal({
                   <p className="font-bold text-foreground text-xs">
                     {order.payment} — Total: {brl(order.total)}
                   </p>
-                  {order.changeFor && (
-                    <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                      Troco para: {brl(order.changeFor)} (Troco: {brl(order.changeFor - order.total)})
-                    </p>
-                  )}
+                  <div className="mt-1.5"><CashChangeBadge order={order} /></div>
                 </div>
               </div>
             </div>

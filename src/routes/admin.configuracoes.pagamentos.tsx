@@ -91,7 +91,7 @@ function AdminPaymentSettingsPage() {
     return () => { cancelled = true; };
   }, [storeId]);
 
-  const handleToggleManual = async (key: "cash_enabled" | "pix_manual_enabled" | "card_on_delivery_enabled", val: boolean) => {
+  const handleToggleManual = async (key: "cash_enabled" | "cash_accepts_100" | "cash_accepts_200" | "pix_manual_enabled" | "card_on_delivery_enabled", val: boolean) => {
     if (!settings) return;
     try {
       const updated = await updatePaymentSettings(storeId, { [key]: val });
@@ -374,6 +374,20 @@ function AdminPaymentSettingsPage() {
                   onCheckedChange={(checked) => handleToggleManual("cash_enabled", checked)}
                 />
               </div>
+              {settings?.cash_enabled && (
+                <div className="-mt-2 space-y-2 border-b pb-4 pl-6">
+                  <p className="text-xs text-muted-foreground">Notas aceitas para troco (evita falta de troco e notas falsas):</p>
+                  {(["cash_accepts_100", "cash_accepts_200"] as const).map((k) => (
+                    <div key={k} className="flex items-center justify-between">
+                      <Label className="text-sm">Aceito notas de R$ {k === "cash_accepts_100" ? "100" : "200"}</Label>
+                      <Switch
+                        checked={settings?.[k] ?? true}
+                        onCheckedChange={(checked) => handleToggleManual(k, checked)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Cartão Maquininha */}
               <div className="flex items-center justify-between border-b pb-4">

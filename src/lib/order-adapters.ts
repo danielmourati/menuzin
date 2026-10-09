@@ -37,6 +37,7 @@ export function dbOrderToUi(o: DbOrder, history: OrderStatusHistoryEntry[] = [])
     paymentStatus: o.payment_status,
     payment: o.payment_label,
     changeFor: o.change_for ?? undefined,
+    noChange: !!(o as { no_change?: boolean }).no_change,
     items: o.items.map(dbOrderItemToUi),
     subtotal: Number(o.subtotal),
     deliveryFee: Number(o.delivery_fee),

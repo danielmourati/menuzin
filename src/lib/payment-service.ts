@@ -62,12 +62,12 @@ export async function updatePaymentSettings(
   patch: Partial<StorePaymentSettingsSafe>,
 ): Promise<StorePaymentSettingsSafe> {
   // Only forward safe fields
-  const { cash_enabled, pix_manual_enabled, card_on_delivery_enabled,
+  const { cash_enabled, cash_accepts_100, cash_accepts_200, pix_manual_enabled, card_on_delivery_enabled,
     pix_enabled, credit_card_enabled, debit_card_enabled,
     pix_manual_key, pix_manual_key_type, pix_manual_receiver } = patch;
   return _updatePaymentSettings({
     data: {
-      cash_enabled, pix_manual_enabled, card_on_delivery_enabled,
+      cash_enabled, cash_accepts_100, cash_accepts_200, pix_manual_enabled, card_on_delivery_enabled,
       pix_enabled, credit_card_enabled, debit_card_enabled,
       pix_manual_key, pix_manual_key_type, pix_manual_receiver,
     },

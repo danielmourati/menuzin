@@ -27,6 +27,8 @@ type DbRow = {
   mp_connection_method: string | null;
   mp_token_expires_at: string | null;
   cash_enabled: boolean;
+  cash_accepts_100: boolean;
+  cash_accepts_200: boolean;
   pix_manual_enabled: boolean;
   card_on_delivery_enabled: boolean;
   pix_enabled: boolean;
@@ -43,7 +45,7 @@ type DbRow = {
 // access token, which is REVOKED from anon/authenticated at the column level
 // and may only be read server-side via the service role).
 const SAFE_SETTINGS_COLUMNS =
-  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, mp_connection_method, mp_token_expires_at, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
+  "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, mp_connection_method, mp_token_expires_at, cash_enabled, cash_accepts_100, cash_accepts_200, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at";
 
 function toSafe(row: DbRow): StorePaymentSettingsSafe {
   const kind = row.mp_account_kind === "test_user" || row.mp_account_kind === "production"
@@ -62,6 +64,8 @@ function toSafe(row: DbRow): StorePaymentSettingsSafe {
       row.mp_connection_method === "oauth" ? ("oauth" as const) : ("manual" as const),
     mp_token_expires_at: row.mp_token_expires_at ?? row.mp_last_validated_at ?? undefined,
     cash_enabled: row.cash_enabled,
+    cash_accepts_100: row.cash_accepts_100 ?? true,
+    cash_accepts_200: row.cash_accepts_200 ?? true,
     pix_manual_enabled: row.pix_manual_enabled,
     card_on_delivery_enabled: row.card_on_delivery_enabled,
     pix_enabled: row.pix_enabled,
@@ -358,6 +362,8 @@ export const startMpOAuth = createServerFn({ method: "POST" })
 
 const updatePatchSchema = z.object({
   cash_enabled: z.boolean().optional(),
+  cash_accepts_100: z.boolean().optional(),
+  cash_accepts_200: z.boolean().optional(),
   pix_manual_enabled: z.boolean().optional(),
   card_on_delivery_enabled: z.boolean().optional(),
   pix_enabled: z.boolean().optional(),
@@ -414,7 +420,7 @@ export const getPublicPaymentSettingsBySlug = createServerFn({ method: "GET" })
     const { data: row, error } = await supabaseAdmin
       .from("store_payment_settings")
       .select(
-        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
+        "id, tenant_id, provider, mp_public_key, mp_user_id, mp_live_mode, mp_connected, mp_last_validated_at, mp_account_kind, cash_enabled, cash_accepts_100, cash_accepts_200, pix_manual_enabled, card_on_delivery_enabled, pix_enabled, credit_card_enabled, debit_card_enabled, pix_manual_key, pix_manual_key_type, pix_manual_receiver, created_at, updated_at",
       )
       .eq("tenant_id", tenant.id)
       .maybeSingle();

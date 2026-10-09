@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft, Truck, Bell, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft, Truck, Bell, ShoppingCart, Wallet } from "lucide-react";
 import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
@@ -29,7 +29,8 @@ const sections = [
     label: "Operação",
     items: [
       { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
-      { to: "/admin/pdv", label: "PDV (Caixa)", icon: ShoppingCart },
+      { to: "/admin/pdv", label: "PDV", icon: ShoppingCart },
+      { to: "/admin/caixa", label: "Caixa", icon: Wallet },
       { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/admin/entregadores", label: "Entregadores", icon: Truck },
       { to: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },

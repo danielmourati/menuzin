@@ -7,6 +7,7 @@ import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
 import { formatScheduledShort } from "@/lib/scheduling";
+import { cashTicketBlock } from "@/lib/cash-change";
 import { center, lineOf, stripAccents, wrap } from "@/lib/receipt-builder";
 import { columnsFor, type PaperWidth, type FontSize, type FontFamily } from "@/lib/printer-types";
 
@@ -104,6 +105,13 @@ export function buildKitchenTicket(
 
   // ── RODAPÉ (fonte normal) ────────────────────────────────
   out.push(ESC_NORMAL);
+  // Bloco de troco para a expedição (somente pedidos em dinheiro), em fonte grande.
+  const cashBlock = cashTicketBlock(order, bigCols);
+  if (cashBlock) {
+    out.push(ESC_BIG);
+    cashBlock.forEach((l) => out.push(l));
+    out.push(ESC_NORMAL);
+  }
   if (order.note) {
     out.push(sepThin);
     out.push("NOTA GERAL:");
