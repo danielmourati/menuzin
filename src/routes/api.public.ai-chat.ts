@@ -54,6 +54,16 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         if (insErr) return json(500, { error: "Falha ao salvar a mensagem." });
         const allMessages = [...history, userMsg] as any[];
 
+        // Atendimento humano em andamento: guarda a mensagem para a loja e não chama a IA.
+        const handoff = (conv as any).handoff_status ?? "none";
+        if (handoff === "requested" || handoff === "human") {
+          await supabaseAdmin.from("ai_conversations")
+            .update({ message_count: conv.message_count + 1, updated_at: new Date().toISOString() }).eq("id", conv.id);
+          const { createUIMessageStream, createUIMessageStreamResponse } = await import("ai");
+          const stream = createUIMessageStream({ execute: () => {} });
+          return createUIMessageStreamResponse({ stream });
+        }
+
         const { streamText, tool, stepCountIs, convertToModelMessages } = await import("ai");
         const { createOpenAI } = await import("@ai-sdk/openai");
         const apiKey = process.env.LOVABLE_API_KEY;
@@ -88,6 +98,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           "- Reconheça intenções equivalentes mesmo em frases informais: 'ver carrinho' significa mostrar/comentar o resumo atual; se estiver vazio, ajude a escolher o primeiro item. 'seguir para pagamento' significa perguntar a forma de pagamento e, para dinheiro, se precisa de troco e para quanto.",
           "- Quando o cliente disser 'Ok, já terminei', 'quero fechar' ou 'finalizar pedido', entenda que terminou de escolher itens. Confira o rascunho: se faltar algo, peça somente o próximo dado necessário; se estiver pronto, oriente a revisar o resumo e usar o botão de confirmação.",
           "- Quando a ferramenta devolver ready=true, diga ao cliente para conferir o resumo que apareceu na tela e tocar em 'Confirmar pedido'. Você NÃO confirma pedidos; só o cliente confirma pelo botão.",
+          "- Se o cliente pedir para falar com uma pessoa/atendente humano, ou estiver irritado com algo que você não resolve, chame a ferramenta request_human e avise com carinho que alguém da loja vai responder aqui mesmo em instantes.",
           "- Sugira no máximo um adicional ou bebida por conversa, sem insistir.",
           "- Não fale de assuntos fora da loja e do pedido.",
           `Loja: ${t.name}. Endereço: ${[t.address, t.address_number, t.neighborhood, t.city].filter(Boolean).join(", ") || "não informado"}. Aberta agora: ${t.open === false ? "não" : "sim"}.`,
@@ -109,6 +120,14 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           abortSignal: request.signal,
           stopWhen: stepCountIs(50),
           tools: {
+            request_human: tool({
+              description: "Chama um atendente humano da loja para esta conversa. Use só quando o cliente pedir para falar com uma pessoa.",
+              inputSchema: z.object({ reason: z.string() }),
+              execute: async () => {
+                await srv.notifyHandoff(conv.id, conv.tenant_id);
+                return { ok: true };
+              },
+            }),
             update_draft: tool({
               description: "Salva o rascunho completo do pedido e devolve itens com preços calculados pela loja, total, campos faltando e erros.",
               inputSchema: srv.DraftSchema,
