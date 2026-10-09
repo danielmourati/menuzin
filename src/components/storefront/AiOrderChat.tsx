@@ -25,6 +25,34 @@ const key = (slug: string) => `menuzin:ai-chat:${slug}`;
 const PAY: Record<string, string> = { dinheiro: "Dinheiro", credito: "Maquininha (crédito)", debito: "Maquininha (débito)", pix_manual: "Pix manual" };
 const MODE: Record<string, string> = { entrega: "Entrega", retirada: "Retirada", consumo_local: "Consumo no local" };
 
+/** Acompanha a área realmente visível (acima do teclado) no celular. */
+function useVisualViewport() {
+  const [state, setState] = useState<{ mobile: boolean; top: number; height: number; keyboard: boolean }>({ mobile: false, top: 0, height: 0, keyboard: false });
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => {
+      const h = vv?.height ?? window.innerHeight;
+      setState({
+        mobile: mq.matches,
+        top: vv?.offsetTop ?? 0,
+        height: h,
+        keyboard: h < window.innerHeight - 120,
+      });
+    };
+    update();
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+  return state;
+}
+
 export function AiOrderChatLauncher({ slug }: { slug: string }) {
   const [info, setInfo] = useState<Info | null>(null);
   const [open, setOpen] = useState(false);
@@ -81,9 +109,28 @@ function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; 
   };
   useEffect(() => { void boot(); }, [slug]);
 
+  const vv = useVisualViewport();
+  // Trava a rolagem da loja por trás enquanto o chat está aberto.
+  useEffect(() => {
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, []);
+
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 flex h-[85dvh] flex-col overflow-hidden rounded-t-2xl border bg-card shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:h-[620px] sm:w-[400px] sm:rounded-2xl">
-      <div className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
+    <div
+      className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col overflow-hidden bg-card shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:top-auto sm:h-[620px] sm:w-[400px] sm:rounded-2xl sm:border"
+      style={{
+        ...(vv.mobile && vv.height ? { top: vv.top, height: vv.height } : {}),
+        ["--chat-pb" as string]: vv.keyboard ? "0.75rem" : "max(0.75rem, env(safe-area-inset-bottom))",
+      }}
+    >
+      <div className="flex shrink-0 items-center justify-between bg-primary px-4 py-3 text-primary-foreground" style={{ paddingTop: vv.keyboard ? undefined : "max(0.75rem, env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/15"><ChefHat className="h-5 w-5" /></div>
           <div>
@@ -151,7 +198,16 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
   }, [humanMode, conv, status, setMessages, setHandoff, setPriced]);
   const busy = status === "submitted" || status === "streaming";
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, status, priced]);
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (!window.matchMedia("(max-width: 639px)").matches) inputRef.current?.focus();
+  }, []);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => endRef.current?.scrollIntoView({ block: "end" });
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
 
   const send = (text: string) => {
     const t = text.trim();
@@ -196,7 +252,7 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
 
   return (
     <>
-      <div className="flex-1 space-y-3 overflow-y-auto bg-muted/30 p-4">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-muted/30 p-4">
         <Bubble role="assistant" text={welcome} />
         {messages.length === 0 && (
           <div className="flex flex-wrap gap-2">
@@ -267,7 +323,8 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
       </div>
       <form
         onSubmit={(e) => { e.preventDefault(); send(input); }}
-        className="flex items-end gap-2 border-t bg-card p-3"
+        className="flex shrink-0 items-end gap-2 border-t bg-card px-3 pt-3"
+        style={{ paddingBottom: "var(--chat-pb)" }}
       >
         <textarea
           ref={inputRef}
@@ -276,8 +333,9 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
           rows={1}
           maxLength={800}
+          onFocus={() => setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 300)}
           placeholder="Ex.: 2 pastéis de carne grandes, entrega…"
-          className="max-h-28 min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+          className="max-h-28 min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2.5 text-base outline-none sm:text-sm focus:border-primary"
         />
         <Button type="submit" size="icon" disabled={busy || !input.trim()} className="h-11 w-11 shrink-0 rounded-xl" aria-label="Enviar">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
