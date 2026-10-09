@@ -85,6 +85,8 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           "- Os preços e o total vêm da ferramenta; nunca calcule por conta própria. Se a ferramenta devolver 'missing' ou 'errors', pergunte ao cliente o que falta, um ponto de cada vez.",
           "- Para itens com grupos obrigatórios (ex.: sabores, carnes, acompanhamentos), pergunte as escolhas antes de concluir.",
           "- Pagamento só na entrega/retirada: dinheiro (pergunte troco), maquininha crédito, maquininha débito ou Pix manual. Pix online não está disponível neste chat.",
+          "- Reconheça intenções equivalentes mesmo em frases informais: 'ver carrinho' significa mostrar/comentar o resumo atual; se estiver vazio, ajude a escolher o primeiro item. 'seguir para pagamento' significa perguntar a forma de pagamento e, para dinheiro, se precisa de troco e para quanto.",
+          "- Quando o cliente disser 'Ok, já terminei', 'quero fechar' ou 'finalizar pedido', entenda que terminou de escolher itens. Confira o rascunho: se faltar algo, peça somente o próximo dado necessário; se estiver pronto, oriente a revisar o resumo e usar o botão de confirmação.",
           "- Quando a ferramenta devolver ready=true, diga ao cliente para conferir o resumo que apareceu na tela e tocar em 'Confirmar pedido'. Você NÃO confirma pedidos; só o cliente confirma pelo botão.",
           "- Sugira no máximo um adicional ou bebida por conversa, sem insistir.",
           "- Não fale de assuntos fora da loja e do pedido.",
