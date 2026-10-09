@@ -41,17 +41,30 @@ export type CashDriverSummary = {
 async function computeSession(tenantId: string, session: { id: string; opened_at: string; closed_at: string | null; opening_float: number }) {
   const sb = await admin();
   const until = session.closed_at ?? new Date().toISOString();
-  const [{ data: orders }, { data: moves }, { data: settlements }] = await Promise.all([
-    sb.from("orders")
-      .select("id, number, status, total, change_for, no_change, payment_label, driver_id, driver_name, mode, customer_name, created_at, delivery_fee, delivery_neighborhood_snapshot, address")
-      .eq("tenant_id", tenantId).gte("created_at", session.opened_at).lte("created_at", until)
+  const from = session.opened_at;
+  const inWin = (t: string | null | undefined) => !!t && t >= from && t <= until;
+  const cols = "id, number, status, total, change_for, no_change, payment_label, driver_id, driver_name, mode, customer_name, created_at, completed_at, delivery_fee, delivery_neighborhood_snapshot, address";
+  const { data: dispatched } = await sb.from("order_status_history").select("order_id, created_at, orders!inner(tenant_id)")
+    .eq("new_status", "saiu_entrega").eq("orders.tenant_id", tenantId).gte("created_at", from).lte("created_at", until);
+  const dispatchedIds = [...new Set((dispatched ?? []).map((h) => h.order_id as string))];
+  const [{ data: baseOrders }, { data: extraOrders }, { data: moves }, { data: settlements }] = await Promise.all([
+    sb.from("orders").select(cols).eq("tenant_id", tenantId)
+      .or(`and(created_at.gte.${from},created_at.lte.${until}),and(completed_at.gte.${from},completed_at.lte.${until})`)
       .order("created_at", { ascending: true }),
+    dispatchedIds.length
+      ? sb.from("orders").select(cols).eq("tenant_id", tenantId).in("id", dispatchedIds)
+      : Promise.resolve({ data: [] as never[] }),
     sb.from("cash_movements").select("*").eq("session_id", session.id).order("created_at", { ascending: true }),
     sb.from("cash_driver_settlements").select("*").eq("session_id", session.id),
   ]);
-  const cashOrders = (orders ?? []).filter((o) => isCashLabel(o.payment_label) && o.status !== "cancelado");
-  const finished = cashOrders.filter((o) => o.status === "finalizado");
-  const pending = cashOrders.filter((o) => o.status !== "finalizado");
+  const seen = new Set<string>();
+  const orders = [...(baseOrders ?? []), ...((extraOrders ?? []) as typeof baseOrders & object)].filter((o) => {
+    if (!o || seen.has(o.id)) return false; seen.add(o.id); return true;
+  });
+  const cashOrders = orders.filter((o) => isCashLabel(o.payment_label) && o.status !== "cancelado");
+  // Venda conta no turno em que foi finalizada (pedidos antigos sem completed_at: pelo created_at).
+  const finished = cashOrders.filter((o) => o.status === "finalizado" && (o.completed_at ? inWin(o.completed_at) : inWin(o.created_at)));
+  const pending = cashOrders.filter((o) => o.status !== "finalizado" && inWin(o.created_at));
   const cashSales = r2(finished.reduce((s, o) => s + Number(o.total), 0));
   const withdrawals = r2((moves ?? []).reduce((s, m) => s + Number(m.amount), 0));
   const expected = r2(Number(session.opening_float) + cashSales - withdrawals);
