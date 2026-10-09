@@ -88,6 +88,8 @@ export type StorePaymentSettingsSafe = Omit<
   mp_public_key?: string; // Exposed only if needed for SDK init
   /** Como a conta foi conectada: automática (OAuth) ou credenciais manuais. */
   mp_connection_method?: "oauth" | "manual";
+  cash_accepts_100?: boolean;
+  cash_accepts_200?: boolean;
 };
 
 /** orders */

@@ -7,6 +7,7 @@ import { parseAddonLabel } from "@/lib/product-selection";
 import { formatScheduledShort } from "@/lib/scheduling";
 import type { PrinterSettings } from "@/lib/printer-types";
 import { columnsFor } from "@/lib/printer-types";
+import { cashTicketBlock } from "@/lib/cash-change";
 
 export const stripAccents = (s: string) =>
   s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -189,10 +190,9 @@ export function buildReceipt(
   /* 8. Pagamento — linha única quando couber */
   const payLabel = stripAccents(order.payment || "-");
   out.push(row(`Pgto: ${payLabel}`, money(order.total), cols));
-  if (order.changeFor && order.changeFor > 0) {
-    out.push(row("Troco para", money(order.changeFor), cols));
-  }
-  out.push(sep);
+  const cashBlock = cashTicketBlock(order, cols);
+  if (cashBlock) cashBlock.forEach((l) => out.push(l));
+  else out.push(sep);
 
   /* 9. Info adicionais */
   if (order.scheduledFor) out.push(`AGENDADO PARA: ${formatScheduledShort(order.scheduledFor)}`);

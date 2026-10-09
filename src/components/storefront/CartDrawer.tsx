@@ -47,6 +47,8 @@ import type {
   CardPaymentData,
 } from "@/lib/payment-types";
 import { PaymentMethodSelector } from "@/components/payment/PaymentMethodSelector";
+import { CashChangePicker, cashChangeError, type CashChangeValue } from "@/components/payment/CashChangePicker";
+import { changeDue } from "@/lib/cash-change";
 import { PixCheckout } from "@/components/payment/PixCheckout";
 import { CardCheckout } from "@/components/payment/CardCheckout";
 import { maskPhone } from "@/lib/masks";
@@ -91,6 +93,7 @@ type Step =
   | "payment-online-pix"
   | "payment-online-card"
   | "payment-pix"
+  | "payment-cash"
   | "customer"
   | "when"
   | "review";
@@ -117,6 +120,7 @@ export function CartDrawer({
   // payment settings from DB
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [cashChange, setCashChange] = useState<CashChangeValue>({ noChange: false, paid: null });
   const [pixData, setPixData] = useState<PixPaymentData | null>(null);
   const [cardData, setCardData] = useState<CardPaymentData | null>(null);
 
@@ -666,6 +670,8 @@ export function CartDrawer({
             whatsapp: phone.replace(/\D/g, ""),
             mode: mode!,
             payment_label: `${paymentWhenLabel} · ${methodLabel}`,
+            change_for: selectedMethod === "cash" && !cashChange.noChange ? cashChange.paid : null,
+            no_change: selectedMethod === "cash" ? cashChange.noChange : false,
             delivery_fee: deliveryFee,
             delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
             delivery_neighborhood_snapshot:
@@ -782,6 +788,8 @@ export function CartDrawer({
       }
     } else if (m === "pix_manual") {
       goTo("payment-pix");
+    } else if (m === "cash") {
+      goTo("payment-cash");
     } else {
       goTo("review");
     }
@@ -1602,6 +1610,26 @@ export function CartDrawer({
         )}
 
 
+        {/* PAYMENT - CASH */}
+        {step === "payment-cash" && (
+          <>
+            <Header title="Pagamento em dinheiro" />
+            <div className="flex-1 overflow-y-auto p-4">
+              <CashChangePicker
+                total={total}
+                value={cashChange}
+                onChange={setCashChange}
+                rules={{ accepts100: settings?.cash_accepts_100 ?? true, accepts200: settings?.cash_accepts_200 ?? true }}
+              />
+            </div>
+            <StickySubtotal
+              cta="Continuar"
+              disabled={!!cashChangeError(total, cashChange, { accepts100: settings?.cash_accepts_100 ?? true, accepts200: settings?.cash_accepts_200 ?? true })}
+              onCta={() => goTo("review")}
+            />
+          </>
+        )}
+
         {/* CUSTOMER */}
         {step === "customer" && (
           <>
@@ -1842,6 +1870,15 @@ export function CartDrawer({
                         {paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com{" "}
                         {paymentMethod}
                       </p>
+                      {selectedMethod === "cash" && (
+                        <p className="text-xs font-semibold text-primary mt-0.5">
+                          {cashChange.noChange
+                            ? "Sem troco (valor exato)"
+                            : cashChange.paid
+                              ? `Pagamento em ${cashChange.paid.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · Troco a devolver: ${changeDue(total, cashChange.paid).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
+                              : null}
+                        </p>
+                      )}
                     </div>
                     <button onClick={() => setStep("payment-method")} className="text-primary">
                       <Pencil className="h-4 w-4" />

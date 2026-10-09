@@ -221,6 +221,7 @@ export type DbOrder = {
   payment_status: PaymentStatus;
   payment_label: string;
   change_for: number | null;
+  no_change?: boolean;
   subtotal: number;
   delivery_fee: number;
   total: number;

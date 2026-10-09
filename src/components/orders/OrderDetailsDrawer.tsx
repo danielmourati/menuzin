@@ -1,3 +1,4 @@
+import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import {
   Dialog,
   DialogContent,
@@ -194,11 +195,7 @@ export function OrderDetailsDrawer({
                         {order.paymentStatus === "approved" ? "PAGO" : order.paymentStatus === "pending" ? "AGUARDANDO PAGAMENTO" : "PAGAR NA ENTREGA"}
                       </span>
                     </div>
-                    {order.changeFor && (
-                      <div className="flex justify-between text-amber-600 dark:text-amber-500 font-medium">
-                        <span>Troco para</span><span>{brl(order.changeFor)}</span>
-                      </div>
-                    )}
+                    <CashChangeBadge order={order} />
                   </div>
                 </div>
               </div>

@@ -78,6 +78,13 @@
       "when": 1791505797892,
       "tag": "0010_tenants_geo_manual",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791507657557,
+      "tag": "0011_cash_change_and_register",
+      "breakpoints": true
     }
   ]
 }

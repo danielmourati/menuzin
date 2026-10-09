@@ -1,3 +1,4 @@
+import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -154,6 +155,7 @@ export function OrderCard({
         </div>
         <div className="text-right flex flex-col items-end gap-0.5">
           <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[140px]">{order.payment || "—"}</span>
+          <CashChangeBadge order={order} compact />
           <PaymentStatusBadge status={order.paymentStatus} className="text-[9px] px-1.5 py-0.5 h-4" />
         </div>
       </div>

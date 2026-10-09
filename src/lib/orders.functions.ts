@@ -22,6 +22,7 @@ const CreateOrderInput = z.object({
   mode: z.enum(["entrega", "retirada", "consumo_local"]),
   payment_label: z.string().max(120).default(""),
   change_for: z.number().min(0).max(99999).nullable().optional(),
+  no_change: z.boolean().optional(),
   delivery_fee: z.number().min(0).max(9999).default(0),
   delivery_fee_source: z.enum(["none", "single_fee", "neighborhood_by_cep", "neighborhood_by_name", "distance_km"]).nullable().optional(),
   delivery_neighborhood_snapshot: z.string().max(120).nullable().optional(),
@@ -118,6 +119,17 @@ export const createOrder = createServerFn({ method: "POST" })
 
     const total = Math.max(0, subtotal - discountAmount) + (data.delivery_fee ?? 0);
 
+    if (data.change_for != null && data.change_for > 0 && !data.no_change) {
+      const { isPaymentAllowed, bigBillProblem } = await import("@/lib/cash-change");
+      const { data: ps } = await supabaseAdmin.from("store_payment_settings")
+        .select("cash_accepts_100, cash_accepts_200").eq("tenant_id", tenant.id).maybeSingle();
+      const rules = { accepts100: ps?.cash_accepts_100 ?? true, accepts200: ps?.cash_accepts_200 ?? true };
+      if (data.change_for + 0.001 < total) throw new Error("O valor para troco é menor que o total do pedido.");
+      if (!isPaymentAllowed(total, data.change_for, rules)) {
+        throw new Error(`Esta loja não aceita notas de R$ ${bigBillProblem(total, data.change_for, rules)} para troco.`);
+      }
+    }
+
     const reuseExisting = async (existing: Record<string, unknown>) => {
       let customer: { id: string; phone: string; token: string } | null = null;
       const cid = existing.customer_id as string | null;
@@ -164,7 +176,8 @@ export const createOrder = createServerFn({ method: "POST" })
         whatsapp: data.whatsapp,
         mode: data.mode,
         payment_label: data.payment_label,
-        change_for: data.change_for ?? null,
+        change_for: data.no_change ? null : (data.change_for ?? null),
+        no_change: data.no_change ?? false,
         subtotal,
         delivery_fee: data.delivery_fee ?? 0,
         discount_amount: discountAmount,
@@ -372,6 +385,7 @@ const ManualOrderInput = z.object({
   payment_status: z.enum(["pending", "approved", "manual"]).default("manual"),
   initial_status: z.enum(["novo", "preparo"]).default("preparo"),
   change_for: z.number().min(0).max(99999).nullable().optional(),
+  no_change: z.boolean().optional(),
   delivery_fee: z.number().min(0).max(9999).default(0),
   address: z.record(z.string(), z.string()).nullable().optional(),
   table_label: z.string().max(50).nullable().optional(),
@@ -403,7 +417,8 @@ export const createManualOrder = createServerFn({ method: "POST" })
         whatsapp: data.whatsapp || "",
         mode: data.mode,
         payment_label: data.payment_label,
-        change_for: data.change_for ?? null,
+        change_for: data.no_change ? null : (data.change_for ?? null),
+        no_change: data.no_change ?? false,
         subtotal,
         delivery_fee: data.delivery_fee,
         discount_amount: 0,
