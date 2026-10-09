@@ -165,6 +165,8 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           draft: Json | null
+          handoff_requested_at: string | null
+          handoff_status: string
           id: string
           message_count: number
           order_id: string | null
@@ -178,6 +180,8 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           draft?: Json | null
+          handoff_requested_at?: string | null
+          handoff_status?: string
           id?: string
           message_count?: number
           order_id?: string | null
@@ -191,6 +195,8 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           draft?: Json | null
+          handoff_requested_at?: string | null
+          handoff_status?: string
           id?: string
           message_count?: number
           order_id?: string | null
@@ -253,6 +259,51 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_quick_replies: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          label: string
+          message: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label: string
+          message?: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          label?: string
+          message?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_quick_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_quick_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
