@@ -308,3 +308,26 @@ export async function getConversation(id: string, accessKey: string) {
   if (!data || data.access_key !== accessKey) return null;
   return data;
 }
+
+/** Marca a conversa como aguardando atendente e avisa os aparelhos do lojista. */
+export async function notifyHandoff(conversationId: string, tenantId: string) {
+  const { data: conv } = await supabaseAdmin.from("ai_conversations")
+    .update({ handoff_status: "requested", handoff_requested_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", conversationId).select("customer_name").maybeSingle();
+  try {
+    const webpush = (await import("web-push")).default;
+    const { getVapidPushOptions } = await import("@/lib/push-notifications.server");
+    const { data: subs } = await (supabaseAdmin as any).from("push_subscriptions")
+      .select("endpoint, p256dh, auth").eq("tenant_id", tenantId).eq("is_admin_device", true);
+    const payload = JSON.stringify({
+      title: "Cliente pediu atendimento humano",
+      body: `${conv?.customer_name || "Um cliente"} quer falar com alguém da loja no chat.`,
+      icon: "/icon-192.png", url: "/admin/atendente-ia?tab=conversas", kind: "admin_handoff", tag: `handoff-${conversationId}`,
+    });
+    const opts = getVapidPushOptions();
+    await Promise.all((subs ?? []).map((s: any) =>
+      webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, opts).catch(() => null)));
+  } catch (e) {
+    console.error("[handoff] push falhou", (e as Error).message);
+  }
+}
