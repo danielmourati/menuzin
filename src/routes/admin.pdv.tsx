@@ -167,6 +167,7 @@ function PdvPage() {
     city, state, deliveryFee]);
 
   const resetDraft = () => {
+    setStartedAt(null);
     setCashChange({ noChange: false, paid: null });
     setCart([]);
     setCustomerName("");
