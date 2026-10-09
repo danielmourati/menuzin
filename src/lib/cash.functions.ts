@@ -20,6 +20,10 @@ async function admin() {
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+export type CashDriverDelivery = {
+  id: string; number: number; neighborhood: string | null; fee: number; payment_label: string; is_cash: boolean;
+};
+
 export type CashDriverSummary = {
   driver_id: string | null;
   driver_name: string;
@@ -28,6 +32,10 @@ export type CashDriverSummary = {
   change_out: number;
   must_return: number;
   settled_at: string | null;
+  deliveries: CashDriverDelivery[];
+  fees_total: number;
+  fees_paid_at: string | null;
+  fees_paid_method: string | null;
 };
 
 async function computeSession(tenantId: string, session: { id: string; opened_at: string; closed_at: string | null; opening_float: number }) {
@@ -35,7 +43,7 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
   const until = session.closed_at ?? new Date().toISOString();
   const [{ data: orders }, { data: moves }, { data: settlements }] = await Promise.all([
     sb.from("orders")
-      .select("id, number, status, total, change_for, no_change, payment_label, driver_id, driver_name, mode, customer_name, created_at")
+      .select("id, number, status, total, change_for, no_change, payment_label, driver_id, driver_name, mode, customer_name, created_at, delivery_fee, delivery_neighborhood_snapshot, address")
       .eq("tenant_id", tenantId).gte("created_at", session.opened_at).lte("created_at", until)
       .order("created_at", { ascending: true }),
     sb.from("cash_movements").select("*").eq("session_id", session.id).order("created_at", { ascending: true }),
@@ -49,22 +57,39 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
   const expected = r2(Number(session.opening_float) + cashSales - withdrawals);
 
   const byDriver = new Map<string, CashDriverSummary>();
-  for (const o of cashOrders.filter((o) => o.mode === "entrega" && o.driver_id)) {
-    const key = o.driver_id as string;
-    const cur = byDriver.get(key) ?? {
-      driver_id: key, driver_name: o.driver_name || "Entregador", orders: 0,
-      to_collect: 0, change_out: 0, must_return: 0, settled_at: null,
-    };
+  const ensure = (id: string, name: string | null) => {
+    let cur = byDriver.get(id);
+    if (!cur) {
+      cur = {
+        driver_id: id, driver_name: name || "Entregador", orders: 0,
+        to_collect: 0, change_out: 0, must_return: 0, settled_at: null,
+        deliveries: [], fees_total: 0, fees_paid_at: null, fees_paid_method: null,
+      };
+      byDriver.set(id, cur);
+    }
+    return cur;
+  };
+  for (const o of (orders ?? []).filter((o) => o.mode === "entrega" && o.driver_id && o.status !== "cancelado")) {
+    const cur = ensure(o.driver_id as string, o.driver_name);
+    const isCash = isCashLabel(o.payment_label);
+    const addr = (o.address ?? null) as { neighborhood?: string } | null;
+    cur.deliveries.push({
+      id: o.id, number: o.number, fee: Number(o.delivery_fee ?? 0), payment_label: o.payment_label, is_cash: isCash,
+      neighborhood: o.delivery_neighborhood_snapshot || addr?.neighborhood || null,
+    });
+    cur.fees_total = r2(cur.fees_total + Number(o.delivery_fee ?? 0));
+    if (!isCash) continue;
     const paid = o.no_change ? Number(o.total) : Number(o.change_for ?? o.total);
     cur.orders += 1;
     cur.to_collect = r2(cur.to_collect + Number(o.total));
     cur.change_out = r2(cur.change_out + changeDue(Number(o.total), o.change_for));
     cur.must_return = r2(cur.must_return + Math.max(paid, Number(o.total)));
-    byDriver.set(key, cur);
   }
   for (const s of settlements ?? []) {
     const d = s.driver_id ? byDriver.get(s.driver_id) : null;
-    if (d) d.settled_at = s.settled_at;
+    if (!d) continue;
+    if (s.kind === "delivery_fees") { d.fees_paid_at = s.settled_at; d.fees_paid_method = s.payment_method; }
+    else d.settled_at = s.settled_at;
   }
   return {
     cashSales, withdrawals, expected,
@@ -74,6 +99,72 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
     drivers: [...byDriver.values()],
   };
 }
+
+export const getCashShiftStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const r = await tryResolveEffectiveTenantId((context as Ctx).supabase, context.userId);
+    if (!r?.tenantId) return { enabled: false, open: false, opened_at: null as string | null };
+    try {
+      const { requireProPlan } = await import("@/lib/plan-server");
+      await requireProPlan(r.tenantId);
+    } catch {
+      return { enabled: false, open: false, opened_at: null as string | null };
+    }
+    const sb = await admin();
+    const { data } = await sb.from("cash_sessions").select("opened_at")
+      .eq("tenant_id", r.tenantId).eq("status", "open").maybeSingle();
+    return { enabled: true, open: !!data, opened_at: (data?.opened_at as string | undefined) ?? null };
+  });
+
+export const payDriverFees = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ driver_id: z.string().uuid(), method: z.enum(["cash", "pix"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    const sb = await admin();
+    const { data: open } = await sb.from("cash_sessions").select("*")
+      .eq("tenant_id", tenantId).eq("status", "open").maybeSingle();
+    if (!open) throw new Error("Nenhum turno aberto.");
+    const calc = await computeSession(tenantId, open);
+    const d = calc.drivers.find((x) => x.driver_id === data.driver_id);
+    if (!d || d.fees_total <= 0) throw new Error("Nenhuma taxa a pagar para este entregador.");
+    if (d.fees_paid_at) throw new Error("Taxas já pagas neste turno.");
+    let movementId: string | null = null;
+    if (data.method === "cash") {
+      const { data: mv, error } = await sb.from("cash_movements").insert({
+        session_id: open.id, tenant_id: tenantId, kind: "sangria", amount: d.fees_total,
+        reason: `Taxas de entrega — ${d.driver_name}`, created_by: context.userId,
+      }).select("id").single();
+      if (error) throw new Error(error.message);
+      movementId = mv.id;
+    }
+    const { error } = await sb.from("cash_driver_settlements").insert({
+      session_id: open.id, tenant_id: tenantId, driver_id: data.driver_id, driver_name: d.driver_name,
+      amount: d.fees_total, settled_by: context.userId, kind: "delivery_fees",
+      payment_method: data.method, movement_id: movementId,
+    });
+    if (error) {
+      if (movementId) await sb.from("cash_movements").delete().eq("id", movementId);
+      throw new Error(error.message);
+    }
+    return { ok: true, amount: d.fees_total };
+  });
+
+export const undoDriverFees = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ driver_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    const sessionId = await openSessionId(tenantId);
+    const sb = await admin();
+    const { data: s } = await sb.from("cash_driver_settlements").select("id, movement_id")
+      .eq("session_id", sessionId).eq("driver_id", data.driver_id).eq("kind", "delivery_fees").maybeSingle();
+    if (!s) return { ok: true };
+    await sb.from("cash_driver_settlements").delete().eq("id", s.id);
+    if (s.movement_id) await sb.from("cash_movements").delete().eq("id", s.movement_id).eq("session_id", sessionId);
+    return { ok: true };
+  });
 
 export const getCashOverview = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

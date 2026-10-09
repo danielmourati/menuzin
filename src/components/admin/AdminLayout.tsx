@@ -22,6 +22,7 @@ import { PrinterStatusIndicator } from "@/components/admin/PrinterStatusIndicato
 import { getWhatsappVerificationStatus } from "@/lib/otp.functions";
 import { WhatsappOtpModal } from "@/components/admin/WhatsappOtpModal";
 import { ShieldAlert } from "lucide-react";
+import { CashShiftBadge } from "@/components/admin/CashShiftBadge";
 
 
 const sections = [
@@ -406,6 +407,7 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
             <h1 className="text-base font-semibold lg:text-lg truncate">{title}</h1>
             <div className="ml-auto flex items-center gap-2">
               <PrinterStatusIndicator />
+              <CashShiftBadge />
               <StoreOpenToggle />
               <AdminNotificationsBell />
               {action}
