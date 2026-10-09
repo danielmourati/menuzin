@@ -15,7 +15,7 @@ import { Loader2, ChefHat, ArrowUp, ArrowDown, Trash2, Plus, Headset } from "luc
 import { toast } from "sonner";
 import {
   getMyAgentSettings, saveMyAgentSettings, listMyAgentConversations, getMyAgentConversationMessages,
-  listMyQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus,
+  listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus,
 } from "@/lib/ai-agent.functions";
 
 export const Route = createFileRoute("/admin/atendente-ia")({
