@@ -2618,6 +2618,7 @@ export type Database = {
           geo_address: string | null
           geo_lat: number | null
           geo_lng: number | null
+          geo_manual: boolean
           hours: string | null
           hours_schedule: Json
           id: string
@@ -2674,6 +2675,7 @@ export type Database = {
           geo_address?: string | null
           geo_lat?: number | null
           geo_lng?: number | null
+          geo_manual?: boolean
           hours?: string | null
           hours_schedule?: Json
           id?: string
@@ -2730,6 +2732,7 @@ export type Database = {
           geo_address?: string | null
           geo_lat?: number | null
           geo_lng?: number | null
+          geo_manual?: boolean
           hours?: string | null
           hours_schedule?: Json
           id?: string

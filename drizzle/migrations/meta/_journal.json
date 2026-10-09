@@ -71,6 +71,13 @@
       "when": 1791504704272,
       "tag": "0009_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791505797892,
+      "tag": "0010_tenants_geo_manual",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS geo_manual boolean NOT NULL DEFAULT false;
