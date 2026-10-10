@@ -101,7 +101,7 @@ export const confirmAgentOrder = createServerFn({ method: "POST" })
     const ctx = await srv.loadAgentContext(data.slug);
     if (!ctx || ctx.tenant.id !== conv.tenant_id) throw new Error("Atendente indisponível nesta loja.");
     const draft = srv.DraftSchema.parse((conv.draft as any)?.draft);
-    const p = await srv.priceDraft(ctx, data.slug, draft);
+    const p = await srv.priceDraft(ctx, data.slug, draft, (conv as any).customer_location ?? null);
     if (!p.ready) throw new Error([...p.missing.map((m) => `Falta: ${m}`), ...p.errors].join(" · "));
 
     const prefix = draft.mode === "retirada" ? "Pagar na retirada" : draft.mode === "consumo_local" ? "Pagar no local" : "Pagar na entrega";
@@ -120,7 +120,10 @@ export const confirmAgentOrder = createServerFn({ method: "POST" })
         delivery_fee_source: (p.delivery_fee_source as any) ?? null,
         delivery_neighborhood_snapshot: p.delivery_neighborhood,
         address: draft.mode === "entrega" && a
-          ? Object.fromEntries(Object.entries(a).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)]))
+          ? {
+              ...Object.fromEntries(Object.entries(a).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])),
+              ...(p.gps ? { lat: String(p.gps.lat), lng: String(p.gps.lng), gps_url: `https://www.google.com/maps?q=${p.gps.lat},${p.gps.lng}` } : {}),
+            }
           : null,
         table_label: draft.mode === "consumo_local" ? draft.table_label : null,
         note: draft.note,

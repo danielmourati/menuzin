@@ -151,7 +151,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
               description: "Salva o rascunho completo do pedido e devolve itens com preços calculados pela loja, total, campos faltando e erros.",
               inputSchema: srv.DraftSchema,
               execute: async (draft) => {
-                const priced = await srv.priceDraft(ctx, slug, draft);
+                const priced = await srv.priceDraft(ctx, slug, draft, (conv as any).customer_location ?? null);
                 await supabaseAdmin.from("ai_conversations").update({
                   draft: priced as never,
                   customer_name: draft.customer_name,
