@@ -36,11 +36,18 @@ export function DispatchOrderModal({
     enabled: isOpen,
   });
 
+  const lastDriverQuery = useQuery({
+    queryKey: ["last-dispatch-driver"],
+    queryFn: () => getLastDispatchedDriver(),
+    enabled: isOpen,
+  });
+
   const drivers = (data?.drivers ?? []).filter((d) => d.active);
 
   const isNoneDriver = selectedDriverId === "__none__";
 
-  // Seleciona o entregador ao abrir o modal ou ao mudar de pedido
+  // Seleciona o entregador ao abrir o modal ou ao mudar de pedido.
+  // Prioridade: pedido já atribuído > último entregador acionado > primeiro ativo > [Sem Entregador].
   useEffect(() => {
     if (isOpen) {
       // Se a seleção atual já for válida (inclusive __none__ ou novo entregador criado), mantém
@@ -49,15 +56,20 @@ export function DispatchOrderModal({
       }
       if (order?.driverId && drivers.some((d) => d.id === order.driverId)) {
         setSelectedDriverId(order.driverId);
-      } else if (drivers.length > 0) {
-        setSelectedDriverId(drivers[0].id);
-      } else {
-        setSelectedDriverId("__none__");
+      } else if (lastDriverQuery.isSuccess) {
+        const lastId = lastDriverQuery.data?.driverId ?? null;
+        if (lastId && drivers.some((d) => d.id === lastId)) {
+          setSelectedDriverId(lastId);
+        } else if (drivers.length > 0) {
+          setSelectedDriverId(drivers[0].id);
+        } else {
+          setSelectedDriverId("__none__");
+        }
       }
     } else {
       setSelectedDriverId("");
     }
-  }, [isOpen, order?.id, drivers]);
+  }, [isOpen, order?.id, order?.driverId, drivers, selectedDriverId, lastDriverQuery]);
 
   if (!order) return null;
 
