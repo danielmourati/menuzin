@@ -210,7 +210,7 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
       cart: d?.lines ? {
         lines: (d.lines as any[]).map((l) => ({ name: l.name, qty: l.qty, details: l.details ?? "", line_total: l.line_total })),
         subtotal: d.subtotal ?? 0, delivery_fee: d.delivery_fee ?? 0, discount: d.discount ?? 0, total: d.total ?? 0,
-        mode: d.draft?.mode ?? null, payment: d.draft?.payment_method ?? null, address: d.draft?.address ?? null,
+        mode: d.draft?.mode ?? null, payment: d.draft?.payment ?? null, address: d.draft?.address ?? null,
       } : null,
     };
   });
