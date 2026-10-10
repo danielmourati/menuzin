@@ -21,7 +21,11 @@ type Priced = {
   lines: { name: string; qty: number; details: string[]; line_total: number; note: string | null }[];
   subtotal: number; discount: number; delivery_fee: number; total: number; change_back: number | null;
   ready: boolean; coupon_code: string | null; missing: string[]; errors: string[];
-  draft: { mode: string | null; payment: string | null; customer_name: string | null; address: Record<string, string | null> | null; table_label: string | null };
+  draft: {
+    mode: string | null; payment: string | null; customer_name: string | null;
+    address: Record<string, string | null> | null; table_label: string | null;
+    change_for: number | null; no_change: boolean | null;
+  };
 };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const key = (slug: string) => `menuzin:ai-chat:${slug}`;
@@ -370,6 +374,15 @@ function Bubble({ role, text }: { role: string; text: string }) {
       <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${user ? "rounded-tr-sm bg-primary text-primary-foreground" : "rounded-tl-sm bg-card text-card-foreground"}`}>
         {user ? text : <div className="prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_ul]:my-1"><ReactMarkdown>{text}</ReactMarkdown></div>}
       </div>
+    </div>
+  );
+}
+
+function ChoiceRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="pl-1 text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
 }

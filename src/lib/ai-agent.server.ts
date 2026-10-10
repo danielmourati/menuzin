@@ -79,6 +79,7 @@ export type AgentContext = {
   inactiveNames: string[];
   coupons: { code: string; discount_type: string; discount_value: number; min_order_total: number; valid_until: string | null }[];
   pizzaCategoryIds: Set<string>;
+  paymentSettings: { cash_enabled: boolean; pix_manual_enabled: boolean; card_on_delivery_enabled: boolean };
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -104,8 +105,11 @@ export async function loadAgentContext(slug: string): Promise<AgentContext | nul
   if ((tenant as { plan?: string }).plan !== "pro") return null;
   const settings = await loadAgentSettings(tenant.id);
   if (!settings.enabled) return null;
-  const [{ data: inactive }, { listPublicCoupons }] = await Promise.all([
+  const [{ data: inactive }, { data: paymentSettings }, { listPublicCoupons }] = await Promise.all([
     supabaseAdmin.from("products").select("name").eq("tenant_id", tenant.id).eq("available", false).limit(80),
+    supabaseAdmin.from("store_payment_settings")
+      .select("cash_enabled, pix_manual_enabled, card_on_delivery_enabled")
+      .eq("tenant_id", tenant.id).maybeSingle(),
     import("@/lib/coupons.functions"),
   ]);
   const { coupons } = await listPublicCoupons({ data: { slug } });
@@ -119,6 +123,11 @@ export async function loadAgentContext(slug: string): Promise<AgentContext | nul
     inactiveNames: (inactive ?? []).map((r) => r.name as string),
     coupons,
     pizzaCategoryIds,
+    paymentSettings: {
+      cash_enabled: paymentSettings?.cash_enabled ?? false,
+      pix_manual_enabled: paymentSettings?.pix_manual_enabled ?? false,
+      card_on_delivery_enabled: paymentSettings?.card_on_delivery_enabled ?? false,
+    },
   };
 }
 

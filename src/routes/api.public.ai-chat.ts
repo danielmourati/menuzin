@@ -106,9 +106,9 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           `Tempo de entrega: ${t.delivery_time_min && t.delivery_time_max ? `${t.delivery_time_min}–${t.delivery_time_max} min` : "consulte a loja"}.`,
           `RECEBIMENTO HABILITADO: ${[t.accepts_delivery && "entrega", t.accepts_takeout && "retirada", t.accepts_dinein && "consumo no local"].filter(Boolean).join(", ") || "consulte a loja"}.`,
           `PAGAMENTOS MANUAIS HABILITADOS: ${[
-            (ctx as any).paymentSettings?.cash_enabled && "dinheiro",
-            (ctx as any).paymentSettings?.pix_manual_enabled && "Pix manual",
-            (ctx as any).paymentSettings?.card_on_delivery_enabled && "maquininha crédito ou débito",
+            ctx.paymentSettings.cash_enabled && "dinheiro",
+            ctx.paymentSettings.pix_manual_enabled && "Pix manual",
+            ctx.paymentSettings.card_on_delivery_enabled && "maquininha crédito ou débito",
           ].filter(Boolean).join(", ") || "consulte a loja"}.`,
           ctx.coupons.length
             ? `CUPONS VÁLIDOS: ${ctx.coupons.map((c) => `${c.code} (${c.discount_type === "percent" ? `${c.discount_value}%` : `R$ ${c.discount_value}`}${c.min_order_total ? `, mínimo R$ ${c.min_order_total}` : ""})`).join("; ")}`
