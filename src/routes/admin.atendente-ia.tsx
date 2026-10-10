@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import {
   getMyAgentSettings, saveMyAgentSettings, listMyAgentConversations, getMyAgentConversationMessages,
-  listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus, acceptHandoff,
+  listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus, acceptHandoff, getMyAgentAudioUrl,
 } from "@/lib/ai-agent.functions";
 
 export const Route = createFileRoute("/admin/atendente-ia")({
