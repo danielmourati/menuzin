@@ -81,7 +81,9 @@ export function DispatchOrderModal({
     ? `${addr.street || ""}, ${addr.number || "s/n"}${addr.neighborhood ? ` - ${addr.neighborhood}` : ""}${addr.complement ? ` (${addr.complement})` : ""}`
     : "Retirada ou Endereço não informado";
   
-  const googleMapsUrl = addr
+  const googleMapsUrl = addr?.lat && addr?.lng
+    ? `https://www.google.com/maps?q=${addr.lat},${addr.lng}`
+    : addr
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
         `${addr.street || ""}, ${addr.number || ""}, ${addr.neighborhood || ""}`
       )}`

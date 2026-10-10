@@ -109,6 +109,7 @@ export function OrderDetailsDrawer({
 
   const getMapLink = () => {
     if (!order.address) return "";
+    if (order.address.lat && order.address.lng) return `https://www.google.com/maps?q=${order.address.lat},${order.address.lng}`;
     const query = encodeURIComponent(`${order.address.street}, ${order.address.number}, ${order.address.neighborhood}`);
     return `https://www.google.com/maps/search/?api=1&query=${query}`;
   };
@@ -254,6 +255,11 @@ export function OrderDetailsDrawer({
                         {order.address.complement ? ` — ${order.address.complement}` : ""}
                       </span>
                       {order.address.reference && <p className="text-xs text-muted-foreground mt-1">Ref: {order.address.reference}</p>}
+                      {order.address.lat && order.address.lng && (
+                        <a href={getMapLink()} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                          <MapPin className="h-3 w-3" /> Localização exata enviada pelo cliente (GPS)
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}

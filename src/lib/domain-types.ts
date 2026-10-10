@@ -131,6 +131,9 @@ export type Order = {
     neighborhood?: string;
     complement?: string;
     reference?: string;
+    /** GPS compartilhado pelo cliente no chat (strings, como vêm do pedido). */
+    lat?: string;
+    lng?: string;
   };
   table?: string;
   pickupTime?: string;
