@@ -142,6 +142,7 @@ function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; 
   useEffect(() => { void boot(); }, [slug]);
 
   const vv = useVisualViewport();
+  const insets = useSafeAreaInsets();
   // Trava a rolagem da loja por trás enquanto o chat está aberto.
   useEffect(() => {
     const prevBody = document.body.style.overflow;
@@ -159,10 +160,11 @@ function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; 
       className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col overflow-hidden bg-card shadow-2xl sm:inset-x-auto sm:bottom-4 sm:right-4 sm:top-auto sm:h-[620px] sm:w-[400px] sm:rounded-2xl sm:border"
       style={{
         ...(vv.mobile && vv.height ? { top: vv.top, height: vv.height } : {}),
-        ["--chat-pb" as string]: vv.keyboard ? "0.75rem" : "max(0.75rem, env(safe-area-inset-bottom))",
+        paddingBottom: vv.keyboard ? 0 : insets.bottom,
+        ["--chat-pb" as string]: "0.75rem",
       }}
     >
-      <div className="flex shrink-0 items-center justify-between bg-primary px-4 py-3 text-primary-foreground" style={{ paddingTop: vv.keyboard ? undefined : "max(0.75rem, env(safe-area-inset-top))" }}>
+      <div className="flex shrink-0 items-center justify-between bg-primary px-4 py-3 text-primary-foreground" style={{ paddingTop: `calc(0.75rem + ${insets.top}px)` }}>
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/15"><ChefHat className="h-5 w-5" /></div>
           <div>
