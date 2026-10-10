@@ -237,9 +237,9 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
     !priced.draft.address?.street || !priced.draft.address?.number || !(priced.draft.address?.neighborhood || priced.draft.address?.cep)
   );
   const tablePending = priced?.draft.mode === "consumo_local" && !priced.draft.table_label;
-  const showModeChoices = finishing && !!priced?.lines.length && !priced.draft.mode;
-  const showPaymentChoices = finishing && !!priced?.draft.mode && !addressPending && !tablePending && !priced.draft.payment;
-  const showChangeChoices = finishing && priced?.draft.payment === "dinheiro" && !priced.draft.no_change && !priced.draft.change_for;
+  const showModeChoices = finishing && !busy && !!priced?.lines.length && !priced.draft.mode;
+  const showPaymentChoices = finishing && !busy && !!priced?.draft.mode && !addressPending && !tablePending && !priced.draft.payment;
+  const showChangeChoices = finishing && !busy && priced?.draft.payment === "dinheiro" && !priced.draft.no_change && !priced.draft.change_for;
   const chooseMode = (mode: string) => send(`Quero ${MODE[mode].toLowerCase()}.`);
   const choosePayment = (payment: string) => send(`Quero pagar com ${PAY[payment].toLowerCase()}.`);
 

@@ -256,6 +256,14 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   let delivery_fee_source: string | null = null;
   let delivery_neighborhood: string | null = null;
   if (!draft.mode) missing.push("Entrega, retirada ou consumo no local");
+  if (draft.mode) {
+    const modeAllowed = draft.mode === "entrega"
+      ? ctx.tenant.accepts_delivery
+      : draft.mode === "retirada"
+        ? ctx.tenant.accepts_takeout
+        : ctx.tenant.accepts_dinein;
+    if (!modeAllowed) errors.push(`${draft.mode === "entrega" ? "Entrega" : draft.mode === "retirada" ? "Retirada" : "Consumo no local"} não está disponível nesta loja.`);
+  }
   if (draft.mode === "entrega") {
     const t = ctx.tenant as any;
     const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
