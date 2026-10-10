@@ -79,6 +79,7 @@ export type AgentContext = {
   inactiveNames: string[];
   coupons: { code: string; discount_type: string; discount_value: number; min_order_total: number; valid_until: string | null }[];
   pizzaCategoryIds: Set<string>;
+  paymentSettings: { cash_enabled: boolean; pix_manual_enabled: boolean; card_on_delivery_enabled: boolean };
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -104,8 +105,11 @@ export async function loadAgentContext(slug: string): Promise<AgentContext | nul
   if ((tenant as { plan?: string }).plan !== "pro") return null;
   const settings = await loadAgentSettings(tenant.id);
   if (!settings.enabled) return null;
-  const [{ data: inactive }, { listPublicCoupons }] = await Promise.all([
+  const [{ data: inactive }, { data: paymentSettings }, { listPublicCoupons }] = await Promise.all([
     supabaseAdmin.from("products").select("name").eq("tenant_id", tenant.id).eq("available", false).limit(80),
+    supabaseAdmin.from("store_payment_settings")
+      .select("cash_enabled, pix_manual_enabled, card_on_delivery_enabled")
+      .eq("tenant_id", tenant.id).maybeSingle(),
     import("@/lib/coupons.functions"),
   ]);
   const { coupons } = await listPublicCoupons({ data: { slug } });
@@ -119,6 +123,11 @@ export async function loadAgentContext(slug: string): Promise<AgentContext | nul
     inactiveNames: (inactive ?? []).map((r) => r.name as string),
     coupons,
     pizzaCategoryIds,
+    paymentSettings: {
+      cash_enabled: paymentSettings?.cash_enabled ?? false,
+      pix_manual_enabled: paymentSettings?.pix_manual_enabled ?? false,
+      card_on_delivery_enabled: paymentSettings?.card_on_delivery_enabled ?? false,
+    },
   };
 }
 
@@ -247,6 +256,14 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   let delivery_fee_source: string | null = null;
   let delivery_neighborhood: string | null = null;
   if (!draft.mode) missing.push("Entrega, retirada ou consumo no local");
+  if (draft.mode) {
+    const modeAllowed = draft.mode === "entrega"
+      ? ctx.tenant.accepts_delivery
+      : draft.mode === "retirada"
+        ? ctx.tenant.accepts_takeout
+        : ctx.tenant.accepts_dinein;
+    if (!modeAllowed) errors.push(`${draft.mode === "entrega" ? "Entrega" : draft.mode === "retirada" ? "Retirada" : "Consumo no local"} não está disponível nesta loja.`);
+  }
   if (draft.mode === "entrega") {
     const t = ctx.tenant as any;
     const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -301,6 +318,14 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   const total = round2(Math.max(0, subtotal - discount) + delivery_fee);
 
   if (!draft.payment) missing.push("Forma de pagamento (dinheiro, maquininha crédito/débito ou Pix manual)");
+  if (draft.payment) {
+    const allowed = draft.payment === "dinheiro"
+      ? ctx.paymentSettings.cash_enabled
+      : draft.payment === "pix_manual"
+        ? ctx.paymentSettings.pix_manual_enabled
+        : ctx.paymentSettings.card_on_delivery_enabled;
+    if (!allowed) errors.push(`${PAYMENT_LABELS[draft.payment]} não está disponível nesta loja.`);
+  }
   let change_back: number | null = null;
   if (draft.payment === "dinheiro") {
     if (!draft.no_change && !(draft.change_for && draft.change_for > 0)) missing.push("Troco para quanto (ou sem troco)");
