@@ -48,7 +48,12 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         const { data: rows } = await supabaseAdmin
           .from("ai_messages").select("ai_message_id, role, parts").eq("conversation_id", conv.id).order("created_at");
         const history = (rows ?? []).map((r) => ({ id: r.ai_message_id ?? crypto.randomUUID(), role: r.role, parts: r.parts }));
-        const userMsg = { id: last.id ?? crypto.randomUUID(), role: "user", parts: last.parts.filter((p: any) => p?.type === "text") };
+        const userMsg = { id: last.id ?? crypto.randomUUID(), role: "user", parts: last.parts.filter((p: any) => p?.type === "text") as unknown[] };
+        // Áudio original: só aceita caminhos gerados por este servidor para esta conversa.
+        const audioPath = String((last as any).metadata?.audioPath ?? "");
+        if (audioPath.startsWith(`${conv.tenant_id}/${conv.id}/`) && !audioPath.includes("..") && audioPath.length < 200) {
+          userMsg.parts.push({ type: "data-audio", data: { path: audioPath } });
+        }
         const { error: insErr } = await supabaseAdmin.from("ai_messages").insert({
           conversation_id: conv.id, ai_message_id: userMsg.id, role: "user", parts: userMsg.parts as never,
         });
@@ -151,7 +156,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
               description: "Salva o rascunho completo do pedido e devolve itens com preços calculados pela loja, total, campos faltando e erros.",
               inputSchema: srv.DraftSchema,
               execute: async (draft) => {
-                const priced = await srv.priceDraft(ctx, slug, draft);
+                const priced = await srv.priceDraft(ctx, slug, draft, (conv as any).customer_location ?? null);
                 await supabaseAdmin.from("ai_conversations").update({
                   draft: priced as never,
                   customer_name: draft.customer_name,

@@ -213,6 +213,7 @@ export function buildReceipt(
       wrap(`Bairro: ${stripAccents(a.neighborhood)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
     }
     if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    if (a.lat && a.lng) out.push(addonIndent + `GPS do cliente: ${a.lat.slice(0, 9)},${a.lng.slice(0, 9)}`);
     if (order.deliveryFee > 0) {
       out.push(addonIndent + row("Taxa entrega", money(order.deliveryFee), cols - addonIndent.length));
     }

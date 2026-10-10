@@ -101,7 +101,7 @@ export const confirmAgentOrder = createServerFn({ method: "POST" })
     const ctx = await srv.loadAgentContext(data.slug);
     if (!ctx || ctx.tenant.id !== conv.tenant_id) throw new Error("Atendente indisponível nesta loja.");
     const draft = srv.DraftSchema.parse((conv.draft as any)?.draft);
-    const p = await srv.priceDraft(ctx, data.slug, draft);
+    const p = await srv.priceDraft(ctx, data.slug, draft, (conv as any).customer_location ?? null);
     if (!p.ready) throw new Error([...p.missing.map((m) => `Falta: ${m}`), ...p.errors].join(" · "));
 
     const prefix = draft.mode === "retirada" ? "Pagar na retirada" : draft.mode === "consumo_local" ? "Pagar no local" : "Pagar na entrega";
@@ -120,7 +120,10 @@ export const confirmAgentOrder = createServerFn({ method: "POST" })
         delivery_fee_source: (p.delivery_fee_source as any) ?? null,
         delivery_neighborhood_snapshot: p.delivery_neighborhood,
         address: draft.mode === "entrega" && a
-          ? Object.fromEntries(Object.entries(a).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)]))
+          ? {
+              ...Object.fromEntries(Object.entries(a).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])),
+              ...(p.gps ? { lat: String(p.gps.lat), lng: String(p.gps.lng), gps_url: `https://www.google.com/maps?q=${p.gps.lat},${p.gps.lng}` } : {}),
+            }
           : null,
         table_label: draft.mode === "consumo_local" ? draft.table_label : null,
         note: draft.note,
@@ -202,6 +205,7 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
       id: r.id, role: r.role, created_at: r.created_at,
       staff: ((r.parts as any[]) ?? []).some((p) => p?.type === "data-staff"),
       text: ((r.parts as any[]) ?? []).filter((p) => p?.type === "text").map((p) => p.text).join("\n"),
+      audioPath: (((r.parts as any[]) ?? []).find((p) => p?.type === "data-audio")?.data?.path as string | undefined) ?? null,
     }));
     const d: any = conv.draft ?? null;
     return {
@@ -213,6 +217,20 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
         mode: d.draft?.mode ?? null, payment: d.draft?.payment ?? null, address: d.draft?.address ?? null,
       } : null,
     };
+  });
+
+/** Link temporário (5 min) para o atendente ouvir o áudio original do cliente. */
+export const getMyAgentAudioUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), path: z.string().min(10).max(200) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    if (!data.path.startsWith(`${tenantId}/${data.id}/`) || data.path.includes("..")) throw new Error("Áudio não encontrado.");
+    const { data: conv } = await supabaseAdmin.from("ai_conversations").select("id").eq("id", data.id).eq("tenant_id", tenantId).maybeSingle();
+    if (!conv) throw new Error("Conversa não encontrada");
+    const { data: signed, error } = await supabaseAdmin.storage.from("chat-audio").createSignedUrl(data.path, 300);
+    if (error || !signed?.signedUrl) throw new Error("Não foi possível carregar o áudio.");
+    return { url: signed.signedUrl };
   });
 
 // ---------- Atalhos (mensagens rápidas) ----------

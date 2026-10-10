@@ -50,7 +50,17 @@ export const Route = createFileRoute("/api/public/ai-chat-media")({
           const data = (await res.json().catch(() => ({}))) as { text?: string };
           const text = (data.text ?? "").trim();
           if (!text) return json(422, { error: "Não ouvi nada no áudio. Tente de novo." });
-          return json(200, { text: text.slice(0, 800) });
+          // Guarda o áudio original (bucket privado) para o atendente poder ouvir.
+          let audioPath: string | null = null;
+          try {
+            const type = (file.type || "audio/webm").split(";")[0];
+            const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : type.includes("mpeg") ? "mp3" : "webm";
+            const path = `${conv.tenant_id}/${conv.id}/${crypto.randomUUID()}.${ext}`;
+            const { error: upErr } = await (await import("@/integrations/supabase/client.server")).supabaseAdmin.storage
+              .from("chat-audio").upload(path, await file.arrayBuffer(), { contentType: type, upsert: false });
+            if (upErr) console.error("[ai-media] guardar áudio", upErr.message); else audioPath = path;
+          } catch (e) { console.error("[ai-media] guardar áudio", (e as Error).message); }
+          return json(200, { text: text.slice(0, 800), audioPath });
         }
 
         if (kind === "location") {
@@ -72,7 +82,7 @@ export const Route = createFileRoute("/api/public/ai-chat-media")({
             } catch (e) { console.error("[ai-media] geocode", (e as Error).message); }
           }
           await (await import("@/integrations/supabase/client.server")).supabaseAdmin
-            .from("ai_conversations").update({ customer_location: { lat, lng } as never, updated_at: new Date().toISOString() } as never).eq("id", conv.id);
+            .from("ai_conversations").update({ customer_location: { lat, lng, street: out.street, number: out.number, neighborhood: out.neighborhood, cep: out.cep, shared_at: new Date().toISOString() } as never, updated_at: new Date().toISOString() } as never).eq("id", conv.id);
           return json(200, out);
         }
         return json(400, { error: "Tipo inválido." });

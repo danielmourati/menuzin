@@ -261,7 +261,11 @@ export const createOrder = createServerFn({ method: "POST" })
       if (row) {
         customer = { id: row.id, phone: row.phone, token: row.device_token };
         await supabaseAdmin.from("orders").update({ customer_id: row.id } as never).eq("id", order.id);
-        if (addr) await saveDefaultAddress(row.id, addr as never);
+        if (addr) {
+          // GPS é específico do pedido: não vira endereço padrão do cliente.
+          const { lat: _lat, lng: _lng, gps_url: _gps, ...plainAddr } = addr;
+          await saveDefaultAddress(row.id, plainAddr as never);
+        }
       }
     } catch {
       /* profile persistence must never block the order */

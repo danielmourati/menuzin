@@ -66,6 +66,8 @@ export type PricedDraft = {
   delivery_fee: number;
   delivery_fee_source: string | null;
   delivery_neighborhood: string | null;
+  /** GPS do cliente quando o endereço do pedido é o da localização compartilhada. */
+  gps: { lat: number; lng: number } | null;
   total: number;
   change_back: number | null;
   ready: boolean;
@@ -163,7 +165,9 @@ export function buildMenuText(ctx: AgentContext): string {
   return out.join("\n");
 }
 
-export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDraft): Promise<PricedDraft> {
+export type SharedLocation = { lat: number; lng: number; street?: string | null } | null;
+
+export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDraft, location: SharedLocation = null): Promise<PricedDraft> {
   const errors: string[] = [];
   const missing: string[] = [];
   const lines: PricedLine[] = [];
@@ -255,6 +259,7 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   let delivery_fee = 0;
   let delivery_fee_source: string | null = null;
   let delivery_neighborhood: string | null = null;
+  let gps: { lat: number; lng: number } | null = null;
   if (!draft.mode) missing.push("Entrega, retirada ou consumo no local");
   if (draft.mode) {
     const modeAllowed = draft.mode === "entrega"
@@ -300,9 +305,17 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
           : `Endereço em ${t.city ?? "nossa cidade"}: CEP, ou rua, número e bairro`,
       );
     } else {
+      // Só usa o GPS se o endereço do pedido for o mesmo da localização compartilhada.
+      const sameStreet = (x: string, y: string) => { const p = norm(x), q = norm(y); return !!p && !!q && (p.includes(q) || q.includes(p)); };
+      if (location && location.street && a.street && sameStreet(String(a.street), location.street)) {
+        gps = { lat: location.lat, lng: location.lng };
+      }
       const { resolveDeliveryFee } = await import("@/lib/delivery-zones.functions");
       const r = await resolveDeliveryFee({
-        data: { tenant_slug: slug, cep: a.cep, neighborhood: a.neighborhood, street: a.street, number: a.number, city: a.city, state: a.state },
+        data: {
+          tenant_slug: slug, cep: a.cep, neighborhood: a.neighborhood, street: a.street, number: a.number, city: a.city, state: a.state,
+          dest_lat: gps?.lat ?? null, dest_lng: gps?.lng ?? null,
+        },
       });
       if (!r.available) errors.push(r.message || "Não entregamos nesse endereço.");
       else {
@@ -348,7 +361,7 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
 
   return {
     lines, errors, missing, subtotal, discount, coupon_code, delivery_fee, delivery_fee_source,
-    delivery_neighborhood, total, change_back, ready: !errors.length && !missing.length, draft,
+    delivery_neighborhood, gps, total, change_back, ready: !errors.length && !missing.length, draft,
   };
 }
 

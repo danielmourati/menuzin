@@ -244,10 +244,10 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
     return () => vv.removeEventListener("resize", onResize);
   }, []);
 
-  const send = (text: string) => {
+  const send = (text: string, metadata?: Record<string, unknown>) => {
     const t = text.trim();
     if (!t || busy) return;
-    void sendMessage({ text: t });
+    void sendMessage(metadata ? { text: t, metadata } : { text: t });
     setInput("");
   };
 
@@ -279,8 +279,8 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
         try {
           const fd = new FormData(); fd.append("kind", "audio");
           fd.append("file", blob, type.includes("mp4") ? "audio.mp4" : type.includes("ogg") ? "audio.ogg" : "audio.webm");
-          const { text } = await postMedia(fd);
-          send(`🎤 ${text}`);
+          const { text, audioPath } = await postMedia(fd);
+          send(`🎤 ${text}`, audioPath ? { audioPath } : undefined);
         } catch (e) { toast.error(e instanceof Error ? e.message : "Falha no áudio."); }
         finally { setMediaBusy(false); }
       };
