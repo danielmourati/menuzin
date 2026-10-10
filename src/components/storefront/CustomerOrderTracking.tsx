@@ -12,6 +12,8 @@ import { formatPhoneNumber } from "@/lib/format";
 import type { Order, Tenant } from "@/lib/domain-types";
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
+import { getAgentPublicInfo } from "@/lib/ai-agent.functions";
+import { AiOrderChatWindow } from "./AiOrderChat";
 import { PaymentStatusBadge } from "../orders/OrderStatusBadge";
 import { OrderRatingCard } from "./OrderRatingCard";
 
@@ -110,6 +112,12 @@ const PROGRESS: Record<string, number> = {
 
 function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; slug: string }) {
   const [details, setDetails] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const { data: aiInfo } = useQuery({
+    queryKey: ["ai-agent-info", slug],
+    queryFn: () => getAgentPublicInfo({ data: { slug } }),
+    staleTime: 60_000,
+  });
   const isCancelled = order.status === "cancelado";
   const current = STEP_COPY[order.status] ?? STEP_COPY.novo;
   const progress = PROGRESS[order.status] ?? 15;
@@ -275,14 +283,29 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
 
         <section className="mt-8 border-y py-5">
           <h3 className="text-base">Precisa de ajuda? Fale conosco</h3>
-          <a
-            href={whatsappLink(tenant.whatsapp, `Olá, equipe ${tenant.name}! Tenho uma dúvida sobre o meu pedido #${order.number}.`)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 flex items-center gap-3"
-          >
-            <MessageCircle className="h-6 w-6" /> Chat
-          </a>
+          {aiInfo?.enabled ? (
+            <button type="button" onClick={() => setChatOpen(true)} className="mt-4 flex items-center gap-3">
+              <MessageCircle className="h-6 w-6" /> Chat
+            </button>
+          ) : (
+            <a
+              href={whatsappLink(tenant.whatsapp, `Olá, equipe ${tenant.name}! Tenho uma dúvida sobre o meu pedido #${order.number}.`)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 flex items-center gap-3"
+            >
+              <MessageCircle className="h-6 w-6" /> Chat
+            </a>
+          )}
+          {chatOpen && aiInfo?.enabled && (
+            <AiOrderChatWindow
+              slug={slug}
+              info={aiInfo}
+              orderId={order.id}
+              orderGreeting={`Oi${order.customerName ? `, ${order.customerName.split(" ")[0]}` : ""}! Seu pedido #${order.number} está **${current.title}**. Posso ajudar com alguma dúvida sobre ele?`}
+              onClose={() => setChatOpen(false)}
+            />
+          )}
           {phoneDigits && (
             <a href={`tel:+55${phoneDigits}`} className="mt-4 flex items-center gap-3">
               <PhoneCall className="h-6 w-6" /> Ligar para {formatPhoneNumber(phoneDigits)}

@@ -56,7 +56,7 @@ export const getAgentPublicInfo = createServerFn({ method: "POST" })
 
 export const startAgentConversation = createServerFn({ method: "POST" })
   .inputValidator((d) =>
-    z.object({ slug: Slug, customer_name: z.string().max(120).nullable(), whatsapp: z.string().max(20).nullable() }).parse(d),
+    z.object({ slug: Slug, customer_name: z.string().max(120).nullable(), whatsapp: z.string().max(20).nullable(), order_id: z.string().uuid().nullable().optional() }).parse(d),
   )
   .handler(async ({ data }) => {
     const srv = await import("@/lib/ai-agent.server");
@@ -65,9 +65,11 @@ export const startAgentConversation = createServerFn({ method: "POST" })
     const bytes = crypto.getRandomValues(new Uint8Array(24));
     const accessKey = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
     const draft = { ...srv.emptyDraft(), customer_name: data.customer_name, whatsapp: data.whatsapp };
+    const orderId = data.order_id && (await srv.orderBelongsToTenant(data.order_id, ctx.tenant.id)) ? data.order_id : null;
+    if (data.order_id && !orderId) throw new Error("Pedido não encontrado nesta loja.");
     const { data: row, error } = await supabaseAdmin
       .from("ai_conversations")
-      .insert({ tenant_id: ctx.tenant.id, access_key: accessKey, customer_name: data.customer_name, customer_phone: data.whatsapp, draft: { draft } as never })
+      .insert({ tenant_id: ctx.tenant.id, access_key: accessKey, customer_name: data.customer_name, customer_phone: data.whatsapp, order_id: orderId, draft: { draft } as never })
       .select("id").single();
     if (error || !row) throw new Error("Não foi possível iniciar a conversa.");
     return { id: row.id, accessKey };

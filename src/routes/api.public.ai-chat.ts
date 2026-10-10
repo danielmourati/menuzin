@@ -17,10 +17,11 @@ export const Route = createFileRoute("/api/public/ai-chat")({
             conversationId: z.string().uuid(),
             accessKey: z.string().min(20).max(100),
             messages: z.array(z.any()).min(1),
+            deviceOrderIds: z.array(z.string().uuid()).max(5).optional(),
           })
           .safeParse(await request.json().catch(() => null));
         if (!body.success) return json(400, { error: "Requisição inválida." });
-        const { slug, conversationId, accessKey, messages } = body.data;
+        const { slug, conversationId, accessKey, messages, deviceOrderIds } = body.data;
 
         const { checkRateLimit, recordFailedAttempt, getClientIp } = await import("@/lib/rate-limit.server");
         const rl = { key: `ai-chat:${getClientIp(request)}`, maxAttempts: 40, windowSeconds: 600, blockDurationSeconds: 600 };
@@ -101,6 +102,8 @@ export const Route = createFileRoute("/api/public/ai-chat")({
 
         const t = ctx.tenant as any;
         const savedDraft = (conv.draft as any)?.draft ?? srv.emptyDraft();
+        const linkedOrderId = (conv as any).order_id as string | null;
+        const ordersText = await srv.buildOrdersContext(linkedOrderId ? [linkedOrderId] : (deviceOrderIds ?? []), ctx.tenant.id);
         const instructions = [
           `Você é ${ctx.settings.agent_name}, atendente virtual da loja "${t.name}" no Menuzin. Fale em português do Brasil, ${ctx.settings.tone === "formal" ? "com tom educado e formal" : "com tom simpático, leve e descontraído, como um bom atendente de delivery"}. Respostas curtas (até 4 frases), use listas só para resumir itens.`,
           "Objetivo: entender o pedido do cliente em linguagem informal e transformá-lo em dados estruturados usando a ferramenta update_draft.",
@@ -132,6 +135,9 @@ export const Route = createFileRoute("/api/public/ai-chat")({
             : "Não há cupons ativos.",
           ctx.inactiveNames.length ? `EM FALTA HOJE: ${ctx.inactiveNames.join(", ")}` : "",
           ctx.settings.extra_instructions ? `INSTRUÇÕES DA LOJA: ${ctx.settings.extra_instructions}` : "",
+          ordersText
+            ? `PEDIDOS JÁ FEITOS PELO CLIENTE (dados reais e atuais, somente leitura):\n${ordersText}\n- Use estes dados para responder sobre andamento, previsão, itens, total, pagamento, endereço e entregador. Nunca invente status ou horários; para previsão use o tempo de entrega/retirada da loja contado desde o pedido. Você não pode cancelar nem alterar pedidos: para cancelamento, troca ou reclamação, chame request_human.${linkedOrderId ? " Esta conversa é sobre esse pedido: não inicie um novo pedido a menos que o cliente peça." : ""}`
+            : "Se o cliente perguntar sobre um pedido já feito, diga que ele pode acompanhar pela tela do pedido (Meus pedidos) ou chamar um atendente.",
           `RASCUNHO ATUAL: ${JSON.stringify(savedDraft)}`,
           "CARDÁPIO:",
           srv.buildMenuText(ctx),
