@@ -11,18 +11,47 @@ const ConvInput = z.object({ id: z.string().uuid(), accessKey: z.string().min(20
 export const getAgentPublicInfo = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ slug: Slug }).parse(d))
   .handler(async ({ data }) => {
-    const { data: t } = await supabaseAdmin.from("tenants").select("id, whatsapp").eq("slug", data.slug).eq("active", true).maybeSingle();
-    if (!t) return { enabled: false, name: "", greeting: "", whatsapp: "", quickReplies: [] as { label: string; message: string }[] };
+    const { data: t } = await supabaseAdmin.from("tenants")
+      .select("id, whatsapp, accepts_delivery, accepts_takeout, accepts_dinein")
+      .eq("slug", data.slug).eq("active", true).maybeSingle();
+    if (!t) return {
+      enabled: false, name: "", greeting: "", whatsapp: "",
+      quickReplies: [] as { label: string; message: string }[],
+      receiveModes: [] as string[], paymentMethods: [] as string[],
+    };
     const { getTenantPlan } = await import("@/lib/plan-server");
     const { loadAgentSettings } = await import("@/lib/ai-agent.server");
-    const [plan, s, qr] = await Promise.all([
+    const [plan, s, qr, paymentResult] = await Promise.all([
       getTenantPlan(t.id), loadAgentSettings(t.id),
       supabaseAdmin.from("ai_quick_replies").select("label, message").eq("tenant_id", t.id).eq("active", true).order("sort_order").limit(8),
+      supabaseAdmin.from("store_payment_settings")
+        .select("cash_enabled, pix_manual_enabled, card_on_delivery_enabled")
+        .eq("tenant_id", t.id).maybeSingle(),
     ]);
     const quickReplies = (qr.data ?? []).length
       ? (qr.data ?? []).map((r) => ({ label: r.label, message: r.message || r.label }))
       : ["O que vocês têm hoje?", "Quais os mais pedidos?", "Tem cupom?"].map((l) => ({ label: l, message: l }));
-    return { enabled: plan === "pro" && s.enabled, name: s.agent_name, greeting: s.greeting, quickReplies, whatsapp: (t.whatsapp ?? "").replace(/\D/g, "") };
+    const receiveModes = [
+      t.accepts_delivery ? "entrega" : null,
+      t.accepts_takeout ? "retirada" : null,
+      t.accepts_dinein ? "consumo_local" : null,
+    ].filter((mode): mode is string => mode !== null);
+    const payment = paymentResult.data;
+    const paymentMethods = [
+      payment?.cash_enabled ? "dinheiro" : null,
+      payment?.pix_manual_enabled ? "pix_manual" : null,
+      payment?.card_on_delivery_enabled ? "credito" : null,
+      payment?.card_on_delivery_enabled ? "debito" : null,
+    ].filter((method): method is string => method !== null);
+    return {
+      enabled: plan === "pro" && s.enabled,
+      name: s.agent_name,
+      greeting: s.greeting,
+      quickReplies,
+      whatsapp: (t.whatsapp ?? "").replace(/\D/g, ""),
+      receiveModes,
+      paymentMethods,
+    };
   });
 
 export const startAgentConversation = createServerFn({ method: "POST" })

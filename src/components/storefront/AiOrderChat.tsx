@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
-import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, ShoppingBag, CreditCard, Flag, Headset, MessageCircle } from "lucide-react";
+import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, Flag, Headset, MessageCircle, Bike, Store, Utensils, Banknote, CreditCard, QrCode } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,10 @@ import { readCustomerProfile, writeCustomerProfile } from "@/lib/customer-profil
 
 type Stored = { id: string; accessKey: string };
 type QR = { label: string; message: string };
-type Info = { enabled: boolean; name: string; greeting: string; quickReplies: QR[]; whatsapp: string };
+type Info = {
+  enabled: boolean; name: string; greeting: string; quickReplies: QR[]; whatsapp: string;
+  receiveModes: string[]; paymentMethods: string[];
+};
 type Priced = {
   lines: { name: string; qty: number; details: string[]; line_total: number; note: string | null }[];
   subtotal: number; discount: number; delivery_fee: number; total: number; change_back: number | null;
@@ -168,6 +171,7 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
   const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -216,21 +220,24 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
     setInput("");
   };
 
-  const showCart = () => {
-    if (!priced?.lines.length) {
-      send("Quero ver meu carrinho.");
-      return;
-    }
-    summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
   const finishOrder = () => {
+    setFinishing(true);
     if (priced?.ready) {
       summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     send("Quero finalizar meu pedido. Me ajude com o que ainda falta.");
   };
+
+  const addressPending = priced?.draft.mode === "entrega" && (
+    !priced.draft.address?.street || !priced.draft.address?.number || !(priced.draft.address?.neighborhood || priced.draft.address?.cep)
+  );
+  const tablePending = priced?.draft.mode === "consumo_local" && !priced.draft.table_label;
+  const showModeChoices = finishing && !!priced?.lines.length && !priced.draft.mode;
+  const showPaymentChoices = finishing && !!priced?.draft.mode && !addressPending && !tablePending && !priced.draft.payment;
+  const showChangeChoices = finishing && priced?.draft.payment === "dinheiro" && !priced.draft.no_change && !priced.draft.change_for;
+  const chooseMode = (mode: string) => send(`Quero ${MODE[mode].toLowerCase()}.`);
+  const choosePayment = (payment: string) => send(`Quero pagar com ${PAY[payment].toLowerCase()}.`);
 
   const confirm = async () => {
     setConfirming(true);
@@ -292,27 +299,38 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
             )}
           </div>
         )}
-        <div className="flex flex-wrap gap-2" aria-label="Ações do pedido">
-          {priced?.lines.length ? (
-            <Button variant="outline" size="sm" onClick={showCart} disabled={busy} className="rounded-full bg-card">
-              <ShoppingBag /> Ver carrinho
-            </Button>
-          ) : null}
-          {priced?.lines.length ? (
-            <Button variant="outline" size="sm" onClick={() => send("Quero seguir para o pagamento.")} disabled={busy || !!priced.draft.payment} className="rounded-full bg-card">
-              <CreditCard /> {priced.draft.payment ? "Pagamento informado" : "Seguir para pagamento"}
-            </Button>
-          ) : null}
-          {priced?.lines.length ? (
-            <Button variant="outline" size="sm" onClick={() => send("Ok, já terminei de escolher meus itens.")} disabled={busy} className="rounded-full bg-card">
-              <CheckCircle2 /> Ok, já terminei
-            </Button>
-          ) : null}
-          {priced?.lines.length ? (
+        <div className="space-y-2" aria-label="Ações do pedido">
+          {priced?.lines.length && !finishing ? (
             <Button size="sm" onClick={finishOrder} disabled={busy} className="rounded-full">
               <Flag /> Finalizar pedido
             </Button>
           ) : null}
+          {showModeChoices && (
+            <ChoiceRow label="Como você quer receber?">
+              {info.receiveModes.map((mode) => (
+                <Button key={mode} variant="outline" size="sm" onClick={() => chooseMode(mode)} disabled={busy} className="rounded-full bg-card">
+                  {mode === "entrega" ? <Bike /> : mode === "retirada" ? <Store /> : <Utensils />} {MODE[mode]}
+                </Button>
+              ))}
+            </ChoiceRow>
+          )}
+          {showPaymentChoices && (
+            <ChoiceRow label="Como prefere pagar?">
+              {info.paymentMethods.map((payment) => (
+                <Button key={payment} variant="outline" size="sm" onClick={() => choosePayment(payment)} disabled={busy} className="rounded-full bg-card">
+                  {payment === "dinheiro" ? <Banknote /> : payment === "pix_manual" ? <QrCode /> : <CreditCard />} {PAY[payment]}
+                </Button>
+              ))}
+            </ChoiceRow>
+          )}
+          {showChangeChoices && (
+            <ChoiceRow label="Vai precisar de troco?">
+              <Button variant="outline" size="sm" onClick={() => send("Não preciso de troco.")} disabled={busy} className="rounded-full bg-card">Não preciso</Button>
+              {[50, 100, 200].filter((value) => value > (priced?.total ?? 0)).slice(0, 2).map((value) => (
+                <Button key={value} variant="outline" size="sm" onClick={() => send(`Preciso de troco para R$ ${value},00.`)} disabled={busy} className="rounded-full bg-card">Troco para R$ {value}</Button>
+              ))}
+            </ChoiceRow>
+          )}
         </div>
         {priced && priced.lines.length > 0 && (
           <div ref={summaryRef}>
