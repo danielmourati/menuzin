@@ -85,6 +85,7 @@ function OrdersPage() {
     updateOrderStatus(orderId, status);
   };
 
+  const queryClient = useQueryClient();
   const dispatchMutation = useMutation({
     mutationFn: async ({ driverId, driverName, sendWhatsapp }: { driverId: string; driverName: string; sendWhatsapp: boolean }) => {
       if (!dispatchOrder) return;
