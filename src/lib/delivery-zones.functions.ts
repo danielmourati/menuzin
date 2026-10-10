@@ -220,6 +220,9 @@ const ResolveInput = z.object({
   number: z.string().max(50).optional().nullable(),
   city: z.string().max(80).optional().nullable(),
   state: z.string().max(40).optional().nullable(),
+  /** Coordenadas exatas do cliente (GPS compartilhado no chat). Dispensam geocodificar o endereço. */
+  dest_lat: z.number().min(-90).max(90).optional().nullable(),
+  dest_lng: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const resolveDeliveryFee = createServerFn({ method: "POST" })
@@ -258,7 +261,8 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
 
     if (mode === "km") {
       const destCep = cepDigits(data.cep);
-      if (!data.street && destCep.length !== 8) {
+      const hasCoords = data.dest_lat != null && data.dest_lng != null;
+      if (!hasCoords && !data.street && destCep.length !== 8) {
         return {
           mode, available: false, fee: 0, source: null,
           neighborhood: null, min_order_total: 0, estimated_minutes: null,
@@ -300,11 +304,14 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
           return fail("Não foi possível calcular a entrega agora. Fale com a loja.");
         }
 
-        const cacheKey = `${tenant.id}|${orig.lat.toFixed(5)},${orig.lng.toFixed(5)}|${destAddr.toLowerCase().replace(/\s+/g, " ")}`;
+        const destKey = hasCoords
+          ? `gps:${(data.dest_lat as number).toFixed(5)},${(data.dest_lng as number).toFixed(5)}`
+          : destAddr.toLowerCase().replace(/\s+/g, " ");
+        const cacheKey = `${tenant.id}|${orig.lat.toFixed(5)},${orig.lng.toFixed(5)}|${destKey}`;
         const cached = distanceCache.get(cacheKey);
         let meters: number | null = cached && cached.expires > Date.now() ? cached.meters : null;
         if (meters === null) {
-          const dest = await geocode(destAddr, apiKey);
+          const dest = hasCoords ? { lat: data.dest_lat as number, lng: data.dest_lng as number } : await geocode(destAddr, apiKey);
           if (!dest) {
             console.warn(`[km] Endereço do cliente não localizado: ${destAddr}`);
             return fail("Não encontramos esse endereço no mapa. Confira rua, número e CEP.");
