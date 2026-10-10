@@ -162,10 +162,13 @@ export type Database = {
         Row: {
           access_key: string
           created_at: string
+          customer_location: Json | null
           customer_name: string | null
           customer_phone: string | null
           draft: Json | null
+          handoff_accepted_at: string | null
           handoff_requested_at: string | null
+          handoff_staff_name: string | null
           handoff_status: string
           id: string
           message_count: number
@@ -177,10 +180,13 @@ export type Database = {
         Insert: {
           access_key: string
           created_at?: string
+          customer_location?: Json | null
           customer_name?: string | null
           customer_phone?: string | null
           draft?: Json | null
+          handoff_accepted_at?: string | null
           handoff_requested_at?: string | null
+          handoff_staff_name?: string | null
           handoff_status?: string
           id?: string
           message_count?: number
@@ -192,10 +198,13 @@ export type Database = {
         Update: {
           access_key?: string
           created_at?: string
+          customer_location?: Json | null
           customer_name?: string | null
           customer_phone?: string | null
           draft?: Json | null
+          handoff_accepted_at?: string | null
           handoff_requested_at?: string | null
+          handoff_staff_name?: string | null
           handoff_status?: string
           id?: string
           message_count?: number
