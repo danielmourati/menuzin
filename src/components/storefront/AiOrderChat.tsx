@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
-import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, Flag, Headset, MessageCircle, Bike, Store, Utensils, Banknote, CreditCard, QrCode } from "lucide-react";
+import { ChefHat, Loader2, Send, X, RotateCcw, CheckCircle2, Flag, Headset, MessageCircle, Bike, Store, Utensils, Banknote, CreditCard, QrCode, Mic, Square, MapPin } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -251,6 +251,59 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
     setInput("");
   };
 
+  const [recording, setRecording] = useState(false);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const recRef = useRef<{ rec: MediaRecorder; chunks: Blob[]; timer: number } | null>(null);
+  const postMedia = async (fd: FormData) => {
+    fd.append("conversationId", conv.id); fd.append("accessKey", conv.accessKey);
+    const r = await fetch("/api/public/ai-chat-media", { method: "POST", body: fd });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Falha ao enviar.");
+    return j;
+  };
+  const toggleRecord = async () => {
+    if (recRef.current) { recRef.current.rec.stop(); return; }
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) { toast.error("Seu navegador não grava áudio. Escreva sua mensagem."); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        window.clearTimeout(recRef.current?.timer); recRef.current = null; setRecording(false);
+        const type = rec.mimeType || "audio/webm";
+        const blob = new Blob(chunks, { type });
+        if (blob.size < 1000) return;
+        setMediaBusy(true);
+        try {
+          const fd = new FormData(); fd.append("kind", "audio");
+          fd.append("file", blob, type.includes("mp4") ? "audio.mp4" : type.includes("ogg") ? "audio.ogg" : "audio.webm");
+          const { text } = await postMedia(fd);
+          send(`🎤 ${text}`);
+        } catch (e) { toast.error(e instanceof Error ? e.message : "Falha no áudio."); }
+        finally { setMediaBusy(false); }
+      };
+      rec.start();
+      recRef.current = { rec, chunks, timer: window.setTimeout(() => rec.state === "recording" && rec.stop(), 60000) };
+      setRecording(true);
+    } catch { toast.error("Permita o uso do microfone para enviar áudio."); }
+  };
+  const sendLocation = () => {
+    if (!navigator.geolocation) { toast.error("Seu aparelho não compartilha localização."); return; }
+    setMediaBusy(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const fd = new FormData(); fd.append("kind", "location");
+        fd.append("lat", String(pos.coords.latitude)); fd.append("lng", String(pos.coords.longitude));
+        const a = await postMedia(fd);
+        const addr = [a.street, a.number, a.neighborhood, a.city && `${a.city}${a.state ? `/${a.state}` : ""}`, a.cep && `CEP ${a.cep}`].filter(Boolean).join(", ");
+        send(`📍 Minha localização: ${addr || "endereço não identificado"} (https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude})`);
+      } catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao enviar localização."); }
+      finally { setMediaBusy(false); }
+    }, () => { setMediaBusy(false); toast.error("Permita o acesso à localização para enviar."); }, { enableHighAccuracy: true, timeout: 15000 });
+  };
+
   const finishOrder = () => {
     setFinishing(true);
     if (priced?.ready) {
@@ -375,6 +428,8 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
         className="flex shrink-0 items-end gap-2 border-t bg-card px-3 pt-3"
         style={{ paddingBottom: "var(--chat-pb)" }}
       >
+        <Button type="button" variant="outline" size="icon" onClick={sendLocation} disabled={busy || mediaBusy || recording}
+          className="h-11 w-11 shrink-0 rounded-xl" aria-label="Enviar minha localização"><MapPin className="h-4 w-4" /></Button>
         <textarea
           ref={inputRef}
           value={input}
@@ -383,12 +438,17 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
           rows={1}
           maxLength={800}
           onFocus={() => setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 300)}
-          placeholder="Ex.: 2 pastéis de carne grandes, entrega…"
+          placeholder={recording ? "Gravando… toque ■ para enviar" : "Escreva ou grave um áudio…"}
           className="max-h-28 min-h-[44px] flex-1 resize-none rounded-xl border bg-background px-3 py-2.5 text-base outline-none sm:text-sm focus:border-primary"
         />
-        <Button type="submit" size="icon" disabled={busy || !input.trim()} className="h-11 w-11 shrink-0 rounded-xl" aria-label="Enviar">
+        {!input.trim() ? (
+          <Button type="button" size="icon" onClick={toggleRecord} disabled={busy || mediaBusy}
+            variant={recording ? "destructive" : "default"} className="h-11 w-11 shrink-0 rounded-xl" aria-label={recording ? "Parar e enviar áudio" : "Gravar áudio"}>
+            {mediaBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : recording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+          </Button>
+        ) : <Button type="submit" size="icon" disabled={busy || !input.trim()} className="h-11 w-11 shrink-0 rounded-xl" aria-label="Enviar">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </Button>
+        </Button>}
       </form>
     </>
   );

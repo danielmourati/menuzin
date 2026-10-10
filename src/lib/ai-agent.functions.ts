@@ -182,9 +182,11 @@ export const listMyAgentConversations = createServerFn({ method: "POST" })
     const tenantId = await tenantFor(context);
     const { data } = await supabaseAdmin
       .from("ai_conversations")
-      .select("id, customer_name, customer_phone, status, order_id, message_count, handoff_status, handoff_requested_at, created_at, updated_at, orders(number)")
-      .eq("tenant_id", tenantId).gt("message_count", 0).order("updated_at", { ascending: false }).limit(100);
-    return (data ?? []).map((c: any) => ({ ...c, order_number: c.orders?.number ?? null }));
+      .select("id, customer_name, customer_phone, status, order_id, message_count, handoff_status, handoff_requested_at, handoff_staff_name, created_at, updated_at, orders(number)")
+      .eq("tenant_id", tenantId).or("message_count.gt.0,handoff_status.in.(requested,human)").order("updated_at", { ascending: false }).limit(100);
+    const rank = (c: any) => (c.status === "open" && c.handoff_status === "requested" ? 0 : c.status === "open" && c.handoff_status === "human" ? 1 : 2);
+    return (data ?? []).map((c: any) => ({ ...c, order_number: c.orders?.number ?? null }))
+      .sort((a: any, b: any) => rank(a) - rank(b) || String(b.updated_at).localeCompare(String(a.updated_at)));
   });
 
 export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
@@ -192,15 +194,25 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const tenantId = await tenantFor(context);
-    const { data: conv } = await supabaseAdmin.from("ai_conversations").select("id").eq("id", data.id).eq("tenant_id", tenantId).maybeSingle();
+    const { data: conv } = await supabaseAdmin.from("ai_conversations").select("id, draft, customer_location").eq("id", data.id).eq("tenant_id", tenantId).maybeSingle();
     if (!conv) throw new Error("Conversa não encontrada");
     const { data: rows } = await supabaseAdmin
       .from("ai_messages").select("id, role, parts, created_at").eq("conversation_id", data.id).order("created_at");
-    return (rows ?? []).map((r) => ({
+    const messages = (rows ?? []).map((r) => ({
       id: r.id, role: r.role, created_at: r.created_at,
       staff: ((r.parts as any[]) ?? []).some((p) => p?.type === "data-staff"),
       text: ((r.parts as any[]) ?? []).filter((p) => p?.type === "text").map((p) => p.text).join("\n"),
     }));
+    const d: any = conv.draft ?? null;
+    return {
+      messages,
+      location: (conv as any).customer_location as { lat: number; lng: number } | null,
+      cart: d?.lines ? {
+        lines: (d.lines as any[]).map((l) => ({ name: l.name, qty: l.qty, details: l.details ?? "", line_total: l.line_total })),
+        subtotal: d.subtotal ?? 0, delivery_fee: d.delivery_fee ?? 0, discount: d.discount ?? 0, total: d.total ?? 0,
+        mode: d.draft?.mode ?? null, payment: d.draft?.payment ?? null, address: d.draft?.address ?? null,
+      } : null,
+    };
   });
 
 // ---------- Atalhos (mensagens rápidas) ----------
@@ -322,6 +334,26 @@ export const sendStaffReply = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
     await supabaseAdmin.from("ai_conversations").update({ handoff_status: "human", updated_at: new Date().toISOString() }).eq("id", conv.id);
+    return { ok: true };
+  });
+
+export const acceptHandoff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    const { data: conv } = await supabaseAdmin.from("ai_conversations").select("id, status").eq("id", data.id).eq("tenant_id", tenantId).maybeSingle();
+    if (!conv || conv.status !== "open") throw new Error("Conversa indisponível");
+    const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", context.userId).maybeSingle();
+    const name = (prof?.full_name || "").split(" ")[0] || "Alguém";
+    await supabaseAdmin.from("ai_messages").insert({
+      conversation_id: conv.id, ai_message_id: `staff-${crypto.randomUUID()}`, role: "assistant",
+      parts: [{ type: "text", text: `${name} da loja entrou na conversa 👋 Como posso ajudar?` }, { type: "data-staff", data: { by: "loja" } }] as never,
+    });
+    const { error } = await supabaseAdmin.from("ai_conversations").update({
+      handoff_status: "human", handoff_staff_name: name, handoff_accepted_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    } as never).eq("id", conv.id);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });
 

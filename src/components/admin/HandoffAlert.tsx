@@ -21,7 +21,7 @@ export function HandoffAlert() {
       } catch { /* sem áudio */ }
       toast.warning(`${d.customer_name || "Um cliente"} pediu atendimento humano`, {
         duration: 15000,
-        action: { label: "Responder", onClick: () => navigate({ to: "/admin/atendente-ia", search: { tab: "conversas" } as never }) },
+        action: { label: "Responder", onClick: () => (window.location.href = `/admin/atendente-ia?tab=conversas&conversa=${d.id}`) },
       });
     }
   }, [data, navigate]);

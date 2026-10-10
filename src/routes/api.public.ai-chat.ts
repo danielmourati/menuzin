@@ -55,8 +55,19 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         if (insErr) return json(500, { error: "Falha ao salvar a mensagem." });
         const allMessages = [...history, userMsg] as any[];
 
+        // Cliente pediu uma pessoa por escrito: chama a loja sem depender da IA.
+        let handoff = (conv as any).handoff_status ?? "none";
+        const userText = (userMsg.parts as any[]).map((p) => p?.text ?? "").join(" ").toLowerCase();
+        if (handoff === "none" && /(falar|conversar|chamar|quero|preciso).{0,25}(atendente|humano|pessoa|algu[eé]m da loja|gerente|dono)|\batendente humano\b/.test(userText)) {
+          await srv.notifyHandoff(conv.id, conv.tenant_id);
+          const ackId = crypto.randomUUID();
+          await supabaseAdmin.from("ai_messages").insert({
+            conversation_id: conv.id, ai_message_id: ackId, role: "assistant",
+            parts: [{ type: "text", text: "Chamei alguém da loja para falar com você 🙂 Aguarde um instante, pode ir escrevendo por aqui." }] as never,
+          });
+          handoff = "requested";
+        }
         // Atendimento humano em andamento: guarda a mensagem para a loja e não chama a IA.
-        const handoff = (conv as any).handoff_status ?? "none";
         if (handoff === "requested" || handoff === "human") {
           await supabaseAdmin.from("ai_conversations")
             .update({ message_count: conv.message_count + 1, updated_at: new Date().toISOString() }).eq("id", conv.id);
@@ -99,6 +110,7 @@ export const Route = createFileRoute("/api/public/ai-chat")({
           `- ENDEREÇO DE ENTREGA: a loja só entrega em ${t.city ?? "sua cidade"}${t.state ? `/${t.state}` : ""}. Nunca pergunte a cidade nem o estado; preencha address.city="${t.city ?? ""}" e address.state="${t.state ?? ""}". Quando o cliente escolher entrega, peça primeiro o CEP (ou, se ele não souber, a rua). Com o CEP, chame update_draft só com o CEP: a ferramenta completa rua e bairro; confirme-os com o cliente e peça o número. Sem CEP, peça rua, depois número, depois bairro, um de cada vez. Complemento e ponto de referência são opcionais. Se o cliente citar outra cidade ou a ferramenta devolver erro de cidade/área, explique com carinho e ofereça retirada.`,
           "- Quando o cliente disser 'quero fechar' ou 'finalizar pedido', entenda que terminou de escolher itens. Confira o rascunho e conduza uma etapa por vez nesta ordem: recebimento; endereço ou mesa; pagamento e troco; nome; WhatsApp. Faça uma pergunta curta por resposta, pois a tela mostrará botões para recebimento, pagamento e troco.",
           "- Quando a ferramenta devolver ready=true, diga ao cliente para conferir o resumo que apareceu na tela e tocar em 'Confirmar pedido'. Você NÃO confirma pedidos; só o cliente confirma pelo botão.",
+          "- Mensagens que começam com 🎤 são áudios transcritos; interprete com tolerância a erros de transcrição. Mensagens com 📍 trazem a localização do cliente: use rua, bairro e CEP no update_draft, confirme com o cliente e peça número/complemento.",
           "- Se o cliente pedir para falar com uma pessoa/atendente humano, ou estiver irritado com algo que você não resolve, chame a ferramenta request_human e avise com carinho que alguém da loja vai responder aqui mesmo em instantes.",
           "- Sugira no máximo um adicional ou bebida por conversa, sem insistir.",
           "- Não fale de assuntos fora da loja e do pedido.",
