@@ -60,6 +60,31 @@ function useVisualViewport() {
   return state;
 }
 
+/** Mede os insets reais de safe-area; fallback para iOS quando env() não é reportado (ex.: preview em iframe). */
+function useSafeAreaInsets() {
+  const [insets, setInsets] = useState({ top: 0, bottom: 0 });
+  useEffect(() => {
+    let top = 0;
+    let bottom = 0;
+    try {
+      const el = document.createElement("div");
+      el.style.cssText =
+        "position:fixed;left:0;top:0;width:1px;height:1px;visibility:hidden;pointer-events:none;" +
+        "padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);";
+      document.body.appendChild(el);
+      const cs = getComputedStyle(el);
+      top = Math.round(parseFloat(cs.paddingTop) || 0);
+      bottom = Math.round(parseFloat(cs.paddingBottom) || 0);
+      document.body.removeChild(el);
+    } catch {
+      /* usa fallback abaixo */
+    }
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    setInsets({ top: top || (ios ? 44 : 0), bottom: bottom || (ios ? 20 : 0) });
+  }, []);
+  return insets;
+}
+
 export function AiOrderChatLauncher({ slug }: { slug: string }) {
   const [info, setInfo] = useState<Info | null>(null);
   const [open, setOpen] = useState(false);
