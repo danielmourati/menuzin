@@ -310,6 +310,14 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   const total = round2(Math.max(0, subtotal - discount) + delivery_fee);
 
   if (!draft.payment) missing.push("Forma de pagamento (dinheiro, maquininha crédito/débito ou Pix manual)");
+  if (draft.payment) {
+    const allowed = draft.payment === "dinheiro"
+      ? ctx.paymentSettings.cash_enabled
+      : draft.payment === "pix_manual"
+        ? ctx.paymentSettings.pix_manual_enabled
+        : ctx.paymentSettings.card_on_delivery_enabled;
+    if (!allowed) errors.push(`${PAYMENT_LABELS[draft.payment]} não está disponível nesta loja.`);
+  }
   let change_back: number | null = null;
   if (draft.payment === "dinheiro") {
     if (!draft.no_change && !(draft.change_for && draft.change_for > 0)) missing.push("Troco para quanto (ou sem troco)");
