@@ -55,8 +55,19 @@ export const Route = createFileRoute("/api/public/ai-chat")({
         if (insErr) return json(500, { error: "Falha ao salvar a mensagem." });
         const allMessages = [...history, userMsg] as any[];
 
+        // Cliente pediu uma pessoa por escrito: chama a loja sem depender da IA.
+        let handoff = (conv as any).handoff_status ?? "none";
+        const userText = (userMsg.parts as any[]).map((p) => p?.text ?? "").join(" ").toLowerCase();
+        if (handoff === "none" && /(falar|conversar|chamar|quero|preciso).{0,25}(atendente|humano|pessoa|algu[eé]m da loja|gerente|dono)|\batendente humano\b/.test(userText)) {
+          await srv.notifyHandoff(conv.id, conv.tenant_id);
+          const ackId = crypto.randomUUID();
+          await supabaseAdmin.from("ai_messages").insert({
+            conversation_id: conv.id, ai_message_id: ackId, role: "assistant",
+            parts: [{ type: "text", text: "Chamei alguém da loja para falar com você 🙂 Aguarde um instante, pode ir escrevendo por aqui." }] as never,
+          });
+          handoff = "requested";
+        }
         // Atendimento humano em andamento: guarda a mensagem para a loja e não chama a IA.
-        const handoff = (conv as any).handoff_status ?? "none";
         if (handoff === "requested" || handoff === "human") {
           await supabaseAdmin.from("ai_conversations")
             .update({ message_count: conv.message_count + 1, updated_at: new Date().toISOString() }).eq("id", conv.id);
