@@ -101,6 +101,7 @@ function OrdersPage() {
     },
     onSuccess: (_data, variables) => {
       toast.success(`Pedido #${dispatchOrder?.number} despachado com ${variables.driverName}!`);
+      queryClient.invalidateQueries({ queryKey: ["last-dispatch-driver"] });
       setDispatchOrderId(null);
     },
     onError: (err: Error) => {
