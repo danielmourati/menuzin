@@ -1,7 +1,7 @@
 import { CashChangePicker, type CashChangeValue } from "@/components/payment/CashChangePicker";
 import type { DbCategoryPizzaSize } from "@/lib/db-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Plus, Minus, ShoppingCart, Utensils, Check, MapPin, Clock, User as UserIcon, Trash2 } from "lucide-react";
+import { Loader2, Search, Plus, Minus, ShoppingCart, Utensils, Check, MapPin, Clock, User as UserIcon, Trash2 } from "lucide-react";
 import { ProductFinderModal, type FinderRow } from "@/components/pdv/ProductFinderModal";
 import { requiresCustomization } from "@/lib/pdv-customization";
 import { useAuth } from "@/lib/auth-context";
@@ -27,7 +27,7 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { dbProductToUi } from "@/lib/db-adapters";
 import { computeUnitPrice, type CartItem } from "@/lib/cart-context";
-import { lookupByCep } from "@/lib/viacep";
+import { lookupByCep, searchByAddress, rankResults, type ViaCepResult } from "@/lib/viacep";
 import { resolveDeliveryFee } from "@/lib/delivery-zones.functions";
 
 export const Route = createFileRoute("/admin/pdv")({ component: PdvPage });
@@ -106,6 +106,22 @@ function PdvPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(0);
+
+  // Busca de rua (quando o cliente não sabe o CEP)
+  const storeCity = ((tenantData?.tenant as { city?: string | null } | undefined)?.city ?? "").trim();
+  const storeUf = ((tenantData?.tenant as { state?: string | null } | undefined)?.state ?? "").trim().toUpperCase();
+  const [streetResults, setStreetResults] = useState<ViaCepResult[]>([]);
+  const [streetStatus, setStreetStatus] = useState<"idle" | "loading" | "empty" | "error">("idle");
+  const [streetOpen, setStreetOpen] = useState(false);
+  const [streetActive, setStreetActive] = useState(0);
+  const skipStreetSearch = useRef(false);
+  const numberRef = useRef<HTMLInputElement>(null);
+
+  // Cidade/UF da loja como padrão
+  useEffect(() => {
+    if (storeCity) setCity((cur) => cur || storeCity);
+    if (storeUf) setState((cur) => cur || storeUf);
+  }, [storeCity, storeUf]);
 
   // ===== Rascunho automático (localStorage, por loja, expira em 24h) =====
   const tenantId = (tenantData?.tenant as { id?: string } | undefined)?.id ?? null;
@@ -224,6 +240,46 @@ function PdvPage() {
       clearTimeout(t);
     };
   }, [cep]);
+
+  // Busca dinâmica pelo nome da rua, sempre na cidade da loja
+  useEffect(() => {
+    if (!addressModalOpen || mode !== "entrega") return;
+    if (skipStreetSearch.current) { skipStreetSearch.current = false; return; }
+    const term = street.trim();
+    if (term.length < 3 || cep.replace(/\D/g, "").length === 8 || !storeCity || storeUf.length !== 2) {
+      setStreetResults([]);
+      setStreetStatus("idle");
+      return;
+    }
+    let cancelled = false;
+    setStreetStatus("loading");
+    const t = setTimeout(async () => {
+      const res = await searchByAddress({ uf: storeUf, city: storeCity, street: term });
+      if (cancelled) return;
+      if (res.status === "ok") {
+        setStreetResults(rankResults(res.results, term).slice(0, 10));
+        setStreetStatus("idle");
+        setStreetActive(0);
+      } else {
+        setStreetResults([]);
+        setStreetStatus(res.status === "error" ? "error" : "empty");
+      }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [street, cep, addressModalOpen, mode, storeCity, storeUf]);
+
+  const pickStreet = (r: ViaCepResult) => {
+    skipStreetSearch.current = true;
+    setStreet(r.logradouro);
+    if (r.bairro) setNeighborhood(r.bairro);
+    if (r.cep) setCep(r.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2"));
+    setCity(r.localidade || storeCity);
+    setState(r.uf || storeUf);
+    setStreetOpen(false);
+    setStreetResults([]);
+    setStreetStatus("idle");
+    setTimeout(() => numberRef.current?.focus(), 0);
+  };
 
   const cepDigitsOnly = cep.replace(/\D/g, "");
   const { data: feeResolution, isFetching: feeLoading } = useQuery({
@@ -583,11 +639,54 @@ function PdvPage() {
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
                 <Label htmlFor="street">Endereço (Rua/Av) *</Label>
-                <Input id="street" value={street} onChange={(e) => setStreet(e.target.value)} />
+                <div className="relative">
+                  <Input
+                    id="street"
+                    value={street}
+                    autoComplete="off"
+                    placeholder={storeCity ? `Digite o nome da rua em ${storeCity}` : ""}
+                    onChange={(e) => { setStreet(e.target.value); setStreetOpen(true); }}
+                    onFocus={() => setStreetOpen(true)}
+                    onBlur={() => setTimeout(() => setStreetOpen(false), 150)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") { setStreetOpen(false); return; }
+                      if (!streetOpen || streetResults.length === 0) return;
+                      if (e.key === "ArrowDown") { e.preventDefault(); setStreetActive((i) => Math.min(i + 1, streetResults.length - 1)); }
+                      else if (e.key === "ArrowUp") { e.preventDefault(); setStreetActive((i) => Math.max(i - 1, 0)); }
+                      else if (e.key === "Enter") { e.preventDefault(); pickStreet(streetResults[streetActive]); }
+                    }}
+                  />
+                  {streetStatus === "loading" && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+                  {streetOpen && streetResults.length > 0 && (
+                    <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md">
+                      {streetResults.map((r, i) => (
+                        <li key={`${r.cep}-${i}`}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickStreet(r)}
+                            className={`flex w-full items-start gap-2 px-3 py-2.5 text-left text-sm ${i === streetActive ? "bg-accent" : "hover:bg-accent"}`}
+                          >
+                            <Search className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium">{r.logradouro || "Sem logradouro"}</span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {[r.bairro, r.cep.replace(/^(\d{5})(\d{3})$/, "$1-$2")].filter(Boolean).join(" • ")}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {streetOpen && streetStatus === "empty" && <p className="mt-1 text-xs text-muted-foreground">Nenhuma rua encontrada. Digite manualmente.</p>}
+                {streetOpen && streetStatus === "error" && <p className="mt-1 text-xs text-muted-foreground">Falha na busca. Digite manualmente.</p>}
+                {(!storeCity || storeUf.length !== 2) && <p className="mt-1 text-xs text-muted-foreground">Cadastre cidade e UF da loja em Configurações para buscar por rua.</p>}
               </div>
               <div className="col-span-1">
                 <Label htmlFor="number">Número *</Label>
-                <Input id="number" value={number} onChange={(e) => setNumber(e.target.value)} />
+                <Input id="number" ref={numberRef} value={number} onChange={(e) => setNumber(e.target.value)} />
               </div>
             </div>
 
