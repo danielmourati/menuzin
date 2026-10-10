@@ -13,9 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ChefHat, ArrowUp, ArrowDown, Trash2, Plus, Headset } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import {
   getMyAgentSettings, saveMyAgentSettings, listMyAgentConversations, getMyAgentConversationMessages,
-  listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus,
+  listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus, acceptHandoff,
 } from "@/lib/ai-agent.functions";
 
 export const Route = createFileRoute("/admin/atendente-ia")({
@@ -183,7 +184,8 @@ function QuickRepliesTab() {
 function ConversationsTab() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["ai-agent-conversations"], queryFn: () => listMyAgentConversations(), refetchInterval: 10000 });
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("conversa") : null);
   const [onlyWaiting, setOnlyWaiting] = useState(false);
   const [reply, setReply] = useState("");
   const msgs = useQuery({
@@ -195,6 +197,10 @@ function ConversationsTab() {
   const send = useMutation({
     mutationFn: () => sendStaffReply({ data: { id: selected!, text: reply } }),
     onSuccess: () => { setReply(""); refresh(); }, onError: (e: Error) => toast.error(e.message),
+  });
+  const accept = useMutation({
+    mutationFn: () => acceptHandoff({ data: { id: selected! } }),
+    onSuccess: () => { toast.success("Você assumiu o atendimento."); refresh(); }, onError: (e: Error) => toast.error(e.message),
   });
   const setStatus = useMutation({
     mutationFn: (status: "none" | "closed") => setHandoffStatus({ data: { id: selected!, status } }),
@@ -230,15 +236,39 @@ function ConversationsTab() {
           <div className="max-h-[60vh] space-y-2 overflow-y-auto">
           {!selected ? <p className="text-sm text-muted-foreground">Escolha uma conversa.</p>
             : msgs.isLoading ? <Loader2 className="h-5 w-5 animate-spin" />
-            : (msgs.data ?? []).filter((m) => m.text).map((m) => (
+            : (msgs.data?.messages ?? []).filter((m) => m.text).map((m) => (
               <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : m.staff ? "border border-primary bg-card" : "bg-muted"}`}>
-                  {m.staff && <p className="mb-0.5 text-[10px] font-semibold text-primary">Loja</p>}{m.text}
+                <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm [&_p]:my-0.5 ${m.role === "user" ? "whitespace-pre-line bg-primary text-primary-foreground" : m.staff ? "border border-primary bg-card" : "bg-muted"}`}>
+                  {m.staff && <p className="mb-0.5 text-[10px] font-semibold text-primary">Loja</p>}
+                  {m.role === "user" ? m.text : <ReactMarkdown>{m.text}</ReactMarkdown>}
                 </div>
               </div>
             ))}
           </div>
+          {msgs.data?.location && (
+            <a className="block text-xs text-primary underline" target="_blank" rel="noreferrer"
+              href={`https://www.google.com/maps?q=${msgs.data.location.lat},${msgs.data.location.lng}`}>📍 Abrir localização do cliente no mapa</a>
+          )}
+          {msgs.data?.cart && msgs.data.cart.lines.length > 0 && (
+            <div className="rounded-xl border bg-muted/40 p-3 text-xs">
+              <p className="mb-1 font-semibold">Carrinho do cliente</p>
+              {msgs.data.cart.lines.map((l, i) => (
+                <div key={i} className="flex justify-between gap-2"><span>{l.qty}× {l.name}{l.details ? ` — ${l.details}` : ""}</span><span>{brl(l.line_total)}</span></div>
+              ))}
+              <div className="mt-1 flex justify-between border-t pt-1 font-semibold"><span>Total{msgs.data.cart.delivery_fee ? ` (entrega ${brl(msgs.data.cart.delivery_fee)})` : ""}</span><span>{brl(msgs.data.cart.total)}</span></div>
+              <p className="mt-1 text-muted-foreground">
+                {[msgs.data.cart.mode, msgs.data.cart.payment, msgs.data.cart.address && [msgs.data.cart.address.street, msgs.data.cart.address.number, msgs.data.cart.address.neighborhood].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          )}
           {cur?.order_id && <Link to="/admin/pedidos" className="block pt-2 text-xs text-primary underline">Ver nos pedidos</Link>}
+          {cur && cur.status === "open" && cur.handoff_status === "requested" && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <span className="flex-1">O cliente pediu para falar com alguém. Leia a conversa e assuma.</span>
+              <Button onClick={() => accept.mutate()} disabled={accept.isPending}><Headset className="mr-1 h-4 w-4" />Assumir atendimento</Button>
+            </div>
+          )}
+          {cur?.handoff_status === "human" && cur.handoff_staff_name && <p className="text-xs text-muted-foreground">Em atendimento por {cur.handoff_staff_name}</p>}
           {cur && cur.status === "open" && (
             <div className="space-y-2 border-t pt-3">
               <div className="flex gap-2">
@@ -259,3 +289,5 @@ function ConversationsTab() {
     </div>
   );
 }
+
+function brl(n: number) { return Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }

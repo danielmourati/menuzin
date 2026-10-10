@@ -378,7 +378,7 @@ export async function notifyHandoff(conversationId: string, tenantId: string) {
     const payload = JSON.stringify({
       title: "Cliente pediu atendimento humano",
       body: `${conv?.customer_name || "Um cliente"} quer falar com alguém da loja no chat.`,
-      icon: "/icon-192.png", url: "/admin/atendente-ia?tab=conversas", kind: "admin_handoff", tag: `handoff-${conversationId}`,
+      icon: "/icon-192.png", url: `/admin/atendente-ia?tab=conversas&conversa=${conversationId}`, kind: "admin_handoff", tag: `handoff-${conversationId}`,
     });
     const opts = getVapidPushOptions();
     await Promise.all((subs ?? []).map((s: any) =>
