@@ -16,7 +16,7 @@ import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
 import { DispatchOrderModal } from "@/components/orders/DispatchOrderModal";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
