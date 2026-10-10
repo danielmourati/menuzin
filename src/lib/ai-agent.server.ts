@@ -400,3 +400,50 @@ export async function notifyHandoff(conversationId: string, tenantId: string) {
     console.error("[handoff] push falhou", (e as Error).message);
   }
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  novo: "Recebido, aguardando a loja aceitar", aceito: "Aceito pela loja", preparo: "Em preparo",
+  saiu_entrega: "Saiu para entrega", pronto_retirada: "Pronto para retirada", servido: "Servido",
+  finalizado: "Finalizado/entregue", cancelado: "Cancelado",
+};
+const hhmm = (iso: string | null) => iso
+  ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+  : "";
+
+/** Pedido válido para a loja? (usado ao abrir chat a partir do acompanhamento) */
+export async function orderBelongsToTenant(orderId: string, tenantId: string) {
+  const { data } = await supabaseAdmin.from("orders").select("id").eq("id", orderId).eq("tenant_id", tenantId).maybeSingle();
+  return !!data;
+}
+
+/** Texto somente-leitura com o estado atual dos pedidos para o modelo. */
+export async function buildOrdersContext(orderIds: string[], tenantId: string): Promise<string> {
+  const ids = [...new Set(orderIds)].slice(0, 5);
+  if (!ids.length) return "";
+  const since = new Date(Date.now() - 2 * 86400_000).toISOString();
+  const { data: orders } = await supabaseAdmin.from("orders")
+    .select("id, number, status, mode, payment_label, change_for, no_change, subtotal, delivery_fee, discount_amount, total, address, table_label, scheduled_for, driver_name, cancel_reason, created_at")
+    .in("id", ids).eq("tenant_id", tenantId).gte("created_at", since).order("created_at", { ascending: false });
+  if (!orders?.length) return "";
+  const oids = orders.map((o) => o.id);
+  const [{ data: items }, { data: hist }] = await Promise.all([
+    supabaseAdmin.from("order_items").select("order_id, qty, name_snapshot, unit_price").in("order_id", oids),
+    supabaseAdmin.from("order_status_history").select("order_id, new_status, created_at").in("order_id", oids).order("created_at"),
+  ]);
+  return orders.map((o: any) => {
+    const a = o.address as Record<string, string> | null;
+    const lines = [
+      `Pedido #${o.number} (feito em ${hhmm(o.created_at)})`,
+      `- Status atual: ${STATUS_LABELS[o.status] ?? o.status}${o.cancel_reason ? ` (motivo: ${o.cancel_reason})` : ""}`,
+      `- Linha do tempo: ${(hist ?? []).filter((h) => h.order_id === o.id).map((h) => `${hhmm(h.created_at)} ${STATUS_LABELS[h.new_status as string] ?? h.new_status}`).join("; ") || "sem registros"}`,
+      `- Recebimento: ${o.mode === "entrega" ? "Entrega" : o.mode === "retirada" ? "Retirada" : "Consumo no local"}${o.scheduled_for ? ` agendado para ${hhmm(o.scheduled_for)}` : ""}`,
+      o.mode === "entrega" && a ? `- Endereço: ${[a.street, a.number, a.neighborhood, a.complement].filter(Boolean).join(", ")}` : "",
+      o.table_label ? `- Mesa: ${o.table_label}` : "",
+      o.driver_name ? `- Entregador: ${o.driver_name}` : "",
+      `- Itens: ${(items ?? []).filter((i) => i.order_id === o.id).map((i) => `${i.qty}x ${i.name_snapshot}`).join(", ")}`,
+      `- Subtotal ${brl(Number(o.subtotal))}${Number(o.discount_amount) ? `, desconto ${brl(Number(o.discount_amount))}` : ""}${Number(o.delivery_fee) ? `, entrega ${brl(Number(o.delivery_fee))}` : ""}, total ${brl(Number(o.total))}`,
+      `- Pagamento: ${o.payment_label ?? "-"}${o.change_for && !o.no_change ? ` (troco para ${brl(Number(o.change_for))})` : ""}`,
+    ];
+    return lines.filter(Boolean).join("\n");
+  }).join("\n\n");
+}
