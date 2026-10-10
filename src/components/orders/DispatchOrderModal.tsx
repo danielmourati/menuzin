@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Truck, MapPin, CreditCard, User, Phone, MessageSquare, ExternalLink, PackageCheck, AlertCircle, Plus, UserPlus } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { listMyDrivers } from "@/lib/drivers.functions";
+import { listMyDrivers, getLastDispatchedDriver } from "@/lib/drivers.functions";
 import { CreateDriverModal } from "@/components/orders/CreateDriverModal";
 
 interface DispatchOrderModalProps {

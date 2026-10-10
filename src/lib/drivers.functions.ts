@@ -38,6 +38,40 @@ export const listMyDrivers = createServerFn({ method: "POST" })
     }
   });
 
+export const getLastDispatchedDriver = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) return { driverId: null as string | null, driverName: null as string | null };
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("orders")
+        .select("driver_id, driver_name")
+        .eq("tenant_id", resolved.tenantId)
+        .not("driver_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.warn("[getLastDispatchedDriver] Falha ao buscar último entregador:", error.message);
+        return { driverId: null as string | null, driverName: null as string | null };
+      }
+
+      const row = (data ?? [])[0] as { driver_id: string; driver_name: string | null } | undefined;
+      return {
+        driverId: row?.driver_id ?? null,
+        driverName: row?.driver_name ?? null,
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn("[getLastDispatchedDriver] Erro inesperado:", msg);
+      return { driverId: null as string | null, driverName: null as string | null };
+    }
+  });
+
 const DriverInput = z.object({
   id: z.string().uuid().nullable().optional(),
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
