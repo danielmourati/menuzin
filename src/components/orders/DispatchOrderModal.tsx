@@ -175,9 +175,6 @@ export function DispatchOrderModal({
                   <SelectValue placeholder="Selecione um entregador..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__" className="py-2.5 font-semibold text-muted-foreground">
-                    🚫 [Sem Entregador]
-                  </SelectItem>
                   {drivers.map((d) => (
                     <SelectItem key={d.id} value={d.id} className="py-2.5">
                       <div className="flex items-center justify-between w-full gap-4">
@@ -186,6 +183,9 @@ export function DispatchOrderModal({
                       </div>
                     </SelectItem>
                   ))}
+                  <SelectItem value="__none__" className="py-2.5 font-semibold text-muted-foreground">
+                    🚫 [Sem Entregador]
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -266,11 +266,12 @@ export function DispatchOrderModal({
             {isNoneDriver ? (
               <>
                 <Button
+                  variant="outline"
                   onClick={() => handleDispatch(false)}
                   disabled={!selectedDriverId || isPending}
-                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-xs"
+                  className="w-full h-11 font-bold rounded-xl text-sm"
                 >
-                  <PackageCheck className="mr-2 h-4 w-4" /> Despachar Pedido (Sem Entregador)
+                  <PackageCheck className="mr-2 h-4 w-4" /> Despachar sem entregador
                 </Button>
                 <div className="flex items-center justify-end gap-2 w-full pt-1 border-t border-border/50">
                   <Button variant="ghost" onClick={onClose} disabled={isPending} className="text-muted-foreground hover:text-foreground">
