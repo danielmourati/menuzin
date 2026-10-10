@@ -16,7 +16,7 @@ import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
 import { DispatchOrderModal } from "@/components/orders/DispatchOrderModal";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { toast } from "sonner";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useAcceptOrderWithKitchenPrint } from "@/hooks/useAcceptOrderWithKitchenPrint";
@@ -85,6 +85,7 @@ function OrdersPage() {
     updateOrderStatus(orderId, status);
   };
 
+  const queryClient = useQueryClient();
   const dispatchMutation = useMutation({
     mutationFn: async ({ driverId, driverName, sendWhatsapp }: { driverId: string; driverName: string; sendWhatsapp: boolean }) => {
       if (!dispatchOrder) return;
@@ -100,6 +101,7 @@ function OrdersPage() {
     },
     onSuccess: (_data, variables) => {
       toast.success(`Pedido #${dispatchOrder?.number} despachado com ${variables.driverName}!`);
+      queryClient.invalidateQueries({ queryKey: ["last-dispatch-driver"] });
       setDispatchOrderId(null);
     },
     onError: (err: Error) => {

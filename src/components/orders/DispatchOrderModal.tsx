@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Truck, MapPin, CreditCard, User, Phone, MessageSquare, ExternalLink, PackageCheck, AlertCircle, Plus, UserPlus } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { listMyDrivers } from "@/lib/drivers.functions";
+import { listMyDrivers, getLastDispatchedDriver } from "@/lib/drivers.functions";
 import { CreateDriverModal } from "@/components/orders/CreateDriverModal";
 
 interface DispatchOrderModalProps {
@@ -36,11 +36,18 @@ export function DispatchOrderModal({
     enabled: isOpen,
   });
 
+  const lastDriverQuery = useQuery({
+    queryKey: ["last-dispatch-driver"],
+    queryFn: () => getLastDispatchedDriver(),
+    enabled: isOpen,
+  });
+
   const drivers = (data?.drivers ?? []).filter((d) => d.active);
 
   const isNoneDriver = selectedDriverId === "__none__";
 
-  // Seleciona o entregador ao abrir o modal ou ao mudar de pedido
+  // Seleciona o entregador ao abrir o modal ou ao mudar de pedido.
+  // Prioridade: pedido já atribuído > último entregador acionado > primeiro ativo > [Sem Entregador].
   useEffect(() => {
     if (isOpen) {
       // Se a seleção atual já for válida (inclusive __none__ ou novo entregador criado), mantém
@@ -49,15 +56,20 @@ export function DispatchOrderModal({
       }
       if (order?.driverId && drivers.some((d) => d.id === order.driverId)) {
         setSelectedDriverId(order.driverId);
-      } else if (drivers.length > 0) {
-        setSelectedDriverId(drivers[0].id);
-      } else {
-        setSelectedDriverId("__none__");
+      } else if (lastDriverQuery.isSuccess) {
+        const lastId = lastDriverQuery.data?.driverId ?? null;
+        if (lastId && drivers.some((d) => d.id === lastId)) {
+          setSelectedDriverId(lastId);
+        } else if (drivers.length > 0) {
+          setSelectedDriverId(drivers[0].id);
+        } else {
+          setSelectedDriverId("__none__");
+        }
       }
     } else {
       setSelectedDriverId("");
     }
-  }, [isOpen, order?.id, drivers]);
+  }, [isOpen, order?.id, order?.driverId, drivers, selectedDriverId, lastDriverQuery]);
 
   if (!order) return null;
 
@@ -163,9 +175,6 @@ export function DispatchOrderModal({
                   <SelectValue placeholder="Selecione um entregador..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__" className="py-2.5 font-semibold text-muted-foreground">
-                    🚫 [Sem Entregador]
-                  </SelectItem>
                   {drivers.map((d) => (
                     <SelectItem key={d.id} value={d.id} className="py-2.5">
                       <div className="flex items-center justify-between w-full gap-4">
@@ -174,6 +183,9 @@ export function DispatchOrderModal({
                       </div>
                     </SelectItem>
                   ))}
+                  <SelectItem value="__none__" className="py-2.5 font-semibold text-muted-foreground">
+                    🚫 [Sem Entregador]
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -254,11 +266,12 @@ export function DispatchOrderModal({
             {isNoneDriver ? (
               <>
                 <Button
+                  variant="outline"
                   onClick={() => handleDispatch(false)}
                   disabled={!selectedDriverId || isPending}
-                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow-xs"
+                  className="w-full h-11 font-bold rounded-xl text-sm"
                 >
-                  <PackageCheck className="mr-2 h-4 w-4" /> Despachar Pedido (Sem Entregador)
+                  <PackageCheck className="mr-2 h-4 w-4" /> Despachar sem entregador
                 </Button>
                 <div className="flex items-center justify-end gap-2 w-full pt-1 border-t border-border/50">
                   <Button variant="ghost" onClick={onClose} disabled={isPending} className="text-muted-foreground hover:text-foreground">
