@@ -28,7 +28,13 @@ type Priced = {
   };
 };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const key = (slug: string) => `menuzin:ai-chat:${slug}`;
+const key = (slug: string, orderId?: string | null) => orderId ? `menuzin:ai-chat:${slug}:order:${orderId}` : `menuzin:ai-chat:${slug}`;
+function deviceOrderIds(slug: string): string[] {
+  try {
+    const p = JSON.parse(localStorage.getItem(`menuzin:last-order:${slug}`) || "null");
+    return p?.id && /^[0-9a-f-]{36}$/i.test(p.id) ? [p.id] : [];
+  } catch { return []; }
+}
 const PAY: Record<string, string> = { dinheiro: "Dinheiro", credito: "Maquininha (crédito)", debito: "Maquininha (débito)", pix_manual: "Pix manual" };
 const MODE: Record<string, string> = { entrega: "Entrega", retirada: "Retirada", consumo_local: "Consumo no local" };
 
@@ -85,6 +91,8 @@ function useSafeAreaInsets() {
   return insets;
 }
 
+export type AiChatInfo = Info;
+
 export function AiOrderChatLauncher({ slug }: { slug: string }) {
   const [info, setInfo] = useState<Info | null>(null);
   const [open, setOpen] = useState(false);
@@ -108,8 +116,9 @@ export function AiOrderChatLauncher({ slug }: { slug: string }) {
   );
 }
 
-function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; onClose: () => void }) {
-  const { name, greeting } = info;
+export function AiOrderChatWindow({ slug, info, onClose, orderId = null, orderGreeting }: { slug: string; info: Info; onClose: () => void; orderId?: string | null; orderGreeting?: string }) {
+  const { name } = info;
+  const greeting = orderGreeting || info.greeting;
   const [handoff, setHandoff] = useState("none");
   const [conv, setConv] = useState<Stored | null>(null);
   const [initial, setInitial] = useState<UIMessage[] | null>(null);
@@ -122,7 +131,7 @@ function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; 
     try {
       let stored: Stored | null = null;
       if (!forceNew) {
-        try { stored = JSON.parse(localStorage.getItem(key(slug)) || "null"); } catch { stored = null; }
+        try { stored = JSON.parse(localStorage.getItem(key(slug, orderId)) || "null"); } catch { stored = null; }
       }
       if (stored) {
         const c = await getAgentConversation({ data: stored });
@@ -132,14 +141,14 @@ function AiOrderChatWindow({ slug, info, onClose }: { slug: string; info: Info; 
         }
       }
       const p = readCustomerProfile();
-      const created = await startAgentConversation({ data: { slug, customer_name: p?.name ?? null, whatsapp: p?.phone || null } });
-      localStorage.setItem(key(slug), JSON.stringify(created));
+      const created = await startAgentConversation({ data: { slug, customer_name: p?.name ?? null, whatsapp: p?.phone || null, order_id: orderId } });
+      localStorage.setItem(key(slug, orderId), JSON.stringify(created));
       setConv(created); setPriced(null); setHandoff("none"); setInitial([]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Atendente indisponível.");
     }
   };
-  useEffect(() => { void boot(); }, [slug]);
+  useEffect(() => { void boot(); }, [slug, orderId]);
 
   const vv = useVisualViewport();
   const insets = useSafeAreaInsets();
@@ -207,7 +216,7 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
   const endRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/public/ai-chat", body: { slug, conversationId: conv.id, accessKey: conv.accessKey } }),
+    () => new DefaultChatTransport({ api: "/api/public/ai-chat", body: { slug, conversationId: conv.id, accessKey: conv.accessKey, deviceOrderIds: deviceOrderIds(slug) } }),
     [slug, conv.id, conv.accessKey],
   );
   const { messages, sendMessage, status, error, setMessages } = useChat({
