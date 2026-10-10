@@ -241,6 +241,7 @@ function ConversationsTab() {
                 <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm [&_p]:my-0.5 ${m.role === "user" ? "whitespace-pre-line bg-primary text-primary-foreground" : m.staff ? "border border-primary bg-card" : "bg-muted"}`}>
                   {m.staff && <p className="mb-0.5 text-[10px] font-semibold text-primary">Loja</p>}
                   {m.role === "user" ? m.text : <ReactMarkdown>{m.text}</ReactMarkdown>}
+                  {m.audioPath && selected && <AudioPlayer convId={selected} path={m.audioPath} />}
                 </div>
               </div>
             ))}
@@ -287,6 +288,23 @@ function ConversationsTab() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function AudioPlayer({ convId, path }: { convId: string; path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  if (url) return <audio controls autoPlay src={url} className="mt-2 h-9 w-full max-w-[240px]" />;
+  return (
+    <Button type="button" size="sm" variant="secondary" className="mt-2 h-7 text-xs" disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try { setUrl((await getMyAgentAudioUrl({ data: { id: convId, path } })).url); }
+        catch (e) { toast.error(e instanceof Error ? e.message : "Falha ao carregar o áudio."); }
+        finally { setLoading(false); }
+      }}>
+      {loading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Mic className="mr-1 h-3 w-3" />} Ouvir áudio original
+    </Button>
   );
 }
 

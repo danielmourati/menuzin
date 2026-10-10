@@ -205,6 +205,7 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
       id: r.id, role: r.role, created_at: r.created_at,
       staff: ((r.parts as any[]) ?? []).some((p) => p?.type === "data-staff"),
       text: ((r.parts as any[]) ?? []).filter((p) => p?.type === "text").map((p) => p.text).join("\n"),
+      audioPath: (((r.parts as any[]) ?? []).find((p) => p?.type === "data-audio")?.data?.path as string | undefined) ?? null,
     }));
     const d: any = conv.draft ?? null;
     return {
@@ -216,6 +217,20 @@ export const getMyAgentConversationMessages = createServerFn({ method: "POST" })
         mode: d.draft?.mode ?? null, payment: d.draft?.payment ?? null, address: d.draft?.address ?? null,
       } : null,
     };
+  });
+
+/** Link temporário (5 min) para o atendente ouvir o áudio original do cliente. */
+export const getMyAgentAudioUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), path: z.string().min(10).max(200) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantFor(context);
+    if (!data.path.startsWith(`${tenantId}/${data.id}/`) || data.path.includes("..")) throw new Error("Áudio não encontrado.");
+    const { data: conv } = await supabaseAdmin.from("ai_conversations").select("id").eq("id", data.id).eq("tenant_id", tenantId).maybeSingle();
+    if (!conv) throw new Error("Conversa não encontrada");
+    const { data: signed, error } = await supabaseAdmin.storage.from("chat-audio").createSignedUrl(data.path, 300);
+    if (error || !signed?.signedUrl) throw new Error("Não foi possível carregar o áudio.");
+    return { url: signed.signedUrl };
   });
 
 // ---------- Atalhos (mensagens rápidas) ----------
