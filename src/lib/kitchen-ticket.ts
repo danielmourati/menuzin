@@ -8,7 +8,7 @@ import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
 import { formatScheduledShort } from "@/lib/scheduling";
 import { cashTicketBlock } from "@/lib/cash-change";
-import { center, lineOf, stripAccents, wrap } from "@/lib/receipt-builder";
+import { center, lineOf, stripAccents, wrap, wrapIndent } from "@/lib/receipt-builder";
 import { columnsFor, type PaperWidth, type FontSize, type FontFamily } from "@/lib/printer-types";
 
 // ...
