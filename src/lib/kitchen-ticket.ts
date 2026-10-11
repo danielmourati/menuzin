@@ -37,10 +37,20 @@ export function buildKitchenTicket(
 ): string {
   const sep = lineOf("=", cols);
   const sepThin = lineOf("-", cols);
-  const bigCols = Math.max(12, Math.floor(cols / 2));
-  const bodyCols = options?.doubleBody ? bigCols : cols;
+  const bigCols = Math.max(1, Math.floor(cols / 2));
+  const double = !!options?.doubleBody;
+  const bodyCols = double ? bigCols : cols;
   const bigSep = lineOf("=", bigCols);
+  const bodySep = lineOf("=", bodyCols);
   const bodySepThin = lineOf("-", bodyCols);
+
+  // Detalhe com rótulo: recuo pendente alinhado após o rótulo (ou 2 espaços
+  // se o rótulo for longo demais para a largura).
+  const detail = (label: string, value: string) => {
+    const prefix = ` ${label}`;
+    const hang = prefix.length > Math.floor(bodyCols / 3) ? 2 : prefix.length;
+    return wrapIndent(value, bodyCols, prefix, hang);
+  };
 
   const out: string[] = [];
 
@@ -49,29 +59,36 @@ export function buildKitchenTicket(
 
   // ── CABEÇALHO (fonte grande) ─────────────────────────────
   out.push(ESC_BIG);
-  out.push(center(KITCHEN_MODE_TITLE[order.mode], bigCols));
-  out.push(center(`PEDIDO #${order.number}`, bigCols));
+  wrapIndent(KITCHEN_MODE_TITLE[order.mode], bigCols).forEach((l) => out.push(center(l, bigCols)));
+  wrapIndent(`PEDIDO #${order.number}`, bigCols).forEach((l) => out.push(center(l, bigCols)));
   out.push(bigSep);
 
   if (order.scheduledFor)
-    out.push(center(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols));
-  if (order.source === "ai_agent") out.push(center("VIA ATENDENTE IA", bigCols));
+    wrapIndent(`AGENDADO ${formatScheduledShort(order.scheduledFor)}`, bigCols).forEach((l) =>
+      out.push(center(l, bigCols)),
+    );
+  if (order.source === "ai_agent")
+    wrapIndent("VIA ATENDENTE IA", bigCols).forEach((l) => out.push(center(l, bigCols)));
 
   if (order.mode === "consumo_local" && order.table) {
-    wrap(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) =>
+    wrapIndent(`MESA: ${stripAccents(order.table)}`, bigCols).forEach((l) =>
       out.push(center(l, bigCols)),
     );
   } else if (order.customerName) {
-    wrap(stripAccents(order.customerName), bigCols).forEach((l) => out.push(center(l, bigCols)));
+    wrapIndent(stripAccents(order.customerName), bigCols).forEach((l) =>
+      out.push(center(l, bigCols)),
+    );
   }
+
+  if (!double) out.push(ESC_NORMAL);
   out.push(bodySepThin);
 
-  if (!options?.doubleBody) out.push(ESC_NORMAL);
-
   // ── ITENS (fonte normal ou dupla, conforme a impressora) ──
-  for (const item of order.items) {
-    const head = `${item.qty}x ${stripAccents(item.name).toUpperCase()}`;
-    wrap(head, bodyCols).forEach((l) => out.push(l));
+  order.items.forEach((item, idx) => {
+    const qty = `${item.qty}x `;
+    wrapIndent(stripAccents(item.name).toUpperCase(), bodyCols, qty, qty.length).forEach((l) =>
+      out.push(l),
+    );
 
     const sizes: string[] = [];
     const flavors: string[] = [];
@@ -89,20 +106,20 @@ export function buildKitchenTicket(
       } else extras.push(label);
     }
 
-    if (sizes.length) wrap(` Tam: ${sizes.join(", ")}`, bodyCols).forEach((l) => out.push(l));
-    if (flavors.length)
-      wrap(` Sabores: ${flavors.join(" + ")}`, bodyCols).forEach((l) => out.push(l));
+    if (sizes.length) detail("Tam: ", sizes.join(", ")).forEach((l) => out.push(l));
+    if (flavors.length) detail("Sabores: ", flavors.join(" + ")).forEach((l) => out.push(l));
     for (const [g, opts] of Object.entries(groups)) {
-      wrap(` ${g}: ${opts.join(", ")}`, bodyCols).forEach((l) => out.push(l));
+      detail(`${g}: `, opts.join(", ")).forEach((l) => out.push(l));
     }
-    if (extras.length) wrap(` + ${extras.join(", ")}`, bodyCols).forEach((l) => out.push(l));
+    if (extras.length) {
+      if (double) extras.forEach((e) => detail("+ ", e).forEach((l) => out.push(l)));
+      else detail("+ ", extras.join(", ")).forEach((l) => out.push(l));
+    }
     if (item.note)
-      wrap(` >> OBS: ${stripAccents(item.note).toUpperCase()}`, bodyCols).forEach((l) =>
-        out.push(l),
-      );
+      detail(">> OBS: ", stripAccents(item.note).toUpperCase()).forEach((l) => out.push(l));
 
-    out.push("");
-  }
+    out.push(idx === order.items.length - 1 ? bodySep : bodySepThin);
+  });
 
   // ── RODAPÉ (fonte normal) ────────────────────────────────
   out.push(ESC_NORMAL);
@@ -110,7 +127,11 @@ export function buildKitchenTicket(
   const cashBlock = cashTicketBlock(order, bigCols);
   if (cashBlock) {
     out.push(ESC_BIG);
-    cashBlock.forEach((l) => out.push(l));
+    cashBlock
+      .flatMap((l) => l.split("\n"))
+      .forEach((l) =>
+        (l.length > bigCols ? wrapIndent(l.trim(), bigCols) : [l]).forEach((x) => out.push(x)),
+      );
     out.push(ESC_NORMAL);
   }
   if (order.note) {
