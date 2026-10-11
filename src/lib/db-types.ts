@@ -237,6 +237,8 @@ export type DbOrder = {
   completed_at: string | null;
   driver_id?: string | null;
   driver_name?: string | null;
+  edited_at?: string | null;
+  amount_due_on_delivery?: number | null;
   created_at: string;
   items: DbOrderItem[];
 };
