@@ -17,6 +17,57 @@ export const money = (v: number) =>
 
 export const lineOf = (ch: string, cols: number) => ch.repeat(cols);
 
+/**
+ * Quebra com recuo pendente: a 1ª linha começa com `firstPrefix`, as seguintes
+ * com `hangIndent` espaços. Palavras maiores que a linha são hifenizadas.
+ * Nenhuma linha resultante ultrapassa `cols`.
+ */
+export function wrapIndent(text: string, cols: number, firstPrefix = "", hangIndent = 0): string[] {
+  if (cols <= 0) return [firstPrefix + text];
+  const hang = Math.min(Math.max(0, hangIndent), Math.max(0, cols - 4));
+  const pad = " ".repeat(hang);
+  const out: string[] = [];
+  let cur = firstPrefix.length > cols - 2 ? "" : firstPrefix;
+  if (!cur && firstPrefix) out.push(firstPrefix.slice(0, cols).trimEnd());
+  let lineStart = cur; // conteúdo "vazio" da linha atual (prefixo/recuo)
+  const flush = () => {
+    if (cur.trim()) out.push(cur.trimEnd());
+    cur = pad;
+    lineStart = pad;
+  };
+  for (const w0 of text.split(/\s+/)) {
+    let w = w0;
+    if (!w) continue;
+    while (w) {
+      const empty = cur === lineStart;
+      const needed = (empty ? 0 : 1) + w.length;
+      if (cur.length + needed <= cols) {
+        cur += (empty ? "" : " ") + w;
+        w = "";
+        break;
+      }
+      const room = cols - cur.length - (empty ? 0 : 1);
+      // palavra não cabe numa linha vazia → hifeniza
+      if (w.length > cols - hang && room >= 3) {
+        const take = room - 1;
+        cur += (empty ? "" : " ") + w.slice(0, take) + "-";
+        w = w.slice(take);
+        flush();
+        continue;
+      }
+      if (empty) {
+        // linha vazia mas sem espaço para hifenizar: corta seco
+        const take = Math.max(1, cols - cur.length);
+        cur += w.slice(0, take);
+        w = w.slice(take);
+      }
+      flush();
+    }
+  }
+  if (cur.trim()) out.push(cur.trimEnd());
+  return out.length ? out : [firstPrefix.trimEnd()];
+}
+
 export function center(text: string, cols: number) {
   const t = text.length > cols ? text.slice(0, cols) : text;
   const pad = Math.max(0, Math.floor((cols - t.length) / 2));
