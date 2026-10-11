@@ -354,3 +354,35 @@ export async function sendPushCampaignServer(campaignId: string, tenantId: strin
 
   return { total, success: successCount, failed: failedCount, lastError };
 }
+
+/** Avisa o cliente (aparelhos inscritos com o mesmo telefone) que o pedido foi alterado */
+export async function sendCustomerOrderUpdatePush(orderId: string) {
+  const { data: order } = await (supabaseAdmin as any)
+    .from("orders").select("id, number, total, whatsapp, tenant_id, customer_id").eq("id", orderId).maybeSingle();
+  if (!order) return { sent: 0 };
+  const phone = String(order.whatsapp ?? "").replace(/\D/g, "");
+  let q = (supabaseAdmin as any).from("push_subscriptions").select("id, endpoint, p256dh, auth")
+    .eq("tenant_id", order.tenant_id).eq("is_admin_device", false);
+  if (order.customer_id) q = q.or(`customer_id.eq.${order.customer_id},customer_phone.eq.${phone}`);
+  else if (phone) q = q.eq("customer_phone", phone);
+  else return { sent: 0 };
+  const { data: subs } = await q;
+  const { data: t } = await (supabaseAdmin as any).from("tenants").select("slug").eq("id", order.tenant_id).maybeSingle();
+  const total = Number(order.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const payload = JSON.stringify({
+    title: `Pedido #${order.number} atualizado`,
+    body: `A loja alterou seu pedido. Novo total: ${total}.`,
+    icon: "/icon-192.png",
+    url: t?.slug ? `/${t.slug}/acompanhar/${order.id}` : "/",
+    tag: `order-update-${order.id}`,
+  });
+  const options = getVapidPushOptions();
+  let sent = 0;
+  await Promise.all((subs ?? []).map(async (s: any) => {
+    try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, options); sent++; }
+    catch (err: any) {
+      if (err?.statusCode === 404 || err?.statusCode === 410) await (supabaseAdmin as any).from("push_subscriptions").delete().eq("id", s.id);
+    }
+  }));
+  return { sent };
+}
