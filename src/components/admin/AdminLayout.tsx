@@ -30,11 +30,11 @@ const sections = [
   {
     label: "Operação",
     items: [
+      { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
       { to: "/admin/pdv", label: "PDV", icon: ShoppingCart },
       { to: "/admin/caixa", label: "Caixa", icon: Wallet },
       { to: "/admin/atendente-ia", label: "Atendente IA", icon: ChefHat },
-      { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/admin/entregadores", label: "Entregadores", icon: Truck },
       { to: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
       { to: "/admin/avaliacoes", label: "Avaliações", icon: Star },
