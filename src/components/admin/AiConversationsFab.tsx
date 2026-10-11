@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
-import { Bot, Headset, X } from "lucide-react";
+import { Bot, Headset } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { listMyAgentConversations } from "@/lib/ai-agent.functions";
 import { cn } from "@/lib/utils";
@@ -89,4 +89,3 @@ export function AiConversationsFab() {
   );
 }
 
-export default X;
