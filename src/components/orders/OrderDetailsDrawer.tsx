@@ -27,6 +27,8 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { ChangePaymentDialog } from "./ChangePaymentDialog";
+import { EditOrderDialog } from "./EditOrderDialog";
+import { useAuth } from "@/lib/auth-context";
 
 interface OrderDetailsDrawerProps {
   order: Order | null;
@@ -50,6 +52,9 @@ export function OrderDetailsDrawer({
   const paperWidth = ((tenantData?.tenant as { pos_paper_width?: string } | null)?.pos_paper_width === "55mm" ? "55mm" : "80mm") as "55mm" | "80mm";
   const [copied, setCopied] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const { roles } = useAuth();
+  const canEdit = roles.some((r) => r === "owner" || r === "admin" || r === "platform_admin");
   const ps = (tenantData as { paymentSettings?: { cash_accepts_100?: boolean; cash_accepts_200?: boolean } } | undefined)?.paymentSettings;
   const billRules = { accepts100: ps?.cash_accepts_100 ?? true, accepts200: ps?.cash_accepts_200 ?? true };
 
@@ -201,6 +206,9 @@ export function OrderDetailsDrawer({
                       </span>
                     </div>
                     <CashChangeBadge order={order} />
+                    {(order.amountDueOnDelivery ?? 0) > 0 && (
+                      <div className="flex justify-between font-semibold text-foreground"><span>Cobrar na entrega (diferença)</span><span>{brl(order.amountDueOnDelivery!)}</span></div>
+                    )}
                     {order.status !== "cancelado" && order.paymentStatus !== "approved" && (
                       <Button size="sm" variant="outline" className="mt-2 h-8 w-full text-xs" onClick={() => setPayOpen(true)}>
                         Alterar forma de pagamento
@@ -294,6 +302,10 @@ export function OrderDetailsDrawer({
             Fechar
           </Button>
           <PrintOrderButton order={order} paperWidth={paperWidth} />
+          {canEdit && !["cancelado", "finalizado"].includes(order.status) && (
+            <Button variant="outline" onClick={() => setEditOpen(true)}>Editar pedido</Button>
+          )}
+          {editOpen && <EditOrderDialog open={editOpen} onOpenChange={setEditOpen} order={order} rules={billRules} />}
           {order.status === "preparo" && (
             <PrintKitchenButton order={order} label="Reimprimir cozinha" />
           )}
