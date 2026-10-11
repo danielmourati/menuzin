@@ -59,6 +59,7 @@ export function buildKitchenTicket(
 
   // ── CABEÇALHO (fonte grande) ─────────────────────────────
   out.push(ESC_BIG);
+  if (order.editedAt) out.push(center("*ALTERADO*", bigCols));
   wrapIndent(KITCHEN_MODE_TITLE[order.mode], bigCols).forEach((l) => out.push(center(l, bigCols)));
   wrapIndent(`PEDIDO #${order.number}`, bigCols).forEach((l) => out.push(center(l, bigCols)));
   out.push(bigSep);
