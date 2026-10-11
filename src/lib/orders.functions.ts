@@ -409,9 +409,9 @@ export const updateOrderPaymentMethod = createServerFn({ method: "POST" })
     if (o.status === "finalizado") throw new Error("Pedido finalizado não pode ter o pagamento alterado.");
     if (o.mp_payment_id && o.payment_status === "approved") throw new Error("Pedido já pago online pelo Mercado Pago — não é possível alterar.");
     const { data: allowed } = await supabase.rpc("has_tenant_role", {
-      _user_id: userId, _tenant_id: o.tenant_id, _roles: ["owner", "admin", "staff"],
+      _user_id: userId, _tenant_id: o.tenant_id, _roles: ["owner", "admin"],
     });
-    if (!allowed) throw new Error("Acesso negado.");
+    if (!allowed) throw new Error("Somente o dono ou administradores da loja podem alterar o pagamento.");
 
     const total = Number(o.total);
     let change_for: number | null = null;
