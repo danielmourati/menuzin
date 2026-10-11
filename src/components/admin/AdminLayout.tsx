@@ -24,6 +24,7 @@ import { WhatsappOtpModal } from "@/components/admin/WhatsappOtpModal";
 import { ShieldAlert } from "lucide-react";
 import { CashShiftBadge } from "@/components/admin/CashShiftBadge";
 import { HandoffAlert } from "@/components/admin/HandoffAlert";
+import { AiConversationsFab } from "@/components/admin/AiConversationsFab";
 
 
 const sections = [
@@ -364,6 +365,7 @@ export function AdminLayout({ children, title, action, backTo }: { children?: Re
         <GlobalPrintQueueServer />
         <OrdersRealtimeListener />
         <HandoffAlert />
+        <AiConversationsFab />
         <SupportChatWidget />
         <aside
           className={`hidden shrink-0 border-r border-sidebar-border lg:block h-screen sticky top-0 transition-[width] duration-200 ${

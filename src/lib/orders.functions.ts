@@ -406,11 +406,12 @@ export const updateOrderPaymentMethod = createServerFn({ method: "POST" })
       .eq("id", data.order_id).maybeSingle();
     if (!o) throw new Error("Pedido não encontrado.");
     if (o.status === "cancelado") throw new Error("Pedido cancelado não pode ter o pagamento alterado.");
+    if (o.status === "finalizado") throw new Error("Pedido finalizado não pode ter o pagamento alterado.");
     if (o.mp_payment_id && o.payment_status === "approved") throw new Error("Pedido já pago online pelo Mercado Pago — não é possível alterar.");
     const { data: allowed } = await supabase.rpc("has_tenant_role", {
-      _user_id: userId, _tenant_id: o.tenant_id, _roles: ["owner", "admin", "staff"],
+      _user_id: userId, _tenant_id: o.tenant_id, _roles: ["owner", "admin"],
     });
-    if (!allowed) throw new Error("Acesso negado.");
+    if (!allowed) throw new Error("Somente o dono ou administradores da loja podem alterar o pagamento.");
 
     const total = Number(o.total);
     let change_for: number | null = null;
@@ -528,3 +529,134 @@ export const createManualOrder = createServerFn({ method: "POST" })
     };
   });
 
+
+// ========= Edição de pedido (dono/admin) =========
+
+const EDITABLE_STATUSES = ["novo", "aceito", "preparo"];
+
+async function assertOrderEditor(supabase: any, userId: string, orderId: string) {
+  const { data: o } = await supabaseAdmin.from("orders").select("*").eq("id", orderId).maybeSingle();
+  if (!o) throw new Error("Pedido não encontrado.");
+  const { data: allowed } = await supabase.rpc("has_tenant_role", {
+    _user_id: userId, _tenant_id: o.tenant_id, _roles: ["owner", "admin"],
+  });
+  const { data: platform } = await supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" });
+  if (!allowed && !platform) throw new Error("Somente o dono ou administradores da loja podem editar pedidos.");
+  return o as any;
+}
+
+export const getOrderItemsForEdit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ order_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const o = await assertOrderEditor(context.supabase, context.userId, data.order_id);
+    const { data: items } = await supabaseAdmin.from("order_items").select("*").eq("order_id", o.id);
+    return {
+      order: {
+        id: o.id, status: o.status as string, subtotal: Number(o.subtotal), delivery_fee: Number(o.delivery_fee),
+        discount_amount: Number(o.discount_amount ?? 0), coupon_code: (o.coupon_code ?? null) as string | null,
+        total: Number(o.total), payment_status: o.payment_status as string, mp_payment_id: (o.mp_payment_id ?? null) as string | null,
+        amount_due_on_delivery: Number(o.amount_due_on_delivery ?? 0), change_for: o.change_for == null ? null : Number(o.change_for),
+      },
+      items: ((items ?? []) as any[]).map((it) => ({
+        id: it.id as string, product_id: (it.product_id ?? null) as string | null, name_snapshot: it.name_snapshot as string,
+        qty: Number(it.qty), unit_price: Number(it.unit_price), addons: (it.addons ?? []) as { name: string; price: number }[],
+        note: (it.note ?? null) as string | null,
+      })),
+    };
+  });
+
+const EditItemSchema = ItemSchema.extend({ id: z.string().uuid().nullable().optional() });
+
+export const updateOrderItems = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ order_id: z.string().uuid(), items: z.array(EditItemSchema).min(1).max(50) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const o = await assertOrderEditor(supabase, userId, data.order_id);
+    if (!EDITABLE_STATUSES.includes(o.status)) throw new Error("Só é possível editar pedidos novos, aceitos ou em preparo.");
+
+    const { data: oldItems } = await supabaseAdmin.from("order_items").select("*").eq("order_id", o.id);
+    const oldById = new Map(((oldItems ?? []) as any[]).map((it) => [it.id as string, it]));
+
+    // Itens existentes mantêm preço/nome/adicionais gravados; só quantidade e observação mudam.
+    const finalItems = data.items.map((it) => {
+      const prev = it.id ? oldById.get(it.id) : undefined;
+      if (prev) {
+        return { product_id: prev.product_id, name_snapshot: prev.name_snapshot, qty: it.qty, unit_price: Number(prev.unit_price), addons: prev.addons ?? [], note: it.note ?? null };
+      }
+      return { product_id: it.product_id ?? null, name_snapshot: it.name_snapshot, qty: it.qty, unit_price: it.unit_price, addons: it.addons, note: it.note ?? null };
+    });
+
+    const subtotal = Math.round(finalItems.reduce((s, it) => s + it.qty * it.unit_price, 0) * 100) / 100;
+    let discount = 0;
+    if (o.coupon_code) {
+      const { data: c } = await supabaseAdmin.from("coupons").select("*").eq("tenant_id", o.tenant_id).eq("code", o.coupon_code).maybeSingle();
+      if (c && Number(c.min_order_total) <= subtotal) {
+        const v = Number(c.discount_value);
+        discount = Math.min(c.discount_type === "percent" ? (subtotal * v) / 100 : v, subtotal);
+        discount = Math.round(discount * 100) / 100;
+      }
+    }
+    const fee = Number(o.delivery_fee ?? 0);
+    const total = Math.round((Math.max(0, subtotal - discount) + fee) * 100) / 100;
+    const oldTotal = Number(o.total);
+
+    const paidOnline = o.payment_status === "approved" && !!o.mp_payment_id;
+    let amountDue = Number(o.amount_due_on_delivery ?? 0);
+    let refundDue = 0;
+    if (paidOnline) {
+      const paid = oldTotal - amountDue;
+      amountDue = Math.max(0, Math.round((total - paid) * 100) / 100);
+      refundDue = Math.max(0, Math.round((paid - total) * 100) / 100);
+    }
+    let change_for = o.change_for == null ? null : Number(o.change_for);
+    let changeWarning: string | null = null;
+    if (o.no_change) change_for = null;
+    else if (change_for != null && change_for + 0.001 < total) {
+      changeWarning = `O cliente informou troco para ${change_for.toFixed(2)}, menor que o novo total. Confirme com ele.`;
+      change_for = null;
+    }
+
+    const { error: dErr } = await supabaseAdmin.from("order_items").delete().eq("order_id", o.id);
+    if (dErr) throw new Error(dErr.message);
+    const { error: iErr } = await supabaseAdmin.from("order_items").insert(finalItems.map((it) => ({ ...it, order_id: o.id })) as never);
+    if (iErr) throw new Error(iErr.message);
+
+    const now = new Date().toISOString();
+    const { error: uErr } = await supabaseAdmin.from("orders").update({
+      subtotal, discount_amount: discount, total, change_for,
+      amount_due_on_delivery: amountDue, edited_at: now, edit_count: Number(o.edit_count ?? 0) + 1,
+    } as never).eq("id", o.id);
+    if (uErr) throw new Error(uErr.message);
+
+    // Diferenças para o histórico
+    const key = (it: { name_snapshot: string }) => it.name_snapshot;
+    const count = (arr: { name_snapshot: string; qty: number }[]) => {
+      const m = new Map<string, number>();
+      for (const it of arr) m.set(key(it), (m.get(key(it)) ?? 0) + it.qty);
+      return m;
+    };
+    const before = count((oldItems ?? []) as any[]);
+    const after = count(finalItems);
+    const added: string[] = []; const removed: string[] = [];
+    for (const [n, q] of after) { const b = before.get(n) ?? 0; if (q > b) added.push(`${q - b}x ${n}`); }
+    for (const [n, q] of before) { const a = after.get(n) ?? 0; if (q > a) removed.push(`${q - a}x ${n}`); }
+    const brlS = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+    const parts = ["Pedido alterado pela loja"];
+    if (added.length) parts.push(`incluído ${added.join(", ")}`);
+    if (removed.length) parts.push(`removido ${removed.join(", ")}`);
+    parts.push(`total ${brlS(oldTotal)} → ${brlS(total)}`);
+    const { data: prof } = await supabase.from("profiles").select("full_name, email").eq("id", userId).maybeSingle();
+    await supabaseAdmin.from("order_status_history").insert({
+      order_id: o.id, previous_status: o.status, new_status: o.status, changed_by: userId,
+      changed_by_name: prof?.full_name || prof?.email || null, note: parts.join(" — "),
+    } as never);
+
+    try {
+      const { sendCustomerOrderUpdatePush } = await import("@/lib/push-notifications.server");
+      await sendCustomerOrderUpdatePush(o.id);
+    } catch { /* push nunca bloqueia a edição */ }
+
+    return { ok: true, total, amountDue, refundDue, changeWarning };
+  });

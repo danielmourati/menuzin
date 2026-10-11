@@ -1677,6 +1677,7 @@ export type Database = {
         Row: {
           accepted_at: string | null
           address: Json | null
+          amount_due_on_delivery: number
           cancel_reason: string | null
           cancelled_at: string | null
           change_for: number | null
@@ -1691,6 +1692,8 @@ export type Database = {
           discount_amount: number
           driver_id: string | null
           driver_name: string | null
+          edit_count: number
+          edited_at: string | null
           id: string
           idempotency_key: string | null
           mode: Database["public"]["Enums"]["order_mode"]
@@ -1716,6 +1719,7 @@ export type Database = {
         Insert: {
           accepted_at?: string | null
           address?: Json | null
+          amount_due_on_delivery?: number
           cancel_reason?: string | null
           cancelled_at?: string | null
           change_for?: number | null
@@ -1730,6 +1734,8 @@ export type Database = {
           discount_amount?: number
           driver_id?: string | null
           driver_name?: string | null
+          edit_count?: number
+          edited_at?: string | null
           id?: string
           idempotency_key?: string | null
           mode: Database["public"]["Enums"]["order_mode"]
@@ -1755,6 +1761,7 @@ export type Database = {
         Update: {
           accepted_at?: string | null
           address?: Json | null
+          amount_due_on_delivery?: number
           cancel_reason?: string | null
           cancelled_at?: string | null
           change_for?: number | null
@@ -1769,6 +1776,8 @@ export type Database = {
           discount_amount?: number
           driver_id?: string | null
           driver_name?: string | null
+          edit_count?: number
+          edited_at?: string | null
           id?: string
           idempotency_key?: string | null
           mode?: Database["public"]["Enums"]["order_mode"]

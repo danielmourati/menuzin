@@ -148,6 +148,8 @@ export type Order = {
   completedAt?: string;
   driverId?: string;
   driverName?: string;
+  editedAt?: string | null;
+  amountDueOnDelivery?: number;
   statusHistory: OrderStatusHistoryEntry[];
 };
 
