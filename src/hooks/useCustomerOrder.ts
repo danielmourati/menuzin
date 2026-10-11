@@ -36,6 +36,7 @@ export function useCustomerOrder(lookup: Lookup | null): {
     enabled: !!lookup,
     staleTime: 5_000,
     refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
     refetchIntervalInBackground: false,
   });
 

@@ -228,6 +228,17 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
           </div>
         </div>
 
+        {order.editedAt && !isCancelled && (
+          <div role="status" className="mt-5 rounded-2xl border border-primary/40 bg-primary/10 p-4 text-sm">
+            <p className="font-bold text-primary">Seu pedido foi atualizado pela loja</p>
+            <p className="mt-1 text-foreground">
+              Novo total: <strong>{brl(order.total)}</strong>
+              {(order.amountDueOnDelivery ?? 0) > 0 && <> · a pagar na entrega: <strong>{brl(order.amountDueOnDelivery!)}</strong></>}
+            </p>
+            <button type="button" onClick={() => setDetails(true)} className="mt-1 text-xs font-semibold underline">Ver itens</button>
+          </div>
+        )}
+
         <div className="relative mt-6 h-1.5 rounded-full bg-muted">
           <div className={`h-full rounded-full transition-all ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ width: `${progress}%` }} />
           <span className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ${isCancelled ? "bg-destructive" : "bg-primary"}`} style={{ left: `calc(${progress}% - ${progress >= 100 ? 8 : 0}px)` }} />
@@ -259,7 +270,10 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
             <h3 className="text-base">Linha do tempo</h3>
             <ol className="mt-3 space-y-4">
               {history.map((h) => {
-                const c = STEP_COPY[h.newStatus] ?? { title: h.newStatus, text: "" };
+                const sameStatus = h.previousStatus && h.previousStatus === h.newStatus && h.note;
+                const c = sameStatus
+                  ? { title: h.note!.startsWith("Pagamento") ? "Pagamento alterado" : "Pedido alterado", text: h.note!.replace(/^Pedido alterado pela loja — ?/, "") }
+                  : STEP_COPY[h.newStatus] ?? { title: h.newStatus, text: "" };
                 return (
                   <li key={h.id} className="flex gap-3">
                     <span className="w-12 shrink-0 text-sm text-muted-foreground">{formatHourSp(h.createdAt)}</span>
