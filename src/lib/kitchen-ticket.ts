@@ -5,7 +5,7 @@
 
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { receiptItemDetails, receiptItemName } from "@/lib/receipt-item-details";
+import { receiptItemDetails, receiptItemName, receiptFlavorBlock } from "@/lib/receipt-item-details";
 import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import { cashTicketBlock } from "@/lib/cash-change";
@@ -84,6 +84,13 @@ export function buildKitchenTicket(
     );
 
     out.push(ESC_BOLD_OFF, ESC_NORMAL);
+    const flavorBlock = receiptFlavorBlock(item, false);
+    if (flavorBlock) {
+      out.push(ESC_BOLD_ON);
+      wrapIndent(stripAccents(flavorBlock.header), cols).forEach((l) => out.push(l));
+      for (const l of flavorBlock.lines) wrapIndent(stripAccents(l), cols, "- ", 2).forEach((x) => out.push(x));
+      out.push(ESC_BOLD_OFF);
+    }
     for (const detail of receiptItemDetails(item, false)) {
       out.push(...wrapIndent(stripAccents(detail), cols, " - ", 3));
     }

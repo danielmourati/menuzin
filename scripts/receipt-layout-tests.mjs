@@ -3,10 +3,11 @@ import { columnsFor, DEFAULT_PRINTER_SETTINGS, resolvePrinterTypography } from "
 import { buildReceipt, sampleOrderForPreview, wrapIndent } from "../src/lib/receipt-builder.ts";
 import { buildKitchenTicket } from "../src/lib/kitchen-ticket.ts";
 import { plainPrintText, parsePrintSpans, ESC_BOLD_ON, ESC_BOLD_OFF } from "../src/lib/escpos-format.ts";
-import { receiptItemDetails, receiptItemName } from "../src/lib/receipt-item-details.ts";
+import { receiptItemDetails, receiptItemName, receiptFlavorBlock } from "../src/lib/receipt-item-details.ts";
 
 const order = sampleOrderForPreview();
 order.items.push({ productId: "long", name: "Calabresa Mineira", qty: 3, unitPrice: 24, addons: [{ id: "paid", name: "Adicionais (Grátis): Queijo", price: 4 }], note: "Sem cebola e sem molho, embalar separado por favor" });
+order.items.push({ productId: "montado", name: "Pastel Montado", qty: 1, unitPrice: 15, addons: [{ id: "f1", name: "Escolha 2 sabores: Calabresa", price: 0 }, { id: "f2", name: "Escolha 2 sabores: Mussarela", price: 0 }], note: null });
 const original = JSON.stringify(order);
 for (const size of ["normal", "large", "compact"]) for (const family of ["mono", "sans", "condensed"]) assert.equal(columnsFor("55mm", size, family), 32);
 assert.equal(resolvePrinterTypography({ ...DEFAULT_PRINTER_SETTINGS, paper_width: "55mm", font_size: "large" }).cols, 32);
@@ -28,6 +29,11 @@ for (const cols of [32, 42, 56]) {
   assert(receipt.includes(ESC_BOLD_ON + "2x Carne"));
   assert(receipt.includes("18,00" + ESC_BOLD_OFF));
   assert(plain.includes("Queijo (+4,00)"));
+  assert(plain.includes("Sabores:"));
+  assert(plain.includes("- Calabresa"));
+  assert(plain.includes("- Mussarela"));
+  assert(!plain.includes("Escolha 2 sabores"));
+  assert(parsePrintSpans(receipt).some(s => s.bold && s.text.includes("Sabores:")));
   for (const line of plain.split("\n")) assert(line.length <= cols, `${cols}: ${line}`);
   for (const doubleBody of [false, true]) {
     const ticket = buildKitchenTicket(order, cols, { doubleBody });
@@ -36,6 +42,8 @@ for (const cols of [32, 42, 56]) {
     assert(!kitchenPlain.includes("4,00"));
     assert(!kitchenPlain.includes("Tamanho:"));
     assert(kitchenPlain.includes("(PEQUENO)"));
+    assert(kitchenPlain.includes("Sabores:"));
+    assert(kitchenPlain.includes("- Mussarela"));
     assert(!kitchenPlain.includes("\n\n"), "formatting commands must not feed blank lines");
     let width = 0;
     for (const span of parsePrintSpans(ticket)) for (const ch of span.text) {
@@ -47,6 +55,8 @@ for (const cols of [32, 42, 56]) {
   }
 }
 assert.deepEqual(receiptItemDetails(order.items[1], false), ["Todos os adicionais"]);
+assert.deepEqual(receiptFlavorBlock(order.items[4], true), { header: "Sabores:", lines: ["Calabresa", "Mussarela"] });
+assert.equal(receiptFlavorBlock(order.items[0], true), null);
 assert.equal(receiptItemName(order.items[0]), "Carne (GRANDE)");
 assert.equal(receiptItemName(order.items[1]), "Frango (PEQUENO)");
 assert.equal(receiptItemName(order.items[2]), "Taxa de Servico");
