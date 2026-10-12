@@ -2,7 +2,7 @@
 import type { Order } from "@/lib/domain-types";
 import { buildKitchenTicket, kitchenColumnsFor } from "@/lib/kitchen-ticket";
 import { buildReceipt, type ReceiptStoreInfo } from "@/lib/receipt-builder";
-import { DEFAULT_PRINTER_SETTINGS, type PrinterSettings } from "@/lib/printer-types";
+import { DEFAULT_PRINTER_SETTINGS, resolvePrinterTypography, type PrinterSettings } from "@/lib/printer-types";
 import { printQzReceipt } from "@/lib/qz-tray";
 import type { TenantPrinter } from "@/lib/tenant-printers.functions";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
@@ -11,8 +11,8 @@ export function buildKitchenTicketForPrinter(order: Order, printer: TenantPrinte
   const ov = printer.layout_overrides ?? null;
   const fontSize = ov?.font_size ?? printer.font_size;
   const fontFamily = ov?.font_family ?? printer.font_family;
-  const cols = kitchenColumnsFor(printer.paper_width, fontSize, fontFamily);
-  return buildKitchenTicket(order, cols, { doubleBody: ov?.double_kitchen_font === true });
+  const { cols, compact } = resolvePrinterTypography({ paper_width: printer.paper_width, font_size: fontSize, font_family: fontFamily, use_default_typography: false });
+  return buildKitchenTicket(order, cols, { doubleBody: ov?.double_kitchen_font === true, compact });
 }
 
 export async function printKitchenTicketViaBluetooth(
@@ -43,7 +43,7 @@ export async function printKitchenTicket(
   const ov = printer.layout_overrides ?? null;
   const fontSize = ov?.font_size ?? printer.font_size;
   const fontFamily = ov?.font_family ?? printer.font_family;
-  const cols = kitchenColumnsFor(printer.paper_width, fontSize, fontFamily);
+  const { cols } = resolvePrinterTypography({ paper_width: printer.paper_width, font_size: fontSize, font_family: fontFamily, use_default_typography: false });
 
   let text: string;
   if (ov?.full_kitchen_receipt) {
@@ -53,6 +53,7 @@ export async function printKitchenTicket(
       paper_width: printer.paper_width,
       font_size: fontSize,
       font_family: fontFamily,
+      use_default_typography: false,
       cut_type: ov?.cut_type ?? "partial",
       feed_lines: ov?.feed_lines ?? 4,
       use_bold_titles: ov?.use_bold_titles ?? true,
