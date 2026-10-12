@@ -9,14 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2 } from "lucide-react";
+import { Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { maskBRL, parseBRL } from "@/lib/masks";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   getCashOverview, openCashSession, addCashWithdrawal, deleteCashWithdrawal,
-  closeCashSession, settleDriver, payDriverFees, undoDriverFees,
+  closeCashSession, settleDriver, payDriverFees, undoDriverFees, getClosedCashSessionDetail,
 } from "@/lib/cash.functions";
 
 export const Route = createFileRoute("/admin/caixa")({
@@ -60,6 +60,7 @@ function CashPage() {
   const [wReason, setWReason] = useState("");
   const [counted, setCounted] = useState("");
   const [closeOpen, setCloseOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [result, setResult] = useState<CloseResult | null>(null);
   const [feeDriver, setFeeDriver] = useState<{ id: string; name: string; total: number } | null>(null);
 
@@ -99,6 +100,14 @@ function CashPage() {
   });
 
   const open = data?.open;
+  const detailQ = useQuery({
+    queryKey: ["closed-cash-session", detailId],
+    queryFn: () => {
+      if (!detailId) throw new Error("Turno não selecionado.");
+      return getClosedCashSessionDetail({ data: { session_id: detailId } });
+    },
+    enabled: !!detailId,
+  });
 
   return (
     <AdminLayout title="Caixa">
@@ -311,10 +320,20 @@ function CashPage() {
                 {data!.history.map((h) => {
                   const diff = Number(h.difference ?? 0);
                   return (
-                    <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                      <span>{fmtDate(h.opened_at)} → {h.closed_at ? fmtDate(h.closed_at) : "-"}</span>
-                      <span className="text-muted-foreground">Esperado {brl(Number(h.expected_amount ?? 0))} · Contado {brl(Number(h.counted_amount ?? 0))}</span>
-                      <DiffBadge diff={diff} />
+                    <li key={h.id} className="grid gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                      <button type="button" className="grid min-w-0 gap-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" onClick={() => setDetailId(h.id)}>
+                        <span className="font-medium">{fmtDate(h.opened_at)} → {h.closed_at ? fmtDate(h.closed_at) : "-"}</span>
+                        <span className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                          <span>Esperado <b className="text-foreground">{brl(Number(h.expected_amount ?? 0))}</b></span>
+                          <span>Contado <b className="text-foreground">{brl(Number(h.counted_amount ?? 0))}</b></span>
+                        </span>
+                      </button>
+                      <div className="flex items-center justify-between gap-2 sm:justify-end">
+                        <DiffBadge diff={diff} />
+                        <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setDetailId(h.id)}>
+                          <Eye className="h-4 w-4" /> Ver detalhes
+                        </Button>
+                      </div>
                     </li>
                   );
                 })}
@@ -322,6 +341,108 @@ function CashPage() {
             </CardContent>
           </Card>
         )}
+
+        <Dialog open={!!detailId} onOpenChange={(openDialog) => { if (!openDialog) setDetailId(null); }}>
+          <DialogContent className="max-h-[92dvh] w-[calc(100%-1rem)] max-w-3xl overflow-y-auto p-0 sm:w-full">
+            <DialogHeader className="border-b px-5 py-4 pr-12">
+              <DialogTitle>Detalhes do turno</DialogTitle>
+              {detailQ.data && (
+                <DialogDescription>
+                  {fmtDate(detailQ.data.opened_at)} → {fmtDate(detailQ.data.closed_at)}
+                </DialogDescription>
+              )}
+            </DialogHeader>
+
+            {detailQ.isLoading ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="h-7 w-7 animate-spin text-primary" /></div>
+            ) : detailQ.isError ? (
+              <div className="space-y-3 px-5 py-12 text-center">
+                <p className="text-sm text-muted-foreground">Não foi possível carregar os detalhes deste turno.</p>
+                <Button variant="outline" className="gap-2" onClick={() => detailQ.refetch()}><RefreshCw className="h-4 w-4" /> Tentar novamente</Button>
+              </div>
+            ) : detailQ.data ? (
+              <div className="space-y-6 px-5 py-5">
+                <section>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border bg-muted/30 p-4">
+                      <p className="text-xs font-medium text-muted-foreground">Esperado</p>
+                      <p className="mt-1 text-xl font-extrabold sm:text-2xl">{brl(detailQ.data.expected)}</p>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 p-4">
+                      <p className="text-xs font-medium text-muted-foreground">Contado</p>
+                      <p className="mt-1 text-xl font-extrabold sm:text-2xl">{brl(detailQ.data.counted)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border px-4 py-3">
+                    <span className="text-sm font-medium">Resultado do fechamento</span>
+                    <DiffBadge diff={detailQ.data.difference} />
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="mb-3 text-sm font-bold">Resumo financeiro</h3>
+                  <div className="divide-y rounded-lg border text-sm">
+                    <div className="flex justify-between gap-3 px-4 py-2.5"><span>Fundo inicial</span><b>{brl(detailQ.data.opening_float)}</b></div>
+                    <div className="flex justify-between gap-3 px-4 py-2.5"><span>+ Vendas em dinheiro</span><b>{brl(detailQ.data.cash_sales)}</b></div>
+                    <div className="flex justify-between gap-3 px-4 py-2.5"><span>− Sangrias</span><b>{brl(detailQ.data.withdrawals)}</b></div>
+                    <div className="flex justify-between gap-3 bg-muted/30 px-4 py-3 font-bold"><span>Total esperado</span><span>{brl(detailQ.data.expected)}</span></div>
+                  </div>
+                  {(detailQ.data.opened_by_name || detailQ.data.closed_by_name) && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {detailQ.data.opened_by_name ? `Aberto por ${detailQ.data.opened_by_name}` : ""}
+                      {detailQ.data.opened_by_name && detailQ.data.closed_by_name ? " · " : ""}
+                      {detailQ.data.closed_by_name ? `Fechado por ${detailQ.data.closed_by_name}` : ""}
+                    </p>
+                  )}
+                </section>
+
+                <section>
+                  <h3 className="mb-3 text-sm font-bold">Sangrias</h3>
+                  {detailQ.data.movements.length === 0 ? (
+                    <p className="rounded-lg border px-4 py-4 text-sm text-muted-foreground">Nenhuma sangria registrada neste turno.</p>
+                  ) : (
+                    <ul className="divide-y rounded-lg border text-sm">
+                      {detailQ.data.movements.map((movement) => (
+                        <li key={movement.id} className="flex items-start justify-between gap-4 px-4 py-3">
+                          <span className="min-w-0"><b className="block">{movement.reason || "Sangria"}</b><span className="text-xs text-muted-foreground">{fmtDate(movement.created_at)}</span></span>
+                          <b className="shrink-0">{brl(movement.amount)}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section>
+                  <h3 className="mb-3 text-sm font-bold">Entregadores</h3>
+                  {detailQ.data.drivers.length === 0 ? (
+                    <p className="rounded-lg border px-4 py-4 text-sm text-muted-foreground">Nenhuma entrega com entregador neste turno.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {detailQ.data.drivers.map((driver) => (
+                        <div key={driver.driver_id ?? driver.driver_name} className="rounded-lg border p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {driver.driver_name}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">{driver.deliveries.length} entrega(s) · {driver.orders} em dinheiro</p>
+                            </div>
+                            {driver.settled_at ? <Badge variant="secondary">Acerto recebido</Badge> : driver.orders > 0 ? <Badge variant="outline">Acerto pendente</Badge> : null}
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                            <div><span className="block text-xs text-muted-foreground">Valor a devolver</span><b>{brl(driver.must_return)}</b></div>
+                            <div><span className="block text-xs text-muted-foreground">Taxas do entregador</span><b>{brl(driver.fees_total)}</b></div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {driver.fees_paid_at ? <Badge variant="secondary">Taxas pagas em {driver.fees_paid_method === "cash" ? "dinheiro" : "Pix"}</Badge> : driver.fees_total > 0 ? <Badge variant="outline">Taxas não pagas</Badge> : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
