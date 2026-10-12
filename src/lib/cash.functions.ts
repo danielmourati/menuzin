@@ -203,6 +203,47 @@ export const getCashOverview = createServerFn({ method: "POST" })
     };
   });
 
+export const getClosedCashSessionDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ session_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    const sb = await admin();
+    const { data: session, error } = await sb.from("cash_sessions").select("*")
+      .eq("id", data.session_id).eq("tenant_id", tenantId).eq("status", "closed").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!session || !session.closed_at) throw new Error("Turno fechado não encontrado.");
+
+    const calc = await computeSession(tenantId, session);
+    let closedByName: string | null = null;
+    if (session.closed_by) {
+      const { data: profile } = await sb.from("profiles").select("full_name, email")
+        .eq("id", session.closed_by).maybeSingle();
+      closedByName = profile?.full_name || profile?.email || null;
+    }
+
+    return {
+      id: session.id,
+      opened_at: session.opened_at,
+      closed_at: session.closed_at,
+      opened_by_name: session.opened_by_name,
+      closed_by_name: closedByName,
+      opening_float: Number(session.opening_float),
+      cash_sales: Number(session.cash_sales ?? 0),
+      withdrawals: Number(session.withdrawals_total ?? 0),
+      expected: Number(session.expected_amount ?? 0),
+      counted: Number(session.counted_amount ?? 0),
+      difference: Number(session.difference ?? 0),
+      movements: calc.movements.map((movement) => ({
+        id: movement.id,
+        amount: Number(movement.amount),
+        reason: movement.reason,
+        created_at: movement.created_at,
+      })),
+      drivers: calc.drivers,
+    };
+  });
+
 export const openCashSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ opening_float: z.number().min(0).max(100000) }).parse(d))
