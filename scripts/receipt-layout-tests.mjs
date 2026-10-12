@@ -17,7 +17,7 @@ for (const cols of [32, 42, 56]) {
   const receipt = buildReceipt(order, cols, DEFAULT_PRINTER_SETTINGS, {});
   const plain = plainPrintText(receipt);
   assert(receipt.startsWith("\x1b@"));
-  assert(plain.includes("2x Carne\nUnit: 9,00  Total: 18,00"));
+  assert(plain.includes("2x Carne\nUnit: 9,00 Total: 18,00"));
   assert(plain.includes(" - Todos os adicionais"));
   assert(!plain.includes("[Todos"));
   assert(!plain.includes("Adicionais (Gratis):"));
