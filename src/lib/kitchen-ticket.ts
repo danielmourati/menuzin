@@ -108,7 +108,7 @@ export function buildKitchenTicket(
     out.push("NOTA GERAL:");
     wrap(stripAccents(order.note), cols).forEach((l) => out.push(l));
   }
-  out.push(sep);
+  if (cashBlock || order.note || !order.items.length) out.push(sep);
   out.push(center(formatDateTime(order.createdAt), cols));
   out.push(sep);
 
