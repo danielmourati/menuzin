@@ -3,7 +3,7 @@
 
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { receiptItemDetails, receiptItemName } from "@/lib/receipt-item-details";
+import { receiptItemDetails, receiptItemName, receiptFlavorBlock } from "@/lib/receipt-item-details";
 import { ESC_BOLD_ON, ESC_BOLD_OFF, ESC_DOUBLE_SIZE, ESC_NORMAL_SIZE, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import type { PrinterSettings } from "@/lib/printer-types";
@@ -218,6 +218,14 @@ export function buildReceipt(
   for (const it of order.items) {
     const prefix = `${it.qty}x `;
     out.push(ESC_BOLD_ON + wrapIndent(stripAccents(receiptItemName(it)), cols, prefix, prefix.length).join("\n") + ESC_BOLD_OFF);
+    const flavorBlock = receiptFlavorBlock(it, true);
+    if (flavorBlock) {
+      const flavorLines = [
+        ...wrapIndent(stripAccents(flavorBlock.header), cols),
+        ...flavorBlock.lines.flatMap((l) => wrapIndent(stripAccents(l), cols, "- ", 2)),
+      ];
+      out.push(ESC_BOLD_ON + flavorLines.join("\n") + ESC_BOLD_OFF);
+    }
     for (const detail of receiptItemDetails(it, true)) {
       out.push(...wrapIndent(stripAccents(detail), cols, " - ", 3));
     }
