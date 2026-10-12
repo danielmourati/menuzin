@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { DriverSummaryActions } from "@/components/admin/DriverSummaryActions";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { maskBRL, parseBRL } from "@/lib/masks";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -219,6 +220,7 @@ function CashPage() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-sm">
                           <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {d.driver_name} <span className="font-normal text-muted-foreground">· {d.deliveries.length} entrega(s)</span></p>
+                          <div className="mt-2"><DriverSummaryActions driver={d} shift={{ opened_at: open.opened_at, closed_at: null }} /></div>
                           {d.orders > 0 ? (
                             <>
                               <p className="mt-1">Cobrar dos clientes: <b>{brl(d.to_collect)}</b> · Troco levado do caixa: <b>{brl(d.change_out)}</b></p>
@@ -423,6 +425,7 @@ function CashPage() {
                           <div>
                             <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {driver.driver_name}</p>
                             <p className="mt-1 text-xs text-muted-foreground">{driver.deliveries.length} entrega(s) · {driver.orders} paga(s) em dinheiro</p>
+                            <div className="mt-2"><DriverSummaryActions driver={driver} shift={{ opened_at: detailQ.data.opened_at, closed_at: detailQ.data.closed_at }} /></div>
                           </div>
 
                           <div className="rounded-md border">
