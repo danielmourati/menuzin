@@ -3,8 +3,8 @@
 
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { receiptItemDetails } from "@/lib/receipt-item-details";
-import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset, compactPrintCommands } from "@/lib/escpos-format";
+import { receiptItemDetails, receiptItemName } from "@/lib/receipt-item-details";
+import { ESC_BOLD_ON, ESC_BOLD_OFF, ESC_DOUBLE_SIZE, ESC_NORMAL_SIZE, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import type { PrinterSettings } from "@/lib/printer-types";
 import { resolvePrinterTypography } from "@/lib/printer-types";
@@ -195,6 +195,8 @@ export function buildReceipt(
   out.push(sepStrong);
 
   /* 3. Identificação do pedido + número (mesma linha) */
+  const modeTitle = { entrega: "DELIVERY", retirada: "RETIRADA", consumo_local: "CONSUMO" }[order.mode];
+  out.push(ESC_DOUBLE_SIZE + ESC_BOLD_ON + center(modeTitle, Math.floor(cols / 2)) + ESC_BOLD_OFF + ESC_NORMAL_SIZE);
   const shortId = order.id.replace(/-/g, "").slice(0, 8).toUpperCase();
   const idFmt = `${shortId.slice(0, 4)}.${shortId.slice(4, 8)}`;
   const numFmt = String(order.number).padStart(4, "0");
@@ -214,10 +216,12 @@ export function buildReceipt(
 
   /* 6. Itens (sem linha em branco entre itens) */
   for (const it of order.items) {
-    out.push(itemBlock(it.name, it.qty, it.unitPrice, it.unitPrice * it.qty, cols));
+    const prefix = `${it.qty}x `;
+    out.push(ESC_BOLD_ON + wrapIndent(stripAccents(receiptItemName(it)), cols, prefix, prefix.length).join("\n") + ESC_BOLD_OFF);
     for (const detail of receiptItemDetails(it, true)) {
       out.push(...wrapIndent(stripAccents(detail), cols, " - ", 3));
     }
+    out.push(ESC_BOLD_ON + wrapIndent(`Unit: ${money(it.unitPrice)}  Total: ${money(it.unitPrice * it.qty)}`, cols).join("\n") + ESC_BOLD_OFF);
     out.push(sep);
   }
 
