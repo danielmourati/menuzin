@@ -3,10 +3,11 @@
 
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { parseAddonLabel } from "@/lib/product-selection";
+import { receiptItemDetails } from "@/lib/receipt-item-details";
+import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import type { PrinterSettings } from "@/lib/printer-types";
-import { columnsFor } from "@/lib/printer-types";
+import { resolvePrinterTypography } from "@/lib/printer-types";
 import { cashTicketBlock } from "@/lib/cash-change";
 
 export const stripAccents = (s: string) =>
@@ -45,6 +46,12 @@ export function wrapIndent(text: string, cols: number, firstPrefix = "", hangInd
         cur += (empty ? "" : " ") + w;
         w = "";
         break;
+      }
+      // A long first-line label is not an empty line: move a whole word to
+      // the continuation when it fits there instead of slicing it in place.
+      if (empty && cur.length > hang && w.length <= cols - hang) {
+        flush();
+        continue;
       }
       const room = cols - cur.length - (empty ? 0 : 1);
       // palavra não cabe numa linha vazia → hifeniza
@@ -99,7 +106,7 @@ export function row(label: string, value: string, cols: number): string {
   const v = value ?? "";
   if (l.length + v.length + 1 > cols) {
     const labelLines = wrap(l, cols);
-    const last = labelLines.pop()!;
+    const last = labelLines.pop() ?? "";
     const remaining = cols - last.length - v.length;
     if (remaining >= 1) {
       labelLines.push(last + " ".repeat(remaining) + v);
@@ -114,11 +121,10 @@ export function row(label: string, value: string, cols: number): string {
 }
 
 export function itemBlock(name: string, qty: number, unit: number, total: number, cols: number) {
-  const lines = wrap(stripAccents(name), cols);
-  const right = `${qty}UN x ${money(unit)}  ${money(total)}`;
-  const padded =
-    right.length >= cols ? right : " ".repeat(cols - right.length) + right;
-  return [...lines, padded].join("\n");
+  const prefix = `${qty}x `;
+  const lines = wrapIndent(stripAccents(name), cols, prefix, prefix.length);
+  const values = wrapIndent(`Unit: ${money(unit)}  Total: ${money(total)}`, cols);
+  return ESC_BOLD_ON + [...lines, ...values].join("\n") + ESC_BOLD_OFF;
 }
 
 export function addonLine(qty: number, name: string, price: number | undefined, cols: number) {
@@ -130,7 +136,7 @@ export function addonLine(qty: number, name: string, price: number | undefined, 
     return wrap(labelRaw, inner).map((l) => indent + l).join("\n");
   }
   const lines = wrap(labelRaw, inner - value.length - 1);
-  const last = lines.pop()!;
+  const last = lines.pop() ?? "";
   const gap = inner - last.length - value.length;
   lines.push(last + " ".repeat(Math.max(1, gap)) + value);
   return lines.map((l) => indent + l).join("\n");
@@ -156,7 +162,8 @@ export function buildReceipt(
   s: PrinterSettings,
   opts: ReceiptStoreInfo,
 ): string {
-  const out: string[] = [];
+  const typography = resolvePrinterTypography(s);
+  const out: string[] = [printerReset(typography.compact)];
   const sepChar = s.separator_char || "-";
   const sep = lineOf(sepChar, cols);
   const narrow = cols <= 32;
@@ -205,33 +212,17 @@ export function buildReceipt(
   }
   out.push(sep);
 
-  /* 5. Tabela */
-  out.push(narrow ? "Qtd  Vl Unit    Vl Tot" : "Qtd Un  Vl Unit   Vl Tot");
-  out.push(sep);
-
   /* 6. Itens (sem linha em branco entre itens) */
   for (const it of order.items) {
     out.push(itemBlock(it.name, it.qty, it.unitPrice, it.unitPrice * it.qty, cols));
-    if (it.addons?.length) {
-      for (const a of it.addons) {
-        const parsed = parseAddonLabel(a.name);
-        const label =
-          parsed.kind === "size" ? `Tamanho: ${parsed.label}` :
-          parsed.kind === "flavor" ? `Sabor: ${parsed.label}` :
-          parsed.kind === "group" ? `${parsed.groupName}: ${parsed.label}` :
-          parsed.label;
-        const indentSaved = addonIndent;
-        const addon = addonLine(1, label, Number(a.price) || 0, cols);
-        out.push(narrow ? addon.replace(/^  /gm, indentSaved) : addon);
-      }
+    for (const detail of receiptItemDetails(it, true)) {
+      out.push(...wrapIndent(stripAccents(detail), cols, " - ", 3));
     }
-    if (it.note) {
-      wrap(`* ${stripAccents(it.note)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
-    }
+    out.push(sep);
   }
 
   /* 7. Total */
-  out.push(sep);
+  if (!order.items.length) out.push(sep);
   if (order.deliveryFee > 0) {
     out.push(row("Subtotal", money(order.subtotal), cols));
     out.push(row("Taxa entrega", money(order.deliveryFee), cols));
@@ -274,7 +265,7 @@ export function buildReceipt(
   else if (order.paymentStatus === "pending") out.push("Aguardando pagamento");
 
   if (order.note) {
-    wrap("Obs: " + stripAccents(order.note).slice(0, 200), cols).forEach((l) => out.push(l));
+    wrap("Obs: " + stripAccents(order.note), cols).forEach((l) => out.push(l));
   }
 
   /* 10. Rodapé */
@@ -292,7 +283,7 @@ export function buildReceipt(
   const feed = Math.min(4, Math.max(1, s.feed_lines));
   for (let i = 0; i < feed; i++) out.push("");
 
-  return out.join("\n");
+  return compactPrintCommands(out.join("\n"));
 }
 
 /** Pedido fictício usado pela prévia para demonstrar a formatação real. */
@@ -310,8 +301,8 @@ export function sampleOrderForPreview(): Order {
     payment: "Pix",
     table: "15",
     items: [
-      { productId: "p1", name: "Gado", qty: 2, unitPrice: 9, addons: [] },
-      { productId: "p2", name: "Coca 350ml Lata", qty: 2, unitPrice: 6, addons: [] },
+      { productId: "p1", name: "Carne", qty: 2, unitPrice: 9, addons: [{ id: "size-g", name: "Tamanho: Grande", price: 0 }, { id: "a1", name: "Adicionais (Gratis): Azeitona", price: 0 }, { id: "a2", name: "Adicionais (Gratis): Ervilha", price: 0 }], note: "Sem cebola" },
+      { productId: "p2", name: "Frango", qty: 2, unitPrice: 6, addons: [{ id: "size-p", name: "Tamanho: Pequeno", price: 0 }, { id: "all", name: "Adicionais: [Todos os adicionais]", price: 0 }] },
       { productId: "p3", name: "Taxa de Servico", qty: 1, unitPrice: 3, addons: [] },
     ],
     subtotal: 33,
@@ -331,6 +322,6 @@ export function buildReceiptPreviewText(
   settings: PrinterSettings,
   opts: ReceiptStoreInfo = {},
 ): string {
-  const cols = columnsFor(settings.paper_width, settings.font_size, settings.font_family);
+  const { cols } = resolvePrinterTypography(settings);
   return buildReceipt(sampleOrderForPreview(), cols, settings, opts);
 }

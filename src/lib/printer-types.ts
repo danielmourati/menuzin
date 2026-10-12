@@ -71,8 +71,6 @@ export const columnsFor = (
   fontFamily?: FontFamily,
 ) => {
   if (w === "55mm") {
-    if (fontSize === "compact" || fontFamily === "condensed") return 40;
-    if (fontSize === "large") return 24;
     return 32;
   }
   // 80mm
@@ -80,3 +78,15 @@ export const columnsFor = (
   if (fontSize === "large") return 32;
   return 42;
 };
+
+export function resolvePrinterTypography(settings: Pick<PrinterSettings, "paper_width" | "font_size" | "font_family"> & { use_default_typography?: boolean }) {
+  const defaults = settings.use_default_typography !== false;
+  const fontSize = defaults ? "normal" : settings.font_size;
+  const fontFamily = defaults ? "mono" : settings.font_family;
+  return {
+    fontSize,
+    fontFamily,
+    cols: columnsFor(settings.paper_width, fontSize, fontFamily),
+    compact: settings.paper_width === "80mm" && (fontSize === "compact" || fontFamily === "condensed"),
+  };
+}

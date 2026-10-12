@@ -14,7 +14,7 @@ import { QzNotRunningError, QzPrintTimeoutError, getQzPrinterStatus } from "@/li
 import { getEffectivePrinterName, getDeviceSettings } from "@/lib/device-printer";
 import { webBluetoothPrinter } from "@/lib/bluetooth-printer";
 import { buildReceipt } from "@/lib/receipt-builder";
-import { columnsFor } from "@/lib/printer-types";
+import { resolvePrinterTypography } from "@/lib/printer-types";
 
 interface PrintOrderButtonProps {
   order: Order;
@@ -84,9 +84,8 @@ export function PrintOrderButton({
         
         toast.loading("Enviando via Bluetooth...", { id: toastId });
         
-        // Bluetooth type -> force 55mm as requested by user
-        const cols = columnsFor("55mm", settings.font_size, settings.font_family);
-        const text = buildReceipt(order, cols, { ...settings, paper_width: "55mm" }, {
+        const { cols } = resolvePrinterTypography(settings);
+        const text = buildReceipt(order, cols, settings, {
           storeName: storeName ?? tenant?.name,
           storePhone: storePhone ?? tenant?.whatsapp,
           storeAddress: storeAddress ?? formatTenantAddress(tenant),

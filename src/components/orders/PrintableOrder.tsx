@@ -1,7 +1,8 @@
 import type { Order } from "@/lib/domain-types";
 import type { PrinterSettings } from "@/lib/printer-types";
-import { DEFAULT_PRINTER_SETTINGS, columnsFor } from "@/lib/printer-types";
+import { DEFAULT_PRINTER_SETTINGS, resolvePrinterTypography } from "@/lib/printer-types";
 import { buildReceipt } from "@/lib/receipt-builder";
+import { parsePrintSpans } from "@/lib/escpos-format";
 
 interface PrintableOrderProps {
   order: Order;
@@ -31,19 +32,7 @@ export function PrintableOrder({
   const s = settings ?? DEFAULT_PRINTER_SETTINGS;
   const width = paperWidth ?? s.paper_width;
   const isNarrow = width === "55mm";
-  const effectiveFontFamily = s.use_default_typography !== false ? "mono" : s.font_family;
-  const effectiveFontSize = s.use_default_typography !== false ? "normal" : s.font_size;
-  const cols = columnsFor(width, effectiveFontSize, effectiveFontFamily);
-
-  const fontStyle = effectiveFontFamily === "sans"
-    ? 'system-ui, -apple-system, sans-serif'
-    : effectiveFontFamily === "condensed"
-      ? '"Consolas", "Courier New", monospace'
-      : '"Courier New", Courier, monospace';
-
-  const fontSize = isNarrow
-    ? (effectiveFontSize === "compact" ? "8px" : effectiveFontSize === "large" ? "10px" : "9px")
-    : (effectiveFontSize === "compact" ? "10px" : effectiveFontSize === "large" ? "12px" : "11px");
+  const { cols } = resolvePrinterTypography({ ...s, paper_width: width });
   const widthClass = isNarrow ? "max-w-[55mm]" : "max-w-[80mm]";
   const pageMargin = isNarrow ? "1mm" : "2mm";
 
@@ -57,26 +46,27 @@ export function PrintableOrder({
   });
 
   return (
-    <div className={`printable-order-receipt mx-auto w-full ${widthClass} bg-white text-black p-1 select-none`}>
+    <div className={`printable-order-receipt mx-auto w-full ${widthClass} p-1 select-none`}>
       <style>{`
         @media print {
           @page { size: ${width} auto; margin: ${pageMargin}; }
-          html, body { margin: 0; padding: 0; background: #fff; }
+          html, body { margin: 0; padding: 0; background: var(--receipt-paper); }
           .printable-order-receipt { width: 100%; max-width: ${width}; padding: 0; }
         }
       `}</style>
       <pre
-        className="font-mono whitespace-pre"
+        className="receipt-text font-mono whitespace-pre"
         style={{
-          fontFamily: fontStyle,
-          fontSize,
+          width: `${cols}ch`,
+          fontSize: isNarrow ? "9px" : "11px",
           lineHeight: 1.1,
           margin: 0,
-          letterSpacing: s.font_family === "condensed" ? "-0.4px" : "0",
-          fontWeight: s.use_bold_titles ? 500 : 400,
+          letterSpacing: 0,
         }}
       >
-        {text}
+        {parsePrintSpans(text).map((span, index) => span.bold
+          ? <strong key={index}>{span.text}</strong>
+          : <span key={index}>{span.text}</span>)}
       </pre>
     </div>
   );

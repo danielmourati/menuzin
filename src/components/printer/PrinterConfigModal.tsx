@@ -35,11 +35,13 @@ import {
 import { toast } from "sonner";
 import {
   DEFAULT_PRINTER_SETTINGS,
-  columnsFor,
+  resolvePrinterTypography,
   type PaperWidth,
   type PrinterSettings,
 } from "@/lib/printer-types";
-import { center } from "@/lib/receipt-builder";
+import { buildReceipt, sampleOrderForPreview, wrapIndent } from "@/lib/receipt-builder";
+import { buildKitchenTicket } from "@/lib/kitchen-ticket";
+import { printerReset, ESC_DOUBLE_SIZE, ESC_NORMAL_SIZE, parsePrintSpans, compactPrintCommands } from "@/lib/escpos-format";
 import { getMyPrinterSettings, saveMyPrinterSettings } from "@/lib/printer-settings.functions";
 import {
   deleteTenantPrinter,
@@ -117,7 +119,7 @@ function fromTenantPrinter(p: TenantPrinter): ExtraDraft {
     printer_name: p.printer_name,
     paper_width: p.paper_width,
     is_active: p.is_active,
-    layout_overrides: p.layout_overrides ?? null,
+    layout_overrides: { font_size: p.font_size, font_family: p.font_family, ...p.layout_overrides },
   };
 }
 
@@ -222,6 +224,18 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     [drafts, selectedId],
   );
   const isCaixa = selectedId === "caixa";
+  const previewWidth = isCaixa ? caixa.paper_width : selected?.paper_width ?? "80mm";
+  const previewSettings = isCaixa ? caixa : {
+    ...DEFAULT_PRINTER_SETTINGS,
+    ...selected?.layout_overrides,
+    paper_width: previewWidth,
+    use_default_typography: false,
+  };
+  const previewTypography = resolvePrinterTypography(previewSettings);
+  const previewOrder = sampleOrderForPreview();
+  const previewTicket = isCaixa || selected?.layout_overrides?.full_kitchen_receipt
+    ? buildReceipt(previewOrder, previewTypography.cols, previewSettings, { storeName: "TESTE" })
+    : buildKitchenTicket(previewOrder, previewTypography.cols, { compact: previewTypography.compact, doubleBody: selected?.layout_overrides?.double_kitchen_font === true });
 
   const updateDraft = (patch: Partial<ExtraDraft>) => {
     setDrafts((prev) => prev.map((d) => (d.localId === selectedId ? { ...d, ...patch } : d)));
@@ -281,24 +295,30 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           ? "mono"
           : caixa.font_family
         : (selected?.layout_overrides?.font_family ?? "mono");
-      const cols = columnsFor(width, fontSz, fontFam);
+      const { cols, compact } = resolvePrinterTypography({ paper_width: width, font_size: fontSz, font_family: fontFam, use_default_typography: false });
       const feed = isCaixa ? caixa.feed_lines : (selected?.layout_overrides?.feed_lines ?? 3);
       const cut = isCaixa ? caixa.cut_type : (selected?.layout_overrides?.cut_type ?? "partial");
       const sep = "=".repeat(cols);
+      const sample = sampleOrderForPreview();
+      const receiptSettings = { ...caixa, paper_width: width, font_size: fontSz, font_family: fontFam, use_default_typography: false };
+      const sampleText = isCaixa || selected?.layout_overrides?.full_kitchen_receipt
+        ? buildReceipt(sample, cols, receiptSettings, { storeName: "TESTE" })
+        : buildKitchenTicket(sample, cols, { compact, doubleBody: selected?.layout_overrides?.double_kitchen_font === true });
+      const ruler = "12345678901234567890123456789012";
 
       await printQzTextTest(
         currentPrinterName,
-        [
+        compactPrintCommands([
+          printerReset(compact),
           sep,
-          center("TESTE DE IMPRESSAO", cols),
+          ...wrapIndent("TESTE DE IMPRESSAO", cols),
           sep,
-          `Local: ${isCaixa ? "Caixa" : selected?.name || "Cozinha"}`,
-          `Impressora: ${currentPrinterName}`,
-          `Papel: ${width} · Colunas: ${cols}`,
-          `Fonte: ${fontSz} (${fontFam})`,
-          `Data: ${new Date().toLocaleString("pt-BR")}`,
+          ...wrapIndent(`Local: ${isCaixa ? "Caixa" : selected?.name || "Cozinha"}`, cols),
+          ...wrapIndent(`Papel: ${width} Colunas: ${cols}`, cols),
+          ...(width === "55mm" ? [ruler, ESC_DOUBLE_SIZE, ruler.slice(0, 16), ESC_NORMAL_SIZE] : []),
           sep,
-        ].join("\n"),
+          sampleText,
+        ].join("\n")),
         { feedLines: feed, cutType: cut },
       );
       toast.success("Teste enviado para a impressora.");
@@ -773,6 +793,18 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
             </div>
           </div>
 
+          {selectedId !== "device" && (isCaixa || selected) && (
+            <details className="border-t px-5 py-3">
+              <summary className="cursor-pointer text-sm font-medium">Prévia do cupom</summary>
+              <div className="overflow-x-auto py-3">
+                <pre className="printable-order-receipt receipt-text mx-auto whitespace-pre p-2 text-xs" style={{ width: `${previewTypography.cols}ch`, boxSizing: "content-box" }}>
+                  {parsePrintSpans(previewTicket).map((span, index) => (
+                    <span key={index} className={span.bold ? "font-bold" : "font-normal"} style={span.double ? { fontSize: "200%" } : undefined}>{span.text}</span>
+                  ))}
+                </pre>
+              </div>
+            </details>
+          )}
           {/* Rodapé */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-5 py-3">
             {selectedId !== "device" ? (
