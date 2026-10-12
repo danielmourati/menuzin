@@ -311,8 +311,8 @@ export const settleDriver = createServerFn({ method: "POST" })
     const { error } = await sb.from("cash_driver_settlements").upsert({
       session_id: sessionId, tenant_id: tenantId, driver_id: data.driver_id,
       driver_name: data.driver_name, amount: data.amount, settled_by: context.userId,
-      settled_at: new Date().toISOString(),
-    }, { onConflict: "session_id,driver_id" });
+      settled_at: new Date().toISOString(), kind: "cash_return",
+    }, { onConflict: "session_id,driver_id,kind" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
