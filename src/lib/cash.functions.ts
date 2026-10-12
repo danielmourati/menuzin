@@ -118,6 +118,13 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
     pending: pending.map((o) => ({ id: o.id, number: o.number, total: Number(o.total), status: o.status })),
     movements: moves ?? [],
     drivers: [...byDriver.values()],
+    orders: orders.map((o) => ({
+      id: o.id as string, number: o.number as number, status: o.status as string,
+      total: Number(o.total), change_for: o.change_for == null ? null : Number(o.change_for),
+      no_change: !!o.no_change, payment_label: (o.payment_label ?? "—") as string,
+      mode: o.mode as string, customer_name: (o.customer_name ?? null) as string | null,
+      created_at: o.created_at as string,
+    })),
   };
 }
 
@@ -208,6 +215,76 @@ export const getCashOverview = createServerFn({ method: "POST" })
         finishedCount: calc.finishedCount,
       },
       history: history ?? [],
+    };
+  });
+
+export type OpenReportOrder = {
+  id: string; number: number; status: string; total: number | null; change_for: number | null; no_change: boolean;
+  payment_label: string; is_cash: boolean; mode: string; customer_name: string | null; created_at: string;
+};
+
+// Relatório do turno aberto. Valores em dinheiro/esperado só vão ao dono/admin (fechamento cego).
+export const getOpenCashReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    const { supabase, userId } = context as unknown as { supabase: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown }> }; userId: string };
+    const [{ data: roleOk }, { data: platformOk }] = await Promise.all([
+      supabase.rpc("has_tenant_role", { _user_id: userId, _tenant_id: tenantId, _roles: ["owner", "admin"] }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" }),
+    ]);
+    const canSeeCash = !!roleOk || !!platformOk;
+    const sb = await admin();
+    const { data: session } = await sb.from("cash_sessions").select("*")
+      .eq("tenant_id", tenantId).eq("status", "open").maybeSingle();
+    if (!session) throw new Error("Nenhum turno aberto.");
+    const calc = await computeSession(tenantId, session);
+
+    const live = calc.orders.filter((o) => o.status !== "cancelado");
+    const cancelled = calc.orders.filter((o) => o.status === "cancelado");
+    const pendingCount = live.filter((o) => o.status !== "finalizado").length;
+    const groups = new Map<string, { label: string; is_cash: boolean; count: number; total: number }>();
+    for (const o of live) {
+      const key = (o.payment_label || "—").trim();
+      const cur = groups.get(key) ?? { label: key, is_cash: isCashLabel(key), count: 0, total: 0 };
+      cur.count += 1; cur.total = r2(cur.total + o.total);
+      groups.set(key, cur);
+    }
+    const payments = [...groups.values()]
+      .sort((a, b) => b.total - a.total)
+      .map((g) => ({ label: g.label, is_cash: g.is_cash, count: g.count, total: g.is_cash && !canSeeCash ? null : g.total }));
+    const nonCashSold = r2(live.filter((o) => !isCashLabel(o.payment_label)).reduce((s, o) => s + o.total, 0));
+    const totalSold = r2(live.reduce((s, o) => s + o.total, 0));
+    const orders: OpenReportOrder[] = [...calc.orders]
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+      .map((o) => {
+        const isCash = isCashLabel(o.payment_label);
+        return {
+          id: o.id, number: o.number, status: o.status, mode: o.mode, customer_name: o.customer_name,
+          created_at: o.created_at, payment_label: o.payment_label, is_cash: isCash,
+          total: isCash && !canSeeCash ? null : o.total,
+          change_for: isCash && !canSeeCash ? null : o.change_for,
+          no_change: isCash && !canSeeCash ? false : o.no_change,
+        };
+      });
+    return {
+      can_see_cash: canSeeCash,
+      opened_at: session.opened_at as string,
+      opened_by_name: (session.opened_by_name ?? null) as string | null,
+      opening_float: Number(session.opening_float),
+      orders_count: live.length,
+      pending_count: pendingCount,
+      cancelled_count: cancelled.length,
+      cancelled_total: canSeeCash ? r2(cancelled.reduce((s, o) => s + o.total, 0)) : null,
+      total_sold: canSeeCash ? totalSold : null,
+      non_cash_sold: nonCashSold,
+      cash_sales: canSeeCash ? calc.cashSales : null,
+      expected: canSeeCash ? calc.expected : null,
+      withdrawals: calc.withdrawals,
+      withdrawals_count: calc.movements.length,
+      movements: calc.movements.map((m) => ({ id: m.id as string, amount: Number(m.amount), reason: (m.reason ?? null) as string | null, created_at: m.created_at as string })),
+      payments,
+      orders,
     };
   });
 
