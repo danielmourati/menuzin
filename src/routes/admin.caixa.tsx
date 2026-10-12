@@ -80,7 +80,7 @@ function CashPage() {
   });
   const settleM = useMutation({
     mutationFn: (v: { driver_id: string; driver_name: string; amount: number }) => settleDriver({ data: v }),
-    onSuccess: () => { toast.success("Acerto registrado."); refresh(); },
+    onSuccess: () => { toast.success("Dinheiro do entregador conferido."); refresh(); },
     onError: (e: Error) => toast.error(e.message),
   });
   const payFeesM = useMutation({
@@ -221,22 +221,22 @@ function CashPage() {
                           <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {d.driver_name} <span className="font-normal text-muted-foreground">· {d.deliveries.length} entrega(s)</span></p>
                           {d.orders > 0 ? (
                             <>
-                              <p className="mt-1">Saiu com <b>{brl(d.to_collect)}</b> em entregas a cobrar e <b>{brl(d.change_out)}</b> em troco.</p>
-                              <p className="text-base">Deve entregar <b className="text-primary">{brl(d.must_return)}</b> ao retornar.</p>
+                              <p className="mt-1">Cobrar dos clientes: <b>{brl(d.to_collect)}</b> · Troco levado do caixa: <b>{brl(d.change_out)}</b></p>
+                              <p className="text-base">Dinheiro a devolver ao caixa: <b className="text-primary">{brl(d.must_return)}</b> <span className="text-xs text-muted-foreground">(notas recebidas dos clientes, incluindo o troco levado)</span></p>
                             </>
-                          ) : <p className="mt-1 text-muted-foreground">Nenhuma entrega em dinheiro para acertar.</p>}
+                          ) : <p className="mt-1 text-muted-foreground">Sem dinheiro a devolver (todas as entregas foram Pix/cartão).</p>}
                         </div>
                         {d.orders > 0 && (d.settled_at ? (
-                          <Badge variant="secondary" className="gap-1 self-start"><CheckCircle2 className="h-3.5 w-3.5" /> Acertado {fmtDate(d.settled_at)}</Badge>
+                          <Badge variant="secondary" className="gap-1 self-start"><CheckCircle2 className="h-3.5 w-3.5" /> Dinheiro devolvido em {fmtDate(d.settled_at)}</Badge>
                         ) : (
                           <Button disabled={settleM.isPending || !d.driver_id} onClick={() => d.driver_id && settleM.mutate({ driver_id: d.driver_id, driver_name: d.driver_name, amount: d.must_return })}>
-                            Marcar acerto recebido
+                            Confirmar dinheiro recebido do entregador
                           </Button>
                         ))}
                       </div>
 
                       <div className="rounded-lg border">
-                        <div className="border-b bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega</div>
+                        <div className="border-b bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega (loja → entregador)</div>
                         <ul className="divide-y text-sm">
                           {d.deliveries.map((x) => (
                             <li key={x.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
@@ -246,7 +246,7 @@ function CashPage() {
                           ))}
                         </ul>
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
-                          <span className="text-sm">Taxas a pagar ao entregador: <b className="text-primary text-base">{brl(d.fees_total)}</b></span>
+                          <span className="text-sm">{d.fees_paid_at ? "Taxas de entrega pagas" : "Taxas de entrega a pagar ao entregador"}: <b className="text-primary text-base">{brl(d.fees_total)}</b></span>
                           {d.fees_paid_at ? (
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Pagas em {d.fees_paid_method === "cash" ? "Dinheiro" : "Pix"} {fmtDate(d.fees_paid_at)}</Badge>
