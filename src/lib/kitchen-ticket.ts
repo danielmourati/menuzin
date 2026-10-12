@@ -6,7 +6,7 @@
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { receiptItemDetails } from "@/lib/receipt-item-details";
-import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset } from "@/lib/escpos-format";
+import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import { cashTicketBlock } from "@/lib/cash-change";
 import { center, lineOf, stripAccents, wrap, wrapIndent } from "@/lib/receipt-builder";
@@ -21,7 +21,6 @@ export function kitchenColumnsFor(paper: PaperWidth, fontSize?: FontSize, fontFa
 // - ESC @         (\x1b@)        : initialize printer
 // - GS ! n        (\x1d!n)       : char size; high nibble = altura, low = largura
 //   0x00 = normal · 0x11 = 2x largura+altura · 0x01 = só 2x largura
-const ESC_INIT = "\x1b@";
 const ESC_BIG = "\x1d!\x11";
 const ESC_NORMAL = "\x1d!\x00";
 
@@ -42,8 +41,6 @@ export function buildKitchenTicket(
   const double = !!options?.doubleBody;
   const bodyCols = double ? bigCols : cols;
   const bigSep = lineOf("=", bigCols);
-  const bodySep = lineOf("=", bodyCols);
-  const bodySepThin = lineOf("-", bodyCols);
 
   const out: string[] = [];
 
@@ -115,5 +112,5 @@ export function buildKitchenTicket(
   out.push(center(formatDateTime(order.createdAt), cols));
   out.push(sep);
 
-  return out.join("\n");
+  return compactPrintCommands(out.join("\n"));
 }

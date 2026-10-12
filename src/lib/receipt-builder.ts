@@ -4,7 +4,7 @@
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
 import { receiptItemDetails } from "@/lib/receipt-item-details";
-import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset } from "@/lib/escpos-format";
+import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import type { PrinterSettings } from "@/lib/printer-types";
 import { resolvePrinterTypography } from "@/lib/printer-types";
@@ -277,7 +277,7 @@ export function buildReceipt(
   const feed = Math.min(4, Math.max(1, s.feed_lines));
   for (let i = 0; i < feed; i++) out.push("");
 
-  return out.join("\n");
+  return compactPrintCommands(out.join("\n"));
 }
 
 /** Pedido fictício usado pela prévia para demonstrar a formatação real. */
@@ -295,8 +295,8 @@ export function sampleOrderForPreview(): Order {
     payment: "Pix",
     table: "15",
     items: [
-      { productId: "p1", name: "Carne", qty: 2, unitPrice: 9, addons: [{ name: "Tamanho: Grande", price: 0 }, { name: "Adicionais (Gratis): Azeitona", price: 0 }, { name: "Adicionais (Gratis): Ervilha", price: 0 }], note: "Sem cebola" },
-      { productId: "p2", name: "Frango", qty: 2, unitPrice: 6, addons: [{ name: "Tamanho: Pequeno", price: 0 }, { name: "Adicionais: [Todos os adicionais]", price: 0 }] },
+      { productId: "p1", name: "Carne", qty: 2, unitPrice: 9, addons: [{ id: "size-g", name: "Tamanho: Grande", price: 0 }, { id: "a1", name: "Adicionais (Gratis): Azeitona", price: 0 }, { id: "a2", name: "Adicionais (Gratis): Ervilha", price: 0 }], note: "Sem cebola" },
+      { productId: "p2", name: "Frango", qty: 2, unitPrice: 6, addons: [{ id: "size-p", name: "Tamanho: Pequeno", price: 0 }, { id: "all", name: "Adicionais: [Todos os adicionais]", price: 0 }] },
       { productId: "p3", name: "Taxa de Servico", qty: 1, unitPrice: 3, addons: [] },
     ],
     subtotal: 33,

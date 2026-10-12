@@ -33,3 +33,15 @@ export function parsePrintSpans(text: string): PrintSpan[] {
 }
 
 export const plainPrintText = (text: string) => parsePrintSpans(text).map((s) => s.text).join("");
+
+/** Formatting-only entries change state without feeding a blank paper line. */
+export function compactPrintCommands(text: string): string {
+  const lines: string[] = [];
+  let pending = "";
+  for (const line of text.split("\n")) {
+    if (line && plainPrintText(line) === "") { pending += line; continue; }
+    lines.push(pending + line);
+    pending = "";
+  }
+  return lines.join("\n") + pending;
+}
