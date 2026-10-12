@@ -22,6 +22,12 @@ export function buildKitchenTicketForPrinter(order: Order, printer: TenantPrinte
       font_size: fontSize,
       font_family: fontFamily,
       use_default_typography: false,
+      show_address: ov.show_address ?? false,
+      show_document: ov.show_document ?? false,
+      show_whatsapp: ov.show_whatsapp ?? false,
+      show_pix: ov.show_pix ?? false,
+      show_instagram: ov.show_instagram ?? false,
+      show_thank_message: ov.show_thank_message ?? false,
     };
     return buildReceipt(order, cols, settings, storeInfo ?? {});
   }

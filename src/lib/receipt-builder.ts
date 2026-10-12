@@ -47,6 +47,12 @@ export function wrapIndent(text: string, cols: number, firstPrefix = "", hangInd
         w = "";
         break;
       }
+      // A long first-line label is not an empty line: move a whole word to
+      // the continuation when it fits there instead of slicing it in place.
+      if (empty && cur.length > hang && w.length <= cols - hang) {
+        flush();
+        continue;
+      }
       const room = cols - cur.length - (empty ? 0 : 1);
       // palavra não cabe numa linha vazia → hifeniza
       if (w.length > cols - hang && room >= 3) {
