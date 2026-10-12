@@ -41,7 +41,7 @@ import {
 } from "@/lib/printer-types";
 import { buildReceipt, sampleOrderForPreview, wrapIndent } from "@/lib/receipt-builder";
 import { buildKitchenTicket } from "@/lib/kitchen-ticket";
-import { printerReset, ESC_DOUBLE_SIZE, ESC_NORMAL_SIZE } from "@/lib/escpos-format";
+import { printerReset, ESC_DOUBLE_SIZE, ESC_NORMAL_SIZE, parsePrintSpans, compactPrintCommands } from "@/lib/escpos-format";
 import { getMyPrinterSettings, saveMyPrinterSettings } from "@/lib/printer-settings.functions";
 import {
   deleteTenantPrinter,
@@ -224,6 +224,18 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     [drafts, selectedId],
   );
   const isCaixa = selectedId === "caixa";
+  const previewWidth = isCaixa ? caixa.paper_width : selected?.paper_width ?? "80mm";
+  const previewSettings = isCaixa ? caixa : {
+    ...DEFAULT_PRINTER_SETTINGS,
+    ...selected?.layout_overrides,
+    paper_width: previewWidth,
+    use_default_typography: false,
+  };
+  const previewTypography = resolvePrinterTypography(previewSettings);
+  const previewOrder = sampleOrderForPreview();
+  const previewTicket = isCaixa || selected?.layout_overrides?.full_kitchen_receipt
+    ? buildReceipt(previewOrder, previewTypography.cols, previewSettings, { storeName: "TESTE" })
+    : buildKitchenTicket(previewOrder, previewTypography.cols, { compact: previewTypography.compact, doubleBody: selected?.layout_overrides?.double_kitchen_font === true });
 
   const updateDraft = (patch: Partial<ExtraDraft>) => {
     setDrafts((prev) => prev.map((d) => (d.localId === selectedId ? { ...d, ...patch } : d)));
@@ -306,7 +318,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           ...(width === "55mm" ? [ruler, ESC_DOUBLE_SIZE, ruler.slice(0, 16), ESC_NORMAL_SIZE] : []),
           sep,
           sampleText,
-        ].join("\n"),
+        ].map((line) => line).join("\n").replace(/\n(?=\x1b@)/g, "\n"),
         { feedLines: feed, cutType: cut },
       );
       toast.success("Teste enviado para a impressora.");
@@ -781,6 +793,18 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
             </div>
           </div>
 
+          {selectedId !== "device" && (isCaixa || selected) && (
+            <details className="border-t px-5 py-3">
+              <summary className="cursor-pointer text-sm font-medium">Prévia do cupom</summary>
+              <div className="overflow-x-auto py-3">
+                <pre className="printable-order-receipt receipt-text mx-auto whitespace-pre p-2 text-xs" style={{ width: `${previewTypography.cols}ch`, boxSizing: "content-box" }}>
+                  {parsePrintSpans(previewTicket).map((span, index) => (
+                    <span key={index} className={span.bold ? "font-bold" : "font-normal"} style={span.double ? { fontSize: "200%" } : undefined}>{span.text}</span>
+                  ))}
+                </pre>
+              </div>
+            </details>
+          )}
           {/* Rodapé */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/20 px-5 py-3">
             {selectedId !== "device" ? (
