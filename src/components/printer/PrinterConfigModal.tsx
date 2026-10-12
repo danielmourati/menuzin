@@ -308,7 +308,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
       await printQzTextTest(
         currentPrinterName,
-        [
+        compactPrintCommands([
           printerReset(compact),
           sep,
           ...wrapIndent("TESTE DE IMPRESSAO", cols),
@@ -318,7 +318,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           ...(width === "55mm" ? [ruler, ESC_DOUBLE_SIZE, ruler.slice(0, 16), ESC_NORMAL_SIZE] : []),
           sep,
           sampleText,
-        ].map((line) => line).join("\n").replace(/\n(?=\x1b@)/g, "\n"),
+        ].join("\n")),
         { feedLines: feed, cutType: cut },
       );
       toast.success("Teste enviado para a impressora.");
