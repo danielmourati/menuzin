@@ -119,7 +119,7 @@ function fromTenantPrinter(p: TenantPrinter): ExtraDraft {
     printer_name: p.printer_name,
     paper_width: p.paper_width,
     is_active: p.is_active,
-    layout_overrides: p.layout_overrides ?? null,
+    layout_overrides: { font_size: p.font_size, font_family: p.font_family, ...p.layout_overrides },
   };
 }
 

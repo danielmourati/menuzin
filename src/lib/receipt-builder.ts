@@ -222,7 +222,7 @@ export function buildReceipt(
   }
 
   /* 7. Total */
-  out.push(sep);
+  if (!order.items.length) out.push(sep);
   if (order.deliveryFee > 0) {
     out.push(row("Subtotal", money(order.subtotal), cols));
     out.push(row("Taxa entrega", money(order.deliveryFee), cols));

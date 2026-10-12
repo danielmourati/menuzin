@@ -99,7 +99,7 @@ export function PrintKitchenButton({
 
         toast.loading("Enviando comanda via Bluetooth...", { id: toastId });
 
-        await printKitchenTicketViaBluetooth(order, kitchenPrinter);
+        await printKitchenTicketViaBluetooth(order, kitchenPrinter, undefined, storeInfo);
         toast.success(`Comanda enviada via Bluetooth`, { id: toastId });
       } else {
         const status = await getQzPrinterStatus(kitchenPrinter.printer_name);

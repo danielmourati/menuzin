@@ -107,7 +107,14 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
             toast.error("Impressão automática falhou: Bluetooth não conectado.");
             return;
           }
-          await printKitchenTicketViaBluetooth(order, kitchenPrinter, options);
+          await printKitchenTicketViaBluetooth(order, kitchenPrinter, options, {
+            storeName: tenant?.name,
+            storePhone: tenant?.whatsapp,
+            storeAddress: formatTenantAddress(tenant),
+            storeInstagram: tenant?.social?.instagram,
+            storePixKey: tenant?.social?.pix,
+            storeCnpj: tenant?.social?.cnpj,
+          });
           toast.success(`Comanda impressa automaticamente via Bluetooth`);
         } else {
           if (!kitchenPrinter) return;
