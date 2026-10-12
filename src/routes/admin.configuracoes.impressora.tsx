@@ -12,6 +12,14 @@ import { PlanGate } from "@/components/subscription/PlanGate";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/configuracoes/impressora")({
+  head: () => ({ meta: [
+    { title: "Impressoras da loja | Menuzin" },
+    { name: "description", content: "Configure e teste os cupons do caixa e da cozinha no Menuzin." },
+    { property: "og:title", content: "Impressoras da loja | Menuzin" },
+    { property: "og:description", content: "Configuração e testes dos cupons do caixa e da cozinha." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <PlanGate
       min="pro"

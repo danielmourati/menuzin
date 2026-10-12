@@ -56,6 +56,8 @@
 }
 
 :root {
+  --receipt-paper: #fff;
+  --receipt-ink: #000;
   --radius: 0.875rem;
   --gradient-hero: linear-gradient(120deg, oklch(0.52 0.19 38) 0%, oklch(0.64 0.2 42) 55%, oklch(0.72 0.18 55) 100%);
   --background: oklch(0.985 0.005 80);
@@ -107,6 +109,13 @@
   --sidebar-border: oklch(0.92 0.01 80);
   --sidebar-ring: oklch(0.66 0.22 35);
 }
+
+.printable-order-receipt {
+  background: var(--receipt-paper);
+  color: var(--receipt-ink);
+}
+.receipt-text { font-family: "Courier New", Courier, monospace; font-weight: 400; }
+.receipt-text strong { font-weight: 700; }
 
 .dark {
   --background: oklch(0.16 0.02 250);

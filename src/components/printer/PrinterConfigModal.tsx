@@ -35,11 +35,13 @@ import {
 import { toast } from "sonner";
 import {
   DEFAULT_PRINTER_SETTINGS,
-  columnsFor,
+  resolvePrinterTypography,
   type PaperWidth,
   type PrinterSettings,
 } from "@/lib/printer-types";
-import { center } from "@/lib/receipt-builder";
+import { buildReceipt, sampleOrderForPreview, wrapIndent } from "@/lib/receipt-builder";
+import { buildKitchenTicket } from "@/lib/kitchen-ticket";
+import { printerReset, ESC_DOUBLE_SIZE, ESC_NORMAL_SIZE } from "@/lib/escpos-format";
 import { getMyPrinterSettings, saveMyPrinterSettings } from "@/lib/printer-settings.functions";
 import {
   deleteTenantPrinter,
@@ -281,23 +283,29 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
           ? "mono"
           : caixa.font_family
         : (selected?.layout_overrides?.font_family ?? "mono");
-      const cols = columnsFor(width, fontSz, fontFam);
+      const { cols, compact } = resolvePrinterTypography({ paper_width: width, font_size: fontSz, font_family: fontFam, use_default_typography: false });
       const feed = isCaixa ? caixa.feed_lines : (selected?.layout_overrides?.feed_lines ?? 3);
       const cut = isCaixa ? caixa.cut_type : (selected?.layout_overrides?.cut_type ?? "partial");
       const sep = "=".repeat(cols);
+      const sample = sampleOrderForPreview();
+      const receiptSettings = { ...caixa, paper_width: width, font_size: fontSz, font_family: fontFam, use_default_typography: false };
+      const sampleText = isCaixa || selected?.layout_overrides?.full_kitchen_receipt
+        ? buildReceipt(sample, cols, receiptSettings, { storeName: "TESTE" })
+        : buildKitchenTicket(sample, cols, { compact, doubleBody: selected?.layout_overrides?.double_kitchen_font === true });
+      const ruler = "12345678901234567890123456789012";
 
       await printQzTextTest(
         currentPrinterName,
         [
+          printerReset(compact),
           sep,
-          center("TESTE DE IMPRESSAO", cols),
+          ...wrapIndent("TESTE DE IMPRESSAO", cols),
           sep,
-          `Local: ${isCaixa ? "Caixa" : selected?.name || "Cozinha"}`,
-          `Impressora: ${currentPrinterName}`,
-          `Papel: ${width} · Colunas: ${cols}`,
-          `Fonte: ${fontSz} (${fontFam})`,
-          `Data: ${new Date().toLocaleString("pt-BR")}`,
+          ...wrapIndent(`Local: ${isCaixa ? "Caixa" : selected?.name || "Cozinha"}`, cols),
+          ...wrapIndent(`Papel: ${width} Colunas: ${cols}`, cols),
+          ...(width === "55mm" ? [ruler, ESC_DOUBLE_SIZE, ruler.slice(0, 16), ESC_NORMAL_SIZE] : []),
           sep,
+          sampleText,
         ].join("\n"),
         { feedLines: feed, cutType: cut },
       );

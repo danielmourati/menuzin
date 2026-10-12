@@ -3,6 +3,7 @@
 // usamos um par cert.pem + chave privada próprios: o cert é declarado como
 // `authcert.override=cert.pem` no QZ Tray do cliente, e a assinatura é feita
 // no servidor (server function) com a chave privada correspondente.
+import { printerReset } from "@/lib/escpos-format";
 
 type QZ = {
   websocket: {
@@ -322,7 +323,7 @@ export async function printQzTextTest(
     if (!target) throw new Error("Nenhuma impressora encontrada.");
     const feed = Math.max(0, opts?.feedLines ?? 3);
     const cut = getCutSequence(opts?.cutType ?? "full");
-    const payload = text + "\n".repeat(feed) + cut;
+    const payload = (text.startsWith("\x1b@") ? "" : printerReset()) + text + "\n".repeat(feed) + cut;
     const config = qz.configs.create(target, { encoding: "CP860" });
     await qz.print(config, [payload]);
   });
@@ -353,7 +354,7 @@ export async function printQzReceipt(
     const feed = Math.max(0, opts?.feedLines ?? 3);
     const cut = getCutSequence(opts?.cutType);
 
-    const payload = text + "\n".repeat(feed) + cut;
+    const payload = (text.startsWith("\x1b@") ? "" : printerReset()) + text + "\n".repeat(feed) + cut;
     const copies = Math.max(1, Math.min(2, Math.trunc(opts?.copies ?? 1)));
     const config = qz.configs.create(target, { encoding: "CP860" });
     await withTimeout(
