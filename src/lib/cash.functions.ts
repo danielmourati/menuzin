@@ -22,6 +22,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export type CashDriverDelivery = {
   id: string; number: number; neighborhood: string | null; fee: number; payment_label: string; is_cash: boolean;
+  total: number; paid_with: number | null;
 };
 
 export type CashDriverSummary = {
@@ -88,6 +89,8 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
     const addr = (o.address ?? null) as { neighborhood?: string } | null;
     cur.deliveries.push({
       id: o.id, number: o.number, fee: Number(o.delivery_fee ?? 0), payment_label: o.payment_label, is_cash: isCash,
+      total: Number(o.total),
+      paid_with: isCash ? (o.no_change ? Number(o.total) : Number(o.change_for ?? o.total)) : null,
       neighborhood: o.delivery_neighborhood_snapshot || addr?.neighborhood || null,
     });
     cur.fees_total = r2(cur.fees_total + Number(o.delivery_fee ?? 0));

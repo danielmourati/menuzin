@@ -24,7 +24,7 @@ export const Route = createFileRoute("/admin/caixa")({
   head: () => ({
     meta: [
       { title: "Caixa — Menuzin" },
-      { name: "description", content: "Abertura de turno, sangrias, fechamento cego e acerto de entregadores." },
+      { name: "description", content: "Abertura de turno, sangrias, fechamento cego e prestação de contas dos entregadores." },
       { property: "og:title", content: "Caixa — Menuzin" },
       { property: "og:description", content: "Controle de caixa enxuto para delivery." },
       { property: "og:type", content: "website" },
@@ -80,7 +80,7 @@ function CashPage() {
   });
   const settleM = useMutation({
     mutationFn: (v: { driver_id: string; driver_name: string; amount: number }) => settleDriver({ data: v }),
-    onSuccess: () => { toast.success("Acerto registrado."); refresh(); },
+    onSuccess: () => { toast.success("Dinheiro do entregador conferido."); refresh(); },
     onError: (e: Error) => toast.error(e.message),
   });
   const payFeesM = useMutation({
@@ -221,22 +221,22 @@ function CashPage() {
                           <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {d.driver_name} <span className="font-normal text-muted-foreground">· {d.deliveries.length} entrega(s)</span></p>
                           {d.orders > 0 ? (
                             <>
-                              <p className="mt-1">Saiu com <b>{brl(d.to_collect)}</b> em entregas a cobrar e <b>{brl(d.change_out)}</b> em troco.</p>
-                              <p className="text-base">Deve entregar <b className="text-primary">{brl(d.must_return)}</b> ao retornar.</p>
+                              <p className="mt-1">Cobrar dos clientes: <b>{brl(d.to_collect)}</b> · Troco levado do caixa: <b>{brl(d.change_out)}</b></p>
+                              <p className="text-base">Dinheiro a devolver ao caixa: <b className="text-primary">{brl(d.must_return)}</b> <span className="text-xs text-muted-foreground">(notas recebidas dos clientes, incluindo o troco levado)</span></p>
                             </>
-                          ) : <p className="mt-1 text-muted-foreground">Nenhuma entrega em dinheiro para acertar.</p>}
+                          ) : <p className="mt-1 text-muted-foreground">Sem dinheiro a devolver (todas as entregas foram Pix/cartão).</p>}
                         </div>
                         {d.orders > 0 && (d.settled_at ? (
-                          <Badge variant="secondary" className="gap-1 self-start"><CheckCircle2 className="h-3.5 w-3.5" /> Acertado {fmtDate(d.settled_at)}</Badge>
+                          <Badge variant="secondary" className="gap-1 self-start"><CheckCircle2 className="h-3.5 w-3.5" /> Dinheiro devolvido em {fmtDate(d.settled_at)}</Badge>
                         ) : (
                           <Button disabled={settleM.isPending || !d.driver_id} onClick={() => d.driver_id && settleM.mutate({ driver_id: d.driver_id, driver_name: d.driver_name, amount: d.must_return })}>
-                            Marcar acerto recebido
+                            Confirmar dinheiro recebido do entregador
                           </Button>
                         ))}
                       </div>
 
                       <div className="rounded-lg border">
-                        <div className="border-b bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega</div>
+                        <div className="border-b bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega (loja → entregador)</div>
                         <ul className="divide-y text-sm">
                           {d.deliveries.map((x) => (
                             <li key={x.id} className="flex items-center justify-between gap-2 px-3 py-1.5">
@@ -246,7 +246,7 @@ function CashPage() {
                           ))}
                         </ul>
                         <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
-                          <span className="text-sm">Taxas a pagar ao entregador: <b className="text-primary text-base">{brl(d.fees_total)}</b></span>
+                          <span className="text-sm">{d.fees_paid_at ? "Taxas de entrega pagas" : "Taxas de entrega a pagar ao entregador"}: <b className="text-primary text-base">{brl(d.fees_total)}</b></span>
                           {d.fees_paid_at ? (
                             <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Pagas em {d.fees_paid_method === "cash" ? "Dinheiro" : "Pix"} {fmtDate(d.fees_paid_at)}</Badge>
@@ -419,20 +419,61 @@ function CashPage() {
                   ) : (
                     <div className="space-y-3">
                       {detailQ.data.drivers.map((driver) => (
-                        <div key={driver.driver_id ?? driver.driver_name} className="rounded-lg border p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-2">
-                            <div>
-                              <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {driver.driver_name}</p>
-                              <p className="mt-1 text-xs text-muted-foreground">{driver.deliveries.length} entrega(s) · {driver.orders} em dinheiro</p>
+                        <div key={driver.driver_id ?? driver.driver_name} className="space-y-3 rounded-lg border p-4">
+                          <div>
+                            <p className="flex items-center gap-1.5 font-bold"><Truck className="h-4 w-4 text-primary" /> {driver.driver_name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{driver.deliveries.length} entrega(s) · {driver.orders} paga(s) em dinheiro</p>
+                          </div>
+
+                          <div className="rounded-md border">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+                              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dinheiro das entregas (entregador → caixa)</span>
+                              {driver.settled_at ? (
+                                <Badge variant="secondary" title="O dinheiro recebido dos clientes foi conferido e devolvido ao caixa.">Dinheiro devolvido em {fmtDate(driver.settled_at)}</Badge>
+                              ) : driver.orders > 0 ? (
+                                <Badge variant="outline" title="Ainda não foi marcado que o entregador devolveu o dinheiro recebido dos clientes.">Dinheiro não devolvido</Badge>
+                              ) : null}
                             </div>
-                            {driver.settled_at ? <Badge variant="secondary">Acerto recebido</Badge> : driver.orders > 0 ? <Badge variant="outline">Acerto pendente</Badge> : null}
+                            {driver.orders > 0 ? (
+                              <div className="space-y-1 px-3 py-2 text-sm">
+                                <div className="flex justify-between"><span className="text-muted-foreground">Cobrado dos clientes</span><b>{brl(driver.to_collect)}</b></div>
+                                <div className="flex justify-between"><span className="text-muted-foreground">Troco levado do caixa</span><b>{brl(driver.change_out)}</b></div>
+                                <div className="flex justify-between border-t pt-1"><span>Dinheiro a devolver ao caixa</span><b className="text-primary">{brl(driver.must_return)}</b></div>
+                                <p className="text-xs text-muted-foreground">Soma das notas recebidas dos clientes, já incluindo o troco levado.</p>
+                                <ul className="mt-1 divide-y text-xs">
+                                  {driver.deliveries.filter((x) => x.is_cash).map((x) => (
+                                    <li key={x.id} className="flex justify-between gap-2 py-1">
+                                      <span>#{x.number} · total {brl(x.total)}</span>
+                                      <span>cliente pagou com <b>{brl(x.paid_with ?? x.total)}</b></span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              <p className="px-3 py-2 text-sm text-muted-foreground">Sem dinheiro a devolver (todas as entregas foram Pix/cartão).</p>
+                            )}
                           </div>
-                          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                            <div><span className="block text-xs text-muted-foreground">Valor a devolver</span><b>{brl(driver.must_return)}</b></div>
-                            <div><span className="block text-xs text-muted-foreground">Taxas do entregador</span><b>{brl(driver.fees_total)}</b></div>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {driver.fees_paid_at ? <Badge variant="secondary">Taxas pagas em {driver.fees_paid_method === "cash" ? "dinheiro" : "Pix"}</Badge> : driver.fees_total > 0 ? <Badge variant="outline">Taxas não pagas</Badge> : null}
+
+                          <div className="rounded-md border">
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+                              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega (loja → entregador)</span>
+                              {driver.fees_paid_at ? (
+                                <Badge variant="secondary" title="A loja já pagou ao entregador as taxas deste turno.">Taxas pagas em {driver.fees_paid_method === "cash" ? "dinheiro" : "Pix"} · {fmtDate(driver.fees_paid_at)}</Badge>
+                              ) : driver.fees_total > 0 ? (
+                                <Badge variant="outline" title="A loja ainda não pagou ao entregador as taxas de entrega deste turno.">Taxas a pagar ao entregador</Badge>
+                              ) : null}
+                            </div>
+                            <div className="px-3 py-2 text-sm">
+                              <div className="flex justify-between"><span className="text-muted-foreground">{driver.deliveries.length} entrega(s) · taxas {driver.fees_paid_at ? "pagas" : "a receber"}</span><b>{brl(driver.fees_total)}</b></div>
+                              <ul className="mt-1 divide-y text-xs">
+                                {driver.deliveries.map((x) => (
+                                  <li key={x.id} className="flex justify-between gap-2 py-1">
+                                    <span>#{x.number} · {x.neighborhood || "—"} · {x.is_cash ? "Dinheiro" : x.payment_label || "—"}</span>
+                                    <b>{brl(x.fee)}</b>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
                           </div>
                         </div>
                       ))}
