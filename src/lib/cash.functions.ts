@@ -37,6 +37,7 @@ export type CashDriverSummary = {
   fees_total: number;
   fees_paid_at: string | null;
   fees_paid_method: string | null;
+  driver_phone: string | null;
 };
 
 async function computeSession(tenantId: string, session: { id: string; opened_at: string; closed_at: string | null; opening_float: number }) {
@@ -77,7 +78,7 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
       cur = {
         driver_id: id, driver_name: name || "Entregador", orders: 0,
         to_collect: 0, change_out: 0, must_return: 0, settled_at: null,
-        deliveries: [], fees_total: 0, fees_paid_at: null, fees_paid_method: null,
+        deliveries: [], fees_total: 0, fees_paid_at: null, fees_paid_method: null, driver_phone: null,
       };
       byDriver.set(id, cur);
     }
@@ -100,6 +101,10 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
     cur.to_collect = r2(cur.to_collect + Number(o.total));
     cur.change_out = r2(cur.change_out + changeDue(Number(o.total), o.change_for));
     cur.must_return = r2(cur.must_return + Math.max(paid, Number(o.total)));
+  }
+  if (byDriver.size) {
+    const { data: drs } = await sb.from("drivers").select("id, phone").in("id", [...byDriver.keys()]);
+    for (const r of drs ?? []) { const d = byDriver.get(r.id); if (d) d.driver_phone = r.phone ?? null; }
   }
   for (const s of settlements ?? []) {
     const d = s.driver_id ? byDriver.get(s.driver_id) : null;
