@@ -3,7 +3,7 @@ import { columnsFor, DEFAULT_PRINTER_SETTINGS, resolvePrinterTypography } from "
 import { buildReceipt, sampleOrderForPreview, wrapIndent } from "../src/lib/receipt-builder.ts";
 import { buildKitchenTicket } from "../src/lib/kitchen-ticket.ts";
 import { plainPrintText, parsePrintSpans, ESC_BOLD_ON, ESC_BOLD_OFF } from "../src/lib/escpos-format.ts";
-import { receiptItemDetails } from "../src/lib/receipt-item-details.ts";
+import { receiptItemDetails, receiptItemName } from "../src/lib/receipt-item-details.ts";
 
 const order = sampleOrderForPreview();
 order.items.push({ productId: "long", name: "Calabresa Mineira", qty: 3, unitPrice: 24, addons: [{ id: "paid", name: "Adicionais (Grátis): Queijo", price: 4 }], note: "Sem cebola e sem molho, embalar separado por favor" });
@@ -17,7 +17,10 @@ for (const cols of [32, 42, 56]) {
   const receipt = buildReceipt(order, cols, DEFAULT_PRINTER_SETTINGS, {});
   const plain = plainPrintText(receipt);
   assert(receipt.startsWith("\x1b@"));
-  assert(plain.includes("2x Carne\nUnit: 9,00 Total: 18,00"));
+  assert(plain.includes("2x Carne (GRANDE)"));
+  assert(plain.includes("2x Frango (PEQUENO)"));
+  assert(!plain.includes("Tamanho:"));
+  assert(plain.indexOf(" - Obs: Sem cebola") < plain.indexOf("Unit: 9,00 Total: 18,00"));
   assert(plain.includes(" - Todos os adicionais"));
   assert(!plain.includes("[Todos"));
   assert(!plain.includes("Adicionais (Gratis):"));
@@ -31,7 +34,8 @@ for (const cols of [32, 42, 56]) {
     const kitchenPlain = plainPrintText(ticket);
     assert(!kitchenPlain.includes("Unit:"));
     assert(!kitchenPlain.includes("4,00"));
-    assert(kitchenPlain.includes(" - Tamanho: Pequeno"));
+    assert(!kitchenPlain.includes("Tamanho:"));
+    assert(kitchenPlain.includes("(PEQUENO)"));
     assert(!kitchenPlain.includes("\n\n"), "formatting commands must not feed blank lines");
     let width = 0;
     for (const span of parsePrintSpans(ticket)) for (const ch of span.text) {
@@ -42,7 +46,15 @@ for (const cols of [32, 42, 56]) {
     assert(parsePrintSpans(ticket).some(s => s.bold && s.text.includes("CARNE")));
   }
 }
-assert.deepEqual(receiptItemDetails(order.items[1], false), ["Tamanho: Pequeno", "Todos os adicionais"]);
+assert.deepEqual(receiptItemDetails(order.items[1], false), ["Todos os adicionais"]);
+assert.equal(receiptItemName(order.items[0]), "Carne (GRANDE)");
+assert.equal(receiptItemName(order.items[1]), "Frango (PEQUENO)");
+assert.equal(receiptItemName(order.items[2]), "Taxa de Servico");
+for (const [mode, title] of [["entrega", "DELIVERY"], ["retirada", "RETIRADA"], ["consumo_local", "CONSUMO"]]) {
+  const receipt = buildReceipt({ ...order, mode }, 32, DEFAULT_PRINTER_SETTINGS, {});
+  assert(plainPrintText(receipt).indexOf(title) < plainPrintText(receipt).indexOf("PEDIDO #"));
+  assert(parsePrintSpans(receipt).some(s => s.bold && s.double && s.text.includes(title)));
+}
 assert.deepEqual(wrapIndent("Pequeno", 16, " - Tamanho: ", 3), [" - Tamanho:", "   Pequeno"]);
 assert.equal(JSON.stringify(order), original, "printing must not change the order");
 console.log("Receipt layout tests passed: 55/80mm, normal/double, bold, paid/free extras, all extras, wrapping and unchanged values.");

@@ -5,7 +5,7 @@
 
 import { formatDateTime } from "@/lib/format";
 import type { Order } from "@/lib/domain-types";
-import { receiptItemDetails } from "@/lib/receipt-item-details";
+import { receiptItemDetails, receiptItemName } from "@/lib/receipt-item-details";
 import { ESC_BOLD_ON, ESC_BOLD_OFF, printerReset, compactPrintCommands } from "@/lib/escpos-format";
 import { formatScheduledShort } from "@/lib/scheduling";
 import { cashTicketBlock } from "@/lib/cash-change";
@@ -79,7 +79,7 @@ export function buildKitchenTicket(
     out.push(double ? ESC_BIG : ESC_NORMAL);
     out.push(ESC_BOLD_ON);
     const qty = `${item.qty}x `;
-    wrapIndent(stripAccents(item.name).toUpperCase(), bodyCols, qty, qty.length).forEach((l) =>
+    wrapIndent(stripAccents(receiptItemName(item)).toUpperCase(), bodyCols, qty, qty.length).forEach((l) =>
       out.push(l),
     );
 
