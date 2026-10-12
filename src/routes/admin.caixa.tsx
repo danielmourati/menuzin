@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2, Eye, RefreshCw } from "lucide-react";
+import { FileText, ListChecks, Loader2, Wallet, ArrowDownToLine, Lock, Trash2, Truck, CheckCircle2, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { OpenCashReportDialog } from "@/components/admin/CashReportDialogs";
 import { DriverSummaryActions } from "@/components/admin/DriverSummaryActions";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { maskBRL, parseBRL } from "@/lib/masks";
@@ -62,6 +63,7 @@ function CashPage() {
   const [counted, setCounted] = useState("");
   const [closeOpen, setCloseOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [reportMode, setReportMode] = useState<"summary" | "full" | null>(null);
   const [result, setResult] = useState<CloseResult | null>(null);
   const [feeDriver, setFeeDriver] = useState<{ id: string; name: string; total: number } | null>(null);
 
@@ -147,9 +149,17 @@ function CashPage() {
                     Desde {fmtDate(open.opened_at)}{open.opened_by_name ? ` · ${open.opened_by_name}` : ""}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Fundo inicial</p>
-                  <p className="text-xl font-extrabold">{brl(open.opening_float)}</p>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <Button size="sm" variant="outline" className="h-9" onClick={() => setReportMode("summary")}>
+                    <FileText className="mr-1.5 h-4 w-4" /> Resumo
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-9" onClick={() => setReportMode("full")}>
+                    <ListChecks className="mr-1.5 h-4 w-4" /> Relatório completo
+                  </Button>
+                  <div className="pl-2 text-right">
+                    <p className="text-xs text-muted-foreground">Fundo inicial</p>
+                    <p className="text-xl font-extrabold">{brl(open.opening_float)}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -285,6 +295,8 @@ function CashPage() {
           </>
         )}
 
+
+        <OpenCashReportDialog open={reportMode !== null} onOpenChange={(v) => { if (!v) setReportMode(null); }} mode={reportMode ?? "summary"} />
 
         <Dialog open={closeOpen} onOpenChange={(v) => { if (!closeM.isPending) { setCloseOpen(v); if (!v) setCounted(""); } }}>
           <DialogContent className="sm:max-w-sm">
