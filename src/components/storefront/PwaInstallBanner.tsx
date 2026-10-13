@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, X, Smartphone, Sparkles, Share, PlusSquare } from "lucide-react";
 import {
@@ -24,9 +24,28 @@ export function PwaInstallBanner({
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const dismissedRef = useRef(false);
+  const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    dismissedRef.current = false;
+    setShowBanner(false);
+
+    const clearBannerTimer = () => {
+      if (bannerTimerRef.current !== null) {
+        clearTimeout(bannerTimerRef.current);
+        bannerTimerRef.current = null;
+      }
+    };
+    const scheduleBanner = (delay: number) => {
+      clearBannerTimer();
+      if (dismissedRef.current) return;
+      bannerTimerRef.current = setTimeout(() => {
+        bannerTimerRef.current = null;
+        if (!dismissedRef.current) setShowBanner(true);
+      }, delay);
+    };
 
     // 1. Verifica se já está rodando como PWA (standalone)
     const isInStandaloneMode =
@@ -42,14 +61,13 @@ export function PwaInstallBanner({
     if (("Notification" in window) && Notification.permission === "granted") {
       return;
     }
-    if (localStorage.getItem(`menuzin_push_subscribed_${tenantSlug}`)) {
-      return;
-    }
-
-    // 3. Verifica se o usuário ignorou o banner recentemente (últimos 7 dias)
-    const dismissedUntil = localStorage.getItem(`menuzin_pwa_dismiss_${tenantSlug}`);
-    if (dismissedUntil && Date.now() < Number(dismissedUntil)) {
-      return;
+    try {
+      if (localStorage.getItem(`menuzin_push_subscribed_${tenantSlug}`)) return;
+      // Respeita a recusa por 7 dias quando o navegador permite armazenamento.
+      const dismissedUntil = localStorage.getItem(`menuzin_pwa_dismiss_${tenantSlug}`);
+      if (dismissedUntil && Date.now() < Number(dismissedUntil)) return;
+    } catch {
+      // Armazenamento bloqueado não deve impedir abrir ou fechar o aviso.
     }
 
     // 3. Detecta iOS (iPhone/iPad)
@@ -59,8 +77,8 @@ export function PwaInstallBanner({
 
     if (isAppleIOS) {
       // No iOS, mostra o banner após 3 segundos
-      const timer = setTimeout(() => setShowBanner(true), 3000);
-      return () => clearTimeout(timer);
+      scheduleBanner(3000);
+      return clearBannerTimer;
     }
 
     // 4. Captura o evento nativo 'beforeinstallprompt' (Android, Chrome, Edge)
@@ -68,23 +86,34 @@ export function PwaInstallBanner({
       e.preventDefault();
       setDeferredPrompt(e);
       // Exibe o banner após 2.5s
-      setTimeout(() => setShowBanner(true), 2500);
+      scheduleBanner(2500);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     return () => {
+      clearBannerTimer();
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
   }, [tenantSlug]);
 
   const handleDismiss = () => {
+    dismissedRef.current = true;
+    if (bannerTimerRef.current !== null) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
     setShowBanner(false);
+    setShowIOSModal(false);
     // Armazena recusa por 7 dias
-    localStorage.setItem(
-      `menuzin_pwa_dismiss_${tenantSlug}`,
-      String(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    );
+    try {
+      localStorage.setItem(
+        `menuzin_pwa_dismiss_${tenantSlug}`,
+        String(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      );
+    } catch {
+      // A recusa continua válida nesta visita mesmo sem localStorage.
+    }
   };
 
   const handleInstallClick = async () => {
@@ -142,13 +171,17 @@ export function PwaInstallBanner({
               <Download className="h-3.5 w-3.5" /> Instalar
             </Button>
 
-            <button
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
               onClick={handleDismiss}
-              className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted/60 transition-colors"
-              title="Fechar"
+              className="relative z-10 h-11 w-11 shrink-0 touch-manipulation border-2 border-foreground/30 bg-card text-foreground hover:bg-muted [&_svg]:size-5"
+              aria-label="Fechar aviso de instalação"
+              title="Fechar aviso de instalação"
             >
-              <X className="h-4 w-4" />
-            </button>
+              <X strokeWidth={3} />
+            </Button>
           </div>
         </div>
       </div>
