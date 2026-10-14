@@ -136,9 +136,9 @@ function saveCart(slug: string, items: CartItem[]) {
 export function CartProvider({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const slug = deriveSlugFromPath(pathname);
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [activeCouponCode, setActiveCouponCodeState] = useState<string | null>(null);
-  const currentSlugRef = useRef<string | null>(null);
+  const [items, setItems] = useState<CartItem[]>(() => (slug ? loadCart(slug) : []));
+  const [activeCouponCode, setActiveCouponCodeState] = useState<string | null>(() => (slug ? loadCoupon(slug) : null));
+  const currentSlugRef = useRef<string | null>(slug);
 
   // Carrega o carrinho e o cupom do slug atual e troca em memória ao mudar de loja.
   useEffect(() => {
@@ -151,6 +151,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     currentSlugRef.current = slug;
     setItems(loadCart(slug));
     setActiveCouponCodeState(loadCoupon(slug));
+  }, [slug]);
+
+  // Sincroniza cupom se alterado em outra aba
+  useEffect(() => {
+    if (!slug || typeof window === "undefined") return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === couponStorageKey(slug)) {
+        setActiveCouponCodeState(e.newValue ? e.newValue.trim().toUpperCase() : null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [slug]);
 
   // Persiste a cada mudança, escopado ao slug atual.

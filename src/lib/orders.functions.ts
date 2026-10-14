@@ -16,7 +16,7 @@ const ItemSchema = z.object({
 });
 
 const CreateOrderInput = z.object({
-  tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
+  tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9_-]+$/i).transform((s) => s.toLowerCase()),
   customer_name: z.string().min(1).max(120),
   whatsapp: z.string().min(8).max(20),
   mode: z.enum(["entrega", "retirada", "consumo_local"]),

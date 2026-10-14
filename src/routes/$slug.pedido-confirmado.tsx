@@ -116,6 +116,12 @@ function ConfirmedPage() {
               <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal</span><span>{brl(order.subtotal)}</span>
               </div>
+              {order.discountAmount && order.discountAmount > 0 ? (
+                <div className="flex justify-between font-medium text-success">
+                  <span>Desconto {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                  <span>− {brl(order.discountAmount)}</span>
+                </div>
+              ) : null}
               {order.deliveryFee > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Entrega</span><span>{brl(order.deliveryFee)}</span>
@@ -203,6 +209,9 @@ function buildWhatsAppOrderMessage(order: Order, tenantName: string): string {
   }
   lines.push("");
   lines.push(`Subtotal: ${brl(order.subtotal)}`);
+  if (order.discountAmount && order.discountAmount > 0) {
+    lines.push(`Desconto ${order.couponCode ? `(${order.couponCode})` : ""}: - ${brl(order.discountAmount)}`);
+  }
   if (order.deliveryFee > 0) lines.push(`Entrega: ${brl(order.deliveryFee)}`);
   lines.push(`*Total: ${brl(order.total)}*`);
   lines.push(`Pagamento: ${order.payment}`);

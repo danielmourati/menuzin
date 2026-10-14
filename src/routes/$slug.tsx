@@ -91,6 +91,10 @@ import { StorefrontSkeleton } from "@/components/storefront/StorefrontSkeleton";
 export const Route = createFileRoute("/$slug")({
   validateSearch: z.object({
     produto: z.string().optional(),
+    cupom: z.string().optional(),
+    c: z.string().optional(),
+    cart: z.boolean().optional(),
+    carrinho: z.boolean().optional(),
   }),
   loader: ({ context, params }) => {
     if (!isCatalogSlug(params.slug)) return null;
@@ -252,7 +256,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [isScrolled, setIsScrolled] = useState(false);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const { count, subtotal } = useCart();
+  const { count, subtotal, activeCouponCode, setActiveCouponCode } = useCart();
   const profile = useCustomerProfile();
 
   const isFavorite = profile?.favoriteStores?.some(s => s.slug === tenant.slug) ?? false;
@@ -267,9 +271,29 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     }
   };
 
-  // Deep link vindo do Guia: /:slug?produto=<id|slug> abre o produto direto.
-  const { produto: deepLinkProductId } = Route.useSearch();
+  // Deep link vindo do Guia ou URL externa: produto, cupom, carrinho
+  const {
+    produto: deepLinkProductId,
+    cupom: urlCoupon,
+    c: urlCouponShort,
+    cart: urlCart,
+    carrinho: urlCarrinho,
+  } = Route.useSearch();
   const deepLinkDone = useRef(false);
+
+  useEffect(() => {
+    const couponToApply = (urlCoupon || urlCouponShort || "").trim().toUpperCase();
+    if (couponToApply && activeCouponCode !== couponToApply) {
+      setActiveCouponCode(couponToApply);
+      toast.success(`Cupom ${couponToApply} ativado!`, {
+        description: "O desconto já será aplicado no seu pedido.",
+      });
+    }
+    if (urlCart || urlCarrinho) {
+      setCartOpen(true);
+    }
+  }, [urlCoupon, urlCouponShort, urlCart, urlCarrinho, activeCouponCode]);
+
   useEffect(() => {
     if (!deepLinkProductId || deepLinkDone.current) return;
     const ref = deepLinkProductId.toLowerCase();

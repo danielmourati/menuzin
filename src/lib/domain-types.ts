@@ -123,6 +123,8 @@ export type Order = {
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
+  discountAmount?: number;
+  couponCode?: string | null;
   total: number;
   address?: {
     cep?: string;

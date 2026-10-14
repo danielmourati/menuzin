@@ -112,6 +112,7 @@ export function CartDrawer({
   storeOpen?: boolean;
 }) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
+  const effectiveSlug = (storefrontTenant?.slug || slug || "").toLowerCase();
   const navigate = useNavigate();
   const { items, update, remove, subtotal, clear, activeCouponCode, setActiveCouponCode, clearActiveCoupon } = useCart();
   const [step, setStep] = useState<Step>("cart");
@@ -129,7 +130,7 @@ export function CartDrawer({
   const ensureOrderPromise = useRef<Promise<{ id: string; number: number } | null> | null>(null);
   const methodBusyRef = useRef(false);
   // Código único por checkout: o servidor usa para nunca criar o mesmo pedido duas vezes.
-  const checkoutKeyStorage = `menuzin_checkout_key:${slug || "loja"}`;
+  const checkoutKeyStorage = `menuzin_checkout_key:${effectiveSlug || "loja"}`;
   const getCheckoutKey = () => {
     try {
       const existing = sessionStorage.getItem(checkoutKeyStorage);
@@ -214,8 +215,8 @@ export function CartDrawer({
 
   // Preferência escolhida no topo da loja (Entregar / Retirar / Consumir)
   useEffect(() => {
-    if (!open || !slug) return;
-    const pref = readReceivePref(slug);
+    if (!open || !effectiveSlug) return;
+    const pref = readReceivePref(effectiveSlug);
     if (!pref) return;
     setMode((m) => m ?? pref.mode);
     if (pref.mode === "entrega") {
@@ -238,7 +239,7 @@ export function CartDrawer({
       }
       if (pref.zoneId) setSelectedZoneId((v) => v ?? pref.zoneId!);
     }
-  }, [open, slug]);
+  }, [open, effectiveSlug]);
 
   const forgetSavedProfile = () => {
     clearCustomerProfile();
@@ -258,19 +259,19 @@ export function CartDrawer({
 
   // Fetch settings for tenant
   useEffect(() => {
-    if (open && slug) {
-      getPaymentSettingsBySlug(slug).then((data) => {
+    if (open && effectiveSlug) {
+      getPaymentSettingsBySlug(effectiveSlug).then((data) => {
         if (data) {
           setSettings(data);
         }
       });
     }
-  }, [open, slug]);
+  }, [open, effectiveSlug]);
 
   const { data: tenantData } = useQuery({
-    queryKey: ["public-tenant", slug],
-    queryFn: () => (slug ? getTenantBySlug({ data: { slug } }) : Promise.resolve({ tenant: null })),
-    enabled: !!slug && !storefrontTenant,
+    queryKey: ["public-tenant", effectiveSlug],
+    queryFn: () => (effectiveSlug ? getTenantBySlug({ data: { slug: effectiveSlug } }) : Promise.resolve({ tenant: null })),
+    enabled: !!effectiveSlug && !storefrontTenant,
     staleTime: 60_000,
   });
   type TenantLike = Partial<Tenant> & {
@@ -332,6 +333,9 @@ export function CartDrawer({
     }
     lines.push("");
     lines.push(`Subtotal: ${brl(subtotal)}`);
+    if (discount > 0) {
+      lines.push(`Desconto (${appliedCoupon?.code || activeCouponCode || "Cupom"}): - ${brl(discount)}`);
+    }
     if (deliveryFee > 0) lines.push(`Taxa de entrega: ${brl(deliveryFee)}`);
     lines.push(`*Total: ${brl(total)}*`);
     if (generalNote) {
@@ -397,12 +401,12 @@ export function CartDrawer({
 
   // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
   const { data: zonesData } = useQuery({
-    queryKey: ["public-delivery-zones", slug],
+    queryKey: ["public-delivery-zones", effectiveSlug],
     queryFn: () =>
-      slug
-        ? listPublicDeliveryZones({ data: { tenant_slug: slug } })
+      effectiveSlug
+        ? listPublicDeliveryZones({ data: { tenant_slug: effectiveSlug } })
         : Promise.resolve({ zones: [] as PublicDeliveryZone[] }),
-    enabled: !!slug && deliveryMode === "neighborhood",
+    enabled: !!effectiveSlug && deliveryMode === "neighborhood",
     staleTime: 60_000,
   });
   const zones = zonesData?.zones ?? [];
@@ -410,12 +414,12 @@ export function CartDrawer({
   // Resolve delivery fee from server (single source of truth).
   const cepDigitsOnly = cep.replace(/\D/g, "");
   const { data: feeResolution, isFetching: feeLoading } = useQuery<DeliveryFeeResolution>({
-    queryKey: ["resolve-delivery-fee", slug, cepDigitsOnly, neighborhood, selectedZoneId, street, number, city, state],
+    queryKey: ["resolve-delivery-fee", effectiveSlug, cepDigitsOnly, neighborhood, selectedZoneId, street, number, city, state],
     queryFn: () =>
       resolveDeliveryFee({
-        data: { tenant_slug: slug!, cep: cepDigitsOnly, neighborhood, zone_id: selectedZoneId, street, number, city, state },
+        data: { tenant_slug: effectiveSlug, cep: cepDigitsOnly, neighborhood, zone_id: selectedZoneId, street, number, city, state },
       }),
-    enabled: !!slug && mode === "entrega" && (deliveryMode !== "km" || (!!street && !!number)),
+    enabled: !!effectiveSlug && mode === "entrega" && (deliveryMode !== "km" || (!!street && !!number)),
     staleTime: 30_000,
   });
 
@@ -427,8 +431,8 @@ export function CartDrawer({
 
   // Auto-valida e sincroniza o cupom ativo (vindo do storefront, URL ou storage)
   useEffect(() => {
-    if (!open || !slug) return;
-    const targetCode = activeCouponCode || couponInput;
+    if (!open || !effectiveSlug) return;
+    const targetCode = (activeCouponCode || couponInput || "").trim().toUpperCase();
     if (!targetCode) {
       setAppliedCoupon(null);
       setCouponHint(null);
@@ -448,7 +452,7 @@ export function CartDrawer({
     let cancelled = false;
     setCouponLoading(true);
     validateCoupon({
-      data: { tenant_slug: slug, code: targetCode.trim(), subtotal },
+      data: { tenant_slug: effectiveSlug, code: targetCode, subtotal },
     })
       .then((res) => {
         if (cancelled) return;
@@ -471,15 +475,16 @@ export function CartDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open, slug, activeCouponCode, subtotal]);
+  }, [open, effectiveSlug, activeCouponCode, subtotal]);
 
   const applyCoupon = async () => {
-    if (!couponInput || !slug) return;
+    const code = couponInput.trim().toUpperCase();
+    if (!code || !effectiveSlug) return;
     setCouponLoading(true);
     setCouponHint(null);
     try {
       const res = await validateCoupon({
-        data: { tenant_slug: slug, code: couponInput.trim(), subtotal },
+        data: { tenant_slug: effectiveSlug, code, subtotal },
       });
       setAppliedCoupon(res);
       setActiveCouponCode(res.code);
@@ -488,7 +493,7 @@ export function CartDrawer({
       setAppliedCoupon(null);
       const msg = (e as Error).message || "Cupom inválido";
       if (msg.toLowerCase().includes("pedido mínimo")) {
-        setActiveCouponCode(couponInput.trim().toUpperCase());
+        setActiveCouponCode(code);
         setCouponHint(msg);
       } else {
         toast.error(msg);
@@ -501,6 +506,8 @@ export function CartDrawer({
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setCouponInput("");
+    setCouponHint(null);
+    clearActiveCoupon();
   };
 
   // Dynamic CEP search (ViaCEP) with debounce + abort.
@@ -720,10 +727,13 @@ export function CartDrawer({
 
     ensureOrderPromise.current = (async () => {
       try {
+        const targetCouponCode =
+          (appliedCoupon?.code || activeCouponCode || couponInput || "").trim().toUpperCase() || null;
+
         const { createOrder } = await import("@/lib/orders.functions");
         const res = await createOrder({
           data: {
-            tenant_slug: slug || "",
+            tenant_slug: effectiveSlug,
             customer_name: name,
             whatsapp: phone.replace(/\D/g, ""),
             mode: mode!,
@@ -738,7 +748,7 @@ export function CartDrawer({
               mode === "entrega" ? { cep, street, number, neighborhood, complement, reference, city, state } : null,
             table_label: mode === "consumo_local" ? table : null,
             note: generalNote || null,
-            coupon_code: appliedCoupon?.code ?? null,
+            coupon_code: targetCouponCode,
             scheduled_for: scheduledFor,
             idempotency_key: getCheckoutKey(),
 
@@ -782,6 +792,14 @@ export function CartDrawer({
           openWhatsappPresenca();
           return null;
         }
+        if (res.order.coupon_code && !appliedCoupon) {
+          setAppliedCoupon({
+            code: res.order.coupon_code,
+            discount: Number(res.order.discount_amount ?? 0),
+            discount_type: "fixed",
+            discount_value: Number(res.order.discount_amount ?? 0),
+          });
+        }
         setDbOrderId(res.order.id);
         setDbOrderNumber(res.order.number);
         return { id: res.order.id, number: res.order.number };
@@ -817,7 +835,7 @@ export function CartDrawer({
         }
         const { id: orderId } = persisted;
         const res = await createPixPayment({
-          store_slug: slug || "",
+          store_slug: effectiveSlug,
           order_id: orderId,
           payment_method: "pix_online",
           payer: {
@@ -866,7 +884,7 @@ export function CartDrawer({
     if (!persisted) throw new Error("Pagamento online indisponível para este plano.");
     const { id: orderId } = persisted;
     const res = await createCardPayment({
-      store_slug: slug || "",
+      store_slug: effectiveSlug,
       order_id: orderId,
       payment_method: selectedMethod === "debit_card" ? "debit_card" : "credit_card",
       card_token: cardInfo.cardToken,
@@ -956,6 +974,8 @@ export function CartDrawer({
         })),
         subtotal,
         deliveryFee,
+        discountAmount: discount,
+        couponCode: appliedCoupon?.code ?? activeCouponCode ?? null,
         total,
         address:
           mode === "entrega"
@@ -969,8 +989,8 @@ export function CartDrawer({
       } catch { }
       try {
         const { saveLastOrderForSlug } = await import("@/components/storefront/MobileBottomNav");
-        if (slug || tenant?.slug)
-          saveLastOrderForSlug((slug || tenant?.slug)!, orderId, order.number);
+        if (effectiveSlug)
+          saveLastOrderForSlug(effectiveSlug, orderId, order.number);
       } catch { }
       // toast.success(`Pedido #${order.number} criado`);
       clear();
@@ -979,7 +999,7 @@ export function CartDrawer({
       resetAll();
       navigate({
         to: "/$slug/pedido-confirmado",
-        params: { slug: slug || tenant?.slug || "" },
+        params: { slug: effectiveSlug },
         search: { n: order.number } as never,
       });
     } finally {
@@ -1596,7 +1616,7 @@ export function CartDrawer({
               <PixCheckout
                 pixData={pixData}
                 amount={total}
-                storeSlug={slug || ""}
+                storeSlug={effectiveSlug}
                 onSuccess={() => goTo("review")}
                 onCancel={() => {
                   setPixData(null);
@@ -2036,8 +2056,15 @@ export function CartDrawer({
 
               {/* Cupom */}
               <div className="rounded-2xl bg-card p-4">
-                <div className="mb-2 flex items-center gap-2 font-semibold">
-                  <Ticket className="h-4 w-4" /> Cupom de desconto
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Ticket className="h-4 w-4" /> Cupom de desconto
+                  </div>
+                  {activeCouponCode && !appliedCoupon && (
+                    <span className="text-[11px] font-mono text-primary font-bold">
+                      {couponLoading ? "Validando..." : activeCouponCode}
+                    </span>
+                  )}
                 </div>
                 {appliedCoupon ? (
                   <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/10 px-3 py-2">
@@ -2050,21 +2077,31 @@ export function CartDrawer({
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      value={couponInput}
-                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                      placeholder="Digite o código"
-                      className="h-10 uppercase font-mono"
-                      maxLength={40}
-                    />
-                    <Button
-                      onClick={applyCoupon}
-                      disabled={couponLoading || !couponInput}
-                      className="h-10"
-                    >
-                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value.toUpperCase());
+                          setCouponHint(null);
+                        }}
+                        placeholder="Digite o código"
+                        className="h-10 uppercase font-mono"
+                        maxLength={40}
+                      />
+                      <Button
+                        onClick={applyCoupon}
+                        disabled={couponLoading || !couponInput}
+                        className="h-10"
+                      >
+                        {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
+                      </Button>
+                    </div>
+                    {couponHint && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 leading-relaxed">
+                        💡 {couponHint}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

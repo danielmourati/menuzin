@@ -13,7 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, ChefHat, ArrowUp, ArrowDown, Trash2, Plus, Headset, Mic } from "lucide-react";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
+const SimpleMarkdown = ({ children }: { children: string }) => (
+  <div className="whitespace-pre-line leading-relaxed">{children}</div>
+);
+const ReactMarkdown = SimpleMarkdown;
 import {
   getMyAgentSettings, saveMyAgentSettings, listMyAgentConversations, getMyAgentConversationMessages,
   listMyQuickReplies, restoreDefaultQuickReplies, saveMyQuickReply, deleteMyQuickReply, reorderMyQuickReplies, sendStaffReply, setHandoffStatus, acceptHandoff, getMyAgentAudioUrl,

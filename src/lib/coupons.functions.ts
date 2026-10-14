@@ -128,7 +128,7 @@ export const toggleCouponActive = createServerFn({ method: "POST" })
 
 // Public validation — used from cart
 const ValidateInput = z.object({
-  tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
+  tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9_-]+$/i).transform((s) => s.toLowerCase()),
   code: CodeSchema,
   subtotal: z.number().min(0).max(999999),
 });
@@ -194,7 +194,7 @@ export type PublicCoupon = {
 export const listPublicCoupons = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     z.object({
-      slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
+      slug: z.string().min(1).max(80).regex(/^[a-z0-9_-]+$/i).transform((s) => s.toLowerCase()),
       requestedCode: z.string().max(40).optional().nullable(),
     }).parse(d),
   )

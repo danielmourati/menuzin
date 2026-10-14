@@ -41,6 +41,8 @@ export function dbOrderToUi(o: DbOrder, history: OrderStatusHistoryEntry[] = [])
     items: o.items.map(dbOrderItemToUi),
     subtotal: Number(o.subtotal),
     deliveryFee: Number(o.delivery_fee),
+    discountAmount: Number(o.discount_amount ?? 0),
+    couponCode: o.coupon_code ?? undefined,
     total: Number(o.total),
     address: o.address ?? undefined,
     table: o.table_label ?? undefined,

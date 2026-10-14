@@ -4,7 +4,7 @@ import { listPublicCoupons, type PublicCoupon } from "@/lib/coupons.functions";
 import { getCatalog } from "@/lib/catalog.functions";
 import { useCart } from "@/lib/cart-context";
 import { ArrowLeft, Copy, Ticket, Check, Sparkles, AlertCircle, ShoppingBag, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,21 @@ function CouponsPage() {
 
   const coupons = couponsQ.data?.coupons ?? [];
   const requestedInfo = couponsQ.data?.requestedCoupon;
+
+  // Auto-ativa o cupom vindo do link caso seja válido
+  useEffect(() => {
+    if (!requestedCode) return;
+    const isRequestedValid =
+      requestedInfo?.status === "valid" ||
+      coupons.some((c) => c.code.toUpperCase() === requestedCode);
+
+    if (isRequestedValid && activeCouponCode !== requestedCode) {
+      setActiveCouponCode(requestedCode);
+      toast.success(`Cupom ${requestedCode} ativado!`, {
+        description: "O desconto já será aplicado automaticamente no checkout.",
+      });
+    }
+  }, [requestedCode, requestedInfo?.status, coupons, activeCouponCode]);
 
   // Se o cupom requisitado for válido e o usuário ainda não tiver cupom ativo, podemos ativá-lo ou destacá-lo
   const sortedCoupons = [...coupons].sort((a, b) => {

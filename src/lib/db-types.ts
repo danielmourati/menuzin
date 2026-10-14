@@ -224,6 +224,8 @@ export type DbOrder = {
   no_change?: boolean;
   subtotal: number;
   delivery_fee: number;
+  discount_amount?: number | null;
+  coupon_code?: string | null;
   total: number;
   address: Record<string, string> | null;
   table_label: string | null;
