@@ -1,5 +1,6 @@
 import { brl, modeLabel } from "./format";
 import type { CartItem } from "./cart-context";
+import { buildWhatsAppLink } from "./whatsapp-link";
 
 type Input = {
   number: number;
@@ -66,4 +67,4 @@ export function buildWhatsAppMessage(i: Input) {
 }
 
 export const whatsappLink = (phone: string, message: string) =>
-  `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  buildWhatsAppLink(phone, message);

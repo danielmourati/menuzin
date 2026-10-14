@@ -1,16 +1,18 @@
 import { MessageCircle } from "lucide-react";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 
 export const WHATSAPP_PHONE = "5586999312882";
 export const WHATSAPP_PHONE_DISPLAY = "(86) 99931-2882";
 
 export const INSTAGRAM_URL = "https://www.instagram.com/menuzin.oficial";
 export const YOUTUBE_URL = "https://www.youtube.com/@MenuzinOficial";
-export const WHATSAPP_CONTACT_URL =
-  `https://wa.me/${WHATSAPP_PHONE}?text=` +
-  encodeURIComponent("Olá, gostaria de saber mais sobre o Menuzin!");
+export const WHATSAPP_CONTACT_URL = buildWhatsAppLink(
+  WHATSAPP_PHONE,
+  "Olá, gostaria de saber mais sobre o Menuzin!",
+);
 
 export function buildWhatsAppUrl(message: string) {
-  return `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
+  return buildWhatsAppLink(WHATSAPP_PHONE, message);
 }
 
 

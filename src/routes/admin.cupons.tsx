@@ -24,10 +24,19 @@ import { getMyTenant } from "@/lib/tenants.functions";
 import { useAuth } from "@/lib/auth-context";
 import { useActiveTenantId } from "@/lib/active-tenant";
 import { brl } from "@/lib/format";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/cupons")({
+  head: () => ({ meta: [
+    { title: "Cupons da loja — Menuzin" },
+    { name: "description", content: "Gerencie e compartilhe os cupons de desconto da sua loja no Menuzin." },
+    { property: "og:title", content: "Cupons da loja — Menuzin" },
+    { property: "og:description", content: "Gerencie e compartilhe os cupons de desconto da sua loja no Menuzin." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: () => (
     <PlanGate min="pro" title="Cupons" featureLabel="Cupons de desconto">
       <CouponsPage />
@@ -165,7 +174,7 @@ Aproveite o cupom *${c.code}* e ganhe *${discount}*${minOrderText}!
 Acesse o link abaixo para usar o cupom automaticamente no seu pedido:
 ${url}`;
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+    window.open(buildWhatsAppLink(null, message), "_blank", "noopener");
   };
 
   const openNew = () => { setEditing(empty()); setOpen(true); };

@@ -51,6 +51,7 @@ import { AiOrderChatLauncher } from "@/components/storefront/AiOrderChat";
 import { ReceiveModeBar } from "@/components/storefront/ReceiveModeBar";
 import { MobileBottomNav } from "@/components/storefront/MobileBottomNav";
 import { whatsappLink } from "@/lib/whatsapp";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 import { getCatalog } from "@/lib/catalog.functions";
 import { dbProductToUi, dbTenantToUi, dbCategoriesToUi } from "@/lib/db-adapters";
 import type { Product, Tenant, Category } from "@/lib/domain-types";
@@ -541,7 +542,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                     url: window.location.href,
                   }).catch(console.error);
                 } else {
-                  window.open(`https://api.whatsapp.com/send?text=Confira o cardápio de ${tenant.name}: ${window.location.href}`);
+                  window.open(buildWhatsAppLink(null, `Confira o cardápio de ${tenant.name}: ${window.location.href}`), "_blank", "noopener,noreferrer");
                 }
               }}
               aria-label="Compartilhar"
@@ -759,7 +760,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                           url: window.location.href,
                         }).catch(console.error);
                       } else {
-                        window.open(`https://api.whatsapp.com/send?text=Confira o cardápio de ${tenant.name}: ${window.location.href}`);
+                        window.open(buildWhatsAppLink(null, `Confira o cardápio de ${tenant.name}: ${window.location.href}`), "_blank", "noopener,noreferrer");
                       }
                     }}
                     aria-label="Compartilhar"

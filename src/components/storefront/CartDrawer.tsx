@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
 import { toast } from "sonner";
@@ -394,7 +395,7 @@ export function CartDrawer({
         }
       })();
     }
-    const url = `https://wa.me/${phone.startsWith("55") ? phone : "55" + phone}?text=${encodeURIComponent(buildWhatsappOrderMessage())}`;
+    const url = buildWhatsAppLink(phone.startsWith("55") ? phone : "55" + phone, buildWhatsappOrderMessage());
     window.open(url, "_blank", "noopener");
     onOpenChange(false);
   };
