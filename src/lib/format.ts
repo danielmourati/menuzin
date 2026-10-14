@@ -1,4 +1,5 @@
 import type { OrderMode, OrderStatus } from "@/lib/domain-types";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 
 export const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -179,8 +180,7 @@ export function whatsappLink(phone: string, text?: string): string {
   const digits = phone.replace(/\D/g, "");
   if (!digits) return "#";
   const fullPhone = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
-  const query = text ? `?text=${encodeURIComponent(text)}` : "";
-  return `https://wa.me/${fullPhone}${query}`;
+  return buildWhatsAppLink(fullPhone, text);
 }
 
 /** Formata número de telefone brasileiro para exibição legível (ex: (86) 99442-2827) */

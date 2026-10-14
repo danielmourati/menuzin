@@ -10,6 +10,7 @@ import {
   getAgentPublicInfo, startAgentConversation, getAgentConversation, confirmAgentOrder, requestHumanHandoff,
 } from "@/lib/ai-agent.functions";
 import { readCustomerProfile, writeCustomerProfile } from "@/lib/customer-profile";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 
 type Stored = { id: string; accessKey: string };
 type QR = { label: string; message: string };
@@ -386,7 +387,7 @@ function ChatBody({ slug, conv, initial, greeting, name, priced, setPriced, info
             <p>{handoff === "requested" ? "Chamamos alguém da loja, aguarde um instante 🙂 Pode ir escrevendo por aqui." : "Você está falando com a equipe da loja."}</p>
             {info.whatsapp && (
               <a target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary underline"
-                href={`https://wa.me/55${info.whatsapp.replace(/^55/, "")}?text=${encodeURIComponent(`Olá! Estava fazendo um pedido pelo chat.${priced?.lines.length ? "\n" + priced.lines.map((l) => `${l.qty}x ${l.name}`).join("\n") : ""}`)}`}>
+                href={buildWhatsAppLink(`55${info.whatsapp.replace(/^55/, "")}`, `Olá! Estava fazendo um pedido pelo chat.${priced?.lines.length ? "\n" + priced.lines.map((l) => `${l.qty}x ${l.name}`).join("\n") : ""}`)}>
                 <MessageCircle className="h-3.5 w-3.5" /> Chamar no WhatsApp da loja
               </a>
             )}

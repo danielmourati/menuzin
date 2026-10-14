@@ -1,6 +1,7 @@
 // Resumo de entregas por entregador (Caixa) — texto para cupom térmico e WhatsApp.
 import { stripAccents, money, lineOf, row, wrapIndent, center } from "@/lib/receipt-builder";
 import type { CashDriverSummary } from "@/lib/cash.functions";
+import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 
 export type SummaryShift = { opened_at: string; closed_at: string | null };
 
@@ -65,5 +66,5 @@ export function buildDriverSummaryWhatsApp(d: CashDriverSummary, shift: SummaryS
 export function driverWhatsAppUrl(phone: string | null | undefined, text: string) {
   let digits = (phone ?? "").replace(/\D/g, "");
   if (digits && digits.length <= 11) digits = `55${digits}`;
-  return digits ? `https://wa.me/${digits}?text=${encodeURIComponent(text)}` : `https://wa.me/?text=${encodeURIComponent(text)}`;
+  return buildWhatsAppLink(digits, text);
 }
