@@ -3,6 +3,7 @@ import { Plus, ChevronRight } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 
 export function FeaturedScroller({
   products,
@@ -43,9 +44,10 @@ export function FeaturedScroller({
                 className="group relative w-[180px] shrink-0 snap-start overflow-hidden rounded-2xl border bg-card text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
               >
                 <div className="relative aspect-[10/9] w-full overflow-hidden bg-muted">
-                  <img
+                  <ImageWithSkeleton
                     src={productImage(p.image)}
                     alt={p.name}
+                    containerClassName="h-full w-full"
                     className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
                       isDefaultProductImage(p.image) ? "object-contain p-5" : "object-cover"
                     }`}
@@ -53,8 +55,7 @@ export function FeaturedScroller({
                     decoding="async"
                   />
                   {unavailable && (
-
-                    <div className="absolute inset-0 grid place-items-center bg-background/60">
+                    <div className="absolute inset-0 z-10 grid place-items-center bg-background/60">
                       <Badge variant="secondary">Indisponível</Badge>
                     </div>
                   )}

@@ -58,6 +58,7 @@ import type { Product, Tenant, Category } from "@/lib/domain-types";
 import { RESERVED_SLUGS } from "@/lib/reserved-slugs";
 import { useStorefrontRealtime } from "@/lib/store-realtime";
 import { useCustomerProfile, writeCustomerProfile } from "@/lib/customer-profile";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { toast } from "sonner";
 
 const STORE_SLUG_PATTERN = /^[a-z0-9-]+$/;
@@ -103,7 +104,7 @@ export const Route = createFileRoute("/$slug")({
     if (existing) return existing;
     return context.queryClient.ensureQueryData(catalogQueryOptions(params.slug));
   },
-  pendingMs: 300,
+  pendingMs: 0,
   pendingComponent: StorefrontSkeleton,
   head: ({ params, loaderData }) => {
     const tenant = loaderData?.tenant ?? null;
@@ -574,12 +575,20 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           >
             {/* Linha principal: logo + nome/status + chevron */}
             <div className="flex items-center gap-3">
-              {/* Logo */}
-              <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted md:h-16 md:w-16">
+              {/* Logo com carregamento progressivo e skeleton suave */}
+              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border bg-muted md:h-16 md:w-16">
                 {tenant.logoUrl ? (
-                  <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
+                  <ImageWithSkeleton
+                    src={tenant.logoUrl}
+                    alt={tenant.name}
+                    containerClassName="h-full w-full rounded-full"
+                    className="h-full w-full object-cover"
+                    fallback={<span className="text-base font-bold md:text-lg">{tenant.logoLetter}</span>}
+                  />
                 ) : (
-                  <span className="text-base font-bold md:text-lg">{tenant.logoLetter}</span>
+                  <div className="grid h-full w-full place-items-center">
+                    <span className="text-base font-bold md:text-lg">{tenant.logoLetter}</span>
+                  </div>
                 )}
               </div>
 
@@ -733,11 +742,19 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   onClick={() => setAboutOpen(true)}
                   className="flex min-w-0 flex-1 items-center gap-2.5 text-left active:opacity-80"
                 >
-                  <div className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted">
+                  <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border bg-muted">
                     {tenant.logoUrl ? (
-                      <img src={tenant.logoUrl} alt={tenant.name} className="h-full w-full object-cover" />
+                      <ImageWithSkeleton
+                        src={tenant.logoUrl}
+                        alt={tenant.name}
+                        containerClassName="h-full w-full rounded-full"
+                        className="h-full w-full object-cover"
+                        fallback={<span className="text-xs font-bold">{tenant.logoLetter}</span>}
+                      />
                     ) : (
-                      <span className="text-xs font-bold">{tenant.logoLetter}</span>
+                      <div className="grid h-full w-full place-items-center">
+                        <span className="text-xs font-bold">{tenant.logoLetter}</span>
+                      </div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">

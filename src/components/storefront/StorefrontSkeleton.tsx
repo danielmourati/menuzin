@@ -2,115 +2,113 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function StorefrontSkeleton() {
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-32 select-none" aria-busy="true" aria-label="Carregando cardápio">
       {/* Imagem de Capa (Cover Photo) */}
       <div
-        className="relative w-full min-h-[11rem] md:min-h-[14rem] bg-muted/60 overflow-hidden"
+        className="relative w-full h-36 sm:h-44 md:h-52 bg-muted/50 overflow-hidden"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
-        <Skeleton className="h-full w-full rounded-none" />
+        <div className="absolute inset-0 bg-muted/40 animate-shimmer" />
 
-        {/* Botões do cabeçalho */}
-        <div className="container mx-auto max-w-3xl px-4 pt-3 pb-4 flex items-center justify-between relative z-10">
-          <Skeleton className="h-9 w-9 rounded-full bg-white/30 backdrop-blur" />
-          <Skeleton className="h-9 w-9 rounded-full bg-white/30 backdrop-blur" />
+        {/* Botões redondos do cabeçalho (topo esquerdo e direito) */}
+        <div className="container mx-auto max-w-3xl px-4 pt-3 flex items-center justify-between relative z-10">
+          <Skeleton className="h-10 w-10 rounded-full bg-card/60 backdrop-blur-md shadow-xs border border-border/30" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-10 rounded-full bg-card/60 backdrop-blur-md shadow-xs border border-border/30" />
+            <Skeleton className="h-10 w-10 rounded-full bg-card/60 backdrop-blur-md shadow-xs border border-border/30" />
+          </div>
         </div>
       </div>
 
       <div className="container mx-auto max-w-3xl px-4">
-        {/* Card de informações da loja */}
-        <div className="relative z-10 -mt-6 mb-4">
-          <div className="flex w-full flex-col rounded-2xl border bg-card p-3 shadow-[var(--shadow-soft)] md:p-4">
-            <div className="flex items-center gap-3">
-              {/* Logo */}
-              <Skeleton className="h-14 w-14 shrink-0 rounded-full md:h-16 md:w-16" />
+        {/* Card de informações da loja (estilo aiqfome) */}
+        <div className="relative z-10 -mt-8 mb-4">
+          <div className="flex w-full flex-col rounded-3xl border border-border/60 bg-card p-4 shadow-sm md:p-5">
+            <div className="flex items-center gap-3.5">
+              {/* Logo circular */}
+              <Skeleton className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-full border border-border/40" />
 
-              {/* Nome + Status + Rating */}
+              {/* Nome + Status */}
               <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <Skeleton className="h-5 w-40 rounded-lg" />
-                  <Skeleton className="h-4 w-10 rounded-md" />
-                </div>
-                <Skeleton className="h-3.5 w-24 rounded-md" />
+                <Skeleton className="h-5 w-40 sm:w-52 rounded-lg" />
+                <Skeleton className="h-3.5 w-28 rounded-md" />
               </div>
             </div>
 
-            {/* Descrição */}
-            <div className="mt-3 space-y-1.5 border-t pt-2.5">
-              <Skeleton className="h-3 w-3/4 rounded-md" />
-              <Skeleton className="h-3 w-1/2 rounded-md" />
+            {/* Linha divisória e descrição */}
+            <div className="mt-3.5 space-y-2 border-t border-border/40 pt-3">
+              <Skeleton className="h-3 w-4/5 rounded-md" />
+              <Skeleton className="h-3 w-3/5 rounded-md" />
             </div>
 
-            {/* Badges de Informações */}
-            <div className="mt-3 flex items-center gap-4 border-t pt-2">
-              <Skeleton className="h-3.5 w-20 rounded-md" />
-              <Skeleton className="h-3.5 w-16 rounded-md" />
-              <Skeleton className="h-3.5 w-24 rounded-md" />
+            {/* Badges de Informações (Delivery, Retirada, Tempo) */}
+            <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-border/40 pt-2.5">
+              <Skeleton className="h-6 w-24 rounded-full" />
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-6 w-20 rounded-full" />
             </div>
           </div>
         </div>
 
         {/* Barra de busca */}
         <div className="relative mb-4">
-          <Skeleton className="h-11 w-full rounded-2xl" />
+          <Skeleton className="h-11 sm:h-12 w-full rounded-2xl border border-border/40 bg-card/80" />
         </div>
 
-        {/* Carrossel de Mais Vendidos */}
-        <div className="my-6 space-y-3">
+        {/* Barra de categorias em formato de pílulas */}
+        <div className="mb-5 overflow-hidden">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Skeleton className="h-9 w-20 shrink-0 rounded-full bg-primary/20" />
+            <Skeleton className="h-9 w-28 shrink-0 rounded-full" />
+            <Skeleton className="h-9 w-24 shrink-0 rounded-full" />
+            <Skeleton className="h-9 w-28 shrink-0 rounded-full" />
+            <Skeleton className="h-9 w-22 shrink-0 rounded-full" />
+          </div>
+        </div>
+
+        {/* Grid de Produtos em 2 Colunas (fiel ao app aiqfome / iFood) */}
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Skeleton className="h-5 w-32 rounded-lg" />
             <Skeleton className="h-4 w-16 rounded-md" />
           </div>
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="w-56 shrink-0 rounded-2xl border bg-card p-3 shadow-sm space-y-2.5">
-                <Skeleton className="aspect-[16/10] w-full rounded-xl" />
-                <Skeleton className="h-4 w-3/4 rounded-md" />
-                <Skeleton className="h-3 w-full rounded-md" />
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card p-2.5 shadow-xs space-y-2.5"
+              >
+                {/* Espaço da imagem com aspect ratio mantido */}
+                <Skeleton className="aspect-[4/3] w-full rounded-xl" />
+
+                {/* Título e descrição do item */}
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <Skeleton className="h-4 w-4/5 rounded-md" />
+                  <Skeleton className="h-3 w-full rounded-md" />
+                </div>
+
+                {/* Preço e botão de adicionar circular */}
                 <div className="flex items-center justify-between pt-1">
                   <Skeleton className="h-4 w-16 rounded-md" />
-                  <Skeleton className="h-7 w-7 rounded-full" />
+                  <Skeleton className="h-7 w-7 rounded-full bg-primary/20 shrink-0" />
                 </div>
               </div>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Barra sticky de categorias */}
-        <div className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 px-4 py-2 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 gap-2 overflow-x-auto scrollbar-hide">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 w-24 shrink-0 rounded-full" />
-              ))}
-            </div>
-            <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
-          </div>
-        </div>
-
-        {/* Lista de Produtos agrupados */}
-        <div className="mt-6 space-y-8">
-          {Array.from({ length: 2 }).map((_, sectionIdx) => (
-            <div key={sectionIdx} className="space-y-4">
-              <Skeleton className="h-6 w-36 rounded-lg" />
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 3 }).map((_, itemIdx) => (
-                  <div key={itemIdx} className="flex items-center gap-3.5 rounded-2xl border bg-card p-3 shadow-sm">
-                    <Skeleton className="h-20 w-20 shrink-0 rounded-xl md:h-24 md:w-24" />
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <Skeleton className="h-4.5 w-3/4 rounded-md" />
-                      <Skeleton className="h-3 w-full rounded-md" />
-                      <Skeleton className="h-3 w-2/3 rounded-md" />
-                      <div className="flex items-center justify-between pt-1">
-                        <Skeleton className="h-4 w-16 rounded-md" />
-                        <Skeleton className="h-6 w-6 rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+      {/* Barra de Navegação Inferior (Mobile Bottom Nav Skeleton) */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/50 bg-card/95 backdrop-blur-md px-4 py-2.5 shadow-lg"
+        style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom, 0px))" }}
+      >
+        <div className="mx-auto flex max-w-md items-center justify-around gap-3">
+          <Skeleton className="h-8 w-16 rounded-full" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+          <Skeleton className="h-8 w-16 rounded-full" />
+          <Skeleton className="h-8 w-18 rounded-full" />
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { ImageWithSkeleton } from "@/components/ui/image-with-skeleton";
 import { useState } from "react";
 
 export function ProductCard({
@@ -41,9 +42,10 @@ export function ProductCard({
             }
           }}
         >
-          <img
+          <ImageWithSkeleton
             src={productImage(product.image)}
             alt={product.name}
+            containerClassName="h-full w-full rounded-xl"
             className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
               isDefaultProductImage(product.image) ? "object-contain p-3" : "object-cover"
             } ${!isDefaultProductImage(product.image) ? "cursor-zoom-in" : ""}`}
@@ -51,7 +53,7 @@ export function ProductCard({
             decoding="async"
           />
           {unavailable && (
-            <div className="absolute inset-0 grid place-items-center bg-background/60">
+            <div className="absolute inset-0 z-10 grid place-items-center bg-background/60">
               <Badge variant="secondary" className="text-[10px]">Indisponível</Badge>
             </div>
           )}
@@ -109,9 +111,10 @@ export function ProductCard({
           }
         }}
       >
-        <img
+        <ImageWithSkeleton
           src={productImage(product.image)}
           alt={product.name}
+          containerClassName="h-full w-full"
           className={`h-full w-full transition-transform duration-300 group-hover:scale-105 ${
             isDefaultProductImage(product.image) ? "object-contain p-6" : "object-cover"
           } ${!isDefaultProductImage(product.image) ? "cursor-zoom-in" : ""}`}
@@ -119,7 +122,7 @@ export function ProductCard({
           decoding="async"
         />
         {unavailable && (
-          <div className="absolute inset-0 grid place-items-center bg-background/60">
+          <div className="absolute inset-0 z-10 grid place-items-center bg-background/60">
             <Badge variant="secondary">Indisponível</Badge>
           </div>
         )}
