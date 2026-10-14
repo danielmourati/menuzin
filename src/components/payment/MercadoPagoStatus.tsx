@@ -395,42 +395,28 @@ export function MercadoPagoStatus({
                 </Button>
 
                 {showTechnicalInfo && oauthRedirectUri && (
-                  <div className="pt-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/80 hover:text-foreground cursor-pointer transition-colors font-medium">
-                            <HelpCircle className="h-3.5 w-3.5" /> Informações técnicas da aplicação
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="top"
-                          align="center"
-                          className="max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-4 text-slate-100 shadow-2xl z-50"
+                  <div className="pt-2">
+                    <div className="rounded-xl border border-border/80 bg-muted/40 p-3 text-xs space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5 text-[11px]">
+                          <HelpCircle className="h-3.5 w-3.5 text-primary" /> URL de Retorno (Redirect URI):
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyUrl(oauthRedirectUri)}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors bg-primary/10 hover:bg-primary/20 px-2.5 py-1 rounded-md border border-primary/20 cursor-pointer"
                         >
-                          <div className="flex items-center justify-between gap-2 mb-2">
-                            <p className="font-bold text-xs text-slate-100 flex items-center gap-1.5">
-                              <HelpCircle className="h-3.5 w-3.5 text-orange-400" />
-                              URL de retorno da plataforma:
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyUrl(oauthRedirectUri)}
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/10 hover:bg-orange-500/20 px-2 py-0.5 rounded-md border border-orange-500/20"
-                            >
-                              {copiedUrl ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                              {copiedUrl ? "Copiada!" : "Copiar"}
-                            </button>
-                          </div>
-                          <code className="block rounded-xl bg-slate-950/90 border border-slate-800/80 px-3 py-2 font-mono text-[11px] text-amber-300/90 break-all select-all shadow-inner">
-                            {oauthRedirectUri}
-                          </code>
-                          <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400">
-                            Deve estar cadastrada em <strong className="text-slate-200 font-semibold">"Redirect URI"</strong> no Painel de Desenvolvedores do Mercado Pago (aplicação mestre da plataforma).
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                          {copiedUrl ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                          {copiedUrl ? "Copiada!" : "Copiar URL"}
+                        </button>
+                      </div>
+                      <code className="block rounded-lg bg-card border px-2.5 py-1.5 font-mono text-[11px] text-foreground break-all select-all">
+                        {oauthRedirectUri}
+                      </code>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        Esta URL precisa estar cadastrada exatamente assim em <strong className="text-foreground font-semibold">&quot;Redirect URI&quot;</strong> nas credenciais da aplicação no Painel de Desenvolvedores do Mercado Pago.
+                      </p>
+                    </div>
                   </div>
                 )}
 

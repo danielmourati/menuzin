@@ -289,6 +289,7 @@ function AdminPaymentSettingsPage() {
                 accountKind={settings?.mp_account_kind}
                 liveModeSaved={settings?.mp_live_mode}
                 mpUserId={settings?.mp_user_id}
+                showTechnicalInfo={true}
               />
 
               {settings?.mp_connected && (

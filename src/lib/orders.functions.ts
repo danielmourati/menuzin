@@ -418,7 +418,7 @@ export const updateOrderPaymentMethod = createServerFn({ method: "POST" })
     let no_change = false;
     if (data.method === "dinheiro") {
       const { isPaymentAllowed } = await import("@/lib/cash-change");
-      const { data: ps } = await supabase.from("store_payment_settings")
+      const { data: ps } = await supabaseAdmin.from("store_payment_settings")
         .select("cash_accepts_100, cash_accepts_200").eq("tenant_id", o.tenant_id).maybeSingle();
       const rules = { accepts100: ps?.cash_accepts_100 ?? true, accepts200: ps?.cash_accepts_200 ?? true };
       if (data.no_change || !data.change_for) { no_change = true; change_for = total; }

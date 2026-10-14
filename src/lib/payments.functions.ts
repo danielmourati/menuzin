@@ -92,7 +92,8 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<StorePaymentSettingsSafe | null> => {
     const { supabase, userId } = context;
     const tenantId = await resolveTenantId(supabase, userId);
-    const { data, error } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("store_payment_settings")
       .select(SAFE_SETTINGS_COLUMNS)
       .eq("tenant_id", tenantId)
@@ -100,7 +101,7 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!data) {
       // Auto-create default row so toggles work right away
-      const { data: created, error: insErr } = await supabase
+      const { data: created, error: insErr } = await supabaseAdmin
         .from("store_payment_settings")
         .insert({ tenant_id: tenantId, provider: "mercadopago" })
         .select(SAFE_SETTINGS_COLUMNS)
@@ -387,7 +388,8 @@ export const updatePaymentSettings = createServerFn({ method: "POST" })
       const { requireProPlan } = await import("@/lib/plan-server");
       await requireProPlan(tenantId);
     }
-    const { data: row, error } = await supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
       .from("store_payment_settings")
       .update(data)
       .eq("tenant_id", tenantId)

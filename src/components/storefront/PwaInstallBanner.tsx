@@ -97,13 +97,22 @@ export function PwaInstallBanner({
     };
   }, [tenantSlug]);
 
+  const [isDismissing, setIsDismissing] = useState(false);
+  const touchStartY = useRef<number | null>(null);
+  const touchStartX = useRef<number | null>(null);
+
   const handleDismiss = () => {
+    if (dismissedRef.current) return;
     dismissedRef.current = true;
     if (bannerTimerRef.current !== null) {
       clearTimeout(bannerTimerRef.current);
       bannerTimerRef.current = null;
     }
-    setShowBanner(false);
+    setIsDismissing(true);
+    setTimeout(() => {
+      setShowBanner(false);
+      setIsDismissing(false);
+    }, 220);
     setShowIOSModal(false);
     // Armazena recusa por 7 dias
     try {
@@ -114,6 +123,24 @@ export function PwaInstallBanner({
     } catch {
       // A recusa continua válida nesta visita mesmo sem localStorage.
     }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!e.touches[0]) return;
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartY.current === null || !e.changedTouches[0]) return;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    const deltaX = Math.abs(e.changedTouches[0].clientX - (touchStartX.current ?? e.changedTouches[0].clientX));
+    // Se o usuário deslizar para cima mais de 20px de forma predominantemente vertical, fecha o banner
+    if (deltaY < -20 && Math.abs(deltaY) > deltaX) {
+      handleDismiss();
+    }
+    touchStartY.current = null;
+    touchStartX.current = null;
   };
 
   const handleInstallClick = async () => {
@@ -144,9 +171,20 @@ export function PwaInstallBanner({
 
   return (
     <>
-      {/* Banner Superior no Topo do Catálogo */}
-      <div className="fixed top-2 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-md z-[90] animate-in fade-in slide-in-from-top-4 duration-300">
-        <div className="relative rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/10 via-card to-card backdrop-blur-md p-3.5 shadow-2xl ring-1 ring-primary/20 flex items-center justify-between gap-3">
+      {/* Banner Superior no Topo do Catálogo com Safe-Area e suporte a Swipe-Up */}
+      <div
+        role="region"
+        aria-label="Aviso de instalação do aplicativo"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        style={{ top: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        className={`fixed left-3 right-3 sm:left-auto sm:right-6 sm:max-w-md z-[90] transition-all duration-200 ease-out select-none ${
+          isDismissing
+            ? "opacity-0 -translate-y-6 pointer-events-none"
+            : "animate-in fade-in slide-in-from-top-4 duration-300"
+        }`}
+      >
+        <div className="relative rounded-2xl border border-primary/40 bg-card/95 backdrop-blur-md p-3.5 shadow-2xl ring-1 ring-primary/20 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md">
               <Smartphone className="h-5 w-5 animate-pulse" />
@@ -162,7 +200,7 @@ export function PwaInstallBanner({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
               onClick={handleInstallClick}
@@ -171,17 +209,28 @@ export function PwaInstallBanner({
               <Download className="h-3.5 w-3.5" /> Instalar
             </Button>
 
-            <Button
+            {/* Botão de Fechar com área de toque expandida (64x64px), feedback tátil e eventos imediatos */}
+            <button
               type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleDismiss}
-              className="relative z-10 h-11 w-11 shrink-0 touch-manipulation border-2 border-foreground/30 bg-card text-foreground hover:bg-muted [&_svg]:size-5"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDismiss();
+              }}
+              className="relative z-20 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-foreground/30 bg-card text-foreground shadow-xs transition-transform duration-100 hover:bg-muted active:scale-85 active:bg-muted/90 cursor-pointer touch-manipulation before:content-[''] before:absolute before:-inset-3 before:z-30 before:rounded-full"
               aria-label="Fechar aviso de instalação"
               title="Fechar aviso de instalação"
             >
-              <X strokeWidth={3} />
-            </Button>
+              <X className="h-5 w-5" strokeWidth={2.5} />
+            </button>
           </div>
         </div>
       </div>

@@ -45,8 +45,8 @@ export function getMpOAuthConfig(): MpOAuthConfig {
  * sempre o domínio publicado (e não o origin da requisição atual).
  */
 export function resolveRedirectUri(_requestUrl?: string): string {
-  const fromEnv = process.env["MP_OAUTH_REDIRECT_URI"];
-  if (fromEnv) return fromEnv;
+  const fromEnv = process.env["MP_OAUTH_REDIRECT_URI"]?.trim();
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
   return "https://menuzin.app/api/public/mp-oauth-callback";
 }
 
@@ -113,10 +113,37 @@ async function postToken(body: Record<string, string>): Promise<MpTokenResponse>
     headers: { "Content-Type": "application/json", accept: "application/json" },
     body: JSON.stringify(body),
   });
-  const json = (await res.json()) as Record<string, unknown>;
+  let json: Record<string, unknown> = {};
+  try {
+    json = (await res.json()) as Record<string, unknown>;
+  } catch {
+    // corpo não-JSON
+  }
   if (!res.ok) {
-    const msg = typeof json?.message === "string" ? json.message : `HTTP ${res.status}`;
-    throw new Error(`Mercado Pago OAuth: ${msg}`);
+    const errorType = typeof json?.error === "string" ? json.error : "";
+    const errorDesc = typeof json?.error_description === "string" ? json.error_description : "";
+    const msg = typeof json?.message === "string" ? json.message : "";
+    const causeList = Array.isArray(json?.cause)
+      ? json.cause
+          .map((c: any) =>
+            typeof c === "string"
+              ? c
+              : c?.description || c?.code || JSON.stringify(c),
+          )
+          .filter(Boolean)
+          .join(", ")
+      : "";
+
+    const parts = [
+      errorType,
+      errorDesc,
+      msg,
+      causeList ? `causa: ${causeList}` : "",
+    ].filter(Boolean);
+
+    const detail = parts.length > 0 ? parts.join(" — ") : `HTTP ${res.status}`;
+    console.error("[mp-oauth] /oauth/token falhou:", res.status, json);
+    throw new Error(`Mercado Pago OAuth: ${detail}`);
   }
   return json as unknown as MpTokenResponse;
 }

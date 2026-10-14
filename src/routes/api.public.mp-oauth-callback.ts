@@ -53,13 +53,15 @@ export const Route = createFileRoute("/api/public/mp-oauth-callback")({
         }
 
         let token;
+        const redirectUri = resolveRedirectUri();
         try {
-          token = await exchangeCodeForToken(code, resolveRedirectUri());
+          token = await exchangeCodeForToken(code, redirectUri);
         } catch (err) {
           console.error("[mp-oauth-callback] troca de código:", err);
+          const errDetail = err instanceof Error ? err.message : String(err);
           return page(
             false,
-            "O Mercado Pago recusou a troca do código de autorização. Verifique se a URL de retorno cadastrada na aplicação é exatamente a mesma usada pelo Menuzin.",
+            `O Mercado Pago recusou a troca do código de autorização (${errDetail}). Verifique se a URL de retorno cadastrada na aplicação Mercado Pago é exatamente "${redirectUri}".`,
           );
         }
 
