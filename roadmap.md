@@ -10,5 +10,5 @@
 # Emojis nos links WhatsApp
 - [x] Investigar codificação dos textos e identificar links sem escape.
 - [x] Compartilhar codificação Unicode nos principais caminhos sem alterar destinatários ou mensagens.
-- [ ] Validar regressões e compartilhamento real na loja.
+- [x] Validar regressões Unicode, mensagens de status/resumo e compartilhamento real na loja sem enviar mensagens.
 - [ ] Confirmar exibição no WhatsApp do celular — depende do teste do usuário; não foi reproduzida corrupção nos emojis já codificados.
