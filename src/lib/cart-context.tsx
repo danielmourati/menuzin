@@ -29,6 +29,9 @@ type CartCtx = {
   clear: () => void;
   subtotal: number;
   count: number;
+  activeCouponCode: string | null;
+  setActiveCouponCode: (code: string | null) => void;
+  clearActiveCoupon: () => void;
 };
 
 const Ctx = createContext<CartCtx | null>(null);
@@ -64,11 +67,39 @@ function deriveSlugFromPath(pathname: string): string | null {
 
 const TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const STORAGE_PREFIX = "menuzin:cart:";
+const COUPON_STORAGE_PREFIX = "menuzin:coupon:";
 
 type StoredCart = { items: CartItem[]; ts: number };
 
 function storageKey(slug: string) {
   return `${STORAGE_PREFIX}${slug}`;
+}
+
+function couponStorageKey(slug: string) {
+  return `${COUPON_STORAGE_PREFIX}${slug}`;
+}
+
+function loadCoupon(slug: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(couponStorageKey(slug));
+    return raw ? raw.trim().toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCoupon(slug: string, code: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!code) {
+      window.localStorage.removeItem(couponStorageKey(slug));
+    } else {
+      window.localStorage.setItem(couponStorageKey(slug), code.trim().toUpperCase());
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 function loadCart(slug: string): CartItem[] {
@@ -106,17 +137,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const slug = deriveSlugFromPath(pathname);
   const [items, setItems] = useState<CartItem[]>([]);
+  const [activeCouponCode, setActiveCouponCodeState] = useState<string | null>(null);
   const currentSlugRef = useRef<string | null>(null);
 
-  // Carrega o carrinho do slug atual e troca em memória ao mudar de loja.
+  // Carrega o carrinho e o cupom do slug atual e troca em memória ao mudar de loja.
   useEffect(() => {
     if (!slug) {
       currentSlugRef.current = null;
+      setActiveCouponCodeState(null);
       return;
     }
     if (currentSlugRef.current === slug) return;
     currentSlugRef.current = slug;
     setItems(loadCart(slug));
+    setActiveCouponCodeState(loadCoupon(slug));
   }, [slug]);
 
   // Persiste a cada mudança, escopado ao slug atual.
@@ -124,6 +158,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!slug) return;
     saveCart(slug, items);
   }, [slug, items]);
+
+  const setActiveCouponCode = (code: string | null) => {
+    const normalized = code ? code.trim().toUpperCase() : null;
+    setActiveCouponCodeState(normalized);
+    if (slug) {
+      saveCoupon(slug, normalized);
+    }
+  };
+
+  const clearActiveCoupon = () => {
+    setActiveCouponCode(null);
+  };
 
   const value = useMemo<CartCtx>(() => {
     const subtotal = items.reduce((sum, i) => sum + computeUnitPrice(i) * i.qty, 0);
@@ -144,8 +190,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ),
       remove: (uid) => setItems((prev) => prev.filter((i) => i.uid !== uid)),
       clear: () => setItems([]),
+      activeCouponCode,
+      setActiveCouponCode,
+      clearActiveCoupon,
     };
-  }, [items]);
+  }, [items, activeCouponCode, slug]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

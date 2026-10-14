@@ -113,7 +113,7 @@ export function CartDrawer({
 }) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
   const navigate = useNavigate();
-  const { items, update, remove, subtotal, clear } = useCart();
+  const { items, update, remove, subtotal, clear, activeCouponCode, setActiveCouponCode, clearActiveCoupon } = useCart();
   const [step, setStep] = useState<Step>("cart");
   const [history, setHistory] = useState<Step[]>([]);
 
@@ -181,6 +181,7 @@ export function CartDrawer({
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<ValidatedCoupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [couponHint, setCouponHint] = useState<string | null>(null);
 
   // Submit + CEP lookup
   const [submitting, setSubmitting] = useState(false);
@@ -394,8 +395,6 @@ export function CartDrawer({
     onOpenChange(false);
   };
 
-
-
   // Delivery zones (per-neighborhood). Only used to populate selector in neighborhood mode.
   const { data: zonesData } = useQuery({
     queryKey: ["public-delivery-zones", slug],
@@ -426,26 +425,82 @@ export function CartDrawer({
   const discount = appliedCoupon ? Math.min(appliedCoupon.discount, subtotal) : 0;
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
+  // Auto-valida e sincroniza o cupom ativo (vindo do storefront, URL ou storage)
+  useEffect(() => {
+    if (!open || !slug) return;
+    const targetCode = activeCouponCode || couponInput;
+    if (!targetCode) {
+      setAppliedCoupon(null);
+      setCouponHint(null);
+      return;
+    }
+
+    if (!couponInput && activeCouponCode) {
+      setCouponInput(activeCouponCode);
+    }
+
+    if (subtotal <= 0) {
+      setAppliedCoupon(null);
+      setCouponHint(null);
+      return;
+    }
+
+    let cancelled = false;
+    setCouponLoading(true);
+    validateCoupon({
+      data: { tenant_slug: slug, code: targetCode.trim(), subtotal },
+    })
+      .then((res) => {
+        if (cancelled) return;
+        setAppliedCoupon(res);
+        setCouponHint(null);
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setAppliedCoupon(null);
+        if (err.message && err.message.toLowerCase().includes("pedido mínimo")) {
+          setCouponHint(err.message);
+        } else {
+          setCouponHint(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCouponLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, slug, activeCouponCode, subtotal]);
+
   const applyCoupon = async () => {
     if (!couponInput || !slug) return;
     setCouponLoading(true);
+    setCouponHint(null);
     try {
       const res = await validateCoupon({
         data: { tenant_slug: slug, code: couponInput.trim(), subtotal },
       });
       setAppliedCoupon(res);
-      // toast.success(`Cupom ${res.code} aplicado`);
+      setActiveCouponCode(res.code);
+      toast.success(`Cupom ${res.code} aplicado!`);
     } catch (e) {
       setAppliedCoupon(null);
-      toast.error((e as Error).message || "Cupom inválido");
+      const msg = (e as Error).message || "Cupom inválido";
+      if (msg.toLowerCase().includes("pedido mínimo")) {
+        setActiveCouponCode(couponInput.trim().toUpperCase());
+        setCouponHint(msg);
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setCouponLoading(false);
     }
   };
+
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setCouponInput("");
-    setScheduledFor(null);
   };
 
   // Dynamic CEP search (ViaCEP) with debounce + abort.
@@ -518,6 +573,8 @@ export function CartDrawer({
     setGeneralNote("");
     setCouponInput("");
     setAppliedCoupon(null);
+    setCouponHint(null);
+    clearActiveCoupon();
     setPaymentWhen(null);
     setPaymentMethod("PIX");
     setSelectedMethod(null);
@@ -562,6 +619,7 @@ export function CartDrawer({
     setCardData(null);
     setSelectedMethod(null);
     setAppliedCoupon(null);
+    setCouponHint(null);
     setCouponInput("");
   };
 
@@ -908,14 +966,15 @@ export function CartDrawer({
       };
       try {
         sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order));
-      } catch {}
+      } catch { }
       try {
         const { saveLastOrderForSlug } = await import("@/components/storefront/MobileBottomNav");
         if (slug || tenant?.slug)
           saveLastOrderForSlug((slug || tenant?.slug)!, orderId, order.number);
-      } catch {}
+      } catch { }
       // toast.success(`Pedido #${order.number} criado`);
       clear();
+      clearActiveCoupon();
       onOpenChange(false);
       resetAll();
       navigate({
@@ -1016,18 +1075,16 @@ export function CartDrawer({
   }) => (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/40 ${
-        active ? "border-primary/60" : ""
-      }`}
+      className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left transition hover:border-primary/40 ${active ? "border-primary/60" : ""
+        }`}
     >
       <span
-        className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${
-          active
+        className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${active
             ? "bg-primary/15 text-primary"
             : muted
               ? "bg-muted text-muted-foreground"
               : "bg-primary/10 text-primary"
-        }`}
+          }`}
       >
         {icon}
       </span>
@@ -1172,46 +1229,69 @@ export function CartDrawer({
 
                     {/* Cupom de desconto */}
                     <div className="mx-4 mb-4 rounded-2xl border bg-card p-4">
-                      <div className="mb-2 flex items-center gap-2 font-semibold">
-                        <Ticket className="h-4 w-4" /> Cupom de desconto
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2 font-semibold text-sm">
+                          <Ticket className="h-4 w-4 text-primary" /> Cupom de desconto
+                        </div>
+                        {activeCouponCode && !appliedCoupon && (
+                          <span className="text-[11px] font-mono text-primary font-bold">
+                            {activeCouponCode}
+                          </span>
+                        )}
                       </div>
                       {appliedCoupon ? (
-                        <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/10 px-3 py-2">
+                        <div className="flex items-center justify-between rounded-xl border border-success/40 bg-success/10 px-3.5 py-2.5">
                           <div className="text-sm">
-                            <p className="font-mono font-bold">{appliedCoupon.code}</p>
-                            <p className="text-xs text-success">
+                            <div className="flex items-center gap-2">
+                              <p className="font-mono font-bold text-success">{appliedCoupon.code}</p>
+                              <span className="rounded-md bg-success/20 px-1.5 py-0.5 text-[10px] font-bold text-success uppercase">
+                                Aplicado
+                              </span>
+                            </div>
+                            <p className="text-xs text-success font-medium mt-0.5">
                               Desconto de {brl(discount)} aplicado
                             </p>
                           </div>
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8"
+                            className="h-8 w-8 text-success hover:bg-success/20"
                             onClick={removeCoupon}
+                            title="Remover cupom"
                           >
                             <XIcon className="h-4 w-4" />
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
-                          <Input
-                            value={couponInput}
-                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                            placeholder="Digite o código"
-                            className="h-10 uppercase font-mono"
-                            maxLength={40}
-                          />
-                          <Button
-                            onClick={applyCoupon}
-                            disabled={couponLoading || !couponInput}
-                            className="h-10"
-                          >
-                            {couponLoading ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              "Aplicar"
-                            )}
-                          </Button>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Input
+                              value={couponInput}
+                              onChange={(e) => {
+                                setCouponInput(e.target.value.toUpperCase());
+                                setCouponHint(null);
+                              }}
+                              placeholder="Digite o código"
+                              className="h-10 uppercase font-mono"
+                              maxLength={40}
+                            />
+                            <Button
+                              onClick={applyCoupon}
+                              disabled={couponLoading || !couponInput}
+                              className="h-10 px-4"
+                            >
+                              {couponLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Aplicar"
+                              )}
+                            </Button>
+                          </div>
+                          {couponHint && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 leading-relaxed">
+                              💡 {couponHint}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1705,10 +1785,10 @@ export function CartDrawer({
                 mode === "entrega"
                   ? [`${street}${number ? ", " + number : ""}`, neighborhood, [city, state].filter(Boolean).join(", ") + (cep ? ` - ${cep}` : "")]
                   : [
-                      `${tenantAddress}${storefrontTenant?.addressNumber ? ", " + storefrontTenant.addressNumber : ""}`,
-                      storefrontTenant?.neighborhood ?? "",
-                      [storefrontTenant?.city, storefrontTenant?.state].filter(Boolean).join(", ") + (storefrontTenant?.cep ? ` - ${storefrontTenant.cep}` : ""),
-                    ]
+                    `${tenantAddress}${storefrontTenant?.addressNumber ? ", " + storefrontTenant.addressNumber : ""}`,
+                    storefrontTenant?.neighborhood ?? "",
+                    [storefrontTenant?.city, storefrontTenant?.state].filter(Boolean).join(", ") + (storefrontTenant?.cep ? ` - ${storefrontTenant.cep}` : ""),
+                  ]
               }
               storeOpen={storeOpen}
               nowLabel={(mode === "entrega" ? storefrontTenant?.deliveryTime : storefrontTenant?.takeoutTime) ?? storefrontTenant?.prepTime ?? null}

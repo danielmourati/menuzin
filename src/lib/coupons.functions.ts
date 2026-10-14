@@ -105,6 +105,27 @@ export const deleteCoupon = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const ToggleActiveInput = z.object({
+  id: z.string().uuid(),
+  active: z.boolean(),
+});
+
+export const toggleCouponActive = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => ToggleActiveInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Loja não encontrada");
+    const { error } = await supabase
+      .from("coupons")
+      .update({ active: data.active })
+      .eq("id", data.id)
+      .eq("tenant_id", resolved.tenantId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 // Public validation — used from cart
 const ValidateInput = z.object({
   tenant_slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
@@ -160,6 +181,8 @@ export const validateCoupon = createServerFn({ method: "POST" })
 // Public listing — cupons ativos visíveis no storefront
 // ============================================================
 
+export type RequestedCouponStatus = "valid" | "inactive" | "expired" | "exhausted" | "not_found";
+
 export type PublicCoupon = {
   code: string;
   discount_type: "fixed" | "percent";
@@ -170,19 +193,29 @@ export type PublicCoupon = {
 
 export const listPublicCoupons = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
-    z.object({ slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/) }).parse(d),
+    z.object({
+      slug: z.string().min(1).max(80).regex(/^[a-z0-9-]+$/),
+      requestedCode: z.string().max(40).optional().nullable(),
+    }).parse(d),
   )
-  .handler(async ({ data }): Promise<{ coupons: PublicCoupon[] }> => {
+  .handler(async ({ data }): Promise<{
+    coupons: PublicCoupon[];
+    requestedCoupon?: {
+      code: string;
+      status: RequestedCouponStatus;
+      coupon?: PublicCoupon;
+    } | null;
+  }> => {
     const { data: tenant } = await supabaseAdmin
       .from("tenants").select("id").eq("slug", data.slug).eq("active", true).maybeSingle();
-    if (!tenant) return { coupons: [] };
+    if (!tenant) return { coupons: [], requestedCoupon: null };
     const nowIso = new Date().toISOString();
     const { data: rows, error } = await supabaseAdmin
       .from("coupons")
       .select("code, discount_type, discount_value, min_order_total, valid_from, valid_until, max_uses, used_count, active")
       .eq("tenant_id", tenant.id)
       .eq("active", true);
-    if (error) return { coupons: [] };
+    if (error) return { coupons: [], requestedCoupon: null };
     const coupons = (rows ?? [])
       .filter((c) => {
         if (c.valid_from && String(c.valid_from) > nowIso) return false;
@@ -197,6 +230,45 @@ export const listPublicCoupons = createServerFn({ method: "GET" })
         min_order_total: Number(c.min_order_total ?? 0),
         valid_until: (c.valid_until as string | null) ?? null,
       }));
-    return { coupons };
+
+    let requestedCoupon: { code: string; status: RequestedCouponStatus; coupon?: PublicCoupon } | null = null;
+    if (data.requestedCode) {
+      const codeUpper = data.requestedCode.trim().toUpperCase();
+      const existingInList = coupons.find((c) => c.code.toUpperCase() === codeUpper);
+      if (existingInList) {
+        requestedCoupon = { code: codeUpper, status: "valid", coupon: existingInList };
+      } else {
+        const { data: found } = await supabaseAdmin
+          .from("coupons")
+          .select("code, discount_type, discount_value, min_order_total, valid_from, valid_until, max_uses, used_count, active")
+          .eq("tenant_id", tenant.id)
+          .eq("code", codeUpper)
+          .maybeSingle();
+
+        if (!found) {
+          requestedCoupon = { code: codeUpper, status: "not_found" };
+        } else if (!found.active) {
+          requestedCoupon = { code: codeUpper, status: "inactive" };
+        } else if (found.valid_until && String(found.valid_until) < nowIso) {
+          requestedCoupon = { code: codeUpper, status: "expired" };
+        } else if (found.valid_from && String(found.valid_from) > nowIso) {
+          requestedCoupon = { code: codeUpper, status: "expired" };
+        } else if (found.max_uses != null && Number(found.used_count) >= Number(found.max_uses)) {
+          requestedCoupon = { code: codeUpper, status: "exhausted" };
+        } else {
+          const pub: PublicCoupon = {
+            code: found.code,
+            discount_type: found.discount_type as "fixed" | "percent",
+            discount_value: Number(found.discount_value),
+            min_order_total: Number(found.min_order_total ?? 0),
+            valid_until: (found.valid_until as string | null) ?? null,
+          };
+          requestedCoupon = { code: codeUpper, status: "valid", coupon: pub };
+          coupons.unshift(pub);
+        }
+      }
+    }
+
+    return { coupons, requestedCoupon };
   });
 

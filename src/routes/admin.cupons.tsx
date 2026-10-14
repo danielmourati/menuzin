@@ -17,9 +17,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit2, Trash2, Loader2, Ticket } from "lucide-react";
+import { Plus, Edit2, Trash2, Loader2, Ticket, Share2, Link as LinkIcon, MessageCircle, ExternalLink, Copy, Check, Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import { listMyCoupons, upsertCoupon, deleteCoupon, type CouponRow } from "@/lib/coupons.functions";
+import { listMyCoupons, upsertCoupon, deleteCoupon, toggleCouponActive, type CouponRow } from "@/lib/coupons.functions";
+import { getMyTenant } from "@/lib/tenants.functions";
+import { useAuth } from "@/lib/auth-context";
+import { useActiveTenantId } from "@/lib/active-tenant";
 import { brl } from "@/lib/format";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
@@ -70,6 +73,16 @@ function fromDatetimeLocal(v: string): string | null {
 
 function CouponsPage() {
   const qc = useQueryClient();
+  const { profile } = useAuth();
+  const activeTenantId = useActiveTenantId();
+
+  const { data: tenantData } = useQuery({
+    queryKey: ["my-tenant", activeTenantId ?? profile?.tenant_id ?? "none"],
+    queryFn: () => getMyTenant(),
+    enabled: !!(profile?.tenant_id || activeTenantId),
+  });
+  const tenant = tenantData?.tenant;
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "coupons"],
     queryFn: async () => (await listMyCoupons()).coupons,
@@ -78,12 +91,14 @@ function CouponsPage() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"cupons" | "promocoes">("cupons");
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [sharingCoupon, setSharingCoupon] = useState<CouponRow | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const saveMut = useMutation({
     mutationFn: (input: Editing) => upsertCoupon({ data: input }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "coupons"] });
-      toast.success("Cupom salvo");
+      toast.success("Cupom salvo com sucesso!");
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -93,31 +108,65 @@ function CouponsPage() {
     mutationFn: (id: string) => deleteCoupon({ data: { id } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "coupons"] });
-      toast.success("Cupom excluído");
+      toast.success("Cupom excluído com sucesso!");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const toggleMut = useMutation({
-    mutationFn: (c: CouponRow) =>
-      upsertCoupon({
-        data: {
-          id: c.id,
-          code: c.code,
-          discount_type: c.discount_type,
-          discount_value: Number(c.discount_value),
-          min_order_total: Number(c.min_order_total),
-          max_uses: c.max_uses,
-          valid_from: c.valid_from,
-          valid_until: c.valid_until,
-          active: !c.active,
-        },
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "coupons"] }),
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      toggleCouponActive({ data: { id, active } }),
+    onSuccess: (_r, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin", "coupons"] });
+      toast.success(vars.active ? "Cupom ativado!" : "Cupom desativado!");
+      if (sharingCoupon && sharingCoupon.id === vars.id) {
+        setSharingCoupon({ ...sharingCoupon, active: vars.active });
+      }
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const list = data ?? [];
+
+  const getCouponLink = (code: string) => {
+    if (typeof window === "undefined") return "";
+    const origin = window.location.origin;
+    const slug = tenant?.slug || "";
+    return `${origin}/${slug}/cupons?cupom=${encodeURIComponent(code)}`;
+  };
+
+  const copyDirectLink = async (code: string) => {
+    const url = getCouponLink(code);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      toast.success(`Link do cupom ${code} copiado!`);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  };
+
+  const openWhatsappShare = (c: CouponRow) => {
+    const url = getCouponLink(c.code);
+    const storeName = tenant?.name || "nossa loja";
+    const discount =
+      c.discount_type === "percent"
+        ? `${Number(c.discount_value)}% de desconto`
+        : `${brl(Number(c.discount_value))} de desconto`;
+    const minOrderText =
+      Number(c.min_order_total) > 0
+        ? ` para pedidos a partir de ${brl(Number(c.min_order_total))}`
+        : "";
+
+    const message = `🎁 *Presente exclusivo da ${storeName}!*
+Aproveite o cupom *${c.code}* e ganhe *${discount}*${minOrderText}!
+
+Acesse o link abaixo para usar o cupom automaticamente no seu pedido:
+${url}`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+  };
 
   const openNew = () => { setEditing(empty()); setOpen(true); };
   const openEdit = (c: CouponRow) => {
@@ -187,9 +236,11 @@ function CouponsPage() {
                   {list.map((c) => (
                     <div key={c.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-bold text-base">{c.code}</span>
-                          <Badge variant={c.active ? "default" : "secondary"}>{c.active ? "Ativo" : "Inativo"}</Badge>
+                          <Badge variant={c.active ? "default" : "secondary"}>
+                            {c.active ? "Ativo" : "Desativado"}
+                          </Badge>
                           <Badge variant="outline">
                             {c.discount_type === "percent"
                               ? `${Number(c.discount_value)}% off`
@@ -202,14 +253,61 @@ function CouponsPage() {
                           {c.valid_until && <> · até {new Date(c.valid_until).toLocaleDateString("pt-BR")}</>}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Switch checked={c.active} onCheckedChange={() => toggleMut.mutate(c)} />
-                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}>
+
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-2 mr-1">
+                          <Switch
+                            checked={c.active}
+                            onCheckedChange={(checked) => toggleMut.mutate({ id: c.id, active: checked })}
+                            disabled={toggleMut.isPending}
+                            title={c.active ? "Clique para desativar" : "Clique para ativar"}
+                          />
+                          <span className="text-xs font-medium text-muted-foreground hidden lg:inline">
+                            {c.active ? "Ativo" : "Inativo"}
+                          </span>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1.5 px-3 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/5"
+                          onClick={() => setSharingCoupon(c)}
+                          title="Divulgar e gerar link personalizado"
+                        >
+                          <Share2 className="h-3.5 w-3.5" />
+                          <span>Divulgar</span>
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => copyDirectLink(c.code)}
+                          title="Copiar link direto do cupom"
+                        >
+                          <LinkIcon className="h-3.5 w-3.5" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openEdit(c)}
+                          title="Editar cupom"
+                        >
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
+
                         <Button
-                          variant="outline" size="icon" className="h-8 w-8 text-destructive"
-                          onClick={async () => { if (await confirmDialog({ title: `Excluir o cupom ${c.code}?`, variant: "destructive", confirmText: "Excluir" })) delMut.mutate(c.id); }}
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={async () => {
+                            if (await confirmDialog({ title: `Excluir o cupom ${c.code}?`, variant: "destructive", confirmText: "Excluir" })) {
+                              delMut.mutate(c.id);
+                            }
+                          }}
+                          title="Excluir cupom"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -345,6 +443,139 @@ function CouponsPage() {
             <Button onClick={save} disabled={saveMut.isPending}>
               {saveMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Divulgação e Link Personalizado */}
+      <Dialog open={!!sharingCoupon} onOpenChange={(v) => !v && setSharingCoupon(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <span>Link do Cupom: {sharingCoupon?.code}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Compartilhe este link com seus clientes. Ao abrir, o desconto será destacado na vitrine e ativado automaticamente no checkout.
+            </DialogDescription>
+          </DialogHeader>
+
+          {sharingCoupon && (
+            <div className="space-y-4 pt-1">
+              {!sharingCoupon.active && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold">Este cupom está desativado</p>
+                    <p className="mt-0.5 opacity-90">
+                      Clientes que acessarem o link não conseguirão aplicar o desconto até que você o ative.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs bg-background"
+                    onClick={() => toggleMut.mutate({ id: sharingCoupon.id, active: true })}
+                    disabled={toggleMut.isPending}
+                  >
+                    Ativar agora
+                  </Button>
+                </div>
+              )}
+
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Link personalizado de desconto
+                </Label>
+                <div className="mt-1.5 flex gap-2">
+                  <Input
+                    readOnly
+                    value={getCouponLink(sharingCoupon.code)}
+                    className="h-10 text-xs font-mono bg-muted/30 select-all"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-10 px-3.5 gap-1.5 text-xs font-semibold shrink-0"
+                    onClick={() => copyDirectLink(sharingCoupon.code)}
+                  >
+                    {copiedLink ? (
+                      <>
+                        <Check className="h-4 w-4 text-primary" />
+                        <span>Copiado</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        <span>Copiar</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-muted/20 p-3.5 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Desconto oferecido:</span>
+                  <span className="font-bold text-foreground">
+                    {sharingCoupon.discount_type === "percent"
+                      ? `${Number(sharingCoupon.discount_value)}% OFF`
+                      : `${brl(Number(sharingCoupon.discount_value))} OFF`}
+                  </span>
+                </div>
+                {Number(sharingCoupon.min_order_total) > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Pedido mínimo:</span>
+                    <span className="font-semibold text-foreground">{brl(Number(sharingCoupon.min_order_total))}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
+                  <span className="text-muted-foreground">Status do cupom:</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] font-semibold ${sharingCoupon.active ? "text-success" : "text-muted-foreground"}`}>
+                      {sharingCoupon.active ? "Ativo para clientes" : "Desativado"}
+                    </span>
+                    <Switch
+                      checked={sharingCoupon.active}
+                      onCheckedChange={(checked) => toggleMut.mutate({ id: sharingCoupon.id, active: checked })}
+                      disabled={toggleMut.isPending}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  type="button"
+                  className="h-11 flex-1 gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-semibold rounded-xl"
+                  onClick={() => openWhatsappShare(sharingCoupon)}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Divulgar no WhatsApp</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 gap-2 rounded-xl"
+                  asChild
+                >
+                  <a
+                    href={getCouponLink(sharingCoupon.code)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span>Testar link</span>
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-end pt-2">
+            <Button variant="ghost" onClick={() => setSharingCoupon(null)}>
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
