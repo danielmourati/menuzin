@@ -18,13 +18,49 @@ const couponsSearchSchema = z.object({
 
 export const Route = createFileRoute("/$slug/cupons")({
   validateSearch: (search: Record<string, unknown>) => couponsSearchSchema.parse(search),
-  head: ({ params }) => ({
-    meta: [
-      { title: `Cupons de desconto — ${params.slug}` },
-      { name: "description", content: "Veja os cupons de desconto ativos e economize no seu pedido." },
-      { name: "robots", content: "noindex" },
-    ],
-  }),
+  loader: async ({ params, location }) => {
+    try {
+      const res = await getCatalog({ data: { slug: params.slug } });
+      const search = (location.search || {}) as { cupom?: string; c?: string };
+      const requestedCode = (search.cupom || search.c || "").trim().toUpperCase();
+      return { tenant: res.tenant, requestedCode };
+    } catch {
+      return { tenant: null, requestedCode: "" };
+    }
+  },
+  head: ({ params, loaderData }) => {
+    const tenant = loaderData?.tenant ?? null;
+    const storeName = tenant?.name || params.slug;
+    const code = loaderData?.requestedCode || "";
+    const title = code
+      ? `🎟️ Cupom ${code} — ${storeName}`
+      : `🎟️ Cupons de Desconto — ${storeName}`;
+    const description = code
+      ? `Aproveite seu cupom de desconto exclusivo ${code} no cardápio de ${storeName}. Toque para resgatar no seu pedido!`
+      : `Confira os cupons e promoções ativas no cardápio de ${storeName}. Peça online com entrega ou retirada!`;
+    const image = (tenant as { logo_url?: string; cover_url?: string } | null)?.logo_url || (tenant as { logo_url?: string; cover_url?: string } | null)?.cover_url || "";
+    const url = `https://menuzin.app/${params.slug}/cupons${code ? `?cupom=${code}` : ""}`;
+
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: url },
+        { property: "og:type", content: "website" },
+        ...(image
+          ? [
+              { property: "og:image", content: image },
+              { name: "twitter:image", content: image },
+            ]
+          : []),
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: CouponsPage,
 });
 

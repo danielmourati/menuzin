@@ -27,6 +27,7 @@ import { brl } from "@/lib/format";
 import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 
 import { PlanGate } from "@/components/subscription/PlanGate";
+import { CouponShareModal } from "@/components/admin/CouponShareModal";
 
 export const Route = createFileRoute("/admin/cupons")({
   head: () => ({ meta: [
@@ -148,33 +149,10 @@ function CouponsPage() {
     const url = getCouponLink(code);
     try {
       await navigator.clipboard.writeText(url);
-      setCopiedLink(true);
       toast.success(`Link do cupom ${code} copiado!`);
-      setTimeout(() => setCopiedLink(false), 2000);
     } catch {
       toast.error("Não foi possível copiar o link.");
     }
-  };
-
-  const openWhatsappShare = (c: CouponRow) => {
-    const url = getCouponLink(c.code);
-    const storeName = tenant?.name || "nossa loja";
-    const discount =
-      c.discount_type === "percent"
-        ? `${Number(c.discount_value)}% de desconto`
-        : `${brl(Number(c.discount_value))} de desconto`;
-    const minOrderText =
-      Number(c.min_order_total) > 0
-        ? ` para pedidos a partir de ${brl(Number(c.min_order_total))}`
-        : "";
-
-    const message = `🎁 *Presente exclusivo da ${storeName}!*
-Aproveite o cupom *${c.code}* e ganhe *${discount}*${minOrderText}!
-
-Acesse o link abaixo para usar o cupom automaticamente no seu pedido:
-${url}`;
-
-    window.open(buildWhatsAppLink(null, message), "_blank", "noopener");
   };
 
   const openNew = () => { setEditing(empty()); setOpen(true); };
@@ -457,138 +435,15 @@ ${url}`;
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Divulgação e Link Personalizado */}
-      <Dialog open={!!sharingCoupon} onOpenChange={(v) => !v && setSharingCoupon(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span>Link do Cupom: {sharingCoupon?.code}</span>
-            </DialogTitle>
-            <DialogDescription>
-              Compartilhe este link com seus clientes. Ao abrir, o desconto será destacado na vitrine e ativado automaticamente no checkout.
-            </DialogDescription>
-          </DialogHeader>
-
-          {sharingCoupon && (
-            <div className="space-y-4 pt-1">
-              {!sharingCoupon.active && (
-                <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-semibold">Este cupom está desativado</p>
-                    <p className="mt-0.5 opacity-90">
-                      Clientes que acessarem o link não conseguirão aplicar o desconto até que você o ative.
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs bg-background"
-                    onClick={() => toggleMut.mutate({ id: sharingCoupon.id, active: true })}
-                    disabled={toggleMut.isPending}
-                  >
-                    Ativar agora
-                  </Button>
-                </div>
-              )}
-
-              <div>
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Link personalizado de desconto
-                </Label>
-                <div className="mt-1.5 flex gap-2">
-                  <Input
-                    readOnly
-                    value={getCouponLink(sharingCoupon.code)}
-                    className="h-10 text-xs font-mono bg-muted/30 select-all"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-10 px-3.5 gap-1.5 text-xs font-semibold shrink-0"
-                    onClick={() => copyDirectLink(sharingCoupon.code)}
-                  >
-                    {copiedLink ? (
-                      <>
-                        <Check className="h-4 w-4 text-primary" />
-                        <span>Copiado</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        <span>Copiar</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="rounded-xl border bg-muted/20 p-3.5 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Desconto oferecido:</span>
-                  <span className="font-bold text-foreground">
-                    {sharingCoupon.discount_type === "percent"
-                      ? `${Number(sharingCoupon.discount_value)}% OFF`
-                      : `${brl(Number(sharingCoupon.discount_value))} OFF`}
-                  </span>
-                </div>
-                {Number(sharingCoupon.min_order_total) > 0 && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Pedido mínimo:</span>
-                    <span className="font-semibold text-foreground">{brl(Number(sharingCoupon.min_order_total))}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/50">
-                  <span className="text-muted-foreground">Status do cupom:</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-semibold ${sharingCoupon.active ? "text-success" : "text-muted-foreground"}`}>
-                      {sharingCoupon.active ? "Ativo para clientes" : "Desativado"}
-                    </span>
-                    <Switch
-                      checked={sharingCoupon.active}
-                      onCheckedChange={(checked) => toggleMut.mutate({ id: sharingCoupon.id, active: checked })}
-                      disabled={toggleMut.isPending}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button
-                  type="button"
-                  className="h-11 flex-1 gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-semibold rounded-xl"
-                  onClick={() => openWhatsappShare(sharingCoupon)}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Divulgar no WhatsApp</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 gap-2 rounded-xl"
-                  asChild
-                >
-                  <a
-                    href={getCouponLink(sharingCoupon.code)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>Testar link</span>
-                  </a>
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="sm:justify-end pt-2">
-            <Button variant="ghost" onClick={() => setSharingCoupon(null)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal Avançado de Divulgação e Personalização de Mensagem */}
+      <CouponShareModal
+        coupon={sharingCoupon}
+        tenant={tenant}
+        open={!!sharingCoupon}
+        onOpenChange={(v) => !v && setSharingCoupon(null)}
+        onToggleActive={(id, active) => toggleMut.mutate({ id, active })}
+        isTogglingActive={toggleMut.isPending}
+      />
     </AdminLayout>
   );
 }
