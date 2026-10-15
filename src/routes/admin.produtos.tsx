@@ -59,6 +59,35 @@ type Editing = {
   free_crust_mode: "none" | "fixed" | "customer_choice";
 };
 
+const getNormalizedProductState = (
+  ed: Editing | null,
+  groupIds: string[],
+  sizes: { name: string; price: number }[]
+) => {
+  if (!ed) return "";
+  return JSON.stringify({
+    name: (ed.name ?? "").trim(),
+    description: (ed.description ?? "").trim(),
+    category_id: ed.category_id ?? null,
+    price: Number(ed.price || 0),
+    promo_price: ed.promo_price != null && Number(ed.promo_price) > 0 ? Number(ed.promo_price) : null,
+    image_url: ed.image_url ?? "",
+    available: Boolean(ed.available),
+    featured: Boolean(ed.featured),
+    bestseller: Boolean(ed.bestseller),
+    prep_time: (ed.prep_time ?? "").trim() || null,
+    type: ed.type ?? "standard",
+    max_flavors: ed.max_flavors ?? null,
+    allow_observations: Boolean(ed.allow_observations),
+    listed_as_flavor: ed.listed_as_flavor ?? null,
+    free_gift_kind: ed.free_gift_kind ?? null,
+    free_gift_ref_id: ed.free_gift_ref_id ?? null,
+    free_crust_mode: ed.free_crust_mode ?? "none",
+    selectedGroupIds: [...groupIds].sort(),
+    draftSizes: sizes.map((s) => ({ name: s.name.trim(), price: Number(s.price || 0) })),
+  });
+};
+
 function ProductsPage() {
   const qc = useQueryClient();
   const tenantQ = useQuery({
@@ -104,6 +133,8 @@ function ProductsPage() {
   useEffect(() => { setDraftSizes([]); }, [editingKey]);
   const [open, setOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const initialSnapshotRef = useRef<string | null>(null);
+  const isConfirmingRef = useRef(false);
 
   // States for inline creation/editing of observation/addon groups
   const [inlineGroupOpen, setInlineGroupOpen] = useState(false);
@@ -284,6 +315,7 @@ function ProductsPage() {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
       toast.success("Produto salvo com sucesso!");
+      initialSnapshotRef.current = null;
       setOpen(false);
       setEditing(null);
     },
@@ -310,24 +342,24 @@ function ProductsPage() {
       navigate({ to: "/admin/cardapio/novo" });
       return;
     }
-    setEditing({
+    const initialEditing: Editing = {
       name: "", description: "", category_id: categories[0]?.id ?? null,
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, bestseller: false, prep_time: null, sort_order: products.length + 1,
       type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
       listed_as_flavor: categories[0]?.kind === "pizza" ? null : null,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
-    });
-    const defaultCatId = categories[0]?.id ?? null;
-    const initialGroupIds = addonGroups
-      .filter((g) => defaultCatId && g.targets.some((t) => t.category_id === defaultCatId))
-      .map((g) => g.id);
-    setSelectedGroupIds(initialGroupIds);
+    };
+    setEditing(initialEditing);
+    // Novos produtos sempre nascem sem nenhum adicional ou observação marcados
+    setSelectedGroupIds([]);
+    setDraftSizes([]);
+    initialSnapshotRef.current = getNormalizedProductState(initialEditing, [], []);
     setOpen(true);
   };
 
   const openEditProduct = (p: typeof products[number]) => {
-    setEditing({
+    const initialEditing: Editing = {
       id: p.id, name: p.name, description: p.description ?? "",
       category_id: p.category_id, price: Number(p.price),
       promo_price: p.promo_price != null ? Number(p.promo_price) : null,
@@ -340,11 +372,14 @@ function ProductsPage() {
       free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
       free_gift_ref_id: p.free_gift_ref_id ?? null,
       free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
-    });
+    };
     const initialGroupIds = addonGroups
       .filter((g) => g.targets.some((t) => t.product_id === p.id || (p.category_id && t.category_id === p.category_id)))
       .map((g) => g.id);
+    setEditing(initialEditing);
     setSelectedGroupIds(initialGroupIds);
+    setDraftSizes([]);
+    initialSnapshotRef.current = getNormalizedProductState(initialEditing, initialGroupIds, []);
     setOpen(true);
   };
 
@@ -493,30 +528,72 @@ function ProductsPage() {
     );
   }
 
-  const handleOpenChange = async (nextOpen: boolean) => {
-    if (!nextOpen && editing) {
-      const original = editing.id ? products.find((p) => p.id === editing.id) : null;
-      const isDirty = original
-        ? editing.name !== original.name ||
-          editing.description !== (original.description ?? "") ||
-          Number(editing.price) !== Number(original.price) ||
-          editing.category_id !== original.category_id
-        : editing.name.trim().length > 0 || editing.description.trim().length > 0 || editing.price > 0;
+  const checkIsDirty = (): boolean => {
+    if (!editing || !initialSnapshotRef.current) return false;
+    const current = getNormalizedProductState(editing, selectedGroupIds, draftSizes);
+    return current !== initialSnapshotRef.current;
+  };
 
-      if (isDirty) {
+  const handleRequestClose = async () => {
+    if (isConfirmingRef.current) return;
+    if (checkIsDirty()) {
+      isConfirmingRef.current = true;
+      try {
         const ok = await confirmDialog({
           title: "Descartar alterações?",
-          description: "Você possui alterações não salvas neste produto. Deseja sair sem salvar?",
-          confirmText: "Descartar",
+          description: "Há dados não salvos no produto. Se fechar agora, as alterações serão perdidas.",
+          confirmText: "Descartar e sair",
           cancelText: "Continuar editando",
           variant: "destructive",
         });
         if (!ok) return;
+      } finally {
+        isConfirmingRef.current = false;
       }
     }
-    setOpen(nextOpen);
-    if (!nextOpen) setEditing(null);
+    initialSnapshotRef.current = null;
+    setOpen(false);
+    setEditing(null);
   };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      handleRequestClose();
+    } else {
+      setOpen(true);
+    }
+  };
+
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const handleSaveInlineGroupRef = useRef(handleSaveInlineGroup);
+  handleSaveInlineGroupRef.current = handleSaveInlineGroup;
+  const handleRequestCloseRef = useRef(handleRequestClose);
+  handleRequestCloseRef.current = handleRequestClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F2") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (inlineGroupOpen) {
+          handleSaveInlineGroupRef.current();
+        } else if (!saveMut.isPending) {
+          saveRef.current();
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        if (inlineGroupOpen || isConfirmingRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        handleRequestCloseRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [open, inlineGroupOpen, saveMut.isPending]);
 
   return (
     <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
@@ -720,7 +797,10 @@ function ProductsPage() {
           className="max-h-[92vh] max-w-5xl overflow-y-auto"
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => {
+            e.preventDefault();
+            handleRequestClose();
+          }}
         >
           <DialogHeader>
             <DialogTitle>
@@ -734,7 +814,7 @@ function ProductsPage() {
               categories={categories}
               allProducts={products.map((p) => ({ id: p.id, name: p.name }))}
               currentProductSizes={currentProduct?.sizes ?? []}
-              onClose={() => setOpen(false)}
+              onClose={handleRequestClose}
               onSave={save}
               isSaving={saveMut.isPending}
             />
@@ -1102,9 +1182,18 @@ function ProductsPage() {
               </div>
 
               <DialogFooter className="pt-3 border-t mt-4">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={save} disabled={saveMut.isPending} className="px-6">
-                  {saveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Produto"}
+                <Button variant="outline" onClick={handleRequestClose}>Cancelar</Button>
+                <Button onClick={save} disabled={saveMut.isPending} className="px-6 gap-2">
+                  {saveMut.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Salvar Produto</span>
+                      <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1.5 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
+                        F2
+                      </kbd>
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </div>
@@ -1263,8 +1352,17 @@ function ProductsPage() {
 
           <DialogFooter className="pt-2">
             <Button variant="outline" size="sm" onClick={() => setInlineGroupOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSaveInlineGroup} disabled={isSavingInline || !inlineGroupName.trim()}>
-              {isSavingInline ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (inlineGroupId ? "Salvar Alterações" : "Criar e Vincular")}
+            <Button size="sm" onClick={handleSaveInlineGroup} disabled={isSavingInline || !inlineGroupName.trim()} className="gap-1.5">
+              {isSavingInline ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  <span>{inlineGroupId ? "Salvar Alterações" : "Criar e Vincular"}</span>
+                  <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
+                    F2
+                  </kbd>
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1343,8 +1441,17 @@ function PizzaProductForm({
 
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSave} disabled={isSaving || !editing.name || editing.listed_as_flavor === null}>
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editing.id ? "Salvar" : "Continuar")}
+          <Button onClick={onSave} disabled={isSaving || !editing.name || editing.listed_as_flavor === null} className="gap-2">
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <span>{editing.id ? "Salvar" : "Continuar"}</span>
+                <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1.5 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
+                  F2
+                </kbd>
+              </>
+            )}
           </Button>
         </DialogFooter>
       </TabsContent>
@@ -1405,8 +1512,17 @@ function PizzaProductForm({
         />
         <DialogFooter className="pt-3">
           <Button variant="outline" onClick={onClose}>Fechar</Button>
-          <Button onClick={onSave} disabled={isSaving || editing.listed_as_flavor === null}>
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+          <Button onClick={onSave} disabled={isSaving || editing.listed_as_flavor === null} className="gap-2">
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <span>Salvar</span>
+                <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1.5 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
+                  F2
+                </kbd>
+              </>
+            )}
           </Button>
         </DialogFooter>
       </TabsContent>
