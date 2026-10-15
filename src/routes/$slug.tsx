@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, type LucideIcon } from "lucide-react";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, AlertCircle, type LucideIcon } from "lucide-react";
 import { StoreSideMenu } from "@/components/storefront/StoreSideMenu";
 import { StoreAboutDrawer } from "@/components/storefront/StoreAboutDrawer";
 import { getDeliveryFeeRange } from "@/lib/delivery-zones.functions";
@@ -258,7 +258,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [isScrolled, setIsScrolled] = useState(false);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const { count, subtotal, activeCouponCode, setActiveCouponCode } = useCart();
+  const { count, subtotal, activeCouponCode, setActiveCouponCode, clearActiveCoupon } = useCart();
   const profile = useCustomerProfile();
 
   const isFavorite = profile?.favoriteStores?.some(s => s.slug === tenant.slug) ?? false;
@@ -282,19 +282,67 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     carrinho: urlCarrinho,
   } = Route.useSearch();
   const deepLinkDone = useRef(false);
+  const [unavailableCouponNotice, setUnavailableCouponNotice] = useState<{
+    code: string;
+    reason: string;
+  } | null>(null);
 
   useEffect(() => {
     const couponToApply = (urlCoupon || urlCouponShort || "").trim().toUpperCase();
-    if (couponToApply && activeCouponCode !== couponToApply) {
-      setActiveCouponCode(couponToApply);
-      toast.success(`Cupom ${couponToApply} ativado!`, {
-        description: "O desconto já será aplicado no seu pedido.",
-      });
-    }
+    if (!couponToApply) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { listPublicCoupons } = await import("@/lib/coupons.functions");
+        const res = await listPublicCoupons({
+          data: { slug: tenant.slug, requestedCode: couponToApply },
+        });
+        if (cancelled) return;
+
+        const req = res.requestedCoupon;
+        if (!req || req.status !== "valid") {
+          const reasonText =
+            req?.status === "inactive"
+              ? "foi desativado temporariamente pela loja"
+              : req?.status === "expired"
+                ? "expirou e não pode mais ser utilizado"
+                : req?.status === "exhausted"
+                  ? "atingiu o limite máximo de utilizações"
+                  : "não foi encontrado nesta loja";
+
+          setUnavailableCouponNotice({ code: couponToApply, reason: reasonText });
+          if (activeCouponCode === couponToApply) {
+            clearActiveCoupon();
+          }
+          toast.error(`Cupom indisponível: o cupom ${couponToApply} ${reasonText}.`, {
+            id: `unavailable-${couponToApply}`,
+            duration: 6000,
+          });
+        } else {
+          setUnavailableCouponNotice(null);
+          if (activeCouponCode !== couponToApply) {
+            setActiveCouponCode(couponToApply);
+            toast.success(`Cupom ${couponToApply} ativado!`, {
+              description: "O desconto já será aplicado no seu pedido.",
+            });
+          }
+        }
+      } catch {
+        /* silencia erro de rede */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [urlCoupon, urlCouponShort, tenant.slug, activeCouponCode, clearActiveCoupon, setActiveCouponCode]);
+
+  useEffect(() => {
     if (urlCart || urlCarrinho) {
       setCartOpen(true);
     }
-  }, [urlCoupon, urlCouponShort, urlCart, urlCarrinho, activeCouponCode]);
+  }, [urlCart, urlCarrinho]);
 
   useEffect(() => {
     if (!deepLinkProductId || deepLinkDone.current) return;
@@ -566,6 +614,38 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       </div>
 
       <div className="container mx-auto max-w-3xl px-4">
+        {/* Banner de cupom promocional indisponível no storefront */}
+        {unavailableCouponNotice && (
+          <div className="relative z-10 -mt-2 mb-4 flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3.5 text-sm text-destructive shadow-xs">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-destructive" />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold">Cupom promocional indisponível</p>
+              <p className="text-xs mt-0.5 opacity-90">
+                O cupom <strong>{unavailableCouponNotice.code}</strong> {unavailableCouponNotice.reason}.
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs border-destructive/30 hover:bg-destructive/10 text-destructive"
+                  asChild
+                >
+                  <Link to="/$slug/cupons" params={{ slug: tenant.slug }}>
+                    Ver outros cupons
+                  </Link>
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setUnavailableCouponNotice(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground underline ml-2"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Card de informações da loja */}
         <div className="relative z-10 -mt-6 mb-4">
           <button

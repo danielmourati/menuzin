@@ -29,6 +29,7 @@ export type CustomerProfile = {
   ordersCount?: number;
   updatedAt?: string;
   favoriteStores?: { slug: string; name: string; logoUrl?: string | null }[];
+  activeCoupons?: Record<string, string>;
 };
 
 const KEY = "menuzin:customer:v1";

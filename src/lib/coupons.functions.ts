@@ -38,7 +38,36 @@ export const listMyCoupons = createServerFn({ method: "POST" })
       .eq("tenant_id", resolved.tenantId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return { coupons: (data ?? []) as unknown as CouponRow[] };
+
+    const coupons = (data ?? []) as unknown as CouponRow[];
+    if (coupons.length > 0) {
+      // Reconciliar contagem com pedidos registrados para garantir precisão
+      const { data: orderRows } = await supabaseAdmin
+        .from("orders")
+        .select("coupon_code")
+        .eq("tenant_id", resolved.tenantId)
+        .neq("status", "cancelado")
+        .not("coupon_code", "is", null);
+
+      if (orderRows && orderRows.length > 0) {
+        const counts: Record<string, number> = {};
+        for (const o of orderRows) {
+          if (o.coupon_code) {
+            const k = o.coupon_code.trim().toUpperCase();
+            counts[k] = (counts[k] ?? 0) + 1;
+          }
+        }
+        for (const c of coupons) {
+          const actual = counts[c.code.trim().toUpperCase()] ?? 0;
+          if (actual > (c.used_count ?? 0)) {
+            c.used_count = actual;
+            void supabaseAdmin.from("coupons").update({ used_count: actual }).eq("id", c.id);
+          }
+        }
+      }
+    }
+
+    return { coupons };
   });
 
 const NullableDateSchema = z
@@ -149,7 +178,7 @@ export const validateCoupon = createServerFn({ method: "POST" })
 
     const { data: coupon } = await supabaseAdmin
       .from("coupons").select("*")
-      .eq("tenant_id", tenant.id).eq("code", data.code.toUpperCase()).maybeSingle();
+      .eq("tenant_id", tenant.id).ilike("code", data.code.trim().toUpperCase()).maybeSingle();
     if (!coupon) throw new Error("Cupom inválido");
     if (!coupon.active) throw new Error("Cupom desativado");
 

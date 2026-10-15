@@ -467,6 +467,10 @@ export function CartDrawer({
           setCouponHint(err.message);
         } else {
           setCouponHint(null);
+          if (activeCouponCode && targetCode === activeCouponCode) {
+            clearActiveCoupon();
+            toast.error(`Cupom indisponível: ${err.message || "este cupom foi desativado ou expirou."}`);
+          }
         }
       })
       .finally(() => {

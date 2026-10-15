@@ -97,10 +97,12 @@ export const createOrder = createServerFn({ method: "POST" })
     // Re-validate coupon server-side if provided.
     let discountAmount = 0;
     let appliedCode: string | null = null;
+    let appliedCouponId: string | null = null;
+    let appliedCouponUsedCount = 0;
     if (data.coupon_code) {
-      const codeUpper = data.coupon_code.toUpperCase();
+      const codeUpper = data.coupon_code.trim().toUpperCase();
       const { data: coupon } = await supabaseAdmin
-        .from("coupons").select("*").eq("tenant_id", tenant.id).eq("code", codeUpper).maybeSingle();
+        .from("coupons").select("*").eq("tenant_id", tenant.id).ilike("code", codeUpper).maybeSingle();
       if (!coupon) throw new Error("Cupom inválido");
       if (!coupon.active) throw new Error("Cupom desativado");
       const now = new Date();
@@ -115,6 +117,8 @@ export const createOrder = createServerFn({ method: "POST" })
       discountAmount = Math.min(discountAmount, subtotal);
       discountAmount = Math.round(discountAmount * 100) / 100;
       appliedCode = coupon.code;
+      appliedCouponId = coupon.id;
+      appliedCouponUsedCount = Number(coupon.used_count ?? 0);
     }
 
     const total = Math.max(0, subtotal - discountAmount) + (data.delivery_fee ?? 0);
@@ -202,12 +206,14 @@ export const createOrder = createServerFn({ method: "POST" })
     }
     if (oErr || !order) throw new Error(oErr?.message || "Falha ao criar pedido");
 
-    if (appliedCode) {
-      const { data: row } = await supabaseAdmin.from("coupons").select("id,used_count")
-        .eq("tenant_id", tenant.id).eq("code", appliedCode).maybeSingle();
-      if (row) {
-        await supabaseAdmin.from("coupons").update({ used_count: (row.used_count ?? 0) + 1 }).eq("id", row.id);
-      }
+    if (appliedCouponId) {
+      await supabaseAdmin
+        .from("coupons")
+        .update({
+          used_count: appliedCouponUsedCount + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", appliedCouponId);
     }
 
 

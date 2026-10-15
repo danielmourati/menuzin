@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonOption } from "./domain-types";
+import { readCustomerProfile, writeCustomerProfile } from "./customer-profile";
 
 export type CartSelectedGroupOption = AddonOption & { groupName: string };
 
@@ -79,11 +80,20 @@ function couponStorageKey(slug: string) {
   return `${COUPON_STORAGE_PREFIX}${slug}`;
 }
 
+const LEGACY_COUPON_STORAGE_PREFIX = "menuzin_active_coupon_";
+
 function loadCoupon(slug: string): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(couponStorageKey(slug));
-    return raw ? raw.trim().toUpperCase() : null;
+    const raw =
+      window.localStorage.getItem(couponStorageKey(slug)) ||
+      window.localStorage.getItem(`${LEGACY_COUPON_STORAGE_PREFIX}${slug}`);
+    if (raw) return raw.trim().toUpperCase();
+
+    // Também verifica se há salvo no perfil do usuário no mesmo dispositivo/navegador
+    const profile = readCustomerProfile();
+    const fromProfile = profile?.activeCoupons?.[slug];
+    return fromProfile ? fromProfile.trim().toUpperCase() : null;
   } catch {
     return null;
   }
@@ -92,10 +102,28 @@ function loadCoupon(slug: string): string | null {
 function saveCoupon(slug: string, code: string | null) {
   if (typeof window === "undefined") return;
   try {
+    const key1 = couponStorageKey(slug);
+    const key2 = `${LEGACY_COUPON_STORAGE_PREFIX}${slug}`;
     if (!code) {
-      window.localStorage.removeItem(couponStorageKey(slug));
+      window.localStorage.removeItem(key1);
+      window.localStorage.removeItem(key2);
+      const prevProfile = readCustomerProfile();
+      if (prevProfile?.activeCoupons?.[slug]) {
+        const nextCoupons = { ...(prevProfile.activeCoupons || {}) };
+        delete nextCoupons[slug];
+        writeCustomerProfile({ activeCoupons: nextCoupons });
+      }
     } else {
-      window.localStorage.setItem(couponStorageKey(slug), code.trim().toUpperCase());
+      const normalized = code.trim().toUpperCase();
+      window.localStorage.setItem(key1, normalized);
+      window.localStorage.setItem(key2, normalized);
+      const prevProfile = readCustomerProfile();
+      writeCustomerProfile({
+        activeCoupons: {
+          ...(prevProfile?.activeCoupons || {}),
+          [slug]: normalized,
+        },
+      });
     }
   } catch {
     /* ignore */

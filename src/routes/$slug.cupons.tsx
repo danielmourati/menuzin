@@ -32,7 +32,7 @@ function CouponsPage() {
   const { slug } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { activeCouponCode, setActiveCouponCode, count } = useCart();
+  const { activeCouponCode, setActiveCouponCode, clearActiveCoupon, count } = useCart();
 
   const requestedCode = (search.cupom || search.c || "").trim().toUpperCase();
 
@@ -54,22 +54,37 @@ function CouponsPage() {
   const coupons = couponsQ.data?.coupons ?? [];
   const requestedInfo = couponsQ.data?.requestedCoupon;
 
-  // Auto-ativa o cupom vindo do link caso seja válido
+  // Se o cupom requisitado estiver desativado/expirado/inválido, emite mensagem de indisponibilidade
   useEffect(() => {
-    if (!requestedCode) return;
-    const isRequestedValid =
-      requestedInfo?.status === "valid" ||
-      coupons.some((c) => c.code.toUpperCase() === requestedCode);
-
-    if (isRequestedValid && activeCouponCode !== requestedCode) {
-      setActiveCouponCode(requestedCode);
-      toast.success(`Cupom ${requestedCode} ativado!`, {
-        description: "O desconto já será aplicado automaticamente no checkout.",
-      });
+    if (!requestedCode || !couponsQ.data) return;
+    if (requestedInfo && requestedInfo.status !== "valid") {
+      if (activeCouponCode === requestedCode) {
+        clearActiveCoupon();
+      }
+      const msg =
+        requestedInfo.status === "inactive"
+          ? `Cupom indisponível: o cupom ${requestedInfo.code} foi desativado temporariamente pela loja.`
+          : requestedInfo.status === "expired"
+            ? `Cupom indisponível: o cupom ${requestedInfo.code} expirou e não pode mais ser utilizado.`
+            : requestedInfo.status === "exhausted"
+              ? `Cupom indisponível: o cupom ${requestedInfo.code} atingiu o limite máximo de utilizações.`
+              : `Cupom indisponível: o cupom ${requestedInfo.code} não foi encontrado nesta loja.`;
+      toast.error(msg, { id: `unavailable-coupon-${requestedCode}` });
     }
-  }, [requestedCode, requestedInfo?.status, coupons, activeCouponCode]);
+  }, [requestedCode, requestedInfo?.status, activeCouponCode, couponsQ.data]);
 
-  // Se o cupom requisitado for válido e o usuário ainda não tiver cupom ativo, podemos ativá-lo ou destacá-lo
+  // Se o cupom ativo salvo anteriormente no localStorage tiver expirado ou sido desativado pela loja, limpa e avisa
+  useEffect(() => {
+    if (!couponsQ.data || !activeCouponCode) return;
+    const stillActive = coupons.some((c) => c.code.toUpperCase() === activeCouponCode);
+    if (!stillActive && (!requestedInfo || requestedInfo.code !== activeCouponCode || requestedInfo.status !== "valid")) {
+      const codeBefore = activeCouponCode;
+      clearActiveCoupon();
+      toast.error(`Cupom indisponível: o cupom ${codeBefore} foi desativado ou expirou.`);
+    }
+  }, [couponsQ.data, coupons, activeCouponCode, requestedInfo]);
+
+  // Ordena para que o cupom solicitado ou o cupom ativo fiquem no topo
   const sortedCoupons = [...coupons].sort((a, b) => {
     if (a.code.toUpperCase() === requestedCode) return -1;
     if (b.code.toUpperCase() === requestedCode) return 1;
@@ -78,15 +93,23 @@ function CouponsPage() {
     return 0;
   });
 
-  const handleApply = (code: string) => {
-    setActiveCouponCode(code);
-    toast.success(`Cupom ${code} ativado!`, {
-      description: "O desconto será aplicado automaticamente no checkout.",
-    });
+  const handleToggleApply = (code: string) => {
+    const codeUpper = code.trim().toUpperCase();
+    if (activeCouponCode === codeUpper) {
+      clearActiveCoupon();
+      toast("Cupom desativado", {
+        description: "O desconto não será mais aplicado no checkout.",
+      });
+    } else {
+      setActiveCouponCode(codeUpper);
+      toast.success(`Cupom ${codeUpper} ativado!`, {
+        description: "O desconto já será aplicado automaticamente no checkout.",
+      });
+    }
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-36">
       <header
         className="sticky top-0 z-10 flex items-center gap-3 border-b bg-card/95 px-4 py-3 backdrop-blur"
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
@@ -108,16 +131,17 @@ function CouponsPage() {
       </header>
 
       <div className="container mx-auto max-w-2xl px-4 pt-6 space-y-4">
-        {/* Banner de diagnóstico caso o link direto tenha sido desativado ou inválido */}
+        {/* Banner de indisponibilidade caso o link direto tenha sido desativado ou expirado */}
         {requestedInfo && requestedInfo.status !== "valid" && (
-          <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          <div className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive shadow-xs">
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">
-                {requestedInfo.status === "inactive" && `O cupom ${requestedInfo.code} foi desativado temporariamente pela loja.`}
-                {requestedInfo.status === "expired" && `O cupom ${requestedInfo.code} expirou.`}
-                {requestedInfo.status === "exhausted" && `O cupom ${requestedInfo.code} atingiu o limite máximo de utilizações.`}
-                {requestedInfo.status === "not_found" && `O cupom ${requestedInfo.code} não foi encontrado nesta loja.`}
+            <div className="space-y-1 min-w-0 flex-1">
+              <p className="font-bold text-base leading-snug">Cupom indisponível</p>
+              <p className="font-medium text-sm">
+                {requestedInfo.status === "inactive" && `O cupom promocional ${requestedInfo.code} foi desativado temporariamente pela loja.`}
+                {requestedInfo.status === "expired" && `O cupom promocional ${requestedInfo.code} expirou e não pode mais ser utilizado.`}
+                {requestedInfo.status === "exhausted" && `O cupom promocional ${requestedInfo.code} atingiu o limite máximo de utilizações.`}
+                {requestedInfo.status === "not_found" && `O cupom promocional ${requestedInfo.code} não foi encontrado nesta loja.`}
               </p>
               <p className="mt-1 text-xs opacity-90">
                 Confira abaixo os cupons ativos e aproveite outros descontos disponíveis!
@@ -135,7 +159,7 @@ function CouponsPage() {
             <div className="flex-1 min-w-0">
               <p className="font-bold text-foreground">Você recebeu um cupom exclusivo!</p>
               <p className="text-xs text-muted-foreground">
-                Toque em <strong>Usar cupom</strong> para ativá-lo automaticamente no seu checkout.
+                Toque em <strong>Ativar cupom</strong> para aplicá-lo automaticamente no seu checkout.
               </p>
             </div>
           </div>
@@ -183,41 +207,49 @@ function CouponsPage() {
                 coupon={c}
                 isTargeted={isTargeted}
                 isApplied={isApplied}
-                onApply={() => handleApply(c.code)}
+                onApply={() => handleToggleApply(c.code)}
               />
             );
           })}
         </div>
       </div>
 
-      {/* Barra de ação flutuante inferior ao ter um cupom ativo */}
+      {/* Barra de ação flutuante inferior ao ter um cupom ativo — Centralizada verticalmente e horizontalmente com ênfase (Heurísticas de Nielsen) */}
       {activeCouponCode && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 border-t bg-card/95 p-3.5 backdrop-blur shadow-lg">
-          <div className="container mx-auto max-w-2xl flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                <Check className="h-3.5 w-3.5" />
-                <span>Cupom <strong className="font-mono">{activeCouponCode}</strong> ativado</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground truncate">
-                O desconto será aplicado automaticamente no seu pedido.
-              </p>
+        <div
+          className="fixed bottom-0 left-0 right-0 z-20 border-t bg-card/95 backdrop-blur-md shadow-2xl px-4 py-3 sm:py-4 transition-all animate-in fade-in slide-in-from-bottom-2 duration-200"
+          style={{ paddingBottom: "calc(0.85rem + env(safe-area-inset-bottom, 0px))" }}
+        >
+          <div className="container mx-auto max-w-md flex flex-col items-center justify-center text-center gap-2">
+            {/* Status do sistema (Nielsen Heurística #1 - Visibilidade do status) */}
+            <div className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-3.5 py-1 rounded-full border border-emerald-500/20">
+              <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+              <span>
+                Cupom <strong className="font-mono font-bold tracking-wide">{activeCouponCode}</strong> ativado
+              </span>
             </div>
+
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              O desconto será aplicado automaticamente no seu pedido.
+            </p>
+
+            {/* Botão centralizado com alta ênfase (Nielsen Heurística #6 e #7 - Reconhecimento e Eficiência) */}
             <Button
-              size="sm"
-              className="h-10 px-4 rounded-xl font-semibold gap-1.5 shrink-0"
+              size="lg"
+              className="w-full h-12 rounded-2xl font-bold text-sm sm:text-base gap-2 shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.01] active:scale-[0.98] transition-all bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center"
               asChild
             >
               <Link to="/$slug" params={{ slug }}>
                 {count > 0 ? (
                   <>
-                    <ShoppingBag className="h-4 w-4" />
-                    <span>Ver carrinho ({count})</span>
+                    <ShoppingBag className="h-5 w-5" />
+                    <span>Ver carrinho com desconto ({count})</span>
+                    <ArrowRight className="h-5 w-5 ml-1" />
                   </>
                 ) : (
                   <>
                     <span>Ir para o cardápio</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-5 w-5 stroke-[2.5]" />
                   </>
                 )}
               </Link>
@@ -339,12 +371,12 @@ function CouponCard({
             }`}
           >
             {isApplied ? (
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 font-semibold">
                 <Check className="h-3.5 w-3.5" /> Cupom ativado
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <Ticket className="h-3.5 w-3.5" /> Usar cupom
+              <span className="inline-flex items-center gap-1.5 font-semibold">
+                <Ticket className="h-3.5 w-3.5" /> Ativar cupom
               </span>
             )}
           </Button>
