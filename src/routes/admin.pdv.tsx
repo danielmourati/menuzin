@@ -374,6 +374,7 @@ function PdvPage() {
           payment_status: paymentStatus,
           initial_status: "preparo",
           delivery_fee: mode === "entrega" ? deliveryFee : 0,
+          delivery_fee_full: mode === "entrega" && feeResolution && Number(feeResolution.fee) === deliveryFee ? (feeResolution.fee_full ?? deliveryFee) : null,
           table_label: tableLabel || null,
           note: orderNote.trim() || null,
           address: address as any,
