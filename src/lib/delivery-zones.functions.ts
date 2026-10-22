@@ -441,7 +441,7 @@ async function resolveRaw(data: z.infer<typeof ResolveInput>): Promise<DeliveryF
       neighborhood: null, min_order_total: 0, estimated_minutes: null,
       message: "Ainda não entregamos neste bairro. Verifique o endereço ou entre em contato com a loja.",
     };
-  });
+}
 
 // ---- Public delivery-fee range (min/max) ----
 
