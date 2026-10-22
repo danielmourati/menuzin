@@ -127,6 +127,13 @@
       "when": 1791758480396,
       "tag": "0017_order_edits",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792675226900,
+      "tag": "0018_delivery_free_km_and_split",
+      "breakpoints": true
     }
   ]
 }
