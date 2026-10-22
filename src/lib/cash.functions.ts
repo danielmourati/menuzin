@@ -45,7 +45,7 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
   const until = session.closed_at ?? new Date().toISOString();
   const from = session.opened_at;
   const inWin = (t: string | null | undefined) => !!t && t >= from && t <= until;
-  const cols = "id, number, status, total, change_for, no_change, payment_label, driver_id, driver_name, mode, customer_name, created_at, completed_at, delivery_fee, delivery_neighborhood_snapshot, address";
+  const cols = "id, number, status, total, change_for, no_change, payment_label, driver_id, driver_name, mode, customer_name, created_at, completed_at, delivery_fee, delivery_fee_full, delivery_neighborhood_snapshot, address";
   const { data: dispatched } = await sb.from("order_status_history").select("order_id, created_at, orders!inner(tenant_id)")
     .eq("new_status", "saiu_entrega").eq("orders.tenant_id", tenantId).gte("created_at", from).lte("created_at", until);
   const dispatchedIds = [...new Set((dispatched ?? []).map((h) => h.order_id as string))];
@@ -89,12 +89,12 @@ async function computeSession(tenantId: string, session: { id: string; opened_at
     const isCash = isCashLabel(o.payment_label);
     const addr = (o.address ?? null) as { neighborhood?: string } | null;
     cur.deliveries.push({
-      id: o.id, number: o.number, fee: Number(o.delivery_fee ?? 0), payment_label: o.payment_label, is_cash: isCash,
+      id: o.id, number: o.number, fee: Number(o.delivery_fee_full ?? o.delivery_fee ?? 0), payment_label: o.payment_label, is_cash: isCash,
       total: Number(o.total),
       paid_with: isCash ? (o.no_change ? Number(o.total) : Number(o.change_for ?? o.total)) : null,
       neighborhood: o.delivery_neighborhood_snapshot || addr?.neighborhood || null,
     });
-    cur.fees_total = r2(cur.fees_total + Number(o.delivery_fee ?? 0));
+    cur.fees_total = r2(cur.fees_total + Number(o.delivery_fee_full ?? o.delivery_fee ?? 0));
     if (!isCash) continue;
     const paid = o.no_change ? Number(o.total) : Number(o.change_for ?? o.total);
     cur.orders += 1;
