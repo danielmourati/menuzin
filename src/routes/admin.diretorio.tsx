@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { isAdminRouteHidden } from "@/lib/feature-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -26,6 +28,7 @@ import { createPromoRequest, listPublicHighlightPlans } from "@/lib/guia-admin.f
 import { SLOT_KIND_LABELS, type GuiaSlotKind, type GuiaHighlightPlan } from "@/lib/guia-types";
 
 export const Route = createFileRoute("/admin/diretorio")({
+  beforeLoad: () => { if (isAdminRouteHidden("/admin/diretorio")) throw redirect({ to: "/admin/pedidos" }); },
   component: DiretorioPage,
 });
 

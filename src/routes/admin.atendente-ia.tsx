@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { isAdminRouteHidden } from "@/lib/feature-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +25,7 @@ import {
 } from "@/lib/ai-agent.functions";
 
 export const Route = createFileRoute("/admin/atendente-ia")({
+  beforeLoad: () => { if (isAdminRouteHidden("/admin/atendente-ia")) throw redirect({ to: "/admin/pedidos" }); },
   head: () => ({
     meta: [
       { title: "Atendente IA — Menuzin" },

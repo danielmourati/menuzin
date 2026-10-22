@@ -1,3 +1,4 @@
+import { isHidden } from "@/lib/feature-flags";
 import { useSyncExternalStore } from "react";
 import { getAudioState, subscribeAudioState } from "@/lib/order-alert-sound";
 import { useEffect, useRef, useState } from "react";
@@ -250,7 +251,7 @@ function OrderSettingsPage() {
             </div>
             
             {/* Notificações Push (Plano de Fundo) */}
-            <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/10 transition">
+            {!isHidden("push") && <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/10 transition">
               <div className="space-y-0.5">
                 <Label htmlFor="push-enabled" className="text-sm font-semibold flex items-center gap-1.5">
                   <Bell className="h-4 w-4 text-primary" /> Notificações em Segundo Plano
@@ -278,7 +279,7 @@ function OrderSettingsPage() {
                   <span className="max-w-[220px] text-right text-xs text-muted-foreground">{push.unsupportedReason || "Navegador não suporta"}</span>
                 )}
               </div>
-            </div>
+            </div>}
 
             {isIOS && (
               <div className="flex items-center justify-between rounded-xl border p-4 hover:bg-muted/10 transition">

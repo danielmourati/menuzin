@@ -1,3 +1,4 @@
+import { isHidden } from "@/lib/feature-flags";
 import { useCustomerOrder } from "@/hooks/useCustomerOrder";
 import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
@@ -297,7 +298,7 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
 
         <section className="mt-8 border-y py-5">
           <h3 className="text-base">Precisa de ajuda? Fale conosco</h3>
-          {aiInfo?.enabled ? (
+          {!isHidden("aiAgent") && aiInfo?.enabled ? (
             <button type="button" onClick={() => setChatOpen(true)} className="mt-4 flex items-center gap-3">
               <MessageCircle className="h-6 w-6" /> Chat
             </button>
@@ -311,7 +312,7 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
               <MessageCircle className="h-6 w-6" /> Chat
             </a>
           )}
-          {chatOpen && aiInfo?.enabled && (
+          {!isHidden("aiAgent") && chatOpen && aiInfo?.enabled && (
             <AiOrderChatWindow
               slug={slug}
               info={aiInfo}

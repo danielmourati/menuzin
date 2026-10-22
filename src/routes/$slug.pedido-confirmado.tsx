@@ -1,3 +1,4 @@
+import { isHidden } from "@/lib/feature-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, MessageCircle, ArrowLeft, Loader2 } from "lucide-react";
@@ -165,7 +166,7 @@ function ConfirmedPage() {
         </div>
 
         <div className="mt-6">
-          <PushPermissionBanner tenantSlug={slug} tenantName={tenant.name} customerPhone={order.whatsapp} />
+          {!isHidden("push") && <PushPermissionBanner tenantSlug={slug} tenantName={tenant.name} customerPhone={order.whatsapp} />}
         </div>
       </div>
     </div>

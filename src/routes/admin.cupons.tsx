@@ -1,3 +1,4 @@
+import { isHidden } from "@/lib/feature-flags";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -188,7 +189,7 @@ function CouponsPage() {
 
   return (
     <AdminLayout
-      title="Cupons e Promoções"
+      title={isHidden("promotions") ? "Cupons" : "Cupons e Promoções"}
       action={
         tab === "cupons" ? (
           <Button size="sm" onClick={openNew} className="font-bold text-xs">
@@ -200,7 +201,7 @@ function CouponsPage() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as "cupons" | "promocoes")} className="space-y-4">
         <TabsList>
           <TabsTrigger value="cupons">Cupons</TabsTrigger>
-          <TabsTrigger value="promocoes">Promoções</TabsTrigger>
+          {!isHidden("promotions") && <TabsTrigger value="promocoes">Promoções</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="cupons" className="space-y-4">
@@ -254,7 +255,7 @@ function CouponsPage() {
                           </span>
                         </div>
 
-                        <Button
+                        {!isHidden("advancedCoupons") && <Button
                           variant="outline"
                           size="sm"
                           className="h-8 gap-1.5 px-3 text-xs font-semibold text-primary border-primary/30 hover:bg-primary/5"
@@ -263,7 +264,7 @@ function CouponsPage() {
                         >
                           <Share2 className="h-3.5 w-3.5" />
                           <span>Divulgar</span>
-                        </Button>
+                        </Button>}
 
                         <Button
                           variant="outline"

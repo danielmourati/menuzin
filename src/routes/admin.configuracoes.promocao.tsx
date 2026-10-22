@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { isAdminRouteHidden } from "@/lib/feature-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +27,7 @@ import { uploadTenantImage } from "@/lib/storage";
 import { PlanGate } from "@/components/subscription/PlanGate";
 
 export const Route = createFileRoute("/admin/configuracoes/promocao")({
+  beforeLoad: () => { if (isAdminRouteHidden("/admin/configuracoes/promocao")) throw redirect({ to: "/admin/pedidos" }); },
   component: () => (
     <PlanGate min="pro" title="Pop-up promocional" featureLabel="Pop-up promocional na loja" backTo="/admin/configuracoes">
       <PromoModalSettingsPage />

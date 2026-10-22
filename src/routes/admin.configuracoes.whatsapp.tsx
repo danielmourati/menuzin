@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { isAdminRouteHidden } from "@/lib/feature-flags";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -16,6 +18,7 @@ import { maskPhone } from "@/lib/masks";
 import { formatErrorMessage } from "@/lib/error-translator";
 
 export const Route = createFileRoute("/admin/configuracoes/whatsapp")({
+  beforeLoad: () => { if (isAdminRouteHidden("/admin/configuracoes/whatsapp")) throw redirect({ to: "/admin/pedidos" }); },
   component: WhatsappSettingsPage,
 });
 

@@ -1,3 +1,4 @@
+import { isHidden } from "@/lib/feature-flags";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { lookupByCep } from "@/lib/viacep";
@@ -423,11 +424,11 @@ function SettingsPage() {
               <TabsTrigger value="pagamento">Pagamento</TabsTrigger>
               <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
               <TabsTrigger value="impressora">Impressora</TabsTrigger>
-              <TabsTrigger value="whatsapp">
+              {!isHidden("whatsappApi") && <TabsTrigger value="whatsapp">
                 WhatsApp API <Badge variant="secondary" className="ml-1.5 text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Desabilitado</Badge>
-              </TabsTrigger>
+              </TabsTrigger>}
               <TabsTrigger value="entrega">Entrega</TabsTrigger>
-              <TabsTrigger value="redes">Redes sociais</TabsTrigger>
+              {!isHidden("social") && <TabsTrigger value="redes">Redes sociais</TabsTrigger>}
               <TabsTrigger value="link">Link público</TabsTrigger>
             </TabsList>
 
