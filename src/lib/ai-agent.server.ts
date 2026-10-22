@@ -64,6 +64,7 @@ export type PricedDraft = {
   discount: number;
   coupon_code: string | null;
   delivery_fee: number;
+  delivery_fee_full?: number | null;
   delivery_fee_source: string | null;
   delivery_neighborhood: string | null;
   /** GPS do cliente quando o endereço do pedido é o da localização compartilhada. */
@@ -258,6 +259,7 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   // Entrega
   let delivery_fee = 0;
   let delivery_fee_source: string | null = null;
+  let delivery_fee_full: number | null = null;
   let delivery_neighborhood: string | null = null;
   let gps: { lat: number; lng: number } | null = null;
   if (!draft.mode) missing.push("Entrega, retirada ou consumo no local");
@@ -321,6 +323,7 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
       else {
         delivery_fee = Number(r.fee);
         delivery_fee_source = r.source;
+        delivery_fee_full = r.fee_full ?? Number(r.fee);
         delivery_neighborhood = r.neighborhood;
         if (r.min_order_total > subtotal) errors.push(`Pedido mínimo para esse bairro: ${brl(r.min_order_total)}.`);
       }
@@ -360,7 +363,7 @@ export async function priceDraft(ctx: AgentContext, slug: string, draft: AgentDr
   if (!lines.length) missing.push("Pelo menos um item");
 
   return {
-    lines, errors, missing, subtotal, discount, coupon_code, delivery_fee, delivery_fee_source,
+    lines, errors, missing, subtotal, discount, coupon_code, delivery_fee, delivery_fee_full, delivery_fee_source,
     delivery_neighborhood, gps, total, change_back, ready: !errors.length && !missing.length, draft,
   };
 }
