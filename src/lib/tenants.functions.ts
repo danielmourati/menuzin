@@ -139,6 +139,8 @@ const UpdateTenantInput = z.object({
   delivery_fee_per_km: z.number().min(0).max(9999).nullable().optional(),
   delivery_max_km: z.number().min(0).max(9999).nullable().optional(),
   delivery_km_rounding: z.enum(["ceil", "half", "exact"]).optional(),
+  delivery_free_km: z.number().min(0).max(9999).optional(),
+  delivery_fee_customer_pct: z.number().min(0).max(100).optional(),
   notification_sound_url: z.string().max(2000).nullable().optional(),
   notification_sound_name: z.string().max(200).nullable().optional(),
   business_types: z.array(z.enum(BUSINESS_TYPES)).max(5).optional(),
