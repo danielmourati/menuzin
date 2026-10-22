@@ -1,0 +1,10 @@
+import { computeKmFee, splitDeliveryFee } from "../src/lib/delivery-fee-math.ts";
+const o = { base: 6, baseKm: 0, perKm: 2, rounding: "half", freeKm: 4 };
+const eq = (a, b, m) => { if (a !== b) { console.error("FAIL", m, a, b); process.exit(1); } };
+eq(computeKmFee(3.9, o), 0, "3,9 km grátis");
+eq(computeKmFee(4, o), 0, "4 km grátis");
+eq(computeKmFee(6.3, o), 11, "6,3 km = 11");
+eq(computeKmFee(6.3, { ...o, freeKm: 0, baseKm: 4 }), 11, "sem faixa grátis mantém cálculo");
+const s = splitDeliveryFee(11, 50); eq(s.customer, 5.5, "cliente 50%"); eq(s.store, 5.5, "loja 50%");
+eq(splitDeliveryFee(11, 100).store, 0, "100% cliente");
+console.log("delivery fee tests OK");
