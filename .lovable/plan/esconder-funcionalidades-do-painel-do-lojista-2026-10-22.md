@@ -10,6 +10,7 @@ Objetivo: simplificar o painel. Nada é apagado (dados, configurações e tabela
 - **Notificações Push** (menu "Notificações Push" e o card de aviso de pedido no celular em Configurações > Pedidos)
 - **Promoções** (Configurações > Promoção, modais promocionais e a parte de promoções em "Cupons e Promoções")
 - **Atendente IA** (menu, atalho flutuante de conversas e alerta de atendimento humano)
+- Desativar notificações push do storefront (instalação app e aceite de cupons e promoções)
 
 ## Cupom de desconto — versão básica
 
