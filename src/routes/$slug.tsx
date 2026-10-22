@@ -1,3 +1,4 @@
+import { isHidden } from "@/lib/feature-flags";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { computeStoreOpen } from "@/lib/store-hours";
 import { z } from "zod";
@@ -1073,13 +1074,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
       />
       <CartDrawer open={cartOpen && canOrder} onOpenChange={setCartOpen} tenant={tenant} storeOpen={storeOpen} />
-      {canOrder && storeOpen && <AiOrderChatLauncher slug={tenant.slug} />}
+      {!isHidden("aiAgent") && canOrder && storeOpen && <AiOrderChatLauncher slug={tenant.slug} />}
       <MobileBottomNav
         slug={tenant.slug}
         onOpenCart={() => canOrder && setCartOpen(true)}
         hidden={cartOpen || (canOrder && count > 0) || !canOrder}
       />
-      {promoQ.data && storeOpen ? (
+      {!isHidden("promotions") && promoQ.data && storeOpen ? (
         <PromoModal
           open={promoOpen}
           imageUrl={promoQ.data.imageUrl}
@@ -1101,8 +1102,8 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         tenant={tenant}
         storeOpen={storeOpen}
       />
-      <PushPermissionBanner tenantSlug={tenant.slug} tenantName={tenant.name} />
-      <PwaInstallBanner tenantSlug={tenant.slug} tenantName={tenant.name} />
+      {!isHidden("push") && <PushPermissionBanner tenantSlug={tenant.slug} tenantName={tenant.name} />}
+      {!isHidden("push") && <PwaInstallBanner tenantSlug={tenant.slug} tenantName={tenant.name} />}
     </div>
 
   );

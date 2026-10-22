@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { isAdminRouteHidden } from "@/lib/feature-flags";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +22,7 @@ import { listMyCoupons } from "@/lib/coupons.functions";
 import { formatDateTime, formatPhoneNumber, whatsappLink } from "@/lib/format";
 
 export const Route = createFileRoute("/admin/notificacoes")({
+  beforeLoad: () => { if (isAdminRouteHidden("/admin/notificacoes")) throw redirect({ to: "/admin/pedidos" }); },
   component: () => (
     <PlanGate min="pro" title="Notificações Push" featureLabel="Envio de Notificações Push para Clientes">
       <PushNotificationsPage />
