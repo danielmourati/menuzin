@@ -746,6 +746,7 @@ export function CartDrawer({
             change_for: selectedMethod === "cash" && !cashChange.noChange ? cashChange.paid : null,
             no_change: selectedMethod === "cash" ? cashChange.noChange : false,
             delivery_fee: deliveryFee,
+            delivery_fee_full: mode === "entrega" && !isPresencaOnly ? (feeResolution?.fee_full ?? deliveryFee) : null,
             delivery_fee_source: mode === "entrega" ? (feeResolution?.source ?? null) : null,
             delivery_neighborhood_snapshot:
               mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
@@ -1516,6 +1517,11 @@ export function CartDrawer({
                       </span>
                       <span className="font-semibold">{brl(feeResolution.fee)}</span>
                     </div>
+                    {(feeResolution.store_share ?? 0) > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        Taxa de {brl(feeResolution.fee_full ?? 0)} — a loja paga {brl(feeResolution.store_share ?? 0)}, você paga {brl(feeResolution.fee)}
+                      </p>
+                    )}
                     {deliveryMinOrder > 0 && (
                       <p className="text-[11px] text-muted-foreground">
                         Pedido mínimo: {brl(deliveryMinOrder)}

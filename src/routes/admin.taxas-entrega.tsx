@@ -90,6 +90,8 @@ function DeliveryZonesPage() {
   const [kmFee, setKmFee] = useState<number>(0);
   const [kmMax, setKmMax] = useState<number>(0);
   const [kmRounding, setKmRounding] = useState<"ceil" | "half" | "exact">("half");
+  const [freeKm, setFreeKm] = useState<number>(0);
+  const [customerPct, setCustomerPct] = useState<number>(100);
 
   useEffect(() => {
     if (tenantData) {
@@ -98,6 +100,8 @@ function DeliveryZonesPage() {
       setKmBase(Number((tenantData as { delivery_base_km?: number }).delivery_base_km ?? 0));
       setKmFee(Number((tenantData as { delivery_fee_per_km?: number }).delivery_fee_per_km ?? 0));
       setKmMax(Number((tenantData as { delivery_max_km?: number }).delivery_max_km ?? 0));
+      setFreeKm(Number((tenantData as { delivery_free_km?: number }).delivery_free_km ?? 0));
+      setCustomerPct(Number((tenantData as { delivery_fee_customer_pct?: number }).delivery_fee_customer_pct ?? 100));
       setKmRounding(((tenantData as { delivery_km_rounding?: "ceil" | "half" | "exact" }).delivery_km_rounding ?? "half"));
     }
   }, [tenantData]);
@@ -110,6 +114,7 @@ function DeliveryZonesPage() {
       updateMyTenant({
         data: {
           delivery_mode: mode,
+          delivery_fee_customer_pct: customerPct,
           ...(mode === "single" ? { delivery_fee: singleFee } : {}),
           ...(mode === "km" ? {
             delivery_fee: singleFee, // we use singleFee as base fee for KM too
@@ -117,6 +122,7 @@ function DeliveryZonesPage() {
             delivery_fee_per_km: kmFee,
             delivery_max_km: kmMax || null,
             delivery_km_rounding: kmRounding,
+            delivery_free_km: freeKm,
           } : {}),
           ...(mode === "none" ? { delivery_fee: 0 } : {}),
         },
@@ -300,6 +306,13 @@ function DeliveryZonesPage() {
 
             {mode === "km" && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-2xl">
+                <div className="sm:col-span-2 rounded-xl bg-muted/50 p-3">
+                  <Label>Entrega grátis até (KM)</Label>
+                  <Input type="number" min={0} step={0.1} className="mt-1.5 max-w-[10rem]" value={freeKm || ""} onChange={(e) => setFreeKm(Number(e.target.value))} />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Até essa distância a entrega sai por R$ 0,00. Acima dela cobra Taxa Base + Valor por KM para cada km além dela (a Distância Base é ignorada). Deixe 0 para desligar.
+                  </p>
+                </div>
                 <div>
                   <Label>Taxa Base</Label>
                   <CurrencyInput className="mt-1.5" value={singleFee} onChange={setSingleFee} />
@@ -334,6 +347,30 @@ function DeliveryZonesPage() {
                   <p className="mt-1 text-[11px] text-muted-foreground">Ex.: 2,1 km extras → meio km: 2,5 · para cima: 3 · exato: 2,1.</p>
                 </div>
                 <KmSimulator slug={(tenantData as { slug?: string } | undefined)?.slug ?? ""} />
+              </div>
+            )}
+
+            {mode !== "none" && (
+              <div className="max-w-xs">
+                <Label>Quem paga a taxa de entrega</Label>
+                <select
+                  className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={[100, 50, 0].includes(customerPct) ? String(customerPct) : "custom"}
+                  onChange={(e) => setCustomerPct(e.target.value === "custom" ? 70 : Number(e.target.value))}
+                >
+                  <option value="100">Cliente paga 100%</option>
+                  <option value="50">Dividir 50% / 50% com a loja</option>
+                  <option value="0">Loja paga 100% (grátis ao cliente)</option>
+                  <option value="custom">Percentual personalizado</option>
+                </select>
+                {![100, 50, 0].includes(customerPct) && (
+                  <div className="mt-2 flex items-center gap-2 text-sm">
+                    Cliente paga
+                    <Input type="number" min={0} max={100} className="w-20" value={customerPct} onChange={(e) => setCustomerPct(Math.min(100, Math.max(0, Number(e.target.value))))} />
+                    %
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] text-muted-foreground">O entregador continua recebendo a taxa cheia no Caixa.</p>
               </div>
             )}
 
@@ -823,7 +860,7 @@ function KmSimulator({ slug }: { slug: string }) {
         data: { tenant_slug: slug, cep: d, street: a?.logradouro || null, number: num || null, neighborhood: a?.bairro || null, city: a?.localidade || null, state: a?.uf || null },
       });
       setOut(res.available
-        ? `${a?.logradouro ? a.logradouro + " — " : ""}${res.distance_km != null ? String(res.distance_km).replace(".", ",") + " km · " : ""}Taxa ${brl(res.fee)}${res.origin ? ` · Saída: ${res.origin === "manual" ? "ponto definido por você" : "endereço cadastrado"}` : ""}`
+        ? `${a?.logradouro ? a.logradouro + " — " : ""}${res.distance_km != null ? String(res.distance_km).replace(".", ",") + " km · " : ""}Taxa ${(res.store_share ?? 0) > 0 ? `${brl(res.fee_full ?? 0)} (cliente ${brl(res.fee)} · loja ${brl(res.store_share ?? 0)})` : brl(res.fee)}${res.origin ? ` · Saída: ${res.origin === "manual" ? "ponto definido por você" : "endereço cadastrado"}` : ""}`
         : res.message || "Não foi possível calcular.");
     } catch {
       setOut("Não foi possível calcular agora.");

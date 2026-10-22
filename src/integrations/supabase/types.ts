@@ -1687,7 +1687,9 @@ export type Database = {
           customer_id: string | null
           customer_name: string
           delivery_fee: number
+          delivery_fee_full: number | null
           delivery_fee_source: string | null
+          delivery_fee_store_share: number
           delivery_neighborhood_snapshot: string | null
           discount_amount: number
           driver_id: string | null
@@ -1729,7 +1731,9 @@ export type Database = {
           customer_id?: string | null
           customer_name: string
           delivery_fee?: number
+          delivery_fee_full?: number | null
           delivery_fee_source?: string | null
+          delivery_fee_store_share?: number
           delivery_neighborhood_snapshot?: string | null
           discount_amount?: number
           driver_id?: string | null
@@ -1771,7 +1775,9 @@ export type Database = {
           customer_id?: string | null
           customer_name?: string
           delivery_fee?: number
+          delivery_fee_full?: number | null
           delivery_fee_source?: string | null
+          delivery_fee_store_share?: number
           delivery_neighborhood_snapshot?: string | null
           discount_amount?: number
           driver_id?: string | null
@@ -3026,7 +3032,9 @@ export type Database = {
           created_at: string
           delivery_base_km: number | null
           delivery_fee: number
+          delivery_fee_customer_pct: number
           delivery_fee_per_km: number | null
+          delivery_free_km: number
           delivery_km_rounding: string
           delivery_max_km: number | null
           delivery_mode: string
@@ -3083,7 +3091,9 @@ export type Database = {
           created_at?: string
           delivery_base_km?: number | null
           delivery_fee?: number
+          delivery_fee_customer_pct?: number
           delivery_fee_per_km?: number | null
+          delivery_free_km?: number
           delivery_km_rounding?: string
           delivery_max_km?: number | null
           delivery_mode?: string
@@ -3140,7 +3150,9 @@ export type Database = {
           created_at?: string
           delivery_base_km?: number | null
           delivery_fee?: number
+          delivery_fee_customer_pct?: number
           delivery_fee_per_km?: number | null
+          delivery_free_km?: number
           delivery_km_rounding?: string
           delivery_max_km?: number | null
           delivery_mode?: string

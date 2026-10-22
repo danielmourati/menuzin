@@ -119,6 +119,7 @@ export const confirmAgentOrder = createServerFn({ method: "POST" })
         change_for: draft.payment === "dinheiro" && !draft.no_change ? draft.change_for : null,
         no_change: draft.payment === "dinheiro" ? !!draft.no_change : false,
         delivery_fee: p.delivery_fee,
+        delivery_fee_full: p.delivery_fee_full ?? null,
         delivery_fee_source: (p.delivery_fee_source as any) ?? null,
         delivery_neighborhood_snapshot: p.delivery_neighborhood,
         address: draft.mode === "entrega" && a
