@@ -189,13 +189,20 @@ export type DeliveryFeeResolution = {
   message: string | null;
   distance_km?: number;
   origin?: "manual" | "address";
+  /** Taxa cheia (antes da divisão com a loja). */
+  fee_full?: number;
+  /** Parte da taxa paga pela loja. */
+  store_share?: number;
 };
 
 export type KmRounding = "ceil" | "half" | "exact";
 
 /** Taxa por KM: base + km extras × valor/km, com arredondamento configurável. */
-export function computeKmFee(km: number, o: { base: number; baseKm: number; perKm: number; rounding: KmRounding }) {
-  const raw = Math.max(0, km - o.baseKm);
+export function computeKmFee(km: number, o: { base: number; baseKm: number; perKm: number; rounding: KmRounding; freeKm?: number }) {
+  const freeKm = Number(o.freeKm ?? 0);
+  if (freeKm > 0 && km <= freeKm + 1e-9) return 0;
+  const threshold = freeKm > 0 ? freeKm : o.baseKm;
+  const raw = Math.max(0, km - threshold);
   const extra = o.rounding === "ceil" ? Math.ceil(raw - 1e-9) : o.rounding === "half" ? Math.ceil(raw * 2 - 1e-9) / 2 : raw;
   return Math.round((o.base + extra * o.perKm) * 100) / 100;
 }
@@ -225,12 +232,28 @@ const ResolveInput = z.object({
   dest_lng: z.number().min(-180).max(180).optional().nullable(),
 });
 
+/** Divide a taxa entre cliente (customerPct%) e loja. */
+export function splitDeliveryFee(full: number, customerPct: number) {
+  const pct = Math.min(100, Math.max(0, Number.isFinite(customerPct) ? customerPct : 100));
+  const customer = Math.round(full * pct) / 100;
+  return { customer, store: Math.round((full - customer) * 100) / 100 };
+}
+
 export const resolveDeliveryFee = createServerFn({ method: "POST" })
   .inputValidator((d) => ResolveInput.parse(d))
   .handler(async ({ data }): Promise<DeliveryFeeResolution> => {
+    const res = await resolveRaw(data);
+    if (!res.available || res.fee <= 0) return { ...res, fee_full: res.fee, store_share: 0 };
+    const { data: t } = await supabaseAdmin.from("tenants").select("delivery_fee_customer_pct").eq("slug", data.tenant_slug).maybeSingle();
+    const pct = Number((t as { delivery_fee_customer_pct?: number } | null)?.delivery_fee_customer_pct ?? 100);
+    const { customer, store } = splitDeliveryFee(res.fee, pct);
+    return { ...res, fee: customer, fee_full: res.fee, store_share: store };
+  });
+
+async function resolveRaw(data: z.infer<typeof ResolveInput>): Promise<DeliveryFeeResolution> {
     const { data: tenant } = await supabaseAdmin
       .from("tenants")
-      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, delivery_km_rounding, geo_manual, geo_lat, geo_lng, geo_address, cep, address, address_number, neighborhood, city, state")
+      .select("id, delivery_mode, delivery_fee, delivery_base_km, delivery_fee_per_km, delivery_max_km, delivery_km_rounding, delivery_free_km, geo_manual, geo_lat, geo_lng, geo_address, cep, address, address_number, neighborhood, city, state")
       .eq("slug", data.tenant_slug)
       .eq("active", true)
       .maybeSingle();
@@ -338,6 +361,7 @@ export const resolveDeliveryFee = createServerFn({ method: "POST" })
           baseKm: Number(tenant.delivery_base_km ?? 0),
           perKm: Number(tenant.delivery_fee_per_km ?? 0),
           rounding: (t.delivery_km_rounding as KmRounding) ?? "half",
+          freeKm: Number((tenant as { delivery_free_km?: number }).delivery_free_km ?? 0),
         });
         return {
           mode, available: true, fee, source: "distance_km",
