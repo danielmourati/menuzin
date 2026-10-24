@@ -4,11 +4,12 @@ import { formatTenantAddress } from "@/lib/tenant-address";
 // impressora configurada. Falhas de impressão não bloqueiam a aceitação.
 
 import { useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { Order, OrderStatus } from "@/lib/domain-types";
-import { listMyTenantPrinters } from "@/lib/tenant-printers.functions";
+import { listMyTenantPrinters, getMyPrintRouting } from "@/lib/tenant-printers.functions";
+import { itemsForPrinter, type PrintRouting } from "@/lib/print-routing";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
 import { printKitchenTicket, printKitchenTicketViaBluetooth } from "@/lib/print-kitchen";
@@ -47,6 +48,7 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
   const { isAuthenticated } = useAuth();
   const { can } = useTenantPlan();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data } = useQuery({
     queryKey: ["tenant-printers"],
@@ -126,10 +128,28 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
             storePixKey: tenant?.social?.pix,
             storeCnpj: tenant?.social?.cnpj,
           };
-          const { printer } = await printKitchenTicket(order, kitchenPrinter, storeInfo, {
-            automaticNewOrder: options?.automaticNewOrder,
-          });
-          toast.success(`Comanda enviada automaticamente para ${printer}`);
+          // Divide a comanda pelos locais escolhidos em cada produto/categoria.
+          const locations = (data?.printers ?? []).filter((p) => p.role !== "receipt" && p.is_active && p.printer_name);
+          let routing: PrintRouting | null = null;
+          if (locations.length > 1) {
+            routing = await queryClient
+              .fetchQuery({ queryKey: ["print-routing"], queryFn: () => getMyPrintRouting(), staleTime: 30_000 })
+              .catch(() => null);
+          }
+          const activeIds = locations.map((p) => p.id);
+          const targets = routing ? locations : [kitchenPrinter];
+          const sent: string[] = [];
+          for (const target of targets) {
+            const items = routing
+              ? itemsForPrinter(order.items, target.id, kitchenPrinter.id, routing, activeIds)
+              : order.items;
+            if (items.length === 0) continue;
+            const { printer } = await printKitchenTicket({ ...order, items }, target, storeInfo, {
+              automaticNewOrder: options?.automaticNewOrder,
+            });
+            sent.push(target.name || printer);
+          }
+          toast.success(`Comanda enviada automaticamente para ${sent.join(", ")}`);
         }
       } catch (err) {
         const retry = {
@@ -149,7 +169,7 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
         }
       }
     },
-    [can, kitchenPrinter, navigate, tenant],
+    [can, kitchenPrinter, navigate, tenant, data, queryClient],
   );
 
   /**

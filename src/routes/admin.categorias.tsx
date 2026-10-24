@@ -1,3 +1,4 @@
+import { PrintLocationPicker } from "@/components/admin/PrintLocationPicker";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -230,6 +231,7 @@ function CategoriesPage() {
               <div><Label>Nome da categoria</Label><Input value={editing.name} maxLength={40} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" placeholder="Exemplo: Carros chefe ou promoção" /><p className="text-right text-[10px] text-muted-foreground">{editing.name.length}/40 caracteres</p></div>
               <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
               <div><Label>Ordem</Label><Input type="number" value={editing.sort_order} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} className="mt-1.5" /></div>
+              <PrintLocationPicker kind="category" id={editing.id} value={(list.find((x) => x.id === editing.id) as { print_location_ids?: string[] } | undefined)?.print_location_ids} />
               <div className="flex items-center justify-between rounded-xl border p-3"><Label>Ativa</Label><Switch checked={editing.active} onCheckedChange={(v) => setEditing({ ...editing, active: v })} /></div>
             </div>
           )}
