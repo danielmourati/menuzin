@@ -1,3 +1,4 @@
+import { setPrintLocations } from "@/lib/tenant-printers.functions";
 import { PrintLocationPicker } from "@/components/admin/PrintLocationPicker";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
