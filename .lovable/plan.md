@@ -26,3 +26,23 @@ No app Mercado Pago da conta conectada: **Seu perfil > Pix > Minhas chaves > Cad
 - O mesmo reconhecimento entra na criação de Pix do pedido (mesmo arquivo), retornando uma mensagem amigável.
 - Um pequeno teste unitário para a função que transforma o erro em mensagem.
 - Sem mudanças no banco de dados.
+
+---
+
+# Local de impressão duplicado ao criar e salvar
+
+## Causa (confirmada no código)
+
+Quando você cria um local novo e clica em **Salvar**, ele é gravado direito. Mas logo depois a tela recarrega a lista de locais gravados e mantém a cópia "ainda não salva" do mesmo local. Por isso aparecem dois "Sucos/Frituras". Se clicar em Salvar de novo, essa cópia é gravada também, e a duplicata vira real. Com dois locais iguais, cada pedido sai impresso duas vezes.
+
+## Correção
+
+1. Depois de salvar, cada local novo passa a usar o código que recebeu ao ser gravado. Assim a tela fica só com a versão salva e não sobra cópia.
+2. O botão Salvar fica travado enquanto estiver salvando, para dois cliques seguidos não gravarem duas vezes.
+3. Limpeza dos dados: procurar locais duplicados (mesmo nome, tipo e impressora na mesma loja). Ficamos com o mais antigo e apagamos os demais, mas só depois de te mostrar a lista.
+4. Teste: criar um local, salvar duas vezes, fechar e abrir de novo. Deve aparecer um só e a impressão deve sair uma única vez.
+
+## Detalhes técnicos
+
+- `src/components/printer/PrinterConfigModal.tsx`: em `handleSave`, usar o `id` retornado por `saveTenantPrinter` para atualizar o draft daquele `localId`. No `useEffect` de `extraData`, descartar drafts sem `id` que já foram persistidos. Adicionar guarda `if (saving) return`.
+- `saveTenantPrinter` (`src/lib/tenant-printers.functions.ts`): confirmar que o `id` é retornado.
