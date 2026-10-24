@@ -169,7 +169,7 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
         }
       }
     },
-    [can, kitchenPrinter, navigate, tenant],
+    [can, kitchenPrinter, navigate, tenant, data, queryClient],
   );
 
   /**
