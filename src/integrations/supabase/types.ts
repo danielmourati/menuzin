@@ -520,6 +520,7 @@ export type Database = {
           id: string
           kind: string
           name: string
+          print_location_ids: string[]
           sort_order: number
           tenant_id: string
           updated_at: string
@@ -531,6 +532,7 @@ export type Database = {
           id?: string
           kind?: string
           name: string
+          print_location_ids?: string[]
           sort_order?: number
           tenant_id: string
           updated_at?: string
@@ -542,6 +544,7 @@ export type Database = {
           id?: string
           kind?: string
           name?: string
+          print_location_ids?: string[]
           sort_order?: number
           tenant_id?: string
           updated_at?: string
@@ -2196,6 +2199,7 @@ export type Database = {
           offer_pieces: number | null
           prep_time: string | null
           price: number
+          print_location_ids: string[]
           promo_price: number | null
           slug: string
           sort_order: number
@@ -2231,6 +2235,7 @@ export type Database = {
           offer_pieces?: number | null
           prep_time?: string | null
           price: number
+          print_location_ids?: string[]
           promo_price?: number | null
           slug?: string
           sort_order?: number
@@ -2266,6 +2271,7 @@ export type Database = {
           offer_pieces?: number | null
           prep_time?: string | null
           price?: number
+          print_location_ids?: string[]
           promo_price?: number | null
           slug?: string
           sort_order?: number

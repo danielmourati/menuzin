@@ -1,0 +1,2 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS print_location_ids uuid[] NOT NULL DEFAULT '{}';
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS print_location_ids uuid[] NOT NULL DEFAULT '{}';
