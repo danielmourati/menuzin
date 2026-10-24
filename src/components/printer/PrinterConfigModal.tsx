@@ -335,14 +335,18 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     }
   };
 
+  const savingRef = useRef(false);
   const handleSave = async (closeAfterSave = false) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       setDevicePrinter(caixa.printer_name);
       await saveMyPrinterSettings({ data: caixa });
+      const savedIds = new Map<string, string>();
       for (const d of drafts) {
         if (!d.name.trim()) continue;
-        await saveTenantPrinter({
+        const res = await saveTenantPrinter({
           data: {
             id: d.id,
             name: d.name,
@@ -356,6 +360,13 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
             layout_overrides: d.layout_overrides,
           },
         });
+        if (!d.id && res?.printer?.id) savedIds.set(d.localId, res.printer.id);
+      }
+      // Novos locais passam a usar o id gravado, evitando cópia não salva duplicada.
+      if (savedIds.size > 0) {
+        setDrafts((prev) =>
+          prev.map((d) => (savedIds.has(d.localId) ? { ...d, id: savedIds.get(d.localId) } : d)),
+        );
       }
       qc.invalidateQueries({ queryKey: ["printer-settings"] });
       qc.invalidateQueries({ queryKey: ["tenant-printers"] });
