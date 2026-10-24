@@ -204,3 +204,48 @@ export const deleteTenantPrinter = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Mapa produto/categoria → locais de impressão, para dividir a comanda. */
+export const getMyPrintRouting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    const empty = { products: {}, categories: {} } as import("@/lib/print-routing").PrintRouting;
+    if (!resolved?.tenantId) return empty;
+    const [p, c] = await Promise.all([
+      supabaseAdmin.from("products").select("id, category_id, print_location_ids").eq("tenant_id", resolved.tenantId),
+      supabaseAdmin.from("categories").select("id, print_location_ids").eq("tenant_id", resolved.tenantId),
+    ]);
+    if (p.error) throw new Error(p.error.message);
+    if (c.error) throw new Error(c.error.message);
+    for (const r of p.data ?? []) empty.products[r.id] = { category_id: r.category_id, print_location_ids: r.print_location_ids ?? [] };
+    for (const r of c.data ?? []) if (r.print_location_ids?.length) empty.categories[r.id] = r.print_location_ids;
+    return empty;
+  });
+
+const SetLocationsInput = z.object({
+  kind: z.enum(["product", "category"]),
+  id: z.string().uuid(),
+  location_ids: z.array(z.string().uuid()).max(20),
+});
+
+export const setPrintLocations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => SetLocationsInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const resolved = await tryResolveEffectiveTenantId(supabase, userId);
+    if (!resolved?.tenantId) throw new Error("Usuário sem loja vinculada.");
+    const { data: valid } = await supabaseAdmin
+      .from("tenant_printers").select("id").eq("tenant_id", resolved.tenantId).in("id", data.location_ids.length ? data.location_ids : ["00000000-0000-0000-0000-000000000000"]);
+    const ids = (valid ?? []).map((r) => r.id as string);
+    // RLS do próprio usuário garante que o item pertence à loja dele.
+    const table = data.kind === "product" ? "products" : "categories";
+    const { error, count } = await supabase
+      .from(table).update({ print_location_ids: ids }, { count: "exact" })
+      .eq("id", data.id).eq("tenant_id", resolved.tenantId);
+    if (error) throw new Error(error.message);
+    if (!count) throw new Error("Item não encontrado.");
+    return { ok: true, location_ids: ids };
+  });
