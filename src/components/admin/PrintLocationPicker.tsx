@@ -3,12 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Printer } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { listMyTenantPrinters, setPrintLocations } from "@/lib/tenant-printers.functions";
+import { listMyTenantPrinters, setPrintLocations, getMyPrintRouting } from "@/lib/tenant-printers.functions";
 
 type Props = {
   kind: "product" | "category";
   id?: string;
-  value: string[] | null | undefined;
+  value?: string[] | null;
   hint?: string;
 };
 
@@ -17,9 +17,15 @@ export function PrintLocationPicker({ kind, id, value, hint }: Props) {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["tenant-printers"], queryFn: () => listMyTenantPrinters(), staleTime: 60_000, retry: false });
   const locations = (data?.printers ?? []).filter((p) => p.role !== "receipt" && p.is_active);
-  const [selected, setSelected] = useState<string[]>(value ?? []);
+  const { data: routing } = useQuery({ queryKey: ["print-routing"], queryFn: () => getMyPrintRouting(), staleTime: 30_000, retry: false, enabled: value === undefined && !!id });
+  const stored = value !== undefined
+    ? value ?? []
+    : id ? (kind === "product" ? routing?.products[id]?.print_location_ids : routing?.categories[id]) ?? [] : [];
+  const storedKey = stored.join(",");
+  const [selected, setSelected] = useState<string[]>(stored);
   const [busy, setBusy] = useState(false);
-  useEffect(() => setSelected(value ?? []), [value, id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => setSelected(stored), [storedKey, id]);
 
   if (locations.length < 2) return null;
 

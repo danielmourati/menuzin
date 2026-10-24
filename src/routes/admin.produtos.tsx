@@ -1472,7 +1472,7 @@ function PizzaProductForm({
       </TabsContent>
 
       <TabsContent value="classificacao" className="mt-4 space-y-3">
-        <PrintLocationPicker kind="product" id={editing.id} value={(products.find((x) => x.id === editing.id) as { print_location_ids?: string[] } | undefined)?.print_location_ids} hint="Sem marcação, segue o local da categoria (ou o local principal da cozinha)." />
+        <PrintLocationPicker kind="product" id={editing.id} hint="Sem marcação, segue o local da categoria (ou o local principal da cozinha)." />
         <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 30 min" /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
