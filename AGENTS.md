@@ -4,3 +4,4 @@
 - Receipt headings use `receiptItemName` and descriptions use `receiptItemDetails`, typography uses `resolvePrinterTypography`, and HTML decodes printer styling with `parsePrintSpans` — keeps recorded sizes, kitchen, receipts and previews consistent without counting control bytes as text columns.
 - AI order agent: the model only picks catalog IDs via the update_draft tool; prices, fees, coupons and change are recomputed server-side in src/lib/ai-agent.server.ts and the order is created only by the customer's confirm button through createOrder — prevents the model from setting prices or placing orders.
 - Funcionalidades ocultas (Guia, WhatsApp API, redes, push, promoções, IA, cupom avançado) via src/lib/feature-flags.ts — religar trocando para false.
+- Kitchen print routing per product/category uses the pure helper src/lib/print-routing.ts (product > category > default kitchen printer) — keeps automatic and manual prints splitting items the same way.
