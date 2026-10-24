@@ -1,3 +1,4 @@
+import { setPrintLocations } from "@/lib/tenant-printers.functions";
 import { PrintLocationPicker } from "@/components/admin/PrintLocationPicker";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -130,8 +131,9 @@ function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [editing, setEditing] = useState<Editing | null>(null);
   const [draftSizes, setDraftSizes] = useState<{ name: string; price: number }[]>([]);
+  const [draftPrintLocs, setDraftPrintLocs] = useState<string[]>([]);
   const editingKey = editing ? (editing.id ?? "new") : null;
-  useEffect(() => { setDraftSizes([]); }, [editingKey]);
+  useEffect(() => { setDraftSizes([]); setDraftPrintLocs([]); }, [editingKey]);
   const [open, setOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const initialSnapshotRef = useRef<string | null>(null);
@@ -261,6 +263,10 @@ function ProductsPage() {
       const payload: Editing = isPizzaCategory ? { ...input, type: "pizza" } : input;
       const res = await saveProduct({ data: payload });
       const pid = res.id;
+      if (!input.id && draftPrintLocs.length > 0) {
+        await setPrintLocations({ data: { kind: "product", id: pid, location_ids: draftPrintLocs } });
+        qc.invalidateQueries({ queryKey: ["print-routing"] });
+      }
       if (!input.id && payload.type !== "pizza" && draftSizes.length > 0) {
         for (let i = 0; i < draftSizes.length; i++) {
           await saveProductSize({ data: { product_id: pid, name: draftSizes[i].name, price: draftSizes[i].price, sort_order: i } });
@@ -865,6 +871,15 @@ function ProductsPage() {
                     </Select>
                   </div>
 
+                  <PrintLocationPicker
+                    kind="product"
+                    id={editing.id}
+                    categoryId={editing.category_id}
+                    categoryName={categories.find((c) => c.id === editing.category_id)?.name}
+                    draft={draftPrintLocs}
+                    onDraftChange={setDraftPrintLocs}
+                  />
+
                   <div>
                     <Label className="text-xs font-semibold">Descrição</Label>
                     <Textarea
@@ -1410,6 +1425,7 @@ function PizzaProductForm({
           </Select>
           <p className="mt-1 text-[11px] text-muted-foreground">Apenas categorias do tipo pizza são listadas.</p>
         </div>
+        <PrintLocationPicker kind="product" id={editing.id} categoryId={editing.category_id} categoryName={categories.find((c) => c.id === editing.category_id)?.name} />
         <div><Label>Sabor</Label><Input maxLength={80} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" placeholder="Ex: Pizza de Mussarela" /><p className="text-right text-[10px] text-muted-foreground">{editing.name.length}/80 caracteres</p></div>
         <div><Label>Descrição</Label><Textarea maxLength={1000} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
         <ImageUploader
@@ -1472,7 +1488,6 @@ function PizzaProductForm({
       </TabsContent>
 
       <TabsContent value="classificacao" className="mt-4 space-y-3">
-        <PrintLocationPicker kind="product" id={editing.id} hint="Sem marcação, segue o local da categoria (ou o local principal da cozinha)." />
         <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 30 min" /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
         <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>

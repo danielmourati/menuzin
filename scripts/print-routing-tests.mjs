@@ -20,4 +20,10 @@ const eq = (name, got, exp) => {
 eq("cozinha recebe pastel e avulso", itemsForPrinter(items, "cozinha", "cozinha", routing, active).map((i) => i.productId), ["pastel", "avulso"]);
 eq("sucos recebe suco e coca (herda categoria)", itemsForPrinter(items, "sucos", "cozinha", routing, active).map((i) => i.productId), ["suco", "coca"]);
 eq("local inativo cai no padrão", itemsForPrinter(items, "cozinha", "cozinha", routing, ["cozinha"]).map((i) => i.productId), ["suco", "pastel", "coca", "avulso"]);
+{
+  const r = { products: { coca: { category_id: "bebidas", print_location_ids: ["cozinha"] } }, categories: { bebidas: ["sucos"] } };
+  const it = [{ productId: "coca" }];
+  eq("produto vale mais que a categoria (cozinha)", itemsForPrinter(it, "cozinha", "cozinha", r, active).length, 1);
+  eq("produto vale mais que a categoria (sucos nada)", itemsForPrinter(it, "sucos", "cozinha", r, active).length, 0);
+}
 if (fail) process.exit(1);
