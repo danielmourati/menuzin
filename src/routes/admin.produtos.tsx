@@ -131,7 +131,7 @@ function ProductsPage() {
   const [editing, setEditing] = useState<Editing | null>(null);
   const [draftSizes, setDraftSizes] = useState<{ name: string; price: number }[]>([]);
   const [draftPrintLocs, setDraftPrintLocs] = useState<string[]>([]);
-...
+const editingKey = editing ? (editing.id ?? "new") : null;
   useEffect(() => { setDraftSizes([]); setDraftPrintLocs([]); }, [editingKey]);
   const [open, setOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
