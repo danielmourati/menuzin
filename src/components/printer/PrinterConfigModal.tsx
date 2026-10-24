@@ -1,7 +1,7 @@
 // Modal único de impressoras: lista de locais à esquerda, ajustes do local
 // selecionado à direita, opções avançadas recolhidas e estado da impressão no
 // rodapé. É a única tela de configuração de impressora do sistema.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -365,8 +365,12 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       // Novos locais passam a usar o id gravado, evitando cópia não salva duplicada.
       if (savedIds.size > 0) {
         setDrafts((prev) =>
-          prev.map((d) => (savedIds.has(d.localId) ? { ...d, id: savedIds.get(d.localId) } : d)),
+          prev.map((d) => {
+            const id = savedIds.get(d.localId);
+            return id ? { ...d, id, localId: id } : d;
+          }),
         );
+        setSelectedId((cur) => savedIds.get(cur) ?? cur);
       }
       qc.invalidateQueries({ queryKey: ["printer-settings"] });
       qc.invalidateQueries({ queryKey: ["tenant-printers"] });
@@ -378,6 +382,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível salvar.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
