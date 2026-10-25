@@ -96,6 +96,7 @@ function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean
       <nav className={`flex flex-1 flex-col gap-0.5 py-4 ${collapsed ? "px-2" : "px-3"}`}>
         {sections.map((section, idx) => {
           const isOpen = collapsed || openSections.has(section.label);
+          const SectionIcon = section.icon;
           return (
           <div key={section.label} className="flex flex-col gap-0.5">
             {collapsed ? (
