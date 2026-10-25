@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft, Truck, Bell, ShoppingCart, Wallet, ChefHat } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft, Truck, Bell, ShoppingCart, Wallet, ChefHat, ChevronDown } from "lucide-react";
 import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
@@ -73,19 +73,41 @@ const sections = [
 
 function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean }) {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const activeSection = sections.find((s) => s.items.some((i) => pathname === i.to || pathname.startsWith(i.to + "/")))?.label;
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    () => new Set(["Operação", ...(activeSection ? [activeSection] : [])]),
+  );
+  useEffect(() => {
+    if (activeSection) setOpenSections((prev) => (prev.has(activeSection) ? prev : new Set(prev).add(activeSection)));
+  }, [activeSection]);
+  const toggle = (label: string) =>
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
   return (
     <TooltipProvider delayDuration={200}>
       <nav className={`flex flex-1 flex-col gap-0.5 py-4 ${collapsed ? "px-2" : "px-3"}`}>
-        {sections.map((section, idx) => (
+        {sections.map((section, idx) => {
+          const isOpen = collapsed || openSections.has(section.label);
+          return (
           <div key={section.label} className="flex flex-col gap-0.5">
             {collapsed ? (
               idx > 0 && <div className="my-1.5 h-px bg-sidebar-border/60" />
             ) : (
-              <p className={`px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ${idx === 0 ? "mb-1" : "mb-1 mt-3"}`}>
+              <button
+                type="button"
+                onClick={() => toggle(section.label)}
+                aria-expanded={isOpen}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground ${idx === 0 ? "" : "mt-2"}`}
+              >
                 {section.label}
-              </p>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </button>
             )}
-            {section.items.filter((i) => !isAdminRouteHidden(i.to)).map((i) => {
+            {isOpen && section.items.filter((i) => !isAdminRouteHidden(i.to)).map((i) => {
               const active = pathname === i.to;
               const Icon = i.icon;
               const link = (
