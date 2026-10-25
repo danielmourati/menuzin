@@ -134,7 +134,8 @@ function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
     </TooltipProvider>
   );
