@@ -1,5 +1,5 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft, Truck, Bell, ShoppingCart, Wallet, ChefHat, ChevronDown } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Settings, Palette, LogOut, Menu, ExternalLink, Loader2, Layers, Store, X, Power, PanelLeftClose, PanelLeftOpen, Ticket, MapPin, BarChart3, Star, CreditCard, Compass, ListChecks, LifeBuoy, ArrowLeft, Truck, Bell, ShoppingCart, Wallet, ChefHat, ChevronDown, Zap, UtensilsCrossed, Megaphone, Sparkles } from "lucide-react";
 import { SubscriptionAlertBanner, SubscriptionBlockedScreen, useEffectiveSubscription } from "@/components/subscription/SubscriptionGate";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useEffect, useState, type ReactNode } from "react";
@@ -31,6 +31,7 @@ import { isAdminRouteHidden, isHidden } from "@/lib/feature-flags";
 const sections = [
   {
     label: "Operação",
+    icon: Zap,
     items: [
       { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
@@ -44,6 +45,7 @@ const sections = [
   },
   {
     label: "Cardápio",
+    icon: UtensilsCrossed,
     items: [
       { to: "/admin/cardapio/novo", label: "Novo (assistente)", icon: ListChecks },
       { to: "/admin/produtos", label: "Produtos", icon: Package },
@@ -54,6 +56,7 @@ const sections = [
   },
   {
     label: "Vendas & Marketing",
+    icon: Megaphone,
     items: [
       { to: "/admin/cupons", label: isHidden("promotions") ? "Cupons" : "Cupons e Promoções", icon: Ticket },
       { to: "/admin/notificacoes", label: "Notificações Push", icon: Bell },
@@ -63,6 +66,7 @@ const sections = [
   },
   {
     label: "Personalização",
+    icon: Sparkles,
     items: [
       { to: "/admin/aparencia", label: "Aparência", icon: Palette },
       { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
@@ -92,6 +96,7 @@ function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean
       <nav className={`flex flex-1 flex-col gap-0.5 py-4 ${collapsed ? "px-2" : "px-3"}`}>
         {sections.map((section, idx) => {
           const isOpen = collapsed || openSections.has(section.label);
+          const SectionIcon = section.icon;
           return (
           <div key={section.label} className="flex flex-col gap-0.5">
             {collapsed ? (
@@ -103,7 +108,10 @@ function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean
                 aria-expanded={isOpen}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground ${idx === 0 ? "" : "mt-2"}`}
               >
-                {section.label}
+                <span className="flex items-center gap-1.5">
+                  <SectionIcon className="h-3 w-3 shrink-0" />
+                  {section.label}
+                </span>
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
               </button>
             )}
