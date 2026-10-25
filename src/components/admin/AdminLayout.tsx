@@ -45,6 +45,7 @@ const sections = [
   },
   {
     label: "Cardápio",
+    icon: UtensilsCrossed,
     items: [
       { to: "/admin/cardapio/novo", label: "Novo (assistente)", icon: ListChecks },
       { to: "/admin/produtos", label: "Produtos", icon: Package },
@@ -55,6 +56,7 @@ const sections = [
   },
   {
     label: "Vendas & Marketing",
+    icon: Megaphone,
     items: [
       { to: "/admin/cupons", label: isHidden("promotions") ? "Cupons" : "Cupons e Promoções", icon: Ticket },
       { to: "/admin/notificacoes", label: "Notificações Push", icon: Bell },
@@ -64,6 +66,7 @@ const sections = [
   },
   {
     label: "Personalização",
+    icon: Sparkles,
     items: [
       { to: "/admin/aparencia", label: "Aparência", icon: Palette },
       { to: "/admin/configuracoes", label: "Configurações", icon: Settings },
@@ -104,7 +107,10 @@ function Nav({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean
                 aria-expanded={isOpen}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground ${idx === 0 ? "" : "mt-2"}`}
               >
-                {section.label}
+                <span className="flex items-center gap-1.5">
+                  <SectionIcon className="h-3 w-3 shrink-0" />
+                  {section.label}
+                </span>
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
               </button>
             )}
