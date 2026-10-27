@@ -1,3 +1,9 @@
+# Fotos Pastelão Junin
+- [x] Aplicar foto de crepe da página 99Food aos 32 crepes.
+- [x] Copiar 13 fotos correspondentes disponíveis de bebidas e sucos do Restaurante O Nêgo e conferir no cardápio.
+- [ ] Copiar fotos de Fanta Laranja, Fanta Uva e Guaraná lata 350ml — endereços da origem bloqueiam download; depende de imagens acessíveis.
+- [ ] Completar demais bebidas sem correspondência — origem não possui fotos de cervejas, Coca-Cola 600ml, Fanta Uva/Guaraná 200ml, suco de açaí e vitaminas; Coca-Cola/Guaraná sem volume precisam de identificação.
+
 # Cupom térmico
 - [x] Mover tamanho para o nome em negrito, valores para o fim do item e destacar recebimento no cabeçalho.
 - [x] Grupos "Escolha N sabores" impressos como lista "Sabores:" em negrito.
