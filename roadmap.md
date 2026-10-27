@@ -1,4 +1,9 @@
 # Cupom térmico
+# Fotos Pastelão Junin
+- [ ] Aplicar foto de crepe da página 99Food aos crepes.
+- [ ] Copiar fotos correspondentes de bebidas e sucos do Restaurante O Nêgo e conferir no cardápio.
+
+# Cupom térmico
 - [x] Mover tamanho para o nome em negrito, valores para o fim do item e destacar recebimento no cabeçalho.
 - [x] Grupos "Escolha N sabores" impressos como lista "Sabores:" em negrito.
 - [x] Validar regressões e prévia do novo layout.
