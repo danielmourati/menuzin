@@ -807,6 +807,9 @@ function ObservacoesPage() {
                       {products.length === 0 && (
                         <p className="px-2 py-2 text-xs text-muted-foreground text-center">Nenhum produto cadastrado.</p>
                       )}
+                      {products.length > 0 && filteredProducts.length === 0 && (
+                        <p className="px-2 py-2 text-xs text-muted-foreground text-center">Nenhum produto encontrado.</p>
+                      )}
                       {filteredProducts.map((p) => {
                         const checked = draft.product_ids.includes(p.id as string);
                         return (
