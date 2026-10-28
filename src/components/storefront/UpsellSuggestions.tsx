@@ -10,7 +10,9 @@ import { productImage, isDefaultProductImage } from "@/lib/product-image";
 
 const DRINK_REGEX = /(bebida|refri|refrigerante|suco|cerveja|drink|água|agua)/i;
 
-export function UpsellSuggestions() {
+const REFRI_REGEX = /refri/i;
+
+export function UpsellSuggestions({ onViewAll }: { onViewAll?: () => void } = {}) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
   const qc = useQueryClient();
   const { items, add } = useCart();
@@ -22,24 +24,55 @@ export function UpsellSuggestions() {
     rawCategories?: unknown[];
   }>(["catalog", slug]);
 
-  const suggestions = useMemo(() => {
-    if (!data?.products || !data.categories) return [] as Product[];
-    const drinkCatIds = new Set(
-      data.categories.filter((c) => DRINK_REGEX.test(c.name)).map((c) => c.id),
-    );
-    if (drinkCatIds.size === 0) return [];
+  const { suggestions, targetCat, hasMore } = useMemo(() => {
+    const empty = { suggestions: [] as Product[], targetCat: null as Category | null, hasMore: false };
+    if (!data?.products || !data.categories) return empty;
+    const drinkCats = data.categories
+      .filter((c) => DRINK_REGEX.test(c.name))
+      .sort((a, b) => Number(REFRI_REGEX.test(b.name)) - Number(REFRI_REGEX.test(a.name)));
+    if (drinkCats.length === 0) return empty;
+    const drinkCatIds = new Set(drinkCats.map((c) => c.id));
     const hasDrink = items.some((i) => i.product.categoryId && drinkCatIds.has(i.product.categoryId));
-    if (hasDrink) return [];
-    return data.products
-      .filter((p) => p.available && p.categoryId && drinkCatIds.has(p.categoryId))
-      .slice(0, 4);
+    if (hasDrink) return empty;
+    const all: Product[] = [];
+    const catsWithItems: Category[] = [];
+    for (const c of drinkCats) {
+      const ps = data.products.filter((p) => p.available && p.categoryId === c.id);
+      if (ps.length) catsWithItems.push(c);
+      all.push(...ps);
+    }
+    return {
+      suggestions: all.slice(0, 4),
+      targetCat: catsWithItems[0] ?? null,
+      hasMore: all.length > 4 || catsWithItems.length > 1,
+    };
   }, [data, items]);
+
+  const viewAll = () => {
+    if (!targetCat) return;
+    onViewAll?.();
+    window.setTimeout(() => {
+      const el = Array.from(document.querySelectorAll<HTMLElement>("[data-cat-key]")).find(
+        (n) => n.dataset.catKey === targetCat.name,
+      );
+      if (!el) return;
+      const y = el.getBoundingClientRect().top + window.scrollY - 160;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }, 350);
+  };
 
   if (suggestions.length === 0) return null;
 
   return (
     <div className="border-b bg-accent/30 px-4 py-4">
-      <p className="mb-2 text-sm font-bold">🥤 Que tal uma bebida?</p>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm font-bold">🥤 Que tal uma bebida?</p>
+        {hasMore && targetCat && (
+          <button type="button" onClick={viewAll} className="text-xs font-semibold text-primary hover:underline">
+            Ver todos
+          </button>
+        )}
+      </div>
       <p className="mb-3 text-xs text-muted-foreground">Adicione algo para acompanhar seu pedido.</p>
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {suggestions.map((p) => (

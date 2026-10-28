@@ -1212,7 +1212,7 @@ export function CartDrawer({
                 </div>
               ) : (
                 <div className="bg-card">
-                  <UpsellSuggestions />
+                  <UpsellSuggestions onViewAll={() => onOpenChange(false)} />
                   <div className="divide-y">
                     {items.map((i) => {
                       const unit = computeUnitPrice(i);
@@ -1912,7 +1912,7 @@ export function CartDrawer({
               }
             />
             <div className="flex-1 space-y-3.5 overflow-y-auto bg-muted/20 dark:bg-zinc-950/40 p-4 pb-8">
-              <UpsellSuggestions />
+              <UpsellSuggestions onViewAll={() => onOpenChange(false)} />
 
               {/* Items */}
               <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
