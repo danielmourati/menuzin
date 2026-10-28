@@ -45,7 +45,9 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
   const error = rawError as Error;
   console.error(error);
   const router = useRouter();
-  const queryClient = useQueryClient();
+  // Componentes de erro renderizam FORA do QueryClientProvider (RootComponent não monta),
+  // então useQueryClient() lançaria "No QueryClient set". Pegamos direto do contexto do router.
+  const queryClient = router.options.context.queryClient as QueryClient;
   useEffect(() => {
     // Após atualização do app, abas abertas podem chamar funções antigas do servidor
     // ("Invalid server function ID" / 500). Limpa o cache e recarrega para pegar a versão nova.
