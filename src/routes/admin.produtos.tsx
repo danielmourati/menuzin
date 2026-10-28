@@ -504,36 +504,6 @@ function ProductsPage() {
 
   const catNameById = new Map(categories.map((c) => [c.id, c.name]));
 
-  if (hasTenant && !categoriesQ.isLoading && categories.length === 0) {
-    return (
-      <AdminLayout title="Produtos">
-        <div className="mx-auto max-w-xl">
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
-                <Plus className="h-7 w-7" />
-              </div>
-              <h2 className="mt-4 text-lg font-semibold">Vamos montar seu cardápio</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Todo produto precisa pertencer a uma categoria. Use o assistente guiado —
-                ele cria a categoria e o primeiro produto em 2 minutos.
-              </p>
-              <div className="mt-5 flex flex-wrap justify-center gap-2">
-                <Button asChild className="h-11">
-                  <Link to="/admin/cardapio/novo">
-                    <Plus className="mr-1.5 h-4 w-4" /> Usar assistente guiado
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="h-11">
-                  <Link to="/admin/categorias">Criar categoria avulsa</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </AdminLayout>
-    );
-  }
 
   const checkIsDirty = (): boolean => {
     if (!editing || !initialSnapshotRef.current) return false;
@@ -601,6 +571,37 @@ function ProductsPage() {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [open, inlineGroupOpen, saveMut.isPending]);
+
+  if (hasTenant && !categoriesQ.isLoading && categories.length === 0) {
+    return (
+      <AdminLayout title="Produtos">
+        <div className="mx-auto max-w-xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <Plus className="h-7 w-7" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold">Vamos montar seu cardápio</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Todo produto precisa pertencer a uma categoria. Use o assistente guiado —
+                ele cria a categoria e o primeiro produto em 2 minutos.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                <Button asChild className="h-11">
+                  <Link to="/admin/cardapio/novo">
+                    <Plus className="mr-1.5 h-4 w-4" /> Usar assistente guiado
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="h-11">
+                  <Link to="/admin/categorias">Criar categoria avulsa</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
