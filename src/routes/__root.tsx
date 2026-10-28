@@ -76,6 +76,11 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
             ? "Não conseguimos conectar ao servidor do Menuzin. Tente novamente em instantes."
             : "Tente recarregar a página."}
         </p>
+        {import.meta.env.DEV && error?.message ? (
+          <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-left text-xs text-muted-foreground">
+            {error.message}
+          </pre>
+        ) : null}
         <div className="mt-6 flex justify-center gap-2">
           <button
             onClick={() => {
@@ -148,11 +153,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
