@@ -450,7 +450,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       if (activeCat === PIZZAS_KEY) {
         if (!pizzaCatNames.has(p.category)) return false;
       } else if (activeCat !== "Todos" && p.category !== activeCat) return false;
-      if (search && !`${p.name} ${p.description}`.toLowerCase().includes(search.toLowerCase()))
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase()))
         return false;
       return true;
     });
@@ -985,6 +985,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                                 key={p.id}
                                 product={p}
                                 view={viewMode}
+ showCategory={!!search}
                                 onClick={() => {
                                   if (!canOrder) return;
                                   setSelectedProduct(p);
@@ -1009,6 +1010,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                           key={p.id}
                           product={p}
                           view={viewMode}
+ showCategory={!!search}
                           onClick={() => {
                             if (!canOrder) return;
                             setSelectedProduct(p);

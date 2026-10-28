@@ -12,7 +12,9 @@ export function ProductCard({
   product,
   onClick,
   view = "grid",
+  showCategory = false,
 }: {
+  showCategory?: boolean;
   product: Product;
   onClick: () => void;
   view?: "grid" | "list";
@@ -60,7 +62,7 @@ export function ProductCard({
         </div>
 
         <div className="relative flex min-w-0 flex-1 flex-col justify-center gap-1 py-1 pr-14">
-          <h3 className="line-clamp-2 text-[21px] font-bold leading-tight sm:text-[23px]">{product.name}</h3>
+          <h3 className="line-clamp-2 text-[21px] font-bold leading-tight sm:text-[23px]">{product.name}</h3>{showCategory && product.category ? <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{product.category}</p> : null}
           {product.description && (
             <p className="line-clamp-2 text-sm text-muted-foreground">{product.description}</p>
           )}
@@ -129,7 +131,7 @@ export function ProductCard({
       </div>
 
       <div className="relative flex flex-1 flex-col gap-0.5 p-2.5 pr-10">
-        <h3 className="line-clamp-2 text-[21px] font-bold leading-tight">{product.name}</h3>
+        <h3 className="line-clamp-2 text-[21px] font-bold leading-tight">{product.name}</h3>{showCategory && product.category ? <p className="mt-0.5 truncate text-xs text-muted-foreground/80">{product.category}</p> : null}
         {product.description && (
           <p className="line-clamp-2 text-[13px] text-muted-foreground">{product.description}</p>
         )}
