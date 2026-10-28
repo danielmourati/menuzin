@@ -360,7 +360,7 @@ function ObservacoesPage() {
   );
 
   const filteredProducts = useMemo(
-    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.toLowerCase())),
+    () => products.filter((p) => `${p.name} ${catName.get((p as any).category_id as string) ?? ""}`.toLowerCase().includes(prodSearch.toLowerCase())),
     [products, prodSearch]
   );
 
@@ -824,6 +824,9 @@ function ObservacoesPage() {
                                 }
                               />
                               <span className={checked ? "font-semibold text-foreground" : "text-muted-foreground"}>{p.name}</span>
+                              {catName.get((p as any).category_id as string) && (
+                                <span className="text-[10px] text-muted-foreground/70">· {catName.get((p as any).category_id as string)}</span>
+                              )}
                             </span>
                           </label>
                         );
