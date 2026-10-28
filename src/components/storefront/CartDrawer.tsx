@@ -1914,6 +1914,76 @@ export function CartDrawer({
             <div className="flex-1 space-y-3.5 overflow-y-auto bg-muted/20 dark:bg-zinc-950/40 p-4 pb-8">
               <UpsellSuggestions />
 
+              {/* Items */}
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">Itens do pedido</span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        {items.reduce((s, i) => s + i.qty, 0)} {items.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setStep("cart")}
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
+                  >
+                    Alterar itens
+                  </button>
+                </div>
+
+                <div className="mt-3 divide-y divide-border/40">
+                  {items.map((i) => {
+                    const unit = computeUnitPrice(i);
+                    const detailParts: string[] = [];
+                    if (i.size) detailParts.push(i.size.name);
+                    if (i.flavors && i.flavors.length)
+                      detailParts.push(i.flavors.map((f) => f.name).join(" + "));
+                    if (i.groupOptions && i.groupOptions.length)
+                      detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
+                    if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
+                    const isFreeGift = i.note === "🎁 Brinde";
+
+                    return (
+                      <div key={i.uid} className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded bg-primary/10 px-1 text-xs font-bold text-primary">
+                              {i.qty}x
+                            </span>
+                            <span className="font-semibold text-foreground leading-tight">
+                              {i.product.name}
+                            </span>
+                            {isFreeGift && (
+                              <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                                Brinde
+                              </span>
+                            )}
+                          </div>
+                          {detailParts.length > 0 && (
+                            <p className="mt-0.5 text-xs text-muted-foreground pl-6">
+                              {detailParts.join(" · ")}
+                            </p>
+                          )}
+                          {i.note && !isFreeGift && (
+                            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400 pl-6 italic">
+                              Obs: {i.note}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-bold text-foreground tabular-nums whitespace-nowrap">
+                          {isFreeGift ? "Grátis" : brl(unit * i.qty)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Mode & Address */}
               <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-border/40">
@@ -2139,145 +2209,6 @@ export function CartDrawer({
                           <span className="font-medium">💵 Pagamento em dinheiro</span>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Items */}
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
-                <div className="flex items-center justify-between pb-3 border-b border-border/40">
-                  <div className="flex items-center gap-2.5">
-                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
-                      <ShoppingBag className="h-4 w-4" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-foreground">Itens do pedido</span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                        {items.reduce((s, i) => s + i.qty, 0)} {items.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setStep("cart")}
-                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
-                  >
-                    Alterar itens
-                  </button>
-                </div>
-
-                <div className="mt-3 divide-y divide-border/40">
-                  {items.map((i) => {
-                    const unit = computeUnitPrice(i);
-                    const detailParts: string[] = [];
-                    if (i.size) detailParts.push(i.size.name);
-                    if (i.flavors && i.flavors.length)
-                      detailParts.push(i.flavors.map((f) => f.name).join(" + "));
-                    if (i.groupOptions && i.groupOptions.length)
-                      detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
-                    if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
-                    const isFreeGift = i.note === "🎁 Brinde";
-
-                    return (
-                      <div key={i.uid} className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-sm">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-baseline gap-1.5 flex-wrap">
-                            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded bg-primary/10 px-1 text-xs font-bold text-primary">
-                              {i.qty}x
-                            </span>
-                            <span className="font-semibold text-foreground leading-tight">
-                              {i.product.name}
-                            </span>
-                            {isFreeGift && (
-                              <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-                                Brinde
-                              </span>
-                            )}
-                          </div>
-                          {detailParts.length > 0 && (
-                            <p className="mt-0.5 text-xs text-muted-foreground pl-6">
-                              {detailParts.join(" · ")}
-                            </p>
-                          )}
-                          {i.note && !isFreeGift && (
-                            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400 pl-6 italic">
-                              Obs: {i.note}
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-bold text-foreground tabular-nums whitespace-nowrap">
-                          {isFreeGift ? "Grátis" : brl(unit * i.qty)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Cupom */}
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
-                <div className="flex items-center justify-between pb-3 border-b border-border/40">
-                  <div className="flex items-center gap-2.5">
-                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
-                      <Ticket className="h-4 w-4" />
-                    </div>
-                    <span className="text-sm font-bold text-foreground">Cupom de desconto</span>
-                  </div>
-                  {activeCouponCode && !appliedCoupon && (
-                    <span className="text-[11px] font-mono text-primary font-bold">
-                      {couponLoading ? "Validando..." : activeCouponCode}
-                    </span>
-                  )}
-                </div>
-
-                {appliedCoupon ? (
-                  <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5">
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <p className="font-mono font-bold text-emerald-700 dark:text-emerald-300">{appliedCoupon.code}</p>
-                        <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">
-                          Aplicado
-                        </span>
-                      </div>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                        Desconto de {brl(discount)} aplicado
-                      </p>
-                    </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
-                      onClick={removeCoupon}
-                      title="Remover cupom"
-                    >
-                      <XIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        value={couponInput}
-                        onChange={(e) => {
-                          setCouponInput(e.target.value.toUpperCase());
-                          setCouponHint(null);
-                        }}
-                        placeholder="Código do cupom"
-                        className="h-10 uppercase font-mono text-sm"
-                        maxLength={40}
-                      />
-                      <Button
-                        onClick={applyCoupon}
-                        disabled={couponLoading || !couponInput}
-                        className="h-10 px-4 font-semibold shrink-0"
-                      >
-                        {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
-                      </Button>
-                    </div>
-                    {couponHint && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 leading-relaxed">
-                        💡 {couponHint}
-                      </p>
                     )}
                   </div>
                 )}
