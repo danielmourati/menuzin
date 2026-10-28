@@ -29,6 +29,10 @@ import {
   Loader2,
   X as XIcon,
   Eraser,
+  Clock,
+  CreditCard,
+  FileText,
+  Receipt,
 } from "lucide-react";
 import { useCart, computeUnitPrice } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
@@ -644,7 +648,11 @@ export function CartDrawer({
     paymentWhen === "agora"
       ? "Pagar agora"
       : paymentWhen === "na_retirada"
-        ? "Pagar na retirada"
+        ? mode === "entrega"
+          ? "Pagar na entrega"
+          : mode === "consumo_local"
+            ? "Pagar no local"
+            : "Pagar na retirada"
         : "";
 
   const selectMode = (m: Mode) => {
@@ -675,6 +683,10 @@ export function CartDrawer({
   const schedulingEnabled = !isPresencaOnly && !!storefrontTenant?.schedulingEnabled;
   const confirmCustomer = () => {
     if (!name || !phone) return toast.error("Informe nome e telefone");
+    if (selectedMethod && (storeOpen || scheduledFor)) {
+      goTo("review");
+      return;
+    }
     if (schedulingEnabled || !storeOpen) {
       goTo("when");
       return;
@@ -684,6 +696,10 @@ export function CartDrawer({
 
   const confirmWhen = () => {
     if (!storeOpen && !scheduledFor) return toast.error("Escolha um horário para agendar");
+    if (selectedMethod || isPresencaOnly) {
+      goTo("review");
+      return;
+    }
     proceedToPayment();
   };
 
@@ -992,12 +1008,16 @@ export function CartDrawer({
       };
       try {
         sessionStorage.setItem(`order:${order.number}`, JSON.stringify(order));
-      } catch { }
+      } catch {
+        /* ignore */
+      }
       try {
         const { saveLastOrderForSlug } = await import("@/components/storefront/MobileBottomNav");
         if (effectiveSlug)
           saveLastOrderForSlug(effectiveSlug, orderId, order.number);
-      } catch { }
+      } catch {
+        /* ignore */
+      }
       // toast.success(`Pedido #${order.number} criado`);
       clear();
       clearActiveCoupon();
@@ -1016,19 +1036,19 @@ export function CartDrawer({
 
   // ----- UI building blocks -----
   const Header = ({ title, right }: { title: string; right?: ReactNode }) => (
-    <div className="flex items-center justify-between gap-2 border-b bg-card px-4 py-3.5 pr-12">
+    <div className="flex items-center justify-between gap-3 border-b bg-card px-4 py-3.5 pr-12">
       <div className="flex min-w-0 items-center gap-2">
         <Button
           size="icon"
           variant="ghost"
-          className="h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 text-foreground/80 hover:text-foreground"
           onClick={() => (history.length ? goBack() : onOpenChange(false))}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h2 className="truncate text-lg font-semibold tracking-tight">{title}</h2>
-        {right && <div className="ml-2 shrink-0">{right}</div>}
+        <h2 className="truncate text-base sm:text-lg font-bold tracking-tight text-foreground">{title}</h2>
       </div>
+      {right && <div className="flex shrink-0 items-center gap-1.5">{right}</div>}
     </div>
   );
 
@@ -1037,50 +1057,74 @@ export function CartDrawer({
     onCta,
     disabled,
     loading,
+    compact,
   }: {
     cta?: string;
     onCta?: () => void;
     disabled?: boolean;
     loading?: boolean;
+    compact?: boolean;
   }) => (
-    <div className="border-t bg-card px-4 py-3">
-      <div className="flex items-end justify-between gap-2">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
-            <span>Subtotal</span>
-            <span className="font-medium tabular-nums">{brl(subtotal)}</span>
-          </div>
-          {discount > 0 && (
-            <div className="flex items-center justify-between gap-2 text-sm font-medium text-success">
-              <span>Desconto</span>
-              <span className="tabular-nums">− {brl(discount)}</span>
-            </div>
-          )}
-          {deliveryFee > 0 && (
-            <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
-              <span>Taxa de entrega</span>
-              <span className="font-medium tabular-nums">{brl(deliveryFee)}</span>
-            </div>
-          )}
-          <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Total
+    <div className="border-t bg-card/95 backdrop-blur-md px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+      {compact ? (
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Total a pagar
             </p>
-            <p className="text-2xl font-extrabold leading-none text-primary tabular-nums">
+            <p className="text-2xl font-extrabold text-primary tabular-nums tracking-tight">
               {brl(total)}
             </p>
           </div>
+          {cta && (
+            <Button
+              onClick={onCta}
+              disabled={disabled || loading}
+              className="h-12 flex-1 max-w-[210px] rounded-xl text-base font-bold shadow-md shadow-primary/25 transition-all hover:shadow-lg hover:shadow-primary/35 active:scale-[0.98]"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
+            </Button>
+          )}
         </div>
-        {cta && (
-          <Button
-            onClick={onCta}
-            disabled={disabled || loading}
-            className="h-12 shrink-0 min-w-[120px] sm:min-w-[140px] rounded-xl text-sm sm:text-base font-semibold"
-          >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
-          </Button>
-        )}
-      </div>
+      ) : (
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
+              <span>Subtotal</span>
+              <span className="font-medium tabular-nums">{brl(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                <span>Desconto</span>
+                <span className="tabular-nums">− {brl(discount)}</span>
+              </div>
+            )}
+            {deliveryFee > 0 && (
+              <div className="flex items-center justify-between gap-2 text-sm text-foreground/80">
+                <span>Taxa de entrega</span>
+                <span className="font-medium tabular-nums">{brl(deliveryFee)}</span>
+              </div>
+            )}
+            <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Total
+              </p>
+              <p className="text-2xl font-extrabold leading-none text-primary tabular-nums">
+                {brl(total)}
+              </p>
+            </div>
+          </div>
+          {cta && (
+            <Button
+              onClick={onCta}
+              disabled={disabled || loading}
+              className="h-12 shrink-0 min-w-[120px] sm:min-w-[140px] rounded-xl text-sm sm:text-base font-semibold shadow-md shadow-primary/20"
+            >
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : cta}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -1125,10 +1169,10 @@ export function CartDrawer({
   const ClearBtn = () => (
     <button
       onClick={requestClearForm}
-      className="flex items-center gap-1 text-sm font-semibold text-primary"
+      className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors"
       type="button"
     >
-      <Eraser className="h-4 w-4" /> Limpar
+      <Eraser className="h-3.5 w-3.5" /> Limpar
     </button>
   );
 
@@ -1841,191 +1885,328 @@ export function CartDrawer({
             <Header
               title="Revisar pedido"
               right={
-                <div className="flex items-center gap-2">
-                  <ClearBtn />
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-destructive gap-1"
+                    onClick={requestClearForm}
+                    title="Limpar formulário"
+                  >
+                    <Eraser className="h-3.5 w-3.5" />
+                    <span>Limpar</span>
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-9 w-9 text-primary"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Voltar ao início"
                     onClick={() => {
                       onOpenChange(false);
                       resetAll();
                     }}
                   >
-                    <Home className="h-5 w-5" />
+                    <Home className="h-4 w-4" />
                   </Button>
                 </div>
               }
             />
-            <div className="flex-1 space-y-3 overflow-y-auto bg-card p-4">
+            <div className="flex-1 space-y-3.5 overflow-y-auto bg-muted/20 dark:bg-zinc-950/40 p-4 pb-8">
               <UpsellSuggestions />
-              {/* Customer */}
-              <div className="rounded-2xl bg-card p-4">
-                <div className="flex items-center gap-2 font-semibold">
-                  <User className="h-4 w-4" /> {name}
-                </div>
-                {email && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Mail className="h-4 w-4" /> {email}
-                  </div>
-                )}
-                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" /> +55 {phone}
-                </div>
-              </div>
 
-              {/* Mode */}
-              <div className="rounded-2xl bg-card p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2 font-semibold">
-                    {mode === "entrega" ? (
-                      <Truck className="h-5 w-5" />
-                    ) : mode === "retirada" ? (
-                      <StoreIcon className="h-5 w-5" />
-                    ) : (
-                      <Utensils className="h-5 w-5" />
-                    )}
-                    {mode && modeLabelMap[mode]}
+              {/* Mode & Address */}
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                      {mode === "entrega" ? (
+                        <Truck className="h-4 w-4" />
+                      ) : mode === "retirada" ? (
+                        <StoreIcon className="h-4 w-4" />
+                      ) : (
+                        <Utensils className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-foreground">
+                        {mode === "entrega" ? "Entrega" : mode === "retirada" ? "Retirada" : "Consumo no local"}
+                      </span>
+                    </div>
                   </div>
-                  {scheduledFor && (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
-                      Agendado: {formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}
-                    </span>
-                  )}
                   <button
                     onClick={() => setStep("mode")}
-                    className="text-sm font-semibold text-primary"
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
                   >
                     Alterar
                   </button>
                 </div>
-                {mode === "entrega" && (
-                  <div className="mt-3 space-y-1 text-sm">
-                    <p className="flex items-center gap-1 font-medium text-muted-foreground">
-                      <MapPin className="h-4 w-4" /> Endereço:
-                    </p>
-                    <p>
-                      {street}, {number}
-                      {complement ? ` — ${complement}` : ""}
-                    </p>
-                    {neighborhood && (
-                      <p>
-                        <span className="text-muted-foreground">Bairro:</span>{" "}
-                        <span className="font-semibold">{neighborhood}</span>
-                      </p>
-                    )}
-                    {deliveryFee > 0 && (
-                      <p>
-                        <span className="text-muted-foreground">Taxa de entrega:</span>{" "}
-                        <span className="font-semibold">{brl(deliveryFee)}</span>
-                      </p>
-                    )}
-                    {deliveryMinOrder > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Pedido mínimo nesta área: {brl(deliveryMinOrder)}
-                      </p>
-                    )}
-                  </div>
-                )}
-                {mode === "retirada" && (
-                  <div className="mt-3 text-sm">
-                    <p className="flex items-center gap-1 font-medium text-muted-foreground">
-                      <MapPin className="h-4 w-4" /> Endereço:
-                    </p>
-                    <p className="mt-1">{tenantAddress}</p>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tenantAddress)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-primary"
-                    >
-                      <Map className="h-4 w-4" /> Ver no mapa
-                    </a>
 
-                  </div>
-                )}
-                {mode === "consumo_local" && (
-                  <p className="mt-2 text-sm">
-                    Mesa: <span className="font-semibold">{table}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Payment */}
-              {isPresencaOnly ? (
-                <div className="rounded-2xl bg-card p-4">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <Smartphone className="h-5 w-5" /> Finalização pelo WhatsApp
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Ao enviar, abriremos o WhatsApp da loja com todos os dados do pedido preenchidos.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-card p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2 font-semibold">
-                      <Smartphone className="h-5 w-5" /> {paymentWhenLabel}
+                {scheduledFor && (
+                  <div className="mt-3 flex items-center justify-between rounded-xl bg-primary/10 border border-primary/20 px-3 py-2 text-xs font-semibold text-primary">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 shrink-0" />
+                      <span>Agendado: {formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}</span>
                     </div>
                     <button
-                      onClick={() => setStep("payment-when")}
-                      className="text-sm font-semibold text-primary"
+                      onClick={() => setStep("when")}
+                      className="text-[11px] underline underline-offset-2 hover:opacity-80"
                     >
                       Alterar
                     </button>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="text-sm">
-                      <p className="font-medium">Pagamento com {paymentMethod}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {paymentWhen === "agora" ? "Pague agora" : "Pague no momento"} com{" "}
-                        {paymentMethod}
-                      </p>
-                      {selectedMethod === "cash" && (
-                        <p className="text-xs font-semibold text-primary mt-0.5">
-                          {cashChange.noChange
-                            ? "Sem troco (valor exato)"
-                            : cashChange.paid
-                              ? `Pagamento em ${cashChange.paid.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · Troco a devolver: ${changeDue(total, cashChange.paid).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
-                              : null}
+                )}
+
+                {mode === "entrega" && (
+                  <div className="mt-3 text-sm space-y-1.5">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground leading-snug">
+                          {street}, {number}
+                          {complement ? ` · ${complement}` : ""}
                         </p>
+                        {neighborhood && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Bairro: <span className="font-medium text-foreground">{neighborhood}</span>
+                            {cep ? ` · CEP ${cep}` : ""}
+                          </p>
+                        )}
+                        {reference && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Ponto de ref.: <span className="italic text-foreground/80">{reference}</span>
+                          </p>
+                        )}
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          {deliveryFee > 0 ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                              Taxa de entrega: <strong className="text-primary">{brl(deliveryFee)}</strong>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                              Taxa de entrega: Grátis
+                            </span>
+                          )}
+                          {deliveryMinOrder > 0 && (
+                            <span className="text-[11px] text-muted-foreground">
+                              (Mínimo: {brl(deliveryMinOrder)})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {mode === "retirada" && (
+                  <div className="mt-3 text-sm space-y-2">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-foreground">{tenantAddress || "Endereço do estabelecimento"}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Retirada direta no balcão</p>
+                      </div>
+                    </div>
+                    {tenantAddress && (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tenantAddress)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline pt-1"
+                      >
+                        <Map className="h-3.5 w-3.5" /> Ver rota no Google Maps
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {mode === "consumo_local" && (
+                  <div className="mt-3 flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Mesa ou Comanda:</span>
+                    <span className="font-bold text-foreground text-base bg-muted px-2.5 py-0.5 rounded-lg">{table}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Customer */}
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-bold text-foreground">Identificação do cliente</span>
+                  </div>
+                  <button
+                    onClick={() => setStep("customer")}
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
+                  >
+                    Alterar
+                  </button>
+                </div>
+
+                <div className="mt-3 text-sm space-y-1.5">
+                  <p className="font-semibold text-foreground">{name}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    <span className="inline-flex items-center gap-1 font-medium text-foreground">
+                      <Phone className="h-3.5 w-3.5 text-primary" /> +55 {phone}
+                    </span>
+                    {email && (
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        · <Mail className="h-3.5 w-3.5" /> {email}
+                      </span>
+                    )}
+                  </div>
+
+                  {generalNote ? (
+                    <div className="mt-2.5 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-xs">
+                      <p className="flex items-center gap-1.5 font-semibold text-primary">
+                        <FileText className="h-3.5 w-3.5" /> Observação para o pedido:
+                      </p>
+                      <p className="mt-1 text-foreground/90 whitespace-pre-wrap">{generalNote}</p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setStep("customer")}
+                      className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Adicionar observação ao pedido
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                      {selectedMethod === "cash" ? (
+                        <DollarSign className="h-4 w-4" />
+                      ) : selectedMethod === "pix_online" || selectedMethod === "pix_manual" ? (
+                        <Smartphone className="h-4 w-4" />
+                      ) : (
+                        <CreditCard className="h-4 w-4" />
                       )}
                     </div>
-                    <button onClick={() => setStep("payment-method")} className="text-primary">
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                    <div>
+                      <span className="text-sm font-bold text-foreground">
+                        {isPresencaOnly ? "Pagamento" : (paymentWhenLabel || "Pagamento")}
+                      </span>
+                    </div>
                   </div>
+                  {!isPresencaOnly && (
+                    <button
+                      onClick={() => setStep(hasOnlinePayment && hasManualPayment ? "payment-when" : "payment-method")}
+                      className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
+                    >
+                      Alterar
+                    </button>
+                  )}
                 </div>
-              )}
 
-
+                {isPresencaOnly ? (
+                  <div className="mt-3 text-sm space-y-1">
+                    <p className="font-semibold text-foreground">Finalização pelo WhatsApp</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ao enviar, abriremos o WhatsApp da loja com todos os dados do pedido preenchidos.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 text-sm space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-foreground">{paymentMethod}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {paymentWhen === "agora"
+                        ? "Pagamento online aprovado no aplicativo"
+                        : mode === "entrega"
+                          ? "Pagamento presencial no ato da entrega"
+                          : mode === "consumo_local"
+                            ? "Pagamento presencial na finalização da comanda"
+                            : "Pagamento presencial no ato da retirada"}
+                    </p>
+                    {selectedMethod === "cash" && (
+                      <div className="mt-2 rounded-xl bg-amber-500/10 border border-amber-500/20 p-2.5 text-xs text-amber-900 dark:text-amber-300">
+                        {cashChange.noChange ? (
+                          <span className="font-medium">💵 Sem troco (valor exato)</span>
+                        ) : cashChange.paid ? (
+                          <div className="space-y-0.5">
+                            <p>💵 Pagamento com: <strong>{brl(cashChange.paid)}</strong></p>
+                            <p>Troco a devolver: <strong className="text-primary">{brl(changeDue(total, cashChange.paid))}</strong></p>
+                          </div>
+                        ) : (
+                          <span className="font-medium">💵 Pagamento em dinheiro</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Items */}
-              <div className="rounded-2xl bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">
-                    Itens do pedido{" "}
-                    <span className="text-muted-foreground">
-                      | {items.reduce((s, i) => s + i.qty, 0)} Itens
-                    </span>
-                  </p>
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-foreground">Itens do pedido</span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        {items.reduce((s, i) => s + i.qty, 0)} {items.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
+                      </span>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setStep("cart")}
-                    className="text-sm font-semibold text-primary"
+                    className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
                   >
                     Alterar itens
                   </button>
                 </div>
-                <div className="mt-3 space-y-2 text-sm">
+
+                <div className="mt-3 divide-y divide-border/40">
                   {items.map((i) => {
                     const unit = computeUnitPrice(i);
+                    const detailParts: string[] = [];
+                    if (i.size) detailParts.push(i.size.name);
+                    if (i.flavors && i.flavors.length)
+                      detailParts.push(i.flavors.map((f) => f.name).join(" + "));
+                    if (i.groupOptions && i.groupOptions.length)
+                      detailParts.push(i.groupOptions.map((o) => o.name).join(", "));
+                    if (i.addons.length) detailParts.push(i.addons.map((a) => a.name).join(", "));
+                    const isFreeGift = i.note === "🎁 Brinde";
+
                     return (
-                      <div key={i.uid} className="flex justify-between gap-3">
-                        <span className="min-w-0 flex-1 break-words">
-                          <span className="font-semibold">{i.qty}x</span> {i.product.name}
-                        </span>
-                        <span className="font-semibold tabular-nums whitespace-nowrap">
-                          {brl(unit * i.qty)}
+                      <div key={i.uid} className="py-2.5 first:pt-0 last:pb-0 flex items-start justify-between gap-3 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded bg-primary/10 px-1 text-xs font-bold text-primary">
+                              {i.qty}x
+                            </span>
+                            <span className="font-semibold text-foreground leading-tight">
+                              {i.product.name}
+                            </span>
+                            {isFreeGift && (
+                              <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
+                                Brinde
+                              </span>
+                            )}
+                          </div>
+                          {detailParts.length > 0 && (
+                            <p className="mt-0.5 text-xs text-muted-foreground pl-6">
+                              {detailParts.join(" · ")}
+                            </p>
+                          )}
+                          {i.note && !isFreeGift && (
+                            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400 pl-6 italic">
+                              Obs: {i.note}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-bold text-foreground tabular-nums whitespace-nowrap">
+                          {isFreeGift ? "Grátis" : brl(unit * i.qty)}
                         </span>
                       </div>
                     );
@@ -2033,43 +2214,14 @@ export function CartDrawer({
                 </div>
               </div>
 
-              {/* Resumo de valores */}
-              <div className="rounded-2xl bg-card p-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between gap-2 text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span className="tabular-nums whitespace-nowrap">{brl(subtotal)}</span>
-                  </div>
-                  {discount > 0 && appliedCoupon && (
-                    <div className="flex justify-between gap-2 text-success">
-                      <span className="min-w-0 flex-1">Cupom {appliedCoupon.code}</span>
-                      <span className="tabular-nums whitespace-nowrap">− {brl(discount)}</span>
-                    </div>
-                  )}
-                  {deliveryFee > 0 && (
-                    <div className="flex justify-between gap-2 text-muted-foreground">
-                      <span className="min-w-0 flex-1">
-                        Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}
-                      </span>
-                      <span className="tabular-nums whitespace-nowrap">{brl(deliveryFee)}</span>
-                    </div>
-                  )}
-                  <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Total
-                    </span>
-                    <span className="text-xl font-extrabold text-primary tabular-nums whitespace-nowrap">
-                      {brl(total)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
               {/* Cupom */}
-              <div className="rounded-2xl bg-card p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <Ticket className="h-4 w-4" /> Cupom de desconto
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <Ticket className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-bold text-foreground">Cupom de desconto</span>
                   </div>
                   {activeCouponCode && !appliedCoupon && (
                     <span className="text-[11px] font-mono text-primary font-bold">
@@ -2077,18 +2229,32 @@ export function CartDrawer({
                     </span>
                   )}
                 </div>
+
                 {appliedCoupon ? (
-                  <div className="flex items-center justify-between rounded-lg border border-success/40 bg-success/10 px-3 py-2">
+                  <div className="mt-3 flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5">
                     <div className="text-sm">
-                      <p className="font-mono font-bold">{appliedCoupon.code}</p>
-                      <p className="text-xs text-success">Desconto de {brl(discount)} aplicado</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono font-bold text-emerald-700 dark:text-emerald-300">{appliedCoupon.code}</p>
+                        <span className="rounded-md bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300">
+                          Aplicado
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
+                        Desconto de {brl(discount)} aplicado
+                      </p>
                     </div>
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={removeCoupon}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+                      onClick={removeCoupon}
+                      title="Remover cupom"
+                    >
                       <XIcon className="h-4 w-4" />
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="mt-3 space-y-2">
                     <div className="flex gap-2">
                       <Input
                         value={couponInput}
@@ -2096,14 +2262,14 @@ export function CartDrawer({
                           setCouponInput(e.target.value.toUpperCase());
                           setCouponHint(null);
                         }}
-                        placeholder="Digite o código"
-                        className="h-10 uppercase font-mono"
+                        placeholder="Código do cupom"
+                        className="h-10 uppercase font-mono text-sm"
                         maxLength={40}
                       />
                       <Button
                         onClick={applyCoupon}
                         disabled={couponLoading || !couponInput}
-                        className="h-10"
+                        className="h-10 px-4 font-semibold shrink-0"
                       >
                         {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Aplicar"}
                       </Button>
@@ -2116,8 +2282,55 @@ export function CartDrawer({
                   </div>
                 )}
               </div>
+
+              {/* Resumo de valores */}
+              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/40">
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
+                    <Receipt className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-bold text-foreground">Resumo de valores</span>
+                </div>
+
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className="flex justify-between gap-2 text-muted-foreground">
+                    <span>Subtotal dos itens</span>
+                    <span className="tabular-nums font-medium text-foreground">{brl(subtotal)}</span>
+                  </div>
+                  {discount > 0 && appliedCoupon && (
+                    <div className="flex justify-between gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span className="min-w-0 flex-1">Desconto ({appliedCoupon.code})</span>
+                      <span className="tabular-nums whitespace-nowrap">− {brl(discount)}</span>
+                    </div>
+                  )}
+                  {deliveryFee > 0 ? (
+                    <div className="flex justify-between gap-2 text-muted-foreground">
+                      <span className="min-w-0 flex-1">
+                        Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}
+                      </span>
+                      <span className="tabular-nums font-medium text-foreground">{brl(deliveryFee)}</span>
+                    </div>
+                  ) : mode === "entrega" ? (
+                    <div className="flex justify-between gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span>Taxa de entrega</span>
+                      <span className="font-semibold">Grátis</span>
+                    </div>
+                  ) : null}
+                  <div className="flex items-baseline justify-between gap-2 border-t border-border/80 pt-2.5">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Total
+                      </p>
+                    </div>
+                    <span className="text-2xl font-extrabold text-primary tabular-nums tracking-tight">
+                      {brl(total)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             <StickySubtotal
+              compact
               cta={isPresencaOnly ? "Enviar pelo WhatsApp" : "Fazer pedido"}
               onCta={finalize}
               loading={submitting}
