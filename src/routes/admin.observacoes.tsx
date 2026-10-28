@@ -360,7 +360,7 @@ function ObservacoesPage() {
   );
 
   const filteredProducts = useMemo(
-    () => products.filter((p) => `${p.name} ${catName.get((p as any).category_id as string) ?? ""}`.toLowerCase().includes(prodSearch.toLowerCase())),
+    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.trim().toLowerCase())),
     [products, prodSearch]
   );
 
