@@ -360,7 +360,7 @@ function ObservacoesPage() {
   );
 
   const filteredProducts = useMemo(
-    () => products.filter((p) => `${p.name} ${catName.get((p as any).category_id as string) ?? ""}`.toLowerCase().includes(prodSearch.toLowerCase())),
+    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.trim().toLowerCase())),
     [products, prodSearch]
   );
 
@@ -806,6 +806,9 @@ function ObservacoesPage() {
                     <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border p-2 bg-muted/10">
                       {products.length === 0 && (
                         <p className="px-2 py-2 text-xs text-muted-foreground text-center">Nenhum produto cadastrado.</p>
+                      )}
+                      {products.length > 0 && filteredProducts.length === 0 && (
+                        <p className="px-2 py-2 text-xs text-muted-foreground text-center">Nenhum produto encontrado.</p>
                       )}
                       {filteredProducts.map((p) => {
                         const checked = draft.product_ids.includes(p.id as string);
