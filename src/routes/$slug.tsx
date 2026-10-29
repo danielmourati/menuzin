@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, AlertCircle, type LucideIcon } from "lucide-react";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, Milk, Droplets, Beer, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, AlertCircle, type LucideIcon } from "lucide-react";
 import { StoreSideMenu } from "@/components/storefront/StoreSideMenu";
 import { StoreAboutDrawer } from "@/components/storefront/StoreAboutDrawer";
 import { getDeliveryFeeRange } from "@/lib/delivery-zones.functions";
@@ -22,6 +22,9 @@ function getCategoryIcon(name: string): LucideIcon | typeof PastelSalgadoIcon {
   if (n.includes("pastel") || n.includes("pastéis") || n.includes("pasteis") || n.includes("sabor") || n.includes("montado")) return PastelSalgadoIcon;
   if (n.includes("hambur") || n.includes("burger") || n.includes("lanche")) return Sandwich;
   if (n.includes("combo")) return UtensilsCrossed;
+  if (n.includes("vitamina")) return Milk;
+  if (n.includes("água") || n.includes("agua")) return Droplets;
+  if (n.includes("cerveja")) return Beer;
   if (n.includes("bebid") || n.includes("drink") || n.includes("suco") || n.includes("refri")) return GlassWater;
   if (n.includes("café") || n.includes("cafe")) return Coffee;
   if (n.includes("sobremesa") || n.includes("doce")) return IceCream;
