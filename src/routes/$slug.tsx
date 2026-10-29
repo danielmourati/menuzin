@@ -5,21 +5,27 @@ import { z } from "zod";
 
 import { Outlet, createFileRoute, useRouterState, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, Milk, Droplets, Beer, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, AlertCircle, type LucideIcon } from "lucide-react";
+import { Search, MessageCircle, ShoppingBag, Clock, MapPin, Store as StoreIcon, LayoutGrid, List, Star, Pizza, Beef, UtensilsCrossed, GlassWater, Milk, Droplets, Beer, IceCream, Tag, Salad, Coffee, Sandwich, Soup, Cookie, Fish, Drumstick, ChevronRight, Menu, Bike, Wallet, X as XIcon, Share2, Heart, AlertCircle, Croissant } from "lucide-react";
 import { StoreSideMenu } from "@/components/storefront/StoreSideMenu";
 import { StoreAboutDrawer } from "@/components/storefront/StoreAboutDrawer";
 import { getDeliveryFeeRange } from "@/lib/delivery-zones.functions";
 
 
 import { PastelSalgadoIcon, PastelDoceIcon } from "@/components/storefront/PastelIcons";
+import { CrepeIcon, FritasIcon } from "@/components/storefront/FoodIcons";
 
-function getCategoryIcon(name: string): LucideIcon | typeof PastelSalgadoIcon {
+import type { ComponentType, SVGProps } from "react";
+
+function getCategoryIcon(name: string): ComponentType<SVGProps<SVGSVGElement>> {
   const n = name.toLowerCase();
   if (n.includes("tod")) return LayoutGrid;
   if (n.includes("pizza")) return Pizza;
   if (n.includes("doce") && (n.includes("pastel") || n.includes("pastéis") || n.includes("pasteis"))) return PastelDoceIcon;
   if (n.includes("doce")) return PastelDoceIcon;
   if (n.includes("pastel") || n.includes("pastéis") || n.includes("pasteis") || n.includes("sabor") || n.includes("montado")) return PastelSalgadoIcon;
+  if (n.includes("crepe")) return CrepeIcon;
+  if (n.includes("batata") || n.includes("frita")) return FritasIcon;
+  if (n.includes("salgad")) return Croissant;
   if (n.includes("hambur") || n.includes("burger") || n.includes("lanche")) return Sandwich;
   if (n.includes("combo")) return UtensilsCrossed;
   if (n.includes("vitamina")) return Milk;
