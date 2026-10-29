@@ -42,9 +42,9 @@ export function UpsellSuggestions({ onViewAll }: { onViewAll?: () => void } = {}
       all.push(...ps);
     }
     return {
-      suggestions: all.slice(0, 4),
+      suggestions: all.slice(0, 10),
       targetCat: catsWithItems[0] ?? null,
-      hasMore: all.length > 4 || catsWithItems.length > 1,
+      hasMore: all.length > 10,
     };
   }, [data, items]);
 
