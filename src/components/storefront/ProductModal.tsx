@@ -473,7 +473,7 @@ export function ProductModal({
           if (e.key === "Enter" && t.tagName !== "TEXTAREA" && t.tagName !== "BUTTON") { e.preventDefault(); onAdd(); }
         } : undefined}
         className={compact
-          ? "flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-xl [&>button]:hidden"
+          ? "flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[92vh] sm:max-w-5xl sm:rounded-xl [&>button]:hidden"
           : "flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"}
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
@@ -813,7 +813,7 @@ export function ProductModal({
           )}
 
           {/* Grupos de observações e complementos/adicionais unificados em faixa cinza (estilo Aiqfome) */}
-          {accordionGroups.length > 0 && (
+          {!compact && accordionGroups.length > 0 && (
             <div className="mt-4 space-y-3">
               <Accordion type="single" collapsible value={activeAccordionValue ?? ""} onValueChange={(val) => setActiveAccordionValue(val || undefined)} className="space-y-3">
                 {accordionGroups.map((g) => {
@@ -973,6 +973,8 @@ export function ProductModal({
 
           {compact && (
             <PdvCustomizeColumns
+              requiredGroups={accordionGroups}
+              showInvalid={hasAttemptedSubmit}
               obsGroups={columnGroups.filter((g) => g.kind === "observacao")}
               addonGroups={columnGroups.filter((g) => g.kind !== "observacao")}
               selections={groupSelections}
