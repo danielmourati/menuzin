@@ -361,7 +361,7 @@ function AdicionaisPage() {
   );
 
   const filteredProducts = useMemo(
-    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.trim().toLowerCase())),
+    () => products.filter((p) => normalizeSearch(p.name).includes(normalizeSearch(prodSearch))),
     [products, prodSearch]
   );
 

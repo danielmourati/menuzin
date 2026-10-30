@@ -459,7 +459,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       if (activeCat === PIZZAS_KEY) {
         if (!pizzaCatNames.has(p.category)) return false;
       } else if (activeCat !== "Todos" && p.category !== activeCat) return false;
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase()))
+      if (search && !normalizeSearch(p.name).includes(normalizeSearch(search)))
         return false;
       return true;
     });

@@ -41,9 +41,9 @@ export function ProductFinderModal({
   const tableRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
+    const s = normalizeSearch(q);
     let list = cat === "all" ? rows : rows.filter((r) => r.categoryId === cat);
-    if (s) list = list.filter((r) => r.name.toLowerCase().includes(s) || r.code.toLowerCase().includes(s));
+    if (s) list = list.filter((r) => normalizeSearch(r.name).includes(s) || normalizeSearch(r.code).includes(s));
     if (group) list = [...list].sort((a, b) => a.categoryName.localeCompare(b.categoryName));
     return list;
   }, [rows, q, cat, group]);
