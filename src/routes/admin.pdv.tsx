@@ -619,6 +619,7 @@ function PdvPage() {
       {selectedProduct && (
         <ProductModal
           product={dbProductToUi(selectedProduct, catsData?.categories?.find(c => c.id === selectedProduct.category_id)?.name || "Categoria")}
+          compact
           open={modalOpen}
           onOpenChange={setModalOpen}
           onAddToCart={addToCart}

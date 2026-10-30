@@ -268,6 +268,7 @@ export function EditOrderDialog({
         {selected && (
           <ProductModal
             product={dbProductToUi(selected, categories.find((c) => c.id === selected.category_id)?.name || "Categoria")}
+            compact
             open={!!selected}
             onOpenChange={(v) => { if (!v) setSelected(null); }}
             onAddToCart={(item) => { addCartItem(item); setSelected(null); }}
