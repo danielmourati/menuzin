@@ -13,6 +13,7 @@ import { Minus, Plus, ChevronDown, ChevronLeft, Check, X, Star, Clock } from "lu
 import { brl } from "@/lib/format";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonGroup, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
+import { PdvCustomizeColumns } from "@/components/pdv/PdvCustomizeColumns";
 import { toast } from "sonner";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
 import {
@@ -20,6 +21,7 @@ import {
   computeBasePrice,
   toggleFlavorId,
   toggleGroupOptionId,
+  stepGroupOptionQty,
   getVisiblePizzaSizesForProduct,
   positivePizzaFlavorPrice,
   pizzaPreviewDivisor,
@@ -807,10 +809,10 @@ export function ProductModal({
           )}
 
           {/* Grupos de observações e complementos/adicionais unificados em faixa cinza (estilo Aiqfome) */}
-          {allGroups.length > 0 && (
+          {accordionGroups.length > 0 && (
             <div className="mt-4 space-y-3">
               <Accordion type="single" collapsible value={activeAccordionValue ?? ""} onValueChange={(val) => setActiveAccordionValue(val || undefined)} className="space-y-3">
-                {allGroups.map((g) => {
+                {accordionGroups.map((g) => {
                   const activeOptions = g.options
                     .filter((o) => o.price >= 0)
                     .slice()
@@ -965,7 +967,20 @@ export function ProductModal({
             </Section>
           )}
 
-          {product.allowObservations && (
+          {compact && (
+            <PdvCustomizeColumns
+              obsGroups={columnGroups.filter((g) => g.kind === "observacao")}
+              addonGroups={columnGroups.filter((g) => g.kind !== "observacao")}
+              selections={groupSelections}
+              onToggle={toggleGroupOption}
+              onStep={(gid, oid, d, max) => setGroupSelections((p) => ({ ...p, [gid]: stepGroupOptionQty(p[gid], oid, d, max) }))}
+              showNote={!!product.allowObservations}
+              note={note}
+              onNote={setNote}
+            />
+          )}
+
+          {product.allowObservations && !compact && (
             <Section title="Alguma observação?">
               <Textarea
                 value={note}
