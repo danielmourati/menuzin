@@ -455,10 +455,41 @@ export function ProductModal({
 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"
+        onKeyDown={compact ? (e) => {
+          const t = e.target as HTMLElement;
+          if (e.key === "Enter" && t.tagName !== "TEXTAREA" && t.tagName !== "BUTTON") { e.preventDefault(); onAdd(); }
+        } : undefined}
+        className={compact
+          ? "flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-xl [&>button]:hidden"
+          : "flex h-[100dvh] max-h-none w-full flex-col gap-0 overflow-hidden rounded-none border-0 bg-card p-0 sm:h-[90vh] sm:max-h-[90vh] sm:max-w-lg sm:rounded-3xl [&>button]:hidden"}
       >
         <DialogTitle className="sr-only">{product.name}</DialogTitle>
 
+        {compact && (
+          <div className="shrink-0">
+            <div className="flex items-center justify-between bg-primary px-5 py-3 text-primary-foreground">
+              <span className="text-sm font-bold">Personalizar item</span>
+              <button type="button" aria-label="Fechar" onClick={() => onOpenChange(false)} className="rounded p-1 hover:bg-primary-foreground/15">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex items-center gap-3 border-b px-4 py-3">
+              <div className="flex items-center rounded-md border">
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-none text-primary" onClick={() => setQty((q) => Math.max(1, q - 1))}>
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-9 border-x text-center text-sm font-semibold leading-9">{qty}</span>
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-none text-primary" onClick={() => setQty((q) => q + 1)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <h2 className="min-w-0 flex-1 truncate text-base font-bold">{product.name}</h2>
+              <span className="text-xl font-bold text-primary">{brl(total)}</span>
+            </div>
+          </div>
+        )}
+
+        {!compact && (<>
         {/* Camada 1: imagem fixa com parallax */}
         <div className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-72 overflow-hidden sm:h-96 ${isDefaultImg ? "bg-muted" : "bg-black"}`}>
           <img
@@ -533,11 +564,12 @@ export function ProductModal({
         {/* Camada 2: conteúdo com scroll que sobrepõe a imagem (parallax) */}
         <div
           ref={scrollRef}
-          onScroll={handleScroll}
-          className="relative z-10 flex-1 overflow-y-auto"
+          onScroll={compact ? undefined : handleScroll}
+          className={`relative z-10 flex-1 overflow-y-auto ${compact ? "bg-background" : ""}`}
         >
-          <div aria-hidden className="h-64 sm:h-[22rem]" />
-          <div className="relative -mt-6 rounded-t-3xl bg-card px-5 pt-6 shadow-[0_-10px_28px_-14px_rgba(0,0,0,0.25)]">
+          {!compact && <div aria-hidden className="h-64 sm:h-[22rem]" />}
+          <div className={compact ? "relative px-4 pb-2 pt-1 [&_[data-scroll-target]]:mt-3 [&_[data-scroll-target]]:rounded-lg [&_[data-scroll-target]]:border [&_[data-scroll-target]]:bg-card" : "relative -mt-6 rounded-t-3xl bg-card px-5 pt-6 shadow-[0_-10px_28px_-14px_rgba(0,0,0,0.25)]"}>
+          {!compact && (<>
             <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-muted-foreground/25" />
 
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
@@ -566,6 +598,7 @@ export function ProductModal({
           {product.description && (
             <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
           )}
+          </>)}
 
           {/* Tamanhos (pizza-category) */}
           {isPizzaCategory && visiblePizzaSizes.length > 0 && (
@@ -940,6 +973,21 @@ export function ProductModal({
         </div>
 
 
+        {compact ? (
+          <div data-scroll-target="add-to-cart" className="shrink-0 border-t bg-muted/40 px-4 py-3">
+            {hasAttemptedSubmit && validations.length > 0 && (
+              <p className="mb-2 text-center text-xs font-bold text-destructive">Preencha as opções obrigatórias.</p>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-12 rounded-lg text-sm font-bold uppercase" onClick={() => onOpenChange(false)}>
+                <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
+              </Button>
+              <Button className="h-12 rounded-lg bg-success text-sm font-bold uppercase text-success-foreground hover:bg-success/90" onClick={onAdd}>
+                <Check className="mr-1 h-4 w-4" /> OK
+              </Button>
+            </div>
+          </div>
+        ) : (
         <div data-scroll-target="add-to-cart" className="shrink-0 border-t bg-card px-4 py-3">
           {hasAttemptedSubmit && validations.length > 0 && (
             <p className="mb-2 text-center text-xs font-bold text-destructive bg-destructive/10 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 animate-pulse">
@@ -970,6 +1018,7 @@ export function ProductModal({
             </Button>
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
