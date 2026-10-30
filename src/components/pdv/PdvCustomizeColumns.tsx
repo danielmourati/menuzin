@@ -1,9 +1,5 @@
-import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { normalizeSearch } from "@/lib/utils";
 import type { AddonGroup } from "@/lib/domain-types";
 
 type Props = {
@@ -20,30 +16,24 @@ type Props = {
 
 const fmt = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function flatten(groups: AddonGroup[], q: string) {
-  const nq = normalizeSearch(q);
+function flatten(groups: AddonGroup[]) {
   return groups.flatMap((g) =>
     g.options
       .filter((o) => o.price >= 0)
       .slice()
       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      .filter((o) => !nq || normalizeSearch(o.name).includes(nq))
       .map((o) => ({ g, o })),
   );
 }
 
-function Column({ title, query, setQuery, children, footer, badge, invalid }: {
-  title: string; query: string; setQuery: (v: string) => void; children: React.ReactNode; footer?: React.ReactNode; badge?: React.ReactNode; invalid?: boolean;
+function Column({ title, children, footer, badge, invalid }: {
+  title: string; children: React.ReactNode; footer?: React.ReactNode; badge?: React.ReactNode; invalid?: boolean;
 }) {
   return (
     <div data-invalid={invalid ? "true" : undefined} className={`flex min-h-0 flex-col overflow-hidden rounded-lg border-2 bg-card ${invalid ? "border-destructive" : "border-primary/60"}`}>
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <h3 className="min-w-0 flex-1 truncate text-base font-bold">{title}</h3>
         {badge}
-        <div className="relative w-32 shrink-0">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar..." className="h-8 pl-7 text-sm" />
-        </div>
       </div>
       <div className="h-64 flex-1 overflow-y-auto">{children}</div>
       {footer}
@@ -52,12 +42,11 @@ function Column({ title, query, setQuery, children, footer, badge, invalid }: {
 }
 
 function RequiredCard({ g, selections, onToggle, invalid }: { g: AddonGroup; selections: Record<string, string[]>; onToggle: Props["onToggle"]; invalid: boolean }) {
-  const [q, setQ] = useState("");
-  const items = useMemo(() => flatten([g], q), [g, q]);
+  const items = flatten([g]);
   const isRadio = g.maxSelect === 1;
   const sel = selections[g.id] ?? [];
   return (
-    <Column title={g.name} query={q} setQuery={setQ} invalid={invalid}
+    <Column title={g.name} invalid={invalid}
       badge={<span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${invalid ? "bg-destructive text-destructive-foreground" : "bg-destructive/10 text-destructive"}`}>{g.maxSelect > 1 ? `Até ${g.maxSelect}` : "Obrigatório"}</span>}>
       {items.map(({ o }) => {
         const checked = sel.includes(o.id);
@@ -76,10 +65,8 @@ function RequiredCard({ g, selections, onToggle, invalid }: { g: AddonGroup; sel
 }
 
 export function PdvCustomizeColumns({ requiredGroups = [], showInvalid = false, obsGroups, addonGroups, selections, onToggle, showNote, note, onNote }: Props) {
-  const [qObs, setQObs] = useState("");
-  const [qAdd, setQAdd] = useState("");
-  const obs = useMemo(() => flatten(obsGroups, qObs), [obsGroups, qObs]);
-  const adds = useMemo(() => flatten(addonGroups, qAdd), [addonGroups, qAdd]);
+  const obs = flatten(obsGroups);
+  const adds = flatten(addonGroups);
   const hasObs = obsGroups.length > 0 || showNote;
   const hasAdd = addonGroups.length > 0;
   if (!hasObs && !hasAdd && requiredGroups.length === 0) return null;
@@ -91,7 +78,7 @@ export function PdvCustomizeColumns({ requiredGroups = [], showInvalid = false, 
         return <RequiredCard key={g.id} g={g} selections={selections} onToggle={onToggle} invalid={showInvalid && (selections[g.id] ?? []).length < min} />;
       })}
       {hasAdd && (
-        <Column title="Complementos" query={qAdd} setQuery={setQAdd}>
+        <Column title="Complementos">
           {adds.length === 0 ? (
             <p className="p-3 text-xs text-muted-foreground">Nada encontrado.</p>
           ) : adds.map(({ g, o }) => {
@@ -109,8 +96,6 @@ export function PdvCustomizeColumns({ requiredGroups = [], showInvalid = false, 
       {hasObs && (
         <Column
           title="Observações"
-          query={qObs}
-          setQuery={setQObs}
           footer={showNote ? (
             <Textarea
               value={note}
