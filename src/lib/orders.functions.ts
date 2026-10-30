@@ -1,3 +1,4 @@
+import { computePdvDiscount } from "@/lib/pdv-discount";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -465,6 +466,7 @@ const ManualOrderInput = z.object({
   address: z.record(z.string(), z.string()).nullable().optional(),
   table_label: z.string().max(50).nullable().optional(),
   note: z.string().max(500).nullable().optional(),
+  discount_amount: z.number().min(0).max(99999).optional(),
   items: z.array(ItemSchema).min(1).max(50),
 });
 
@@ -477,7 +479,8 @@ export const createManualOrder = createServerFn({ method: "POST" })
     if (!tenantId) throw new Error("Acesso negado: você não tem uma loja selecionada.");
 
     const subtotal = data.items.reduce((s, it) => s + it.qty * it.unit_price, 0);
-    const total = subtotal + data.delivery_fee;
+    const manualDiscount = computePdvDiscount(subtotal, data.discount_amount ?? 0, "brl");
+    const total = Math.round((subtotal - manualDiscount + data.delivery_fee) * 100) / 100;
 
     // A chamada usa o cliente administrativo para gravar pedido
     const { data: order, error: oErr } = await supabaseAdmin
@@ -500,7 +503,7 @@ export const createManualOrder = createServerFn({ method: "POST" })
         delivery_fee: data.delivery_fee,
         delivery_fee_full: data.delivery_fee_full != null && data.delivery_fee_full >= data.delivery_fee ? data.delivery_fee_full : data.delivery_fee,
         delivery_fee_store_share: data.delivery_fee_full != null && data.delivery_fee_full > data.delivery_fee ? Math.round((data.delivery_fee_full - data.delivery_fee) * 100) / 100 : 0,
-        discount_amount: 0,
+        discount_amount: manualDiscount,
         total,
         address: data.address ?? null,
         table_label: data.table_label ?? null,

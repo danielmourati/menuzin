@@ -21,7 +21,7 @@ export type FinderRow = {
 };
 
 export function ProductFinderModal({
-  open, onOpenChange, rows, categories, loading, onRefresh, onAddDirect, onPersonalize,
+  open, onOpenChange, rows, categories, loading, onRefresh, onAddDirect, onPersonalize, clearSignal,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -30,6 +30,8 @@ export function ProductFinderModal({
   loading?: boolean;
   onRefresh: () => void;
   onAddDirect: (r: FinderRow) => void;
+  /** Incrementado a cada item lançado: limpa a busca e devolve o foco. */
+  clearSignal?: number;
   onPersonalize: (r: FinderRow) => void;
 }) {
   const [q, setQ] = useState("");
@@ -49,6 +51,12 @@ export function ProductFinderModal({
   }, [rows, q, cat, group]);
 
   useEffect(() => { setSel(0); }, [q, cat, group]);
+  useEffect(() => {
+    if (!clearSignal) return;
+    setQ("");
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [clearSignal]);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50); }, [open]);
 
   const add = (r: FinderRow | undefined) => {
