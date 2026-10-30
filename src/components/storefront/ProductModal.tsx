@@ -148,7 +148,7 @@ export function ProductModal({
       setNote("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, product?.id]);
+  }, [open, product?.id, initialSizeId]);
 
   const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
     const out: CartSelectedGroupOption[] = [];
