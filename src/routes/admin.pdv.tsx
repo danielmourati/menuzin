@@ -84,6 +84,7 @@ function PdvPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [selectedSizeId, setSelectedSizeId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   // Checkout states
   const [customerName, setCustomerName] = useState("");
@@ -612,6 +613,7 @@ function PdvPage() {
           const p = products.find((x) => x.id === r.productId);
           if (!p) return;
           if (r.needsChoice && finderOpen) toast.info("Este item precisa de escolhas");
+          setSelectedSizeId(r.sizeId ?? null);
           setSelectedProduct(p);
           setModalOpen(true);
         }}
@@ -620,6 +622,7 @@ function PdvPage() {
         <ProductModal
           product={dbProductToUi(selectedProduct, catsData?.categories?.find(c => c.id === selectedProduct.category_id)?.name || "Categoria")}
           compact
+          initialSizeId={selectedSizeId}
           open={modalOpen}
           onOpenChange={setModalOpen}
           onAddToCart={addToCart}

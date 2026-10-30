@@ -44,7 +44,7 @@ type PizzaFlavorOption = {
 
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart, compact = false,
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart, compact = false, initialSizeId = null,
 }: {
   product: Product | null;
   open: boolean;
