@@ -21,7 +21,6 @@ import {
   computeBasePrice,
   toggleFlavorId,
   toggleGroupOptionId,
-  stepGroupOptionQty,
   getVisiblePizzaSizesForProduct,
   positivePizzaFlavorPrice,
   pizzaPreviewDivisor,
@@ -989,7 +988,6 @@ export function ProductModal({
               addonGroups={columnGroups.filter((g) => g.kind !== "observacao")}
               selections={groupSelections}
               onToggle={toggleGroupOption}
-              onStep={(gid, oid, d, max) => setGroupSelections((p) => ({ ...p, [gid]: stepGroupOptionQty(p[gid], oid, d, max) }))}
               showNote={!!product.allowObservations}
               note={note}
               onNote={setNote}
