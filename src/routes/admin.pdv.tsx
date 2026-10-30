@@ -1,7 +1,7 @@
 import { CashChangePicker, type CashChangeValue } from "@/components/payment/CashChangePicker";
 import type { DbCategoryPizzaSize } from "@/lib/db-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -197,6 +197,9 @@ function PdvPage() {
     setStartedAt(null);
     setCashChange({ noChange: false, paid: null });
     setCart([]);
+    setDiscountInput("");
+    setFreeAddress(false);
+    setFreeAddressText("");
     setCustomerName("");
     setWhatsapp("");
     setTableLabel("");
@@ -312,7 +315,7 @@ function PdvPage() {
   const hasAddress = freeAddress ? !!freeAddressText.trim() : !!(cep && street);
 
   // Enter avança para o próximo campo marcado com data-pdv-field (não envia o pedido).
-  const focusNextOnEnter = (e: React.KeyboardEvent<HTMLElement>) => {
+  const focusNextOnEnter = (e: ReactKeyboardEvent<HTMLElement>) => {
     if (e.key !== "Enter" || e.shiftKey || e.defaultPrevented) return;
     e.preventDefault();
     const scope = (e.currentTarget.closest("[data-pdv-scope]") ?? document) as ParentNode;
@@ -498,33 +501,17 @@ function PdvPage() {
                 </Select>
               </div>
             </div>
-            <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span>Subtotal</span>
-                <span className="font-semibold text-foreground text-sm">{brl(subtotal)}</span>
-              </div>
-              <div>
-                <Label className="text-xs">Desconto</Label>
-                <div className="mt-1 flex gap-2">
-                  <div className="flex shrink-0 overflow-hidden rounded-md border">
-                    {(["brl", "pct"] as const).map((k) => (
-                      <button key={k} type="button" onClick={() => setDiscountKind(k)} className={`px-3 text-sm font-semibold ${discountKind === k ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>{k === "brl" ? "R$" : "%"}</button>
-                    ))}
-                  </div>
-                  <Input data-pdv-field onKeyDown={focusNextOnEnter} value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/[^\d,.]/g, ""))} inputMode="decimal" placeholder="0,00" className="h-11 text-base lg:h-9 lg:text-sm" />
+            <div>
+              <Label className="text-xs">Desconto</Label>
+              <div className="mt-1 flex gap-2">
+                <div className="flex shrink-0 overflow-hidden rounded-md border">
+                  {(["brl", "pct"] as const).map((k) => (
+                    <button key={k} type="button" onClick={() => setDiscountKind(k)} className={`px-3 text-sm font-semibold ${discountKind === k ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>{k === "brl" ? "R$" : "%"}</button>
+                  ))}
                 </div>
-                {discount > 0 && <p className="mt-1 text-xs text-muted-foreground">Desconto aplicado: −{brl(discount)}</p>}
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/[^\d,.]/g, ""))} inputMode="decimal" placeholder="0,00" className="h-11 text-base lg:h-9 lg:text-sm" />
               </div>
-              {mode === "entrega" && (
-                <div className="flex justify-between items-center text-xs text-muted-foreground">
-                  <span>Taxa de entrega</span>
-                  <span className="font-semibold text-foreground">{brl(deliveryFee)}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center border-t pt-2 text-sm font-bold">
-                <span>Total</span>
-                <span className="text-base text-primary font-black">{brl(total)}</span>
-              </div>
+              {discount > 0 && <p className="mt-1 text-xs text-muted-foreground">Desconto aplicado: {brl(discount)}</p>}
             </div>
             {paymentLabel === "Dinheiro" && (
               <CashChangePicker compact total={total} value={cashChange} onChange={setCashChange} rules={{ accepts100: true, accepts200: true }} />
@@ -591,12 +578,10 @@ function PdvPage() {
 
           <div className="flex flex-col gap-3 border-t bg-muted/10 p-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                <span>Subtotal: <b className="text-foreground">{brl(subtotal)}</b></span>
-                {discount > 0 && <span className="text-destructive">· Desconto: <b>−{brl(discount)}</b></span>}
-                {mode === "entrega" && deliveryFee > 0 && <span>· Frete: <b className="text-foreground">{brl(deliveryFee)}</b></span>}
-              </div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total do pedido</p>
               <p className="mt-1 text-3xl font-black leading-none text-primary">{brl(total)}</p>
+              {discount > 0 && <p className="mt-1 text-xs text-muted-foreground">Subtotal {brl(subtotal)} · Desconto −{brl(discount)}</p>}
+              {mode === "entrega" && deliveryFee > 0 && <p className="mt-1 text-xs text-muted-foreground">(Inc. frete de {brl(deliveryFee)})</p>}
             </div>
             <Button onClick={() => submitMut.mutate()} disabled={submitMut.isPending || cart.length === 0} className="h-12 w-full font-bold shadow-md sm:w-auto sm:px-8">
               {submitMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="mr-1.5 h-4 w-4" /> Lançar Pedido</>}

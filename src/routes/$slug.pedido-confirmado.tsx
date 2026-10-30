@@ -11,7 +11,6 @@ import { dbOrderToUi, dbHistoryToUi } from "@/lib/order-adapters";
 import { dbTenantToUi } from "@/lib/db-adapters";
 import { useCustomerOrder } from "@/hooks/useCustomerOrder";
 import { parseAddonLabel } from "@/lib/product-selection";
-import { isFlavorGroup } from "@/lib/receipt-item-details";
 import { PushPermissionBanner } from "@/components/storefront/PushPermissionBanner";
 import type { Order } from "@/lib/domain-types";
 
@@ -100,7 +99,7 @@ function ConfirmedPage() {
                         const prefix =
                           p.kind === "size" ? "Tamanho:" :
                           p.kind === "flavor" ? "Sabor:" :
-                          p.kind === "group" ? (isFlavorGroup(p.groupName) ? "Sabor:" : `${p.groupName}:`) : "+";
+                          p.kind === "group" ? `${p.groupName}:` : "+";
                         return (
                           <li key={a.id} className="flex justify-between gap-2">
                             <span>{prefix} {p.label}</span>
@@ -182,13 +181,9 @@ function buildWhatsAppOrderMessage(order: Order, tenantName: string): string {
   lines.push(`*Modalidade:* ${modeLabel[order.mode]}`);
   if (order.mode === "entrega" && order.address) {
     const a = order.address;
-    if (a.free_text) {
-      lines.push(`*Endereço:* ${a.free_text}`);
-    } else {
-      lines.push(`*Endereço:* ${a.street ?? ""}, ${a.number ?? ""} — ${a.neighborhood ?? ""}`);
-      if (a.complement) lines.push(`Compl.: ${a.complement}`);
-      if (a.reference) lines.push(`Ref.: ${a.reference}`);
-    }
+    lines.push(`*Endereço:* ${a.street ?? ""}, ${a.number ?? ""} — ${a.neighborhood ?? ""}`);
+    if (a.complement) lines.push(`Compl.: ${a.complement}`);
+    if (a.reference) lines.push(`Ref.: ${a.reference}`);
   }
   if (order.mode === "consumo_local" && order.table) lines.push(`*Local:* ${order.table}`);
   lines.push("");
@@ -203,8 +198,7 @@ function buildWhatsAppOrderMessage(order: Order, tenantName: string): string {
       const p = parseAddonLabel(a.name);
       const suffix = Number(a.price) > 0 ? ` (+${brl(a.price)})` : "";
       if (p.kind === "size") sizes.push(p.label);
-      else if (p.kind === "flavor") flavors.push(p.label + suffix);
-      else if (p.kind === "group" && isFlavorGroup(p.groupName)) flavors.push(p.label + suffix);
+      else if (p.kind === "flavor") flavors.push(p.label);
       else if (p.kind === "group" && p.groupName) (groups[p.groupName] ||= []).push(p.label + suffix);
       else extras.push(p.label + suffix);
     }

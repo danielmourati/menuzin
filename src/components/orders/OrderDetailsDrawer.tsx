@@ -1,3 +1,4 @@
+import { isFlavorGroup } from "@/lib/receipt-item-details";
 import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import {
   Dialog,
@@ -14,7 +15,6 @@ import { brl, modeLabel, formatDateTime, whatsappOrderMessage } from "@/lib/form
 import { formatScheduledShort } from "@/lib/scheduling";
 import type { Order } from "@/lib/domain-types";
 import { parseAddonLabel } from "@/lib/product-selection";
-import { isFlavorGroup } from "@/lib/receipt-item-details";
 import { whatsappLink } from "@/lib/whatsapp";
 import { OrderStatusBadge, PaymentStatusBadge } from "./OrderStatusBadge";
 import { OrderStatusTimeline } from "./OrderStatusTimeline";
@@ -70,11 +70,7 @@ export function OrderDetailsDrawer({
     if (order.scheduledFor) lines.push(`Agendado para: ${formatScheduledShort(order.scheduledFor)}`);
 
     if (order.mode === "entrega" && order.address) {
-      if (order.address.free_text) {
-        lines.push(`Endereço: ${order.address.free_text}`);
-      } else {
-        lines.push(`Endereço: ${order.address.street}, ${order.address.number} — ${order.address.neighborhood}`);
-      }
+      lines.push(`Endereço: ${order.address.street}, ${order.address.number} — ${order.address.neighborhood}`);
       if (order.address.complement) lines.push(`Compl: ${order.address.complement}`);
       if (order.address.reference) lines.push(`Ref: ${order.address.reference}`);
     } else if (order.mode === "consumo_local" && order.table) {
@@ -98,10 +94,7 @@ export function OrderDetailsDrawer({
         else extras.push(p.label + suffix);
       }
       if (sizes.length) lines.push(`   Tamanho: ${sizes.join(", ")}`);
-      if (flavors.length) {
-        lines.push(`   Sabores:`);
-        flavors.forEach((f) => lines.push(`   ${f}`));
-      }
+      if (flavors.length) lines.push(`   Sabores: ${flavors.join(" + ")}`);
       for (const [g, opts] of Object.entries(groups)) lines.push(`   ${g}: ${opts.join(", ")}`);
       if (extras.length) lines.push(`   Adicionais: ${extras.join(", ")}`);
       if (item.note) lines.push(`   Obs: ${item.note}`);
@@ -110,7 +103,6 @@ export function OrderDetailsDrawer({
     lines.push("");
     if (order.note) { lines.push(`Observação geral: ${order.note}`); lines.push(""); }
     lines.push(`Subtotal: ${brl(order.subtotal)}`);
-    if (order.discountAmount && order.discountAmount > 0) lines.push(`Desconto: -${brl(order.discountAmount)}`);
     if (order.deliveryFee > 0) lines.push(`Taxa de Entrega: ${brl(order.deliveryFee)}`);
     lines.push(`*Total: ${brl(order.total)}*`);
     lines.push(`Forma de Pagamento: ${order.payment} (${order.paymentStatus === "approved" ? "Aprovado" : "Pendente/Manual"})`);
@@ -125,7 +117,7 @@ export function OrderDetailsDrawer({
   const getMapLink = () => {
     if (!order.address) return "";
     if (order.address.lat && order.address.lng) return `https://www.google.com/maps?q=${order.address.lat},${order.address.lng}`;
-    const query = encodeURIComponent(order.address.free_text || `${order.address.street}, ${order.address.number}, ${order.address.neighborhood}`);
+    const query = encodeURIComponent(`${order.address.street}, ${order.address.number}, ${order.address.neighborhood}`);
     return `https://www.google.com/maps/search/?api=1&query=${query}`;
   };
 
@@ -167,44 +159,20 @@ export function OrderDetailsDrawer({
                       <span className="font-semibold text-foreground">{item.qty}x {item.name}</span>
                       <span className="font-semibold shrink-0 text-primary">{brl(item.unitPrice * item.qty)}</span>
                     </div>
-                    {item.addons && item.addons.length > 0 && (() => {
-                      const flavorAddons = item.addons.filter((a) => {
-                        const p = parseAddonLabel(a.name);
-                        return p.kind === "flavor" || (p.kind === "group" && isFlavorGroup(p.groupName));
-                      });
-                      const otherAddons = item.addons.filter((a) => {
-                        const p = parseAddonLabel(a.name);
-                        return !(p.kind === "flavor" || (p.kind === "group" && isFlavorGroup(p.groupName)));
-                      });
-                      return (
-                        <div className="pl-3 mt-1.5 space-y-1 text-xs text-muted-foreground">
-                          {flavorAddons.length > 0 && (
-                            <div className="space-y-0.5">
-                              <span className="font-semibold text-foreground/80">Sabores:</span>
-                              {flavorAddons.map((add) => {
-                                const p = parseAddonLabel(add.name);
-                                return (
-                                  <div key={add.id} className="flex justify-between pl-2">
-                                    <span>{p.label}</span>
-                                    {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
-                                  </div>
-                                );
-                              })}
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="pl-3 mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                        {item.addons.map((add) => {
+                          const p = parseAddonLabel(add.name);
+                          const prefix = p.kind === "size" ? "Tamanho:" : p.kind === "flavor" ? "Sabor:" : p.kind === "group" ? (isFlavorGroup(p.groupName) ? "Sabor:" : `${p.groupName}:`) : "+";
+                          return (
+                            <div key={add.id} className="flex justify-between">
+                              <span>{prefix} {p.label}</span>
+                              {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
                             </div>
-                          )}
-                          {otherAddons.map((add) => {
-                            const p = parseAddonLabel(add.name);
-                            const prefix = p.kind === "size" ? "Tamanho:" : p.kind === "group" ? `${p.groupName}:` : "+";
-                            return (
-                              <div key={add.id} className="flex justify-between">
-                                <span>{prefix} {p.label}</span>
-                                {Number(add.price) > 0 && <span>{brl(add.price)}</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
+                          );
+                        })}
+                      </div>
+                    )}
                     {item.note && <p className="mt-1.5 pl-3 border-l-2 border-l-warning text-xs text-foreground/70 italic">Obs: {item.note}</p>}
                   </div>
                 ))}
@@ -224,12 +192,6 @@ export function OrderDetailsDrawer({
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Valores e pagamento</h3>
                 <div className="bg-muted/10 border rounded-lg p-4 text-sm space-y-2">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(order.subtotal)}</span></div>
-                  {order.discountAmount && order.discountAmount > 0 ? (
-                    <div className="flex justify-between text-destructive">
-                      <span>Desconto{order.couponCode ? ` (${order.couponCode})` : ""}</span>
-                      <span>−{brl(order.discountAmount)}</span>
-                    </div>
-                  ) : null}
                   {order.deliveryFee > 0 && (
                     <div className="flex justify-between"><span className="text-muted-foreground">Taxa de Entrega</span><span>{brl(order.deliveryFee)}</span></div>
                   )}
@@ -295,21 +257,13 @@ export function OrderDetailsDrawer({
                   <div className="flex items-start gap-2 text-muted-foreground pt-2 border-t border-dashed">
                     <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
                     <div className="flex-1">
-                      {order.address.free_text ? (
-                        <a href={getMapLink()} target="_blank" rel="noreferrer" className="text-foreground hover:underline font-medium block">
-                          {order.address.free_text}
-                        </a>
-                      ) : (
-                        <>
-                          <a href={getMapLink()} target="_blank" rel="noreferrer" className="text-foreground hover:underline font-medium block">
-                            {order.address.street}, {order.address.number}
-                          </a>
-                          <span>
-                            {order.address.neighborhood}
-                            {order.address.complement ? ` — ${order.address.complement}` : ""}
-                          </span>
-                        </>
-                      )}
+                      <a href={getMapLink()} target="_blank" rel="noreferrer" className="text-foreground hover:underline font-medium block">
+                        {order.address.street}, {order.address.number}
+                      </a>
+                      <span>
+                        {order.address.neighborhood}
+                        {order.address.complement ? ` — ${order.address.complement}` : ""}
+                      </span>
                       {order.address.reference && <p className="text-xs text-muted-foreground mt-1">Ref: {order.address.reference}</p>}
                       {order.address.lat && order.address.lng && (
                         <a href={getMapLink()} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">

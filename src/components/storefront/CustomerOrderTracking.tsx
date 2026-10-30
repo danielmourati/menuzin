@@ -11,8 +11,6 @@ import { MessageCircle, ArrowLeft, MapPin, Loader2, ChevronRight, Store as Store
 import { formatScheduledFull, formatScheduledShort, formatHourSp } from "@/lib/scheduling";
 import { formatPhoneNumber } from "@/lib/format";
 import type { Order, Tenant } from "@/lib/domain-types";
-import { parseAddonLabel } from "@/lib/product-selection";
-import { isFlavorGroup } from "@/lib/receipt-item-details";
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
 import { getAgentPublicInfo } from "@/lib/ai-agent.functions";
@@ -128,18 +126,16 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
   const modeTitle = order.mode === "entrega" ? "Entregar meu pedido" : order.mode === "retirada" ? "Retirar meu pedido" : "Consumir no local";
   const addressLines =
     order.mode === "entrega" && order.address
-      ? order.address.free_text
-        ? [order.address.free_text]
-        : [
+      ? [
           `${order.address.street ?? ""}${order.address.number ? ", " + order.address.number : ""}${order.address.complement ? " — " + order.address.complement : ""}`,
           order.address.neighborhood ?? "",
           order.address.cep ? `CEP ${order.address.cep}` : "",
-        ].filter(Boolean)
+        ]
       : [
-        `${tenant.address}${tenant.addressNumber ? ", " + tenant.addressNumber : ""}`,
-        tenant.neighborhood ?? "",
-        [tenant.city, tenant.state].filter(Boolean).join(", ") + (tenant.cep ? ` - ${tenant.cep}` : ""),
-      ];
+          `${tenant.address}${tenant.addressNumber ? ", " + tenant.addressNumber : ""}`,
+          tenant.neighborhood ?? "",
+          [tenant.city, tenant.state].filter(Boolean).join(", ") + (tenant.cep ? ` - ${tenant.cep}` : ""),
+        ];
 
   const forecast = (() => {
     if (order.scheduledFor) return new Date(order.scheduledFor);
@@ -188,33 +184,7 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
                       <span className="font-semibold">{item.name}</span>
                       <span className="shrink-0">{brl(item.unitPrice * item.qty)}</span>
                     </div>
-                    {item.addons && item.addons.length > 0 && (() => {
-                      const flavorAddons = item.addons.filter((a) => {
-                        const p = parseAddonLabel(a.name);
-                        return p.kind === "flavor" || (p.kind === "group" && isFlavorGroup(p.groupName));
-                      });
-                      const otherAddons = item.addons.filter((a) => {
-                        const p = parseAddonLabel(a.name);
-                        return !(p.kind === "flavor" || (p.kind === "group" && isFlavorGroup(p.groupName)));
-                      });
-                      return (
-                        <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                          {flavorAddons.length > 0 && (
-                            <div>
-                              <span className="font-semibold text-foreground/80">Sabores:</span>
-                              <div className="pl-2">
-                                {flavorAddons.map((a, i) => (
-                                  <p key={i}>{parseAddonLabel(a.name).label}</p>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {otherAddons.map((a, i) => (
-                            <p key={i}>{a.name}</p>
-                          ))}
-                        </div>
-                      );
-                    })()}
+                    {item.addons?.map((a, i) => <p key={i} className="text-sm text-muted-foreground">{a.name}</p>)}
                     {item.note && <p className="text-sm italic text-muted-foreground">Obs: {item.note}</p>}
                   </div>
                 </div>
@@ -223,9 +193,6 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
           </section>
           <section className="space-y-2 border-t pt-3">
             <Row label="Subtotal" value={brl(order.subtotal)} />
-            {order.discountAmount && order.discountAmount > 0 ? (
-              <Row label={`Desconto${order.couponCode ? ` (${order.couponCode})` : ""}`} value={`- ${brl(order.discountAmount)}`} className="text-destructive" />
-            ) : null}
             {order.deliveryFee > 0 && <Row label="Taxa de entrega" value={brl(order.deliveryFee)} />}
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
@@ -377,9 +344,9 @@ function formatForecast(d: Date) {
   return `${date} às ${formatHourSp(iso)}`;
 }
 
-function Row({ label, value, className }: { label: string; value: string; className?: string }) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`flex justify-between text-sm ${className ?? ""}`}>
+    <div className="flex justify-between text-sm">
       <span>{label}</span>
       <span className="font-semibold">{value}</span>
     </div>
