@@ -182,6 +182,10 @@ export function ProductModal({
     () => ((product?.addonGroups ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
     [product?.addonGroups]
   );
+  // PDV (compact): grupos obrigatórios ficam no topo; o resto vai às colunas Observações | Complementos.
+  const isMandatoryGroup = (g: AddonGroup) => g.required || (g.minSelect ?? 0) > 0;
+  const accordionGroups = compact ? allGroups.filter(isMandatoryGroup) : allGroups;
+  const columnGroups = compact ? allGroups.filter((g) => !isMandatoryGroup(g)) : [];
   const adicionalGroups = useMemo(
     () => allGroups.filter((g) => g.kind !== "observacao"),
     [allGroups]
