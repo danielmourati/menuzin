@@ -178,6 +178,14 @@ export function ProductModal({
     return out;
   }, [product, groupSelections]);
 
+  // PDV: linha já escolhida com tamanho → esconde card de tamanho e mostra no título.
+  const lockedSizeName = useMemo(() => {
+    if (!compact || !initialSizeId || !product) return null;
+    const s = product.categoryKind === "pizza"
+      ? visiblePizzaSizes.find((x) => x.id === initialSizeId)
+      : product.sizes?.find((x) => x.id === initialSizeId);
+    return s?.name ?? null;
+  }, [compact, initialSizeId, product, visiblePizzaSizes]);
   const allGroups = useMemo(
     () => ((product?.addonGroups ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
     [product?.addonGroups]
@@ -496,7 +504,9 @@ export function ProductModal({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <h2 className="min-w-0 flex-1 truncate text-base font-bold">{product.name}</h2>
+              <h2 className="min-w-0 flex-1 truncate text-base font-bold">
+                {product.name}{lockedSizeName ? ` (${lockedSizeName})` : ""}
+              </h2>
               <span className="text-xl font-bold text-primary">{brl(total)}</span>
             </div>
           </div>
@@ -615,7 +625,7 @@ export function ProductModal({
           </>)}
 
           {/* Tamanhos (pizza-category) */}
-          {isPizzaCategory && visiblePizzaSizes.length > 0 && (
+          {!lockedSizeName && isPizzaCategory && visiblePizzaSizes.length > 0 && (
             <Section id="size" title="Tamanho" required isInvalid={hasAttemptedSubmit && !selectedPizzaSize}>
               <RadioGroup value={sizeId ?? ""} onValueChange={handleSelectSize} className="mt-2 space-y-2">
                 {visiblePizzaSizes.map((s) => {
@@ -643,7 +653,7 @@ export function ProductModal({
           )}
 
           {/* Tamanhos (standard) */}
-          {!isPizzaCategory && product.sizes && product.sizes.length > 0 && (
+          {!lockedSizeName && !isPizzaCategory && product.sizes && product.sizes.length > 0 && (
             <Section id="size" title="Tamanho" required isInvalid={hasAttemptedSubmit && !sizeId}>
               <RadioGroup value={sizeId ?? ""} onValueChange={handleSelectStandardSize} className="mt-2 space-y-2">
                 {product.sizes.map((s) => (
