@@ -63,14 +63,13 @@ function RequiredCard({ g, selections, onToggle, invalid }: { g: AddonGroup; sel
       {items.map(({ o }) => {
         const checked = sel.includes(o.id);
         return (
-          <label key={o.id} className={`flex cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50 ${checked ? "bg-primary/5 font-medium" : ""}`}>
+          <button type="button" key={o.id} onClick={() => onToggle(g.id, o.id, g.maxSelect)} className={`flex w-full text-left cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50 ${checked ? "bg-primary/5 font-medium" : ""}`}>
             {isRadio ? (
               <span className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border ${checked ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>{checked && <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />}</span>
-            ) : <Checkbox checked={checked} />}
-            <input type="checkbox" className="sr-only" checked={checked} onChange={() => onToggle(g.id, o.id, g.maxSelect)} />
+            ) : <Checkbox checked={checked} className="pointer-events-none" />}
             <span className="flex-1">{o.name}</span>
             {o.price > 0 && <span className="text-xs text-muted-foreground">+{fmt(o.price)}</span>}
-          </label>
+          </button>
         );
       })}
     </Column>
