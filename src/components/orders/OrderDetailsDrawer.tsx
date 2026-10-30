@@ -88,6 +88,7 @@ export function OrderDetailsDrawer({
         const suffix = Number(a.price) > 0 ? ` (+${brl(a.price)})` : "";
         if (p.kind === "size") sizes.push(p.label);
         else if (p.kind === "flavor") flavors.push(p.label);
+        else if (p.kind === "group" && isFlavorGroup(p.groupName)) flavors.push(p.label + suffix);
         else if (p.kind === "group" && p.groupName) (groups[p.groupName] ||= []).push(p.label + suffix);
         else extras.push(p.label + suffix);
       }
@@ -161,7 +162,7 @@ export function OrderDetailsDrawer({
                       <div className="pl-3 mt-1.5 space-y-0.5 text-xs text-muted-foreground">
                         {item.addons.map((add) => {
                           const p = parseAddonLabel(add.name);
-                          const prefix = p.kind === "size" ? "Tamanho:" : p.kind === "flavor" ? "Sabor:" : p.kind === "group" ? `${p.groupName}:` : "+";
+                          const prefix = p.kind === "size" ? "Tamanho:" : p.kind === "flavor" ? "Sabor:" : p.kind === "group" ? (isFlavorGroup(p.groupName) ? "Sabor:" : `${p.groupName}:`) : "+";
                           return (
                             <div key={add.id} className="flex justify-between">
                               <span>{prefix} {p.label}</span>

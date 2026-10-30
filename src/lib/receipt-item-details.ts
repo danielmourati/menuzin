@@ -12,10 +12,11 @@ export function receiptItemName(item: Order["items"][number]): string {
 
 const stripAccentsLocal = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-/** Grupos de sabores: "Escolha N sabores" ou "Sabores" (nome do grupo no admin). */
-function isFlavorGroup(groupName?: string): boolean {
+/** Grupos de sabores: "Escolha N sabores", "Sabores" ou "Monte o seu (...)" (nome do grupo no admin). */
+export function isFlavorGroup(groupName?: string): boolean {
   if (!groupName) return false;
-  return /^(escolha\s+\d+\s+sabores|sabores)$/.test(stripAccentsLocal(groupName).trim().toLowerCase());
+  const g = stripAccentsLocal(groupName).trim().toLowerCase();
+  return /^(escolha\s+\d+\s+sabores|sabores)$/.test(g) || /^monte\s+(o\s+)?seu\b/.test(g);
 }
 
 export type ReceiptFlavorBlock = { header: string; lines: string[] };
