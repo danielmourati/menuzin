@@ -63,6 +63,10 @@ export function receiptItemDetails(item: Order["items"][number], showPrices: boo
     }
     out.push(label);
   }
-  if (item.note?.trim()) out.push(`Obs: ${item.note.trim()}`);
-  return out;
+  // Adicionais repetidos (quantidade) viram "2x Bacon".
+  const counts = new Map<string, number>();
+  for (const l of out) counts.set(l, (counts.get(l) ?? 0) + 1);
+  const grouped = [...counts].map(([l, n]) => (n > 1 ? `${n}x ${l}` : l));
+  if (item.note?.trim()) grouped.push(`Obs: ${item.note.trim()}`);
+  return grouped;
 }

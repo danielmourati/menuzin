@@ -13,6 +13,7 @@ import { Minus, Plus, ChevronDown, ChevronLeft, Check, X, Star, Clock } from "lu
 import { brl } from "@/lib/format";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonGroup, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
+import { PdvCustomizeColumns } from "@/components/pdv/PdvCustomizeColumns";
 import { toast } from "sonner";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
 import {
@@ -20,6 +21,7 @@ import {
   computeBasePrice,
   toggleFlavorId,
   toggleGroupOptionId,
+  stepGroupOptionQty,
   getVisiblePizzaSizesForProduct,
   positivePizzaFlavorPrice,
   pizzaPreviewDivisor,
@@ -157,7 +159,8 @@ export function ProductModal({
       const ids = groupSelections[g.id] ?? [];
       const activeOptions = g.options.filter((o) => o.price >= 0);
       const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
-      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && ids.length === activeOptions.length;
+      const uniqueCount = new Set(ids).size;
+      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && uniqueCount === activeOptions.length && ids.length === uniqueCount;
 
       if (isAllSelected) {
         let sum = 0;
@@ -167,7 +170,8 @@ export function ProductModal({
         out.push({ id: `todos-${g.id}`, name: "[Todos os adicionais]", price: sum, groupName: g.name, sortOrder: 0 });
       } else {
         for (const o of g.options) {
-          if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
+          const n = ids.filter((x) => x === o.id).length;
+          for (let k = 0; k < n; k++) out.push({ ...o, groupName: g.name });
         }
       }
     }
@@ -178,6 +182,10 @@ export function ProductModal({
     () => ((product?.addonGroups ?? []).slice().sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
     [product?.addonGroups]
   );
+  // PDV (compact): grupos obrigatórios ficam no topo; o resto vai às colunas Observações | Complementos.
+  const isMandatoryGroup = (g: AddonGroup) => g.required || (g.minSelect ?? 0) > 0;
+  const accordionGroups = compact ? allGroups.filter(isMandatoryGroup) : allGroups;
+  const columnGroups = compact ? allGroups.filter((g) => !isMandatoryGroup(g)) : [];
   const adicionalGroups = useMemo(
     () => allGroups.filter((g) => g.kind !== "observacao"),
     [allGroups]
@@ -805,10 +813,10 @@ export function ProductModal({
           )}
 
           {/* Grupos de observações e complementos/adicionais unificados em faixa cinza (estilo Aiqfome) */}
-          {allGroups.length > 0 && (
+          {accordionGroups.length > 0 && (
             <div className="mt-4 space-y-3">
               <Accordion type="single" collapsible value={activeAccordionValue ?? ""} onValueChange={(val) => setActiveAccordionValue(val || undefined)} className="space-y-3">
-                {allGroups.map((g) => {
+                {accordionGroups.map((g) => {
                   const activeOptions = g.options
                     .filter((o) => o.price >= 0)
                     .slice()
@@ -963,7 +971,20 @@ export function ProductModal({
             </Section>
           )}
 
-          {product.allowObservations && (
+          {compact && (
+            <PdvCustomizeColumns
+              obsGroups={columnGroups.filter((g) => g.kind === "observacao")}
+              addonGroups={columnGroups.filter((g) => g.kind !== "observacao")}
+              selections={groupSelections}
+              onToggle={toggleGroupOption}
+              onStep={(gid, oid, d, max) => setGroupSelections((p) => ({ ...p, [gid]: stepGroupOptionQty(p[gid], oid, d, max) }))}
+              showNote={!!product.allowObservations}
+              note={note}
+              onNote={setNote}
+            />
+          )}
+
+          {product.allowObservations && !compact && (
             <Section title="Alguma observação?">
               <Textarea
                 value={note}
