@@ -197,6 +197,9 @@ function PdvPage() {
     setStartedAt(null);
     setCashChange({ noChange: false, paid: null });
     setCart([]);
+    setDiscountInput("");
+    setFreeAddress(false);
+    setFreeAddressText("");
     setCustomerName("");
     setWhatsapp("");
     setTableLabel("");
