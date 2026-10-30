@@ -59,6 +59,8 @@ export function ProductModal({
   onAddToCart?: (item: any) => void;
   /** Layout simples estilo PDV (sem imagem/logo). */
   compact?: boolean;
+  /** Tamanho pré-selecionado ao abrir (ex.: linha escolhida no PDV). */
+  initialSizeId?: string | null;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -124,7 +126,7 @@ export function ProductModal({
       setQty(1);
       setLegacyAddons([]);
       if (product.categoryKind === "pizza" && visiblePizzaSizes.length > 0) {
-        const firstSize = visiblePizzaSizes[0];
+        const firstSize = visiblePizzaSizes.find((s) => s.id === initialSizeId) ?? visiblePizzaSizes[0];
         setSizeId(firstSize.id);
         const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
         // Tamanho 1 sabor: sabor é o próprio produto. 2+ sabores: cliente escolhe todos manualmente.
@@ -134,8 +136,9 @@ export function ProductModal({
           setFlavorIds([]);
         }
       } else {
-        setSizeId(product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
-        setSizeTouched(false);
+        const pre = initialSizeId ? product.sizes?.find((s) => s.id === initialSizeId) : undefined;
+        setSizeId(pre ? pre.id : product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
+        setSizeTouched(!!pre);
         setFlavorIds([]);
       }
       setGroupSelections({});
