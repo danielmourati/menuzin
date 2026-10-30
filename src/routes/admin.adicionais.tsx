@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -361,7 +362,7 @@ function AdicionaisPage() {
   );
 
   const filteredProducts = useMemo(
-    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.trim().toLowerCase())),
+    () => products.filter((p) => normalizeSearch(p.name).includes(normalizeSearch(prodSearch))),
     [products, prodSearch]
   );
 

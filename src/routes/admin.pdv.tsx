@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, Search, Plus, Minus, ShoppingCart, Utensils, Check, MapPin, Clock, User as UserIcon, Trash2 } from "lucide-react";
+import { computePdvDiscount } from "@/lib/pdv-discount";
+import { isFlavorGroup } from "@/lib/receipt-item-details";
 import { ProductFinderModal, type FinderRow } from "@/components/pdv/ProductFinderModal";
 import { requiresCustomization } from "@/lib/pdv-customization";
 import { useAuth } from "@/lib/auth-context";
@@ -106,6 +108,11 @@ function PdvPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [freeAddress, setFreeAddress] = useState(false);
+  const [freeAddressText, setFreeAddressText] = useState("");
+  const [discountKind, setDiscountKind] = useState<"brl" | "pct">("brl");
+  const [discountInput, setDiscountInput] = useState("");
+  const [finderClearSignal, setFinderClearSignal] = useState(0);
 
   // Busca de rua (quando o cliente não sabe o CEP)
   const storeCity = ((tenantData?.tenant as { city?: string | null } | undefined)?.city ?? "").trim();
@@ -300,7 +307,19 @@ function PdvPage() {
   }, [feeResolution]);
 
   const subtotal = cart.reduce((s, it) => s + it.qty * computeUnitPrice(it), 0);
-  const total = subtotal + (mode === "entrega" ? deliveryFee : 0);
+  const discount = computePdvDiscount(subtotal, Number(discountInput.replace(",", ".")) || 0, discountKind);
+  const total = subtotal - discount + (mode === "entrega" ? deliveryFee : 0);
+  const hasAddress = freeAddress ? !!freeAddressText.trim() : !!(cep && street);
+
+  // Enter avança para o próximo campo marcado com data-pdv-field (não envia o pedido).
+  const focusNextOnEnter = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter" || e.shiftKey || e.defaultPrevented) return;
+    e.preventDefault();
+    const scope = (e.currentTarget.closest("[data-pdv-scope]") ?? document) as ParentNode;
+    const fields = Array.from(scope.querySelectorAll<HTMLElement>("[data-pdv-field]")).filter((el) => el.offsetParent !== null);
+    const idx = fields.indexOf(e.currentTarget);
+    fields[idx + 1]?.focus();
+  };
 
   const addDirect = (r: FinderRow) => {
     const p = products.find((x) => x.id === r.productId);
@@ -316,6 +335,7 @@ function PdvPage() {
     setCart((prev) => {
       return [...prev, { ...item, uid: crypto.randomUUID() }];
     });
+    setFinderClearSignal((n) => n + 1);
   };
 
   const updateQty = (index: number, delta: number) => {
@@ -332,16 +352,18 @@ function PdvPage() {
       if (!customerName) throw new Error("Informe o nome do cliente.");
       if (cart.length === 0) throw new Error("Carrinho vazio.");
       if (mode === "consumo_local" && !tableLabel) throw new Error("Informe a mesa.");
-      if (mode === "entrega" && (!cep || !street || !number || !neighborhood)) {
+      if (mode === "entrega" && (freeAddress ? !freeAddressText.trim() : (!cep || !street || !number || !neighborhood))) {
         setAddressModalOpen(true);
         throw new Error("Preencha o endereço de entrega antes de lançar o pedido.");
       }
 
       const actualMode = mode === "balcao" ? "retirada" : mode;
       
-      const address = mode === "entrega" ? {
+      const address = mode === "entrega" ? (freeAddress ? {
+        free_text: freeAddressText.trim(), street: freeAddressText.trim(), number: "", neighborhood: "", city, state
+      } : {
         cep: cepDigitsOnly, street, number, neighborhood, complement, reference, city, state
-      } : null;
+      }) : null;
 
       const items = cart.map((c) => {
         const mergedAddons = [
@@ -377,6 +399,7 @@ function PdvPage() {
           delivery_fee_full: mode === "entrega" && feeResolution && Number(feeResolution.fee) === deliveryFee ? (feeResolution.fee_full ?? deliveryFee) : null,
           table_label: tableLabel || null,
           note: orderNote.trim() || null,
+          discount_amount: discount,
           address: address as any,
           items,
         }
@@ -411,22 +434,22 @@ function PdvPage() {
             <p className="flex items-center gap-2"><UserIcon className="h-4 w-4" /> Criado por: <b className="text-foreground">{operatorName}</b></p>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div data-pdv-scope className="flex-1 space-y-3 overflow-y-auto p-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <div>
                 <Label className="text-xs">Nome do Cliente *</Label>
-                <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Ex: Maria" className="mt-1 h-11 text-base lg:h-9 lg:text-sm" />
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Ex: Maria" className="mt-1 h-11 text-base lg:h-9 lg:text-sm" />
               </div>
               <div>
                 <Label className="text-xs">WhatsApp (Opcional)</Label>
-                <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="Apenas números" inputMode="numeric" type="tel" className="mt-1 h-11 text-base lg:h-9 lg:text-sm" />
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="Apenas números" inputMode="numeric" type="tel" className="mt-1 h-11 text-base lg:h-9 lg:text-sm" />
               </div>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <div>
                 <Label className="text-xs">Tipo de Venda</Label>
                 <Select value={mode} onValueChange={(v: any) => setMode(v)}>
-                  <SelectTrigger className="mt-1 h-11 text-base lg:h-9 lg:text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-pdv-field className="mt-1 h-11 text-base lg:h-9 lg:text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="balcao">Balcão (Retirada)</SelectItem>
                     <SelectItem value="consumo_local">Mesa (Local)</SelectItem>
@@ -437,25 +460,25 @@ function PdvPage() {
               {mode === "consumo_local" && (
                 <div>
                   <Label className="text-xs">Nº da Mesa</Label>
-                  <Input value={tableLabel} onChange={(e) => setTableLabel(e.target.value)} placeholder="Ex: 05" className="mt-1 h-11 text-base lg:h-9 lg:text-sm" />
+                  <Input data-pdv-field onKeyDown={focusNextOnEnter} value={tableLabel} onChange={(e) => setTableLabel(e.target.value)} placeholder="Ex: 05" className="mt-1 h-11 text-base lg:h-9 lg:text-sm" />
                 </div>
               )}
               {mode === "entrega" && (
                 <div>
                   <Label className="text-xs">Endereço de Entrega</Label>
-                  <Button variant={cep && street ? "secondary" : "outline"} className="mt-1 h-11 w-full justify-start overflow-hidden text-sm font-normal lg:h-9" onClick={() => setAddressModalOpen(true)}>
+                  <Button data-pdv-field variant={hasAddress ? "secondary" : "outline"} className="mt-1 h-11 w-full justify-start overflow-hidden text-sm font-normal lg:h-9" onClick={() => setAddressModalOpen(true)}>
                     <MapPin className="mr-2 h-3.5 w-3.5 shrink-0" />
-                    {cep && street ? <span className="truncate">{street}, {number}</span> : "Informar Endereço"}
+                    {freeAddress && freeAddressText.trim() ? <span className="truncate">{freeAddressText}</span> : cep && street ? <span className="truncate">{street}, {number}</span> : "Informar Endereço"}
                   </Button>
                 </div>
               )}
             </div>
-            <Textarea value={orderNote} onChange={(e) => setOrderNote(e.target.value)} maxLength={500} rows={2} placeholder="Anotar observação..." className="resize-none text-base lg:text-sm" />
+            <Textarea data-pdv-field onKeyDown={focusNextOnEnter} value={orderNote} onChange={(e) => setOrderNote(e.target.value)} maxLength={500} rows={2} placeholder="Anotar observação..." className="resize-none text-base lg:text-sm" />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <div>
                 <Label className="text-xs">Pagamento</Label>
                 <Select value={paymentLabel} onValueChange={setPaymentLabel}>
-                  <SelectTrigger className="mt-1 h-11 text-base lg:h-9 lg:text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-pdv-field className="mt-1 h-11 text-base lg:h-9 lg:text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Dinheiro">Dinheiro</SelectItem>
                     <SelectItem value="PIX">PIX</SelectItem>
@@ -467,13 +490,25 @@ function PdvPage() {
               <div>
                 <Label className="text-xs">Status Pagamento</Label>
                 <Select value={paymentStatus} onValueChange={(v: any) => setPaymentStatus(v)}>
-                  <SelectTrigger className="mt-1 h-11 text-base lg:h-9 lg:text-sm"><SelectValue /></SelectTrigger>
+                  <SelectTrigger data-pdv-field className="mt-1 h-11 text-base lg:h-9 lg:text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="approved">Já Pago</SelectItem>
                     <SelectItem value="pending">Aguardando (Pagar depois)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label className="text-xs">Desconto</Label>
+              <div className="mt-1 flex gap-2">
+                <div className="flex shrink-0 overflow-hidden rounded-md border">
+                  {(["brl", "pct"] as const).map((k) => (
+                    <button key={k} type="button" onClick={() => setDiscountKind(k)} className={`px-3 text-sm font-semibold ${discountKind === k ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>{k === "brl" ? "R$" : "%"}</button>
+                  ))}
+                </div>
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} value={discountInput} onChange={(e) => setDiscountInput(e.target.value.replace(/[^\d,.]/g, ""))} inputMode="decimal" placeholder="0,00" className="h-11 text-base lg:h-9 lg:text-sm" />
+              </div>
+              {discount > 0 && <p className="mt-1 text-xs text-muted-foreground">Desconto aplicado: {brl(discount)}</p>}
             </div>
             {paymentLabel === "Dinheiro" && (
               <CashChangePicker compact total={total} value={cashChange} onChange={setCashChange} rules={{ accepts100: true, accepts200: true }} />
@@ -528,7 +563,7 @@ function PdvPage() {
                     {(item.addons?.length || item.groupOptions?.length || item.note) ? (
                       <div className="ml-1 space-y-0.5 border-l-2 border-muted pl-2">
                         {item.addons?.map((a, idx) => <p key={idx} className="text-xs text-muted-foreground">+ {a.name}</p>)}
-                        {item.groupOptions?.map((go, idx) => <p key={idx} className="text-xs text-muted-foreground">+ {go.groupName}: {go.name}</p>)}
+                        {item.groupOptions?.map((go, idx) => <p key={idx} className="text-xs text-muted-foreground">+ {isFlavorGroup(go.groupName) ? "Sabor" : go.groupName}: {go.name}</p>)}
                         {item.note && <p className="text-xs font-medium italic text-warning-foreground">Obs: {item.note}</p>}
                       </div>
                     ) : null}
@@ -542,6 +577,7 @@ function PdvPage() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total do pedido</p>
               <p className="mt-1 text-3xl font-black leading-none text-primary">{brl(total)}</p>
+              {discount > 0 && <p className="mt-1 text-xs text-muted-foreground">Subtotal {brl(subtotal)} · Desconto −{brl(discount)}</p>}
               {mode === "entrega" && deliveryFee > 0 && <p className="mt-1 text-xs text-muted-foreground">(Inc. frete de {brl(deliveryFee)})</p>}
             </div>
             <Button onClick={() => submitMut.mutate()} disabled={submitMut.isPending || cart.length === 0} className="h-12 w-full font-bold shadow-md sm:w-auto sm:px-8">
@@ -568,6 +604,7 @@ function PdvPage() {
         loading={prodsLoading || catsLoading}
         onRefresh={() => { qc.invalidateQueries({ queryKey: ["my-products"] }); qc.invalidateQueries({ queryKey: ["my-categories"] }); qc.invalidateQueries({ queryKey: ["pdv-addon-groups"] }); }}
         onAddDirect={addDirect}
+        clearSignal={finderClearSignal}
         onPersonalize={(r) => {
           const p = products.find((x) => x.id === r.productId);
           if (!p) return;
@@ -621,19 +658,31 @@ function PdvPage() {
             <DialogTitle>Endereço de Entrega</DialogTitle>
             <DialogDescription>Preencha os dados do local de entrega.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="flex overflow-hidden rounded-md border text-sm font-semibold">
+            <button type="button" onClick={() => setFreeAddress(false)} className={`flex-1 py-2 ${!freeAddress ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Por CEP / rua</button>
+            <button type="button" onClick={() => setFreeAddress(true)} className={`flex-1 py-2 ${freeAddress ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Digitar endereço livre</button>
+          </div>
+          {freeAddress ? (
+            <div data-pdv-scope className="grid gap-3 py-4">
+              <Label htmlFor="free-address">Endereço completo *</Label>
+              <Textarea id="free-address" data-pdv-field onKeyDown={focusNextOnEnter} autoFocus rows={3} maxLength={300} value={freeAddressText} onChange={(e) => setFreeAddressText(e.target.value)} placeholder="Ex: Rua X, 120, perto do mercado" />
+              <Label htmlFor="free-fee">Taxa de entrega (R$)</Label>
+              <Input id="free-fee" data-pdv-field onKeyDown={focusNextOnEnter} inputMode="decimal" value={deliveryFee ? String(deliveryFee).replace(".", ",") : ""} onChange={(e) => setDeliveryFee(Math.max(0, Number(e.target.value.replace(/[^\d,.]/g, "").replace(",", ".")) || 0))} placeholder="0,00" />
+            </div>
+          ) : (
+          <div data-pdv-scope className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="cep">CEP</Label>
                 <div className="relative">
-                  <Input id="cep" value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
+                  <Input data-pdv-field onKeyDown={focusNextOnEnter} id="cep" value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
                   {cepLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
                 </div>
                 {cepError && <p className="text-xs text-destructive mt-1">{cepError}</p>}
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="neighborhood">Bairro *</Label>
-                <Input id="neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} id="neighborhood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
               </div>
             </div>
             
@@ -649,9 +698,10 @@ function PdvPage() {
                     onChange={(e) => { setStreet(e.target.value); setStreetOpen(true); }}
                     onFocus={() => setStreetOpen(true)}
                     onBlur={() => setTimeout(() => setStreetOpen(false), 150)}
+                    data-pdv-field
                     onKeyDown={(e) => {
                       if (e.key === "Escape") { setStreetOpen(false); return; }
-                      if (!streetOpen || streetResults.length === 0) return;
+                      if (!streetOpen || streetResults.length === 0) { focusNextOnEnter(e); return; }
                       if (e.key === "ArrowDown") { e.preventDefault(); setStreetActive((i) => Math.min(i + 1, streetResults.length - 1)); }
                       else if (e.key === "ArrowUp") { e.preventDefault(); setStreetActive((i) => Math.max(i - 1, 0)); }
                       else if (e.key === "Enter") { e.preventDefault(); pickStreet(streetResults[streetActive]); }
@@ -687,21 +737,22 @@ function PdvPage() {
               </div>
               <div className="col-span-1">
                 <Label htmlFor="number">Número *</Label>
-                <Input id="number" ref={numberRef} value={number} onChange={(e) => setNumber(e.target.value)} />
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} id="number" ref={numberRef} value={number} onChange={(e) => setNumber(e.target.value)} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="complement">Complemento</Label>
-                <Input id="complement" value={complement} onChange={(e) => setComplement(e.target.value)} />
+                <Input data-pdv-field onKeyDown={focusNextOnEnter} id="complement" value={complement} onChange={(e) => setComplement(e.target.value)} />
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <Label htmlFor="reference">Ponto de Referência</Label>
-                <Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} />
+                <Input id="reference" data-pdv-field onKeyDown={focusNextOnEnter} value={reference} onChange={(e) => setReference(e.target.value)} />
               </div>
             </div>
           </div>
+          )}
           
           <div className="bg-muted p-3 rounded-md flex justify-between items-center mt-2">
             <span className="text-sm font-medium">Taxa de Entrega:</span>

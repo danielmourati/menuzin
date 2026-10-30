@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Search, List, LayoutGrid, RefreshCw, Plus, MoreHorizontal, Loader2 } from "lucide-react";
 import { brl } from "@/lib/format";
 import { categoryColor } from "@/lib/pdv-customization";
-import { cn } from "@/lib/utils";
+import { cn, normalizeSearch } from "@/lib/utils";
 
 export type FinderRow = {
   key: string;
@@ -21,7 +21,7 @@ export type FinderRow = {
 };
 
 export function ProductFinderModal({
-  open, onOpenChange, rows, categories, loading, onRefresh, onAddDirect, onPersonalize,
+  open, onOpenChange, rows, categories, loading, onRefresh, onAddDirect, onPersonalize, clearSignal,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -30,6 +30,8 @@ export function ProductFinderModal({
   loading?: boolean;
   onRefresh: () => void;
   onAddDirect: (r: FinderRow) => void;
+  /** Incrementado a cada item lançado: limpa a busca e devolve o foco. */
+  clearSignal?: number;
   onPersonalize: (r: FinderRow) => void;
 }) {
   const [q, setQ] = useState("");
@@ -41,14 +43,20 @@ export function ProductFinderModal({
   const tableRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
+    const s = normalizeSearch(q);
     let list = cat === "all" ? rows : rows.filter((r) => r.categoryId === cat);
-    if (s) list = list.filter((r) => r.name.toLowerCase().includes(s) || r.code.toLowerCase().includes(s));
+    if (s) list = list.filter((r) => normalizeSearch(r.name).includes(s) || normalizeSearch(r.code).includes(s));
     if (group) list = [...list].sort((a, b) => a.categoryName.localeCompare(b.categoryName));
     return list;
   }, [rows, q, cat, group]);
 
   useEffect(() => { setSel(0); }, [q, cat, group]);
+  useEffect(() => {
+    if (!clearSignal) return;
+    setQ("");
+    const t = setTimeout(() => inputRef.current?.focus(), 80);
+    return () => clearTimeout(t);
+  }, [clearSignal]);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50); }, [open]);
 
   const add = (r: FinderRow | undefined) => {

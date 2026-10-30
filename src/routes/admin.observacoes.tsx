@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useRef } from "react";
@@ -360,7 +361,7 @@ function ObservacoesPage() {
   );
 
   const filteredProducts = useMemo(
-    () => products.filter((p) => p.name.toLowerCase().includes(prodSearch.trim().toLowerCase())),
+    () => products.filter((p) => normalizeSearch(p.name).includes(normalizeSearch(prodSearch))),
     [products, prodSearch]
   );
 
