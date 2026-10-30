@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Minus, Plus, ChevronDown, Star, Clock } from "lucide-react";
+import { Minus, Plus, ChevronDown, ChevronLeft, Check, X, Star, Clock } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product, ProductAddon, ProductSize, ProductFlavor, AddonGroup, AddonOption } from "@/lib/domain-types";
 import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
@@ -44,7 +44,7 @@ type PizzaFlavorOption = {
 
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart,
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart, compact = false,
 }: {
   product: Product | null;
   open: boolean;
@@ -57,6 +57,8 @@ export function ProductModal({
   tenantSlug?: string;
   tenantInfo?: { name?: string | null; logoUrl?: string | null; logoLetter?: string | null; ratingAvg?: number | null; prepTimeLabel?: string | null } | null;
   onAddToCart?: (item: any) => void;
+  /** Layout simples estilo PDV (sem imagem/logo). */
+  compact?: boolean;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -560,6 +562,7 @@ export function ProductModal({
             </div>
           )}
         </div>
+        </>)}
 
         {/* Camada 2: conteúdo com scroll que sobrepõe a imagem (parallax) */}
         <div
