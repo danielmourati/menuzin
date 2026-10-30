@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Minus, Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +13,6 @@ type Props = {
   addonGroups: AddonGroup[];
   selections: Record<string, string[]>;
   onToggle: (groupId: string, optId: string, maxSelect: number) => void;
-  onStep: (groupId: string, optId: string, delta: 1 | -1, maxSelect: number) => void;
   showNote: boolean;
   note: string;
   onNote: (v: string) => void;
@@ -76,7 +75,7 @@ function RequiredCard({ g, selections, onToggle, invalid }: { g: AddonGroup; sel
   );
 }
 
-export function PdvCustomizeColumns({ requiredGroups = [], showInvalid = false, obsGroups, addonGroups, selections, onToggle, onStep, showNote, note, onNote }: Props) {
+export function PdvCustomizeColumns({ requiredGroups = [], showInvalid = false, obsGroups, addonGroups, selections, onToggle, showNote, note, onNote }: Props) {
   const [qObs, setQObs] = useState("");
   const [qAdd, setQAdd] = useState("");
   const obs = useMemo(() => flatten(obsGroups, qObs), [obsGroups, qObs]);
@@ -96,22 +95,13 @@ export function PdvCustomizeColumns({ requiredGroups = [], showInvalid = false, 
           {adds.length === 0 ? (
             <p className="p-3 text-xs text-muted-foreground">Nada encontrado.</p>
           ) : adds.map(({ g, o }) => {
-            const sel = selections[g.id] ?? [];
-            const n = sel.filter((x) => x === o.id).length;
-            const full = g.maxSelect > 0 && sel.length >= g.maxSelect;
+            const checked = (selections[g.id] ?? []).includes(o.id);
             return (
-              <div key={`${g.id}-${o.id}`} className={`flex items-center gap-2 border-b px-3 py-1.5 text-sm last:border-b-0 ${n > 0 ? "bg-primary/5 font-medium" : ""}`}>
-                <span className="flex-1">{o.name}{o.price > 0 && <span className="text-muted-foreground"> ({fmt(o.price)})</span>}</span>
-                <button type="button" aria-label={`Remover ${o.name}`} disabled={n === 0} onClick={() => onStep(g.id, o.id, -1, g.maxSelect)}
-                  className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary disabled:opacity-40">
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-                <span className="w-5 text-center tabular-nums">{n}</span>
-                <button type="button" aria-label={`Adicionar ${o.name}`} disabled={full} onClick={() => onStep(g.id, o.id, 1, g.maxSelect)}
-                  className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary disabled:opacity-40">
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <label key={`${g.id}-${o.id}`} className={`flex cursor-pointer items-center gap-2 border-b px-3 py-2 text-sm last:border-b-0 hover:bg-muted/50 ${checked ? "bg-primary/5 font-medium" : ""}`}>
+                <Checkbox checked={checked} onCheckedChange={() => onToggle(g.id, o.id, g.maxSelect)} />
+                <span className="flex-1">{o.name}</span>
+                {o.price > 0 && <span className="text-xs text-muted-foreground">+{fmt(o.price)}</span>}
+              </label>
             );
           })}
         </Column>
