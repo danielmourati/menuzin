@@ -157,7 +157,8 @@ export function ProductModal({
       const ids = groupSelections[g.id] ?? [];
       const activeOptions = g.options.filter((o) => o.price >= 0);
       const isRadio = g.maxSelect <= 1 && g.maxSelect > 0;
-      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && ids.length === activeOptions.length;
+      const uniqueCount = new Set(ids).size;
+      const isAllSelected = !isRadio && g.kind !== "observacao" && activeOptions.length > 1 && uniqueCount === activeOptions.length && ids.length === uniqueCount;
 
       if (isAllSelected) {
         let sum = 0;
@@ -167,7 +168,8 @@ export function ProductModal({
         out.push({ id: `todos-${g.id}`, name: "[Todos os adicionais]", price: sum, groupName: g.name, sortOrder: 0 });
       } else {
         for (const o of g.options) {
-          if (ids.includes(o.id)) out.push({ ...o, groupName: g.name });
+          const n = ids.filter((x) => x === o.id).length;
+          for (let k = 0; k < n; k++) out.push({ ...o, groupName: g.name });
         }
       }
     }

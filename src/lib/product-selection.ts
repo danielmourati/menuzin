@@ -78,6 +78,25 @@ export function toggleFlavorId(prev: string[], id: string, max: number): string[
   return [...prev, id];
 }
 
+/**
+ * Soma/subtrai uma unidade de uma opção (IDs repetidos = quantidade).
+ * maxSelect <= 0 = sem limite; o total do grupo nunca passa de maxSelect.
+ */
+export function stepGroupOptionQty(
+  prev: string[] | undefined,
+  optionId: string,
+  delta: 1 | -1,
+  maxSelect: number,
+): string[] {
+  const cur = prev ?? [];
+  if (delta < 0) {
+    const i = cur.lastIndexOf(optionId);
+    return i < 0 ? cur : [...cur.slice(0, i), ...cur.slice(i + 1)];
+  }
+  if (maxSelect > 0 && cur.length >= maxSelect) return cur;
+  return [...cur, optionId];
+}
+
 /** Aplica toggle em opção de grupo respeitando maxSelect (1 = radio). */
 export function toggleGroupOptionId(
   prev: string[] | undefined,
