@@ -1,7 +1,7 @@
 import { CashChangePicker, type CashChangeValue } from "@/components/payment/CashChangePicker";
 import type { DbCategoryPizzaSize } from "@/lib/db-types";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useRef, type KeyboardEvent } from "react";
+import { useState, useMemo, useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -315,7 +315,7 @@ function PdvPage() {
   const hasAddress = freeAddress ? !!freeAddressText.trim() : !!(cep && street);
 
   // Enter avança para o próximo campo marcado com data-pdv-field (não envia o pedido).
-  const focusNextOnEnter = (e: KeyboardEvent<HTMLElement>) => {
+  const focusNextOnEnter = (e: ReactKeyboardEvent<HTMLElement>) => {
     if (e.key !== "Enter" || e.shiftKey || e.defaultPrevented) return;
     e.preventDefault();
     const scope = (e.currentTarget.closest("[data-pdv-scope]") ?? document) as ParentNode;
