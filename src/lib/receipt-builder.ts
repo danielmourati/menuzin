@@ -235,9 +235,15 @@ export function buildReceipt(
 
   /* 7. Total */
   if (!order.items.length) out.push(sep);
-  if (order.deliveryFee > 0) {
+  const hasDiscount = (order.discountAmount ?? 0) > 0;
+  if (order.deliveryFee > 0 || hasDiscount) {
     out.push(row("Subtotal", money(order.subtotal), cols));
-    out.push(row("Taxa entrega", money(order.deliveryFee), cols));
+    if (hasDiscount) {
+      out.push(row("Desconto", `-${money(order.discountAmount!)}`, cols));
+    }
+    if (order.deliveryFee > 0) {
+      out.push(row("Taxa entrega", money(order.deliveryFee), cols));
+    }
   }
   out.push(row("TOTAL", money(order.total), cols));
 
@@ -258,16 +264,20 @@ export function buildReceipt(
   } else if (order.mode === "entrega" && order.address) {
     out.push("Entrega:");
     const a = order.address;
-    const linhaEnd = [
-      [a.street, a.number].filter(Boolean).join(", "),
-      a.complement,
-    ].filter(Boolean).join(" - ");
-    if (linhaEnd) wrap(stripAccents(linhaEnd), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
-    if (a.neighborhood) {
-      wrap(`Bairro: ${stripAccents(a.neighborhood)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    if (a.free_text) {
+      wrap(stripAccents(a.free_text), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+    } else {
+      const linhaEnd = [
+        [a.street, a.number].filter(Boolean).join(", "),
+        a.complement,
+      ].filter(Boolean).join(" - ");
+      if (linhaEnd) wrap(stripAccents(linhaEnd), cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+      if (a.neighborhood) {
+        wrap(`Bairro: ${stripAccents(a.neighborhood)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+      }
+      if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
+      if (a.lat && a.lng) out.push(addonIndent + `GPS do cliente: ${a.lat.slice(0, 9)},${a.lng.slice(0, 9)}`);
     }
-    if (a.reference) wrap(`Ref: ${stripAccents(a.reference)}`, cols - addonIndent.length).forEach((l) => out.push(addonIndent + l));
-    if (a.lat && a.lng) out.push(addonIndent + `GPS do cliente: ${a.lat.slice(0, 9)},${a.lng.slice(0, 9)}`);
     if (order.deliveryFee > 0) {
       out.push(addonIndent + row("Taxa entrega", money(order.deliveryFee), cols - addonIndent.length));
     }

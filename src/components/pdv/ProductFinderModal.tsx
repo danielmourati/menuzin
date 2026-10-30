@@ -54,8 +54,9 @@ export function ProductFinderModal({
   useEffect(() => {
     if (!clearSignal) return;
     setQ("");
-    const t = setTimeout(() => inputRef.current?.focus(), 80);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => inputRef.current?.focus(), 80);
+    const t2 = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [clearSignal]);
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50); }, [open]);
 

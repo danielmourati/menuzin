@@ -127,6 +127,7 @@ export type Order = {
   couponCode?: string | null;
   total: number;
   address?: {
+    free_text?: string;
     cep?: string;
     street?: string;
     number?: string;
