@@ -1,3 +1,4 @@
+import { isFlavorGroup } from "@/lib/receipt-item-details";
 import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import {
   Dialog,
