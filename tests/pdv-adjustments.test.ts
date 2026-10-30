@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { computePdvDiscount } from "./pdv-discount";
-import { isFlavorGroup, receiptFlavorBlock } from "./receipt-item-details";
-import { normalizeSearch } from "./utils";
+import { computePdvDiscount } from "../src/lib/pdv-discount";
+import { isFlavorGroup, receiptFlavorBlock } from "../src/lib/receipt-item-details";
+import { normalizeSearch } from "../src/lib/utils";
 
 describe("ajustes PDV", () => {
   test("desconto em R$ não passa do subtotal", () => {
