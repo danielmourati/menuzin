@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { isHidden } from "@/lib/feature-flags";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { computeStoreOpen } from "@/lib/store-hours";

@@ -1,3 +1,4 @@
+import { normalizeSearch } from "@/lib/utils";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useRef } from "react";

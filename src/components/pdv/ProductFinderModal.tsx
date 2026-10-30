@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Search, List, LayoutGrid, RefreshCw, Plus, MoreHorizontal, Loader2 } from "lucide-react";
 import { brl } from "@/lib/format";
 import { categoryColor } from "@/lib/pdv-customization";
-import { cn } from "@/lib/utils";
+import { cn, normalizeSearch } from "@/lib/utils";
 
 export type FinderRow = {
   key: string;
