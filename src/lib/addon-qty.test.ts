@@ -1,3 +1,4 @@
+// @ts-ignore bun runtime
 import { describe, expect, test } from "bun:test";
 import { stepGroupOptionQty } from "./product-selection";
 import { receiptItemDetails } from "./receipt-item-details";
