@@ -1,3 +1,4 @@
+import { canAdvanceOrder } from "@/lib/order-payment-gate";
 import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
