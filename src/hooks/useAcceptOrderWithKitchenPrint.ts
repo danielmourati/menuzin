@@ -200,6 +200,10 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
       const order =
         typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
       const orderId = typeof orderOrId === "string" ? orderOrId : orderOrId.id;
+      if (order && !canAdvanceOrder("preparo", order.payment, order.paymentStatus)) {
+        toast.error(PIX_WAITING_MESSAGE);
+        return;
+      }
       await updateOrderStatus(orderId, "preparo", "Pedido aceito — iniciou preparo");
       if (order) await printKitchenFor(order);
     },
@@ -210,6 +214,10 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
     async (orderId: string, newStatus: OrderStatus) => {
       const order = orders.find((o) => o.id === orderId);
       const wasNew = order?.status === "novo";
+      if (order && !canAdvanceOrder(newStatus, order.payment, order.paymentStatus)) {
+        toast.error(PIX_WAITING_MESSAGE);
+        return;
+      }
       await updateOrderStatus(orderId, newStatus);
       // Se aceitou (novo -> preparo), imprime a comanda
       if (order && wasNew && newStatus === "preparo") {
