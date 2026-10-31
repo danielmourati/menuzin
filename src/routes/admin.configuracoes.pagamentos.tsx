@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { diagnoseMpAccount } from "@/lib/payments.functions";
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -485,5 +487,47 @@ function AdminPaymentSettingsPage() {
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+type MpDiag = Awaited<ReturnType<typeof diagnoseMpAccount>>;
+
+function MpDiagnosticCard() {
+  const run = useServerFn(diagnoseMpAccount);
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<MpDiag | null>(null);
+  const yn = (v: boolean | null | undefined) => (v === true ? "Sim" : v === false ? "Não" : "—");
+  return (
+    <Card className="border border-border/80">
+      <CardHeader>
+        <CardTitle className="text-base">Diagnóstico da conta Mercado Pago</CardTitle>
+        <CardDescription>Verifique se a conta conectada pode receber Pix sem restrições.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try { setRes(await run()); } catch (e) { toast.error(e instanceof Error ? e.message : "Falha no diagnóstico"); }
+            finally { setBusy(false); }
+          }}
+        >
+          {busy ? "Verificando..." : "Verificar conta"}
+        </Button>
+        {res && !res.ok && <p className="text-sm text-destructive">{res.error}</p>}
+        {res && "account" in res && res.account && (
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <dt className="text-muted-foreground">Conta</dt><dd>{res.account.nickname ?? res.account.id ?? "—"}</dd>
+            <dt className="text-muted-foreground">Pix disponível</dt><dd>{yn(res.pix_available)}</dd>
+            <dt className="text-muted-foreground">Pode vender</dt><dd>{yn(res.account.sell_allowed)}</dd>
+            <dt className="text-muted-foreground">Recebimentos liberados</dt><dd>{yn(res.account.billing_allowed)}</dd>
+            <dt className="text-muted-foreground">Situação</dt><dd>{res.account.site_status ?? "—"}</dd>
+            <dt className="text-muted-foreground">Conta de teste</dt><dd>{yn(res.account.test_user)}</dd>
+            {res.account.sell_codes.length > 0 && (<><dt className="text-muted-foreground">Restrições</dt><dd>{res.account.sell_codes.join(", ")}</dd></>)}
+          </dl>
+        )}
+      </CardContent>
+    </Card>
   );
 }
