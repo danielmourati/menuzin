@@ -840,14 +840,18 @@ export function CartDrawer({
   };
 
   const pendingPixRef = useRef(false);
+  const cpfConfirmedRef = useRef(false);
+  const [pixRefused, setPixRefused] = useState<string | null>(null);
+  const [cpfTick, setCpfTick] = useState(0);
   useEffect(() => { if (open) loadMpSecurityScript(); }, [open]);
   useEffect(() => {
     if (pendingPixRef.current && isValidCpf(doc)) {
       pendingPixRef.current = false;
+      cpfConfirmedRef.current = true;
       void handleSelectMethod("pix_online");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc]);
+  }, [doc, cpfTick]);
 
   const handleSelectMethod = async (m: PaymentMethod) => {
     setSelectedMethod(m);
@@ -2350,9 +2354,10 @@ export function CartDrawer({
             <Button
               disabled={!isValidCpf(cpfDraft)}
               onClick={() => {
+                pendingPixRef.current = true;
                 setDoc(cpfDraft);
                 setCpfPromptOpen(false);
-                pendingPixRef.current = true;
+                setCpfTick((t) => t + 1);
               }}
             >
               Gerar Pix
