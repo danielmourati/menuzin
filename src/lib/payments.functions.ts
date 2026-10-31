@@ -316,6 +316,47 @@ export const disconnectMercadoPago = createServerFn({ method: "POST" })
     return { success: true as const };
   });
 
+/** Diagnóstico da conta Mercado Pago conectada (verificação, Pix e restrições). */
+export const diagnoseMpAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const tenantId = await resolveTenantId(supabase, userId);
+    let token: string;
+    try {
+      const { getFreshAccessToken } = await import("@/lib/mp-oauth.server");
+      token = await getFreshAccessToken(tenantId);
+    } catch {
+      return { ok: false as const, error: "Mercado Pago não conectado." };
+    }
+    const h = { Authorization: `Bearer ${token}` };
+    const [meRes, pmRes] = await Promise.all([
+      fetch("https://api.mercadopago.com/users/me", { headers: h }),
+      fetch("https://api.mercadopago.com/v1/payment_methods", { headers: h }),
+    ]);
+    const me = (await meRes.json().catch(() => ({}))) as Record<string, any>;
+    const pms = (await pmRes.json().catch(() => [])) as Array<{ id: string; status: string }>;
+    const pix = Array.isArray(pms) ? pms.find((p) => p.id === "pix") : undefined;
+    return {
+      ok: meRes.ok,
+      error: meRes.ok ? null : String(me?.message ?? "Falha ao consultar conta"),
+      account: {
+        id: me?.id ?? null,
+        nickname: me?.nickname ?? null,
+        email: me?.email ?? null,
+        site: me?.site_id ?? null,
+        identity_status: me?.status?.user_type ?? me?.user_type ?? null,
+        site_status: me?.status?.site_status ?? null,
+        sell_allowed: me?.status?.sell?.allow ?? null,
+        sell_codes: (me?.status?.sell?.codes ?? []) as string[],
+        billing_allowed: me?.status?.billing?.allow ?? null,
+        kyc_required: me?.status?.required_action ?? null,
+        test_user: Array.isArray(me?.tags) ? me.tags.includes("test_user") : null,
+      },
+      pix_available: pix ? pix.status === "active" : false,
+    };
+  });
+
 // ============================================================
 // OAuth — conexão automática da conta Mercado Pago do lojista
 // ============================================================
@@ -639,7 +680,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
         first_name: data.payer.first_name,
         last_name: data.payer.last_name,
         ...(data.payer.identification && {
-          identification: data.payer.identification,
+          identification: { type: data.payer.identification.type, number: data.payer.identification.number.replace(/\D/g, "") },
         }),
       },
     };

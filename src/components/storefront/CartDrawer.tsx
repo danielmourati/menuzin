@@ -840,14 +840,18 @@ export function CartDrawer({
   };
 
   const pendingPixRef = useRef(false);
+  const cpfConfirmedRef = useRef(false);
+  const [pixRefused, setPixRefused] = useState<string | null>(null);
+  const [cpfTick, setCpfTick] = useState(0);
   useEffect(() => { if (open) loadMpSecurityScript(); }, [open]);
   useEffect(() => {
     if (pendingPixRef.current && isValidCpf(doc)) {
       pendingPixRef.current = false;
+      cpfConfirmedRef.current = true;
       void handleSelectMethod("pix_online");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc]);
+  }, [doc, cpfTick]);
 
   const handleSelectMethod = async (m: PaymentMethod) => {
     setSelectedMethod(m);
@@ -863,11 +867,13 @@ export function CartDrawer({
     setPaymentMethod(methodLabels[m]);
 
     if (m === "pix_online") {
-      if (!isValidCpf(doc)) {
+      if (!cpfConfirmedRef.current || !isValidCpf(doc)) {
         setCpfDraft(doc);
         setCpfPromptOpen(true);
         return;
       }
+      cpfConfirmedRef.current = false;
+      setPixRefused(null);
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
         const persisted = await ensureOrder(methodLabels[m]);
@@ -891,15 +897,16 @@ export function CartDrawer({
         });
         toast.dismiss(toastId);
         if (!res.data?.qr_code) {
-          toast.error("Não foi possível gerar o QR Code do Pix. Escolha outra forma de pagamento.");
+          setPixRefused("Não foi possível gerar o QR Code do Pix.");
           return;
         }
         setPixData(res.data);
         goTo("payment-online-pix");
       } catch (err) {
         toast.dismiss(toastId);
-        const msg = err instanceof Error ? err.message : "Erro ao gerar pagamento Pix.";
-        toast.error(msg);
+        const raw = err instanceof Error ? err.message : "";
+        const msg = !raw || raw.trim().startsWith("[") ? "Erro ao gerar pagamento Pix." : raw;
+        setPixRefused(msg);
       }
     } else if (m === "credit_card" || m === "debit_card") {
       // Ensure order exists so CardCheckout has a real order_id to bind
@@ -1674,6 +1681,20 @@ export function CartDrawer({
           <>
             <Header title="Método de pagamento" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              {pixRefused && (
+                <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+                  <p className="text-sm font-semibold text-destructive">Pix recusado pelo Mercado Pago</p>
+                  <p className="text-xs text-muted-foreground">{pixRefused}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => { setPixRefused(null); void handleSelectMethod("pix_online"); }}>
+                      Tentar novamente
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setPixRefused(null); setSelectedMethod(null); }}>
+                      Escolher outra forma de pagamento
+                    </Button>
+                  </div>
+                </div>
+              )}
               <PaymentMethodSelector
                 settings={settings}
                 paymentWhen={paymentWhen || "na_retirada"}
@@ -2333,9 +2354,10 @@ export function CartDrawer({
             <Button
               disabled={!isValidCpf(cpfDraft)}
               onClick={() => {
+                pendingPixRef.current = true;
                 setDoc(cpfDraft);
                 setCpfPromptOpen(false);
-                pendingPixRef.current = true;
+                setCpfTick((t) => t + 1);
               }}
             >
               Gerar Pix
