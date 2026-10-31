@@ -1,3 +1,4 @@
+import { canAdvanceOrder, PIX_WAITING_MESSAGE } from "@/lib/order-payment-gate";
 import { formatTenantAddress } from "@/lib/tenant-address";
 // Helper para "Aceitar pedido": muda o status para "preparo" (fluxo
 // simplificado) e dispara a impressão da comanda de cozinha quando há
