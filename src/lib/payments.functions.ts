@@ -639,7 +639,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
         first_name: data.payer.first_name,
         last_name: data.payer.last_name,
         ...(data.payer.identification && {
-          identification: data.payer.identification,
+          identification: { type: data.payer.identification.type, number: data.payer.identification.number.replace(/\D/g, "") },
         }),
       },
     };
