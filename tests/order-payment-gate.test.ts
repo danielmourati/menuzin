@@ -17,3 +17,9 @@ test("Pix online recusado pode ser cancelado", () => {
 test("Dinheiro na entrega avança sem pagamento", () => {
   expect(canAdvanceOrder("preparo", "Pagar na entrega · Dinheiro em Espécie", "pending")).toBe(true);
 });
+import { isValidCpf } from "../src/lib/order-payment-gate";
+test("CPF válido e inválido", () => {
+  expect(isValidCpf("529.982.247-25")).toBe(true);
+  expect(isValidCpf("111.111.111-11")).toBe(false);
+  expect(isValidCpf("529.982.247-24")).toBe(false);
+});
