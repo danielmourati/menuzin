@@ -4,7 +4,6 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { readCustomerProfile, writeCustomerProfile, clearCustomerProfile } from "@/lib/customer-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { isValidCpf } from "@/lib/order-payment-gate";
 import { getMpDeviceId, loadMpSecurityScript } from "@/lib/mp-device";
 import { Label } from "@/components/ui/label";
