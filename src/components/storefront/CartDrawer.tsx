@@ -2317,37 +2317,6 @@ export function CartDrawer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={cpfPromptOpen} onOpenChange={setCpfPromptOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Informe seu CPF</DialogTitle>
-            <DialogDescription>O Mercado Pago exige o CPF do pagador para aprovar o Pix.</DialogDescription>
-          </DialogHeader>
-          <Input
-            inputMode="numeric"
-            placeholder="000.000.000-00"
-            value={cpfDraft}
-            onChange={(e) => setCpfDraft(e.target.value.replace(/[^\d.-]/g, "").slice(0, 14))}
-            autoFocus
-          />
-          {cpfDraft.replace(/\D/g, "").length === 11 && !isValidCpf(cpfDraft) && (
-            <p className="text-xs text-destructive">CPF inválido.</p>
-          )}
-          <DialogFooter>
-            <Button
-              disabled={!isValidCpf(cpfDraft)}
-              onClick={() => {
-                pendingPixRef.current = true;
-                setDoc(cpfDraft);
-                setCpfPromptOpen(false);
-                setCpfTick((t) => t + 1);
-              }}
-            >
-              Gerar Pix
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Sheet>
   );
 }
