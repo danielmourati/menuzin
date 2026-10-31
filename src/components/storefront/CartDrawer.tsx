@@ -164,8 +164,6 @@ export function CartDrawer({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [doc, setDoc] = useState("");
-  const [cpfPromptOpen, setCpfPromptOpen] = useState(false);
-  const [cpfDraft, setCpfDraft] = useState("");
 
   // mode
   const [mode, setMode] = useState<Mode | null>(null);
@@ -839,19 +837,8 @@ export function CartDrawer({
     return ensureOrderPromise.current;
   };
 
-  const pendingPixRef = useRef(false);
-  const cpfConfirmedRef = useRef(false);
   const [pixRefused, setPixRefused] = useState<string | null>(null);
-  const [cpfTick, setCpfTick] = useState(0);
   useEffect(() => { if (open) loadMpSecurityScript(); }, [open]);
-  useEffect(() => {
-    if (pendingPixRef.current && isValidCpf(doc)) {
-      pendingPixRef.current = false;
-      cpfConfirmedRef.current = true;
-      void handleSelectMethod("pix_online");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, cpfTick]);
 
   const handleSelectMethod = async (m: PaymentMethod) => {
     setSelectedMethod(m);
