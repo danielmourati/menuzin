@@ -114,6 +114,7 @@ export async function createPixPayment(
       order_id: params.order_id,
       payment_method: "pix_online",
       payer: params.payer,
+      device_id: params.device_id,
     },
   });
   if (res.type !== "pix") throw new Error("Resposta inesperada do gateway");

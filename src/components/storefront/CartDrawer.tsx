@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { isValidCpf } from "@/lib/order-payment-gate";
-import { getMpDeviceId } from "@/lib/mp-device";
+import { getMpDeviceId, loadMpSecurityScript } from "@/lib/mp-device";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -840,6 +840,7 @@ export function CartDrawer({
   };
 
   const pendingPixRef = useRef(false);
+  useEffect(() => { if (open) loadMpSecurityScript(); }, [open]);
   useEffect(() => {
     if (pendingPixRef.current && isValidCpf(doc)) {
       pendingPixRef.current = false;
