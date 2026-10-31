@@ -767,6 +767,39 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
       throw new Error(`Mercado Pago: ${msg}`);
     }
 
+    // 6b. Fallback: algumas contas recusam Pix como "high risk" quando recebem dados
+    // extras do pagador. Tenta uma vez com o corpo mínimo (o mesmo do teste de credenciais).
+    if (
+      data.payment_method === "pix_online" &&
+      mpJson.status === "rejected" &&
+      /high_risk/.test(mpJson.status_detail ?? "")
+    ) {
+      try {
+        const minimal = {
+          transaction_amount: body.transaction_amount,
+          description: body.description,
+          external_reference: body.external_reference,
+          notification_url: body.notification_url,
+          payment_method_id: "pix",
+          payer: { email: payerEmail },
+        };
+        const r2 = await fetch("https://api.mercadopago.com/v1/payments", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "X-Idempotency-Key": `payment_${paymentRowId}_min`,
+          },
+          body: JSON.stringify(minimal),
+        });
+        const j2 = (await r2.json()) as MpPaymentResponse;
+        console.log("[MP] pix fallback mínimo:", r2.status, j2.status, j2.status_detail);
+        if (r2.ok && j2.status !== "rejected") mpJson = j2;
+      } catch (e) {
+        console.error("[MP] pix fallback falhou:", e);
+      }
+    }
+
     const mappedStatus = mapMpStatus(mpJson.status);
     const mpPaymentId = String(mpJson.id ?? "");
 
