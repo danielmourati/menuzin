@@ -863,11 +863,13 @@ export function CartDrawer({
     setPaymentMethod(methodLabels[m]);
 
     if (m === "pix_online") {
-      if (!isValidCpf(doc)) {
+      if (!cpfConfirmedRef.current || !isValidCpf(doc)) {
         setCpfDraft(doc);
         setCpfPromptOpen(true);
         return;
       }
+      cpfConfirmedRef.current = false;
+      setPixRefused(null);
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
         const persisted = await ensureOrder(methodLabels[m]);
@@ -891,15 +893,16 @@ export function CartDrawer({
         });
         toast.dismiss(toastId);
         if (!res.data?.qr_code) {
-          toast.error("Não foi possível gerar o QR Code do Pix. Escolha outra forma de pagamento.");
+          setPixRefused("Não foi possível gerar o QR Code do Pix.");
           return;
         }
         setPixData(res.data);
         goTo("payment-online-pix");
       } catch (err) {
         toast.dismiss(toastId);
-        const msg = err instanceof Error ? err.message : "Erro ao gerar pagamento Pix.";
-        toast.error(msg);
+        const raw = err instanceof Error ? err.message : "";
+        const msg = !raw || raw.trim().startsWith("[") ? "Erro ao gerar pagamento Pix." : raw;
+        setPixRefused(msg);
       }
     } else if (m === "credit_card" || m === "debit_card") {
       // Ensure order exists so CardCheckout has a real order_id to bind
