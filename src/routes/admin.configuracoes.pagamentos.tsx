@@ -292,6 +292,8 @@ function AdminPaymentSettingsPage() {
                 showTechnicalInfo={true}
               />
 
+              {settings?.mp_connected && <MpDiagnosticCard />}
+
               {settings?.mp_connected && (
                 <Card className="border border-border/80 shadow-[var(--shadow-soft)] animate-fade-in">
                   <CardHeader className="pb-3">
