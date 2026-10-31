@@ -645,14 +645,14 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     {
       const { data: items } = await supabaseAdmin
         .from("order_items")
-        .select("product_name, quantity, unit_price")
+        .select("name_snapshot, qty, unit_price")
         .eq("order_id", order.id);
       body.additional_info = {
-        items: (items ?? []).slice(0, 50).map((it: { product_name: string | null; quantity: number | null; unit_price: number | null }, i: number) => ({
+        items: (items ?? []).slice(0, 50).map((it: { name_snapshot: string; qty: number; unit_price: number }, i: number) => ({
           id: String(i + 1),
-          title: String(it.product_name ?? "Item").slice(0, 120),
-          quantity: Number(it.quantity ?? 1),
-          unit_price: Number(it.unit_price ?? 0),
+          title: String(it.name_snapshot || "Item").slice(0, 120),
+          quantity: Number(it.qty || 1),
+          unit_price: Number(it.unit_price || 0),
           category_id: "food",
         })),
         payer: {
