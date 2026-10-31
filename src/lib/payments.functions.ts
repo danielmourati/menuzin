@@ -722,23 +722,6 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
     }
 
 
-    // TEMP_PROBE_START
-    if (data.payment_method === "pix_online" && data.payer.first_name === "PROBE") {
-      const base = { transaction_amount: 1, payment_method_id: "pix", description: "Teste de credenciais Menuzin", payer: { email: "teste@menuzin.app" } };
-      const variants: Record<string, unknown> = {
-        A: base,
-        B: { ...base, external_reference: body.external_reference },
-        C: { ...base, notification_url: body.notification_url },
-        D: { ...base, description: body.description },
-        E: { ...base, payer: { email: payerEmail } },
-      };
-      for (const [k, v] of Object.entries(variants)) {
-        const r = await fetch("https://api.mercadopago.com/v1/payments", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", "X-Idempotency-Key": `probe_${paymentRowId}_${k}` }, body: JSON.stringify(v) });
-        const j = (await r.json()) as MpPaymentResponse;
-        console.log("[PROBE]", k, r.status, j.status, j.status_detail, j.id);
-      }
-    }
-    // TEMP_PROBE_END
     // 6. Call Mercado Pago
     let mpJson: MpPaymentResponse;
     let mpStatusOk = false;
