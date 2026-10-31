@@ -721,6 +721,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
       body.installments = data.installments ?? 1;
     }
 
+
     // 6. Call Mercado Pago
     let mpJson: MpPaymentResponse;
     let mpStatusOk = false;
