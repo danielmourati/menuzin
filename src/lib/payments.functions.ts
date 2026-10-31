@@ -552,7 +552,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
 
     // 3c. In sandbox/test mode, the payer email should be a @testuser.com to
     // avoid MP rejecting the payment as suspicious. Log a warning if it isn't.
-    if (settings.mp_live_mode === false && !/@testuser\.com$/i.test(data.payer.email)) {
+    if (settings.mp_live_mode === false && !/@testuser\.com$/i.test(data.payer.email ?? "")) {
       console.warn(
         `[MP] Loja em Modo Teste mas payer.email "${data.payer.email}" não é @testuser.com — MP pode rejeitar.`,
       );

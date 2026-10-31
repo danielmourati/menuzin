@@ -182,6 +182,7 @@ export interface CreatePixPaymentRequest {
   payment_method: "pix_online";
   payer: {
     email: string;
+    phone?: string;
     first_name: string;
     last_name: string;
     identification?: { type: "CPF" | "CNPJ"; number: string };
@@ -197,6 +198,7 @@ export interface CreateCardPaymentRequest {
   installments: number;
   payer: {
     email: string;
+    phone?: string;
     first_name: string;
     last_name: string;
     identification: { type: "CPF" | "CNPJ"; number: string };
