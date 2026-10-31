@@ -1,3 +1,4 @@
+import { pixFailureMessage } from "./pix-result";
 // ============================================================
 // Menuzin — Payment Server Functions (Mercado Pago manual creds)
 // ============================================================
@@ -617,6 +618,11 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
 
     // 5. Build MP body
     const { publicAppUrl } = await import("@/lib/mp-webhook.server");
+    const payerEmail =
+      data.payer.email && !/@teste\.com$/i.test(data.payer.email)
+        ? data.payer.email
+        : `pedido-${order.number}-${String(order.id).slice(0, 8)}@menuzin.app`;
+    const payerPhone = (data.payer.phone ?? "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
     const body: Record<string, unknown> = {
       transaction_amount: Number(order.total),
       description: `Pedido #${order.number} - ${tenant.name}`,
@@ -624,7 +630,10 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
       // Garante a confirmação server-side mesmo se o cliente fechar o navegador.
       notification_url: `${publicAppUrl()}/api/public/mp-order-webhook?tenant=${tenant.id}`,
       payer: {
-        email: data.payer.email,
+        email: payerEmail,
+        ...(payerPhone.length >= 10 && {
+          phone: { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) },
+        }),
         first_name: data.payer.first_name,
         last_name: data.payer.last_name,
         ...(data.payer.identification && {
@@ -655,7 +664,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
-          "X-Idempotency-Key": `order_${order.id}_${data.payment_method}`,
+          "X-Idempotency-Key": `payment_${paymentRowId}`,
         },
         body: JSON.stringify(body),
       });
@@ -717,6 +726,8 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
 
     if (data.payment_method === "pix_online") {
       const tx = mpJson.point_of_interaction?.transaction_data;
+      const pixError = pixFailureMessage(mpJson.status, mpJson.status_detail, tx?.qr_code);
+      if (pixError) throw new Error(pixError);
       return {
         type: "pix" as const,
         data: {
