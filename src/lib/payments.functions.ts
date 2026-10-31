@@ -482,6 +482,7 @@ const CreateTransparentPaymentInput = z.object({
   card_token: z.string().min(4).max(200).optional(),
   installments: z.number().int().min(1).max(24).optional(),
   payer: PayerSchema,
+  device_id: z.string().max(200).optional(),
 });
 
 export const createTransparentPayment = createServerFn({ method: "POST" })
@@ -641,7 +642,30 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
         }),
       },
     };
+    {
+      const { data: items } = await supabaseAdmin
+        .from("order_items")
+        .select("name_snapshot, qty, unit_price")
+        .eq("order_id", order.id);
+      body.additional_info = {
+        items: (items ?? []).slice(0, 50).map((it: { name_snapshot: string; qty: number; unit_price: number }, i: number) => ({
+          id: String(i + 1),
+          title: String(it.name_snapshot || "Item").slice(0, 120),
+          quantity: Number(it.qty || 1),
+          unit_price: Number(it.unit_price || 0),
+          category_id: "food",
+        })),
+        payer: {
+          first_name: data.payer.first_name,
+          last_name: data.payer.last_name,
+          ...(payerPhone.length >= 10 && {
+            phone: { area_code: payerPhone.slice(0, 2), number: payerPhone.slice(2) },
+          }),
+        },
+      };
+    }
     if (data.payment_method === "pix_online") {
+      if (!data.payer.identification) throw new Error("Informe o CPF para pagar com Pix.");
       body.payment_method_id = "pix";
     } else {
       if (!data.card_token) {
@@ -665,6 +689,7 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
           "X-Idempotency-Key": `payment_${paymentRowId}`,
+          ...(data.device_id ? { "X-meli-session-id": data.device_id } : {}),
         },
         body: JSON.stringify(body),
       });

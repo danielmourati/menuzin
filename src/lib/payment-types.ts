@@ -187,6 +187,7 @@ export interface CreatePixPaymentRequest {
     last_name: string;
     identification?: { type: "CPF" | "CNPJ"; number: string };
   };
+  device_id?: string;
 }
 
 /** create-transparent-payment — Card */

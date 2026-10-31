@@ -1,3 +1,4 @@
+import { canAdvanceOrder } from "@/lib/order-payment-gate";
 import { CashChangeBadge } from "@/components/orders/CashChangeBadge";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -178,14 +179,26 @@ export function OrderCard({
                 <Eye className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                 Abrir
               </Button>
-              <Button
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); onAccept(); }}
-                className="flex-1 h-9 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs"
-              >
-                <Check className="h-3.5 w-3.5 mr-1.5" />
-                Aceitar
-              </Button>
+              {canAdvanceOrder("preparo", order.payment, order.paymentStatus) ? (
+                <Button
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onAccept(); }}
+                  className="flex-1 h-9 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs"
+                >
+                  <Check className="h-3.5 w-3.5 mr-1.5" />
+                  Aceitar
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => { e.stopPropagation(); onViewDetails(); }}
+                  title="Cancele ou troque a forma de pagamento no detalhe do pedido"
+                  className={`flex-1 h-9 text-xs font-bold rounded-xl ${order.paymentStatus === "rejected" ? "border-destructive text-destructive" : "border-warning text-warning"}`}
+                >
+                  {order.paymentStatus === "rejected" ? "Pix recusado" : "Aguardando Pix"}
+                </Button>
+              )}
             </>
           ) : (
             <>
