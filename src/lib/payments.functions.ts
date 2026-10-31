@@ -707,7 +707,6 @@ export const createTransparentPayment = createServerFn({ method: "POST" })
       };
     }
     if (data.payment_method === "pix_online") {
-      if (!data.payer.identification) throw new Error("Informe o CPF para pagar com Pix.");
       body.payment_method_id = "pix";
     } else {
       if (!data.card_token) {

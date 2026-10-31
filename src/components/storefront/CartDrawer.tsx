@@ -4,7 +4,6 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { readCustomerProfile, writeCustomerProfile, clearCustomerProfile } from "@/lib/customer-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { isValidCpf } from "@/lib/order-payment-gate";
 import { getMpDeviceId, loadMpSecurityScript } from "@/lib/mp-device";
 import { Label } from "@/components/ui/label";
@@ -164,8 +163,6 @@ export function CartDrawer({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [doc, setDoc] = useState("");
-  const [cpfPromptOpen, setCpfPromptOpen] = useState(false);
-  const [cpfDraft, setCpfDraft] = useState("");
 
   // mode
   const [mode, setMode] = useState<Mode | null>(null);
@@ -839,19 +836,8 @@ export function CartDrawer({
     return ensureOrderPromise.current;
   };
 
-  const pendingPixRef = useRef(false);
-  const cpfConfirmedRef = useRef(false);
   const [pixRefused, setPixRefused] = useState<string | null>(null);
-  const [cpfTick, setCpfTick] = useState(0);
   useEffect(() => { if (open) loadMpSecurityScript(); }, [open]);
-  useEffect(() => {
-    if (pendingPixRef.current && isValidCpf(doc)) {
-      pendingPixRef.current = false;
-      cpfConfirmedRef.current = true;
-      void handleSelectMethod("pix_online");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, cpfTick]);
 
   const handleSelectMethod = async (m: PaymentMethod) => {
     setSelectedMethod(m);
@@ -867,12 +853,6 @@ export function CartDrawer({
     setPaymentMethod(methodLabels[m]);
 
     if (m === "pix_online") {
-      if (!cpfConfirmedRef.current || !isValidCpf(doc)) {
-        setCpfDraft(doc);
-        setCpfPromptOpen(true);
-        return;
-      }
-      cpfConfirmedRef.current = false;
       setPixRefused(null);
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
@@ -891,7 +871,9 @@ export function CartDrawer({
             phone,
             first_name: name.split(" ")[0] || "Cliente",
             last_name: name.split(" ").slice(1).join(" ") || "Menuzin",
-            identification: { type: "CPF", number: doc.replace(/\D/g, "") },
+            ...(isValidCpf(doc) && {
+              identification: { type: "CPF" as const, number: doc.replace(/\D/g, "") },
+            }),
           },
           device_id: getMpDeviceId(),
         });
@@ -2334,37 +2316,6 @@ export function CartDrawer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <Dialog open={cpfPromptOpen} onOpenChange={setCpfPromptOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Informe seu CPF</DialogTitle>
-            <DialogDescription>O Mercado Pago exige o CPF do pagador para aprovar o Pix.</DialogDescription>
-          </DialogHeader>
-          <Input
-            inputMode="numeric"
-            placeholder="000.000.000-00"
-            value={cpfDraft}
-            onChange={(e) => setCpfDraft(e.target.value.replace(/[^\d.-]/g, "").slice(0, 14))}
-            autoFocus
-          />
-          {cpfDraft.replace(/\D/g, "").length === 11 && !isValidCpf(cpfDraft) && (
-            <p className="text-xs text-destructive">CPF inválido.</p>
-          )}
-          <DialogFooter>
-            <Button
-              disabled={!isValidCpf(cpfDraft)}
-              onClick={() => {
-                pendingPixRef.current = true;
-                setDoc(cpfDraft);
-                setCpfPromptOpen(false);
-                setCpfTick((t) => t + 1);
-              }}
-            >
-              Gerar Pix
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Sheet>
   );
 }
