@@ -165,7 +165,7 @@ function DeliveryCalcDialog({ open, onOpenChange, tenant }: { open: boolean; onO
       }
       setResult({
         fee: res.fee,
-        label: `Entregar em ${a.bairro || a.logradouro || a.localidade}`,
+        label: `Entregar em ${[a.logradouro, res.neighborhood ?? a.bairro].filter(Boolean).join(", ") || [a.localidade, a.uf].filter(Boolean).join("/")}`,
         cep: `${d.slice(0, 5)}-${d.slice(5)}`,
         neighborhood: res.neighborhood ?? a.bairro,
         street: a.logradouro,
@@ -237,7 +237,19 @@ function DeliveryCalcDialog({ open, onOpenChange, tenant }: { open: boolean; onO
         </div>
         {result && (
           <div className="space-y-3 rounded-2xl bg-muted/60 p-4">
-            <p className="text-sm font-semibold">{result.label}</p>
+            {result.cep ? (
+              <div className="text-sm">
+                <p className="font-semibold">Entregar em</p>
+                {[result.street, result.neighborhood].filter(Boolean).length > 0 && (
+                  <p>{[result.street, result.neighborhood].filter(Boolean).join(", ")}</p>
+                )}
+                <p className="text-muted-foreground">
+                  {[[result.city, result.state].filter(Boolean).join("/"), `CEP ${result.cep}`].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm font-semibold">{result.label}</p>
+            )}
             <div className="flex justify-between text-sm">
               <span>Taxa de entrega</span>
               <span className="font-bold">{result.fee > 0 ? brl(result.fee) : "Grátis"}</span>
