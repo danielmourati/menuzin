@@ -370,7 +370,11 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
   .inputValidator((d) => UpdateStatusInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: prev } = await supabase.from("orders").select("status").eq("id", data.order_id).maybeSingle();
+    const { data: prev } = await supabase.from("orders").select("status, payment_label, payment_status").eq("id", data.order_id).maybeSingle();
+    const { canAdvanceOrder, PIX_WAITING_MESSAGE } = await import("./order-payment-gate");
+    if (prev && !canAdvanceOrder(data.new_status, prev.payment_label, prev.payment_status)) {
+      throw new Error(PIX_WAITING_MESSAGE);
+    }
     const patch: Record<string, string | null> = { status: data.new_status };
     if (data.new_status === "aceito") patch.accepted_at = new Date().toISOString();
     if (data.new_status === "finalizado") patch.completed_at = new Date().toISOString();
