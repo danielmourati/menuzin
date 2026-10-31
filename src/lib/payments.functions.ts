@@ -462,7 +462,8 @@ function mapMpStatus(
 }
 
 const PayerSchema = z.object({
-  email: z.string().email().max(200),
+  email: z.string().email().max(200).optional().or(z.literal("")),
+  phone: z.string().max(30).optional(),
   first_name: z.string().min(1).max(120),
   last_name: z.string().min(1).max(120),
   identification: z

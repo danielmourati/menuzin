@@ -861,12 +861,17 @@ export function CartDrawer({
           order_id: orderId,
           payment_method: "pix_online",
           payer: {
-            email: email || "comprador@teste.com",
+            email: email || "",
+            phone,
             first_name: name.split(" ")[0] || "Cliente",
             last_name: name.split(" ").slice(1).join(" ") || "Menuzin",
           },
         });
         toast.dismiss(toastId);
+        if (!res.data?.qr_code) {
+          toast.error("Não foi possível gerar o QR Code do Pix. Escolha outra forma de pagamento.");
+          return;
+        }
         setPixData(res.data);
         goTo("payment-online-pix");
       } catch (err) {
@@ -912,7 +917,8 @@ export function CartDrawer({
       card_token: cardInfo.cardToken,
       installments: cardInfo.installments,
       payer: {
-        email: email || "comprador@teste.com",
+        email: email || "",
+        phone,
         first_name: cardInfo.cardholderName.split(" ")[0] || "Titular",
         last_name: cardInfo.cardholderName.split(" ").slice(1).join(" ") || "Card",
         identification: { type: "CPF", number: (doc || "11111111111").replace(/\D/g, "") },
