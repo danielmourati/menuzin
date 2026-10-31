@@ -475,14 +475,15 @@ const PayerSchema = z.object({
     .optional(),
 });
 
-const CreateTransparentPaymentInput = z.object({
+export const CreateTransparentPaymentInput = z.object({
   store_slug: z.string().min(1).max(120).regex(/^[a-zA-Z0-9_-]+$/),
   order_id: z.string().uuid(),
   payment_method: z.enum(["pix_online", "credit_card", "debit_card"]),
   card_token: z.string().min(4).max(200).optional(),
   installments: z.number().int().min(1).max(24).optional(),
   payer: PayerSchema,
-  device_id: z.string().max(200).optional(),
+  // O device id do security.js do Mercado Pago ("armor.…") passa de 200 caracteres.
+  device_id: z.string().max(2000).optional(),
 });
 
 export const createTransparentPayment = createServerFn({ method: "POST" })
