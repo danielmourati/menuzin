@@ -1,25 +1,25 @@
-# Busca de bairro/rua em "Taxas de entrega" pelo Google
+# Trocar consulta de CEP do ViaCEP para a BrasilAPI
 
-## O que muda para o lojista
-- Na tela "Taxas de entrega", ao digitar um bairro ou rua, as sugestões passam a vir do Google, que já conhece bairros novos que o ViaCEP não tem.
-- A lista mostra: nome do bairro (em destaque), rua quando houver, cidade/UF e CEP quando o Google informar.
-- Ao escolher uma sugestão, o bairro, a cidade e a UF são preenchidos como hoje. O CEP só é preenchido quando o Google o informar. O lojista ainda pode ajustar tudo à mão antes de salvar.
-- Se o lojista digitar um CEP completo, essa busca continua como está hoje (ViaCEP). Só a busca por nome muda.
-- Se o Google não achar nada, o sistema tenta o ViaCEP e depois as faixas de CEP já cadastradas, para não deixar o lojista sem resultado.
-- Os textos "pelo ViaCEP" passam a dizer "pelo Google".
+## O que muda para o usuário
+- Ao digitar o CEP (checkout, barra de entrega, PDV, cadastro rápido, configurações da loja, taxas de entrega e agente IA), o endereço continua sendo preenchido sozinho, agora pela BrasilAPI.
+- A BrasilAPI junta várias fontes (Correios, ViaCEP, OpenCEP e outras), então encontra mais CEPs e bairros novos e cai menos.
+- Tudo continua igual na tela: rua editável, bairro/cidade/UF preenchidos, mesmas mensagens de erro.
+- Grátis, sem chave e sem cadastro.
 
-## Custo
-- Cada busca é uma consulta paga ao Google. Para gastar pouco: só busca com 3 letras ou mais, espera o lojista parar de digitar, mostra no máximo 8 sugestões e só o dono/admin da loja logado pode usar essa busca.
+## Limitação importante
+- A BrasilAPI só busca **por CEP**. Ela não busca por nome de rua ou bairro.
+- Por isso, a busca por nome em "Taxas de entrega" continua no ViaCEP, com as faixas de CEP já cadastradas como reserva. Se quiser, essa busca pode ir para o Google depois (plano anterior).
 
 ## Etapas
-1. Criar a busca no servidor, só para quem está logado no painel, usando o Google com a cidade/UF da loja como filtro.
-2. Converter as respostas do Google para o formato atual da lista (bairro, rua, cidade, UF, CEP).
-3. Trocar a busca por nome na tela para usar essa nova função, mantendo o ViaCEP e as faixas locais como reserva.
-4. Testes do conversor: bairro sem CEP, rua com CEP, resultado de outra cidade descartado.
+1. Trocar a consulta de CEP para a BrasilAPI (versão 2), convertendo a resposta para o mesmo formato que as telas já usam.
+2. Se a BrasilAPI falhar ou não achar o CEP, tentar o ViaCEP automaticamente.
+3. Aplicar a mesma troca no agente IA e no cadastro de clientes, que hoje chamam o ViaCEP direto.
+4. Quando a BrasilAPI trouxer a localização do CEP, guardar para ajudar o cálculo de taxa por KM.
+5. Atualizar os textos "ViaCEP" das telas para algo neutro ("busca de CEP").
+6. Testes do conversor: CEP com rua, CEP geral de cidade (sem rua), CEP inexistente e reserva no ViaCEP.
 
 ## Detalhes técnicos
-- Novo `searchPlacesForZone` em `src/lib/delivery-zones.functions.ts` (`createServerFn` + `requireSupabaseAuth`, valida `q` 3–120 chars, city/uf). Reaproveita a mesma chave `GOOGLE_MAPS_API_KEY` já usada em `geocode()` desse arquivo.
-- Chamada: Geocoding `address=<q>, <city>, <uf>, Brasil&components=country:BR|administrative_area:<uf>&language=pt-BR` (retorna `sublocality`/`sublocality_level_1`, `route`, `administrative_area_level_2`, `postal_code`). Opcional: Places Text Search quando o Geocoding der ZERO_RESULTS.
-- Parser puro `src/lib/google-address-parse.ts` → `ViaCepResult`-compatível (`bairro`, `logradouro`, `localidade`, `uf`, `cep` podendo ser vazio); descarta resultados de outra cidade.
-- `ViaCepSearch` em `admin.taxas-entrega.tsx`: ramo não-CEP chama o servidor; ordem de reserva Google → `searchByAddress` (ViaCEP) → `searchCepRanges`. `onSelect` aceita `cep` vazio sem sobrescrever faixa de CEP.
-- 403 do Google tratado com mensagem clara.
+- Endpoint: `GET https://brasilapi.com.br/api/cep/v2/{cep}` → `{ cep, state, city, neighborhood, street, location.coordinates.{latitude,longitude} }`; 404 = não encontrado. Tem CORS, funciona no navegador e no servidor (workerd).
+- `src/lib/viacep.ts` vira `src/lib/cep.ts`: `lookupByCep` tenta BrasilAPI (timeout ~4s) e depois ViaCEP; mantém o tipo `ViaCepResult` (renomeado `CepResult`) e adiciona `lat/lng` opcionais. `searchByAddress` e `rankResults` permanecem com ViaCEP.
+- Atualizar imports em CartDrawer, ReceiveModeBar, admin.pdv, QuickSignupModal, admin.configuracoes.index, admin.taxas-entrega; substituir fetch direto em `ai-agent.server.ts` e `customers.server.ts` pelo helper.
+- Parser puro testado em `tests/cep-lookup.test.ts`.
