@@ -854,12 +854,6 @@ export function CartDrawer({
     setPaymentMethod(methodLabels[m]);
 
     if (m === "pix_online") {
-      if (!cpfConfirmedRef.current || !isValidCpf(doc)) {
-        setCpfDraft(doc);
-        setCpfPromptOpen(true);
-        return;
-      }
-      cpfConfirmedRef.current = false;
       setPixRefused(null);
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
@@ -878,7 +872,9 @@ export function CartDrawer({
             phone,
             first_name: name.split(" ")[0] || "Cliente",
             last_name: name.split(" ").slice(1).join(" ") || "Menuzin",
-            identification: { type: "CPF", number: doc.replace(/\D/g, "") },
+            ...(isValidCpf(doc) && {
+              identification: { type: "CPF" as const, number: doc.replace(/\D/g, "") },
+            }),
           },
           device_id: getMpDeviceId(),
         });
