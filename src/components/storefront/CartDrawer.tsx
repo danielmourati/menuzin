@@ -1677,6 +1677,20 @@ export function CartDrawer({
           <>
             <Header title="Método de pagamento" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              {pixRefused && (
+                <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+                  <p className="text-sm font-semibold text-destructive">Pix recusado pelo Mercado Pago</p>
+                  <p className="text-xs text-muted-foreground">{pixRefused}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => { setPixRefused(null); void handleSelectMethod("pix_online"); }}>
+                      Tentar novamente
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setPixRefused(null); setSelectedMethod(null); }}>
+                      Escolher outra forma de pagamento
+                    </Button>
+                  </div>
+                </div>
+              )}
               <PaymentMethodSelector
                 settings={settings}
                 paymentWhen={paymentWhen || "na_retirada"}
