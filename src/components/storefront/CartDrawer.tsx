@@ -246,7 +246,21 @@ export function CartDrawer({
       }
       if (pref.zoneId) setSelectedZoneId((v) => v ?? pref.zoneId!);
     }
-  }, [open, effectiveSlug]);
+  }, [open, effectiveSlug, step]);
+
+  // Se um método foi desligado pela loja, desfaz a escolha antiga
+  useEffect(() => {
+    if (!settings || !selectedMethod) return;
+    const on: Record<string, boolean> = {
+      pix_online: settings.mp_connected && settings.pix_enabled,
+      credit_card: settings.mp_connected && settings.credit_card_enabled,
+      debit_card: settings.mp_connected && settings.debit_card_enabled,
+      pix_manual: settings.pix_manual_enabled,
+      cash: settings.cash_enabled,
+      card_on_delivery: settings.card_on_delivery_enabled,
+    };
+    if (selectedMethod in on && !on[selectedMethod]) setSelectedMethod(null);
+  }, [settings, selectedMethod]);
 
   const forgetSavedProfile = () => {
     clearCustomerProfile();
@@ -266,7 +280,7 @@ export function CartDrawer({
 
   // Fetch settings for tenant
   useEffect(() => {
-    if (open && effectiveSlug) {
+    if (open && effectiveSlug && (step === "cart" || step === "payment-when" || step === "payment-method")) {
       getPaymentSettingsBySlug(effectiveSlug).then((data) => {
         if (data) {
           setSettings(data);
