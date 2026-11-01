@@ -2309,7 +2309,7 @@ export function CartDrawer({
             <StickySubtotal
               compact
               cta={isPresencaOnly ? "Enviar pelo WhatsApp" : "Fazer pedido"}
-              onCta={finalize}
+              onCta={() => void finalize()}
               loading={submitting}
               disabled={submitting}
             />
