@@ -1718,7 +1718,7 @@ export function CartDrawer({
                 pixData={pixData}
                 amount={total}
                 storeSlug={effectiveSlug}
-                onSuccess={() => goTo("review")}
+                onSuccess={() => void finalize(true)}
                 onCancel={() => {
                   setPixData(null);
                   setSelectedMethod(null);
@@ -1739,7 +1739,7 @@ export function CartDrawer({
                 amount={total}
                 publicKey={settings?.mp_public_key || ""}
                 onSubmit={handleCardSubmit}
-                onSuccess={() => goTo("review")}
+                onSuccess={() => void finalize(true)}
                 onCancel={() => {
                   setCardData(null);
                   setSelectedMethod(null);
