@@ -1,4 +1,4 @@
-import { canAdvanceOrder, PIX_WAITING_MESSAGE } from "@/lib/order-payment-gate";
+import { canAdvanceOrder, paymentWaitingMessage } from "@/lib/order-payment-gate";
 import { formatTenantAddress } from "@/lib/tenant-address";
 // Helper para "Aceitar pedido": muda o status para "preparo" (fluxo
 // simplificado) e dispara a impressão da comanda de cozinha quando há
@@ -202,7 +202,7 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
         typeof orderOrId === "string" ? orders.find((o) => o.id === orderOrId) : orderOrId;
       const orderId = typeof orderOrId === "string" ? orderOrId : orderOrId.id;
       if (order && !canAdvanceOrder("preparo", order.payment, order.paymentStatus)) {
-        toast.error(PIX_WAITING_MESSAGE);
+        toast.error(paymentWaitingMessage(order.payment));
         return;
       }
       await updateOrderStatus(orderId, "preparo", "Pedido aceito — iniciou preparo");
@@ -216,7 +216,7 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
       const order = orders.find((o) => o.id === orderId);
       const wasNew = order?.status === "novo";
       if (order && !canAdvanceOrder(newStatus, order.payment, order.paymentStatus)) {
-        toast.error(PIX_WAITING_MESSAGE);
+        toast.error(paymentWaitingMessage(order.payment));
         return;
       }
       await updateOrderStatus(orderId, newStatus);

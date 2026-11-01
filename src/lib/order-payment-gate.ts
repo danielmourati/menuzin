@@ -17,6 +17,15 @@ export function canAdvanceOrder(
 
 export const PIX_WAITING_MESSAGE = "Aguardando confirmação do Pix pelo Mercado Pago.";
 
+/** Mensagem do bloqueio conforme o método online real do pedido. */
+export function paymentWaitingMessage(label?: string | null): string {
+  const l = (label || "").toLowerCase();
+  if (l.includes("cart") || l.includes("credit_card") || l.includes("debit_card")) {
+    return "Aguardando confirmação do pagamento online (Cartão) pelo Mercado Pago.";
+  }
+  return PIX_WAITING_MESSAGE;
+}
+
 /** Valida CPF pelos dígitos verificadores. */
 export function isValidCpf(input: string): boolean {
   const d = (input || "").replace(/\D/g, "");

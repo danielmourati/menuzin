@@ -23,3 +23,12 @@ test("CPF válido e inválido", () => {
   expect(isValidCpf("111.111.111-11")).toBe(false);
   expect(isValidCpf("529.982.247-24")).toBe(false);
 });
+import { paymentWaitingMessage } from "../src/lib/order-payment-gate";
+test("Pix manual e dinheiro não são bloqueados", () => {
+  expect(canAdvanceOrder("preparo", "Pix manual (chave da loja)", "manual")).toBe(true);
+  expect(canAdvanceOrder("preparo", "Dinheiro", "pending")).toBe(true);
+});
+test("Cartão online pendente bloqueia com mensagem de cartão", () => {
+  expect(canAdvanceOrder("preparo", "Pagar agora · Cartão de Crédito Online", "pending")).toBe(false);
+  expect(paymentWaitingMessage("Pagar agora · Cartão de Crédito Online")).toContain("Cartão");
+});

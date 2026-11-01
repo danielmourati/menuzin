@@ -98,7 +98,17 @@ export function PaymentMethodSelector({
             />
           )}
 
-          {(!isMpConnected || (!config.pix_enabled && !config.credit_card_enabled && !config.debit_card_enabled)) && (
+          {config.pix_manual_enabled && (
+            <OptionRow
+              method="pix_manual"
+              icon={<Wallet className="h-5 w-5" />}
+              title="Pix Manual"
+              subtitle="Transfira para a chave Pix e envie o comprovante"
+              active={selectedMethod === "pix_manual"}
+            />
+          )}
+
+          {!config.pix_manual_enabled && (!isMpConnected || (!config.pix_enabled && !config.credit_card_enabled && !config.debit_card_enabled)) && (
             <div className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground bg-muted/10 space-y-1">
               <p className="font-semibold text-sm">Nenhum método online ativado</p>
               <p className="text-xs">Este estabelecimento não aceita pagamentos online no momento.</p>
