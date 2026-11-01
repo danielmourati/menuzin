@@ -953,7 +953,7 @@ export function CartDrawer({
     return res.data;
   };
 
-  const finalize = async () => {
+  const finalize = async (approvedOverride?: boolean) => {
     if (submittingRef.current) return;
     if (isPresencaOnly) {
       openWhatsappPresenca();
@@ -980,6 +980,7 @@ export function CartDrawer({
       ) {
         finalPaymentStatus = "manual";
       }
+      if (approvedOverride) finalPaymentStatus = "approved";
 
       // Ensure order persisted (for offline methods that skipped the online flow).
       // Use the returned values directly — dbOrderNumber state is not yet updated.
@@ -1717,7 +1718,7 @@ export function CartDrawer({
                 pixData={pixData}
                 amount={total}
                 storeSlug={effectiveSlug}
-                onSuccess={() => goTo("review")}
+                onSuccess={() => void finalize(true)}
                 onCancel={() => {
                   setPixData(null);
                   setSelectedMethod(null);
@@ -1738,7 +1739,7 @@ export function CartDrawer({
                 amount={total}
                 publicKey={settings?.mp_public_key || ""}
                 onSubmit={handleCardSubmit}
-                onSuccess={() => goTo("review")}
+                onSuccess={() => void finalize(true)}
                 onCancel={() => {
                   setCardData(null);
                   setSelectedMethod(null);
@@ -2308,7 +2309,7 @@ export function CartDrawer({
             <StickySubtotal
               compact
               cta={isPresencaOnly ? "Enviar pelo WhatsApp" : "Fazer pedido"}
-              onCta={finalize}
+              onCta={() => void finalize()}
               loading={submitting}
               disabled={submitting}
             />
