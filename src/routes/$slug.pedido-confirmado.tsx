@@ -81,6 +81,11 @@ function ConfirmedPage() {
           <p className="mt-1 text-muted-foreground">
             Pedido nº <span className="font-semibold text-foreground">#{order.number}</span>
           </p>
+          {order.paymentStatus === "approved" && /pix|cart/i.test(order.payment ?? "") && (
+            <div className="mt-4 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-semibold text-success">
+              {/pix/i.test(order.payment ?? "") ? "Pagamento via Pix confirmado" : "Pagamento confirmado"}
+            </div>
+          )}
 
           <div className="mt-6 rounded-2xl border bg-muted/30 p-4 text-left">
             <p className="text-sm text-muted-foreground">Modalidade</p>
