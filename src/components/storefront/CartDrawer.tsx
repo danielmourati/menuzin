@@ -953,7 +953,7 @@ export function CartDrawer({
     return res.data;
   };
 
-  const finalize = async () => {
+  const finalize = async (approvedOverride?: boolean) => {
     if (submittingRef.current) return;
     if (isPresencaOnly) {
       openWhatsappPresenca();
@@ -980,6 +980,7 @@ export function CartDrawer({
       ) {
         finalPaymentStatus = "manual";
       }
+      if (approvedOverride) finalPaymentStatus = "approved";
 
       // Ensure order persisted (for offline methods that skipped the online flow).
       // Use the returned values directly — dbOrderNumber state is not yet updated.
