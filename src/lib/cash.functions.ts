@@ -345,6 +345,77 @@ export const openCashSession = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const SP_OFFSET_MS = 3 * 60 * 60 * 1000; // São Paulo fixo (UTC-3)
+const spDay = (iso: string) => new Date(new Date(iso).getTime() - SP_OFFSET_MS).toISOString().slice(0, 10);
+
+async function requireOwnerOrAdmin(context: unknown, tenantId: string) {
+  const { supabase, userId } = context as { supabase: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown }> }; userId: string };
+  const [{ data: roleOk }, { data: platformOk }] = await Promise.all([
+    supabase.rpc("has_tenant_role", { _user_id: userId, _tenant_id: tenantId, _roles: ["owner", "admin"] }),
+    supabase.rpc("has_role", { _user_id: userId, _role: "platform_admin" }),
+  ]);
+  if (!roleOk && !platformOk) throw new Error("Somente o dono ou administrador pode fazer isso.");
+}
+
+/** Dias (últimos 30) com pedidos feitos fora de qualquer turno de caixa. */
+export const getOffShiftDays = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    const sb = await admin();
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    const [{ data: orders }, { data: sessions }] = await Promise.all([
+      sb.from("orders").select("created_at, total").eq("tenant_id", tenantId).neq("status", "cancelado").gte("created_at", since).limit(5000),
+      sb.from("cash_sessions").select("opened_at, closed_at").eq("tenant_id", tenantId).gte("opened_at", new Date(Date.now() - 45 * 86400000).toISOString()),
+    ]);
+    const ranges = (sessions ?? []).map((s) => [new Date(s.opened_at as string).getTime(), s.closed_at ? new Date(s.closed_at as string).getTime() : Infinity]);
+    const days = new Map<string, { day: string; orders: number; total: number; first: string; last: string }>();
+    for (const o of orders ?? []) {
+      const t = new Date(o.created_at as string).getTime();
+      if (ranges.some(([a, b]) => t >= a && t <= b)) continue;
+      const d = spDay(o.created_at as string);
+      const cur = days.get(d) ?? { day: d, orders: 0, total: 0, first: o.created_at as string, last: o.created_at as string };
+      cur.orders += 1; cur.total = r2(cur.total + Number(o.total ?? 0));
+      if ((o.created_at as string) < cur.first) cur.first = o.created_at as string;
+      if ((o.created_at as string) > cur.last) cur.last = o.created_at as string;
+      days.set(d, cur);
+    }
+    return [...days.values()].sort((a, b) => b.day.localeCompare(a.day));
+  });
+
+/** Cria turno retroativo já fechado cobrindo os pedidos fora de turno de um dia. */
+export const createRetroactiveSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    await requireOwnerOrAdmin(context, tenantId);
+    const sb = await admin();
+    const dayStart = new Date(`${data.day}T00:00:00Z`).getTime() + SP_OFFSET_MS;
+    const { data: orders } = await sb.from("orders").select("created_at, total, payment_label")
+      .eq("tenant_id", tenantId).neq("status", "cancelado")
+      .gte("created_at", new Date(dayStart).toISOString()).lt("created_at", new Date(dayStart + 30 * 3600000).toISOString())
+      .order("created_at");
+    const { data: sessions } = await sb.from("cash_sessions").select("opened_at, closed_at").eq("tenant_id", tenantId)
+      .lte("opened_at", new Date(dayStart + 30 * 3600000).toISOString());
+    const ranges = (sessions ?? []).map((s) => [new Date(s.opened_at as string).getTime(), s.closed_at ? new Date(s.closed_at as string).getTime() : Infinity]);
+    const off = (orders ?? []).filter((o) => {
+      const t = new Date(o.created_at as string).getTime();
+      return spDay(o.created_at as string) === data.day && !ranges.some(([a, b]) => t >= a && t <= b);
+    });
+    if (!off.length) throw new Error("Não há pedidos fora de turno nesse dia.");
+    const first = new Date(new Date(off[0].created_at as string).getTime() - 60000).toISOString();
+    const last = new Date(new Date(off[off.length - 1].created_at as string).getTime() + 60000).toISOString();
+    const cash = r2(off.filter((o) => isCashLabel(o.payment_label as string)).reduce((s, o) => s + Number(o.total ?? 0), 0));
+    const { error } = await sb.from("cash_sessions").insert({
+      tenant_id: tenantId, opened_by: context.userId, opened_by_name: "Turno retroativo",
+      opening_float: 0, opened_at: first, closed_at: last, closed_by: context.userId, status: "closed",
+      cash_sales: cash, withdrawals_total: 0, expected_amount: cash, counted_amount: cash, difference: 0,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, orders: off.length };
+  });
+
 async function openSessionId(tenantId: string) {
   const sb = await admin();
   const { data } = await sb.from("cash_sessions").select("id").eq("tenant_id", tenantId).eq("status", "open").maybeSingle();
