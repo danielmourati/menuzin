@@ -761,6 +761,9 @@ export function CartDrawer({
     if (ensureOrderPromise.current) {
       return ensureOrderPromise.current;
     }
+    if (mode === "entrega" && !isPresencaOnly && (!number?.trim() || feeLoading || !deliveryAvailable)) {
+      throw new Error(!number?.trim() ? "Informe o número do endereço." : feeLoading ? "Calculando a taxa de entrega, aguarde um instante." : (feeResolution?.message || "Não conseguimos calcular a taxa para este endereço."));
+    }
 
     ensureOrderPromise.current = (async () => {
       try {
@@ -783,7 +786,7 @@ export function CartDrawer({
             delivery_neighborhood_snapshot:
               mode === "entrega" ? (feeResolution?.neighborhood ?? neighborhood ?? null) : null,
             address:
-              mode === "entrega" ? { cep, street, number, neighborhood, complement, reference, city, state } : null,
+              mode === "entrega" ? { cep, street, number, neighborhood, complement, reference, city, state, ...(selectedZoneId ? { zone_id: selectedZoneId } : {}) } : null,
             table_label: mode === "consumo_local" ? table : null,
             note: generalNote || null,
             coupon_code: targetCouponCode,
