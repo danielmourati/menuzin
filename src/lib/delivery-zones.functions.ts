@@ -223,16 +223,19 @@ const ResolveInput = z.object({
   dest_lng: z.number().min(-180).max(180).optional().nullable(),
 });
 
+/** Server-only: mesma regra usada pelo checkout; createOrder usa para não confiar na taxa do cliente. */
+export async function computeDeliveryFeeServer(data: z.infer<typeof ResolveInput>): Promise<DeliveryFeeResolution> {
+  const res = await resolveRaw(data);
+  if (!res.available || res.fee <= 0) return { ...res, fee_full: res.fee, store_share: 0 };
+  const { data: t } = await supabaseAdmin.from("tenants").select("delivery_fee_customer_pct").eq("slug", data.tenant_slug).maybeSingle();
+  const pct = Number((t as { delivery_fee_customer_pct?: number } | null)?.delivery_fee_customer_pct ?? 100);
+  const { customer, store } = splitDeliveryFee(res.fee, pct);
+  return { ...res, fee: customer, fee_full: res.fee, store_share: store };
+}
+
 export const resolveDeliveryFee = createServerFn({ method: "POST" })
   .inputValidator((d) => ResolveInput.parse(d))
-  .handler(async ({ data }): Promise<DeliveryFeeResolution> => {
-    const res = await resolveRaw(data);
-    if (!res.available || res.fee <= 0) return { ...res, fee_full: res.fee, store_share: 0 };
-    const { data: t } = await supabaseAdmin.from("tenants").select("delivery_fee_customer_pct").eq("slug", data.tenant_slug).maybeSingle();
-    const pct = Number((t as { delivery_fee_customer_pct?: number } | null)?.delivery_fee_customer_pct ?? 100);
-    const { customer, store } = splitDeliveryFee(res.fee, pct);
-    return { ...res, fee: customer, fee_full: res.fee, store_share: store };
-  });
+  .handler(async ({ data }): Promise<DeliveryFeeResolution> => computeDeliveryFeeServer(data));
 
 async function resolveRaw(data: z.infer<typeof ResolveInput>): Promise<DeliveryFeeResolution> {
     const { data: tenant } = await supabaseAdmin

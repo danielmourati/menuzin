@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import {
   getCashOverview, openCashSession, addCashWithdrawal, deleteCashWithdrawal,
   closeCashSession, settleDriver, payDriverFees, undoDriverFees, getClosedCashSessionDetail,
+  getOffShiftDays, createRetroactiveSession,
 } from "@/lib/cash.functions";
 
 export const Route = createFileRoute("/admin/caixa")({
@@ -48,6 +49,35 @@ const parseMoney = (s: string) => {
 const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 
 type CloseResult = Awaited<ReturnType<typeof closeCashSession>>;
+
+function OffShiftWarning({ onDone }: { onDone: () => void }) {
+  const qc = useQueryClient();
+  const { data: days } = useQuery({ queryKey: ["cash-off-shift"], queryFn: () => getOffShiftDays(), staleTime: 60000 });
+  const m = useMutation({
+    mutationFn: (day: string) => createRetroactiveSession({ data: { day } }),
+    onSuccess: (r) => { toast.success(`Turno retroativo criado com ${r.orders} pedido(s).`); qc.invalidateQueries({ queryKey: ["cash-off-shift"] }); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  if (!days?.length) return null;
+  const fmtDay = (d: string) => d.split("-").reverse().join("/");
+  return (
+    <Card className="border-warning/50 bg-warning/10">
+      <CardHeader><CardTitle className="text-base">Há pedidos fora de turno</CardTitle></CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        <p className="text-muted-foreground">Estes dias tiveram vendas sem turno de caixa aberto, por isso não aparecem nos turnos.</p>
+        <ul className="divide-y">
+          {days.map((d) => (
+            <li key={d.day} className="flex items-center justify-between gap-2 py-2">
+              <span><b>{fmtDay(d.day)}</b> · {d.orders} pedido(s) · {brlFmt(d.total)}</span>
+              <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(d.day)}>Criar turno retroativo</Button>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+const brlFmt = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function CashPage() {
   const qc = useQueryClient();
@@ -325,6 +355,8 @@ function CashPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <OffShiftWarning onDone={refresh} />
 
         {(data?.history?.length ?? 0) > 0 && (
           <Card>
