@@ -443,6 +443,45 @@ export type Database = {
           },
         ]
       }
+      cash_offshift_dismissals: {
+        Row: {
+          created_at: string
+          day: string
+          dismissed_by: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          dismissed_by?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          dismissed_by?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_offshift_dismissals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "directory_public"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "cash_offshift_dismissals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_sessions: {
         Row: {
           cash_sales: number | null
