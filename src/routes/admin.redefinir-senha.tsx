@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/admin/redefinir-senha")({
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const { refresh, isPlatformAdmin } = useAuth();
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +42,8 @@ function ResetPasswordPage() {
       const { error } = await supabase.auth.updateUser({ password: pwd });
       if (error) throw error;
       toast.success("Senha alterada com sucesso!");
-      navigate({ to: "/admin/pedidos" });
+      await refresh();
+      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/pedidos", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao alterar senha");
     } finally {

@@ -26,7 +26,7 @@ const tips: { label: string; test: (s: string) => boolean }[] = [
 ];
 
 function ChangePasswordPage() {
-  const { refresh, profile, signOut } = useAuth();
+  const { refresh, profile, signOut, isPlatformAdmin } = useAuth();
   const navigate = useNavigate();
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -40,7 +40,7 @@ function ChangePasswordPage() {
     onSuccess: async () => {
       toast.success("Senha atualizada com sucesso!");
       await refresh();
-      navigate({ to: "/admin/pedidos" });
+      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/pedidos", replace: true });
     },
     onError: (e: Error) => toast.error(e.message),
   });

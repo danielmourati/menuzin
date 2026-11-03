@@ -59,12 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setSession(data.session);
-    setUser(data.session?.user ?? null);
     if (data.session?.user) {
       const { profile, roles } = await loadProfileAndRoles(data.session.user.id);
+      setUser(data.session.user);
       setProfile(profile);
       setRoles(roles);
     } else {
+      setUser(null);
       setProfile(null);
       setRoles([]);
     }
@@ -75,19 +76,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       if (!mounted) return;
       setSession(sess);
-      setUser(sess?.user ?? null);
       if (sess?.user) {
+        setLoading(true);
         // defer to avoid deadlock with onAuthStateChange
         setTimeout(() => {
-          loadProfileAndRoles(sess.user.id).then(({ profile, roles }) => {
-            if (!mounted) return;
-            setProfile(profile);
-            setRoles(roles);
-          });
+          loadProfileAndRoles(sess.user.id)
+            .then(({ profile, roles }) => {
+              if (!mounted) return;
+              setUser(sess.user);
+              setProfile(profile);
+              setRoles(roles);
+              setLoading(false);
+            })
+            .catch(() => {
+              if (!mounted) return;
+              setUser(sess.user);
+              setLoading(false);
+            });
         }, 0);
       } else {
+        setUser(null);
         setProfile(null);
         setRoles([]);
+        setLoading(false);
       }
     });
 

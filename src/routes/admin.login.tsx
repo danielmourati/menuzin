@@ -79,7 +79,7 @@ function LoginPage() {
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/pedidos" });
+      navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/pedidos", replace: true });
     }
   }, [loading, isAuthenticated, isPlatformAdmin, navigate]);
 
@@ -116,12 +116,21 @@ function LoginPage() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd });
       if (error) throw error;
 
       // Reset rate limiter on successful login
       await clearAuthLimitFn({ data: { action: "login", identifier: email } }).catch(() => {});
       toast.success("Bem-vindo!");
+
+      if (data?.user) {
+        const { data: roleRows } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+        const isSuperAdmin = (roleRows ?? []).some((r) => r.role === "platform_admin");
+        navigate({ to: isSuperAdmin ? "/platform/dashboard" : "/admin/pedidos", replace: true });
+      }
     } catch (err) {
       // Record failure for brute force protection
       try {

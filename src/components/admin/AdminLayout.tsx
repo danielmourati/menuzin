@@ -255,6 +255,12 @@ function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [loading, isAuthenticated, profile?.must_change_password, pathname, navigate]);
 
+  useEffect(() => {
+    if (!loading && isAuthenticated && isPlatformAdmin && !hasOwnTenant && !activeTenantId) {
+      navigate({ to: "/platform/dashboard", replace: true });
+    }
+  }, [loading, isAuthenticated, isPlatformAdmin, hasOwnTenant, activeTenantId, navigate]);
+
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center">
@@ -271,7 +277,13 @@ function AuthGate({ children }: { children: ReactNode }) {
   if (profile?.must_change_password) return null;
 
   if (!hasOwnTenant && !activeTenantId) {
-    if (isPlatformAdmin) return <PlatformAdminEmptyState />;
+    if (isPlatformAdmin) {
+      return (
+        <div className="grid min-h-screen place-items-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
     // Aguarda confirmação do servidor antes de decidir mostrar onboarding.
     if (probingTenant || tenantProbe === undefined) {
       return (
