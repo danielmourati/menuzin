@@ -15,11 +15,14 @@ import { OpenCashReportDialog } from "@/components/admin/CashReportDialogs";
 import { DriverSummaryActions } from "@/components/admin/DriverSummaryActions";
 import { confirmDialog } from "@/hooks/useConfirm";
 import { maskBRL, parseBRL } from "@/lib/masks";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { groupBy, spMonthKey, monthLabel, diffKind } from "@/lib/cash-grouping";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   getCashOverview, openCashSession, addCashWithdrawal, deleteCashWithdrawal,
   closeCashSession, settleDriver, payDriverFees, undoDriverFees, getClosedCashSessionDetail,
-  getOffShiftDays, createRetroactiveSession,
+  getOffShiftDays, createRetroactiveSession, dismissOffShiftDays,
 } from "@/lib/cash.functions";
 
 export const Route = createFileRoute("/admin/caixa")({
@@ -58,18 +61,33 @@ function OffShiftWarning({ onDone }: { onDone: () => void }) {
     onSuccess: (r) => { toast.success(`Turno retroativo criado com ${r.orders} pedido(s).`); qc.invalidateQueries({ queryKey: ["cash-off-shift"] }); onDone(); },
     onError: (e: Error) => toast.error(e.message),
   });
+  const dm = useMutation({
+    mutationFn: (list: string[]) => dismissOffShiftDays({ data: { days: list } }),
+    onSuccess: (r) => { toast.success(`${r.count} dia(s) dispensado(s).`); qc.invalidateQueries({ queryKey: ["cash-off-shift"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const dismiss = async (list: string[]) => {
+    const ok = await confirmDialog({ title: "Dispensar aviso?", description: "Os pedidos não serão alterados e continuam nos relatórios. O aviso apenas deixa de aparecer.", confirmText: "Dispensar" });
+    if (ok) dm.mutate(list);
+  };
   if (!days?.length) return null;
   const fmtDay = (d: string) => d.split("-").reverse().join("/");
   return (
     <Card className="border-warning/50 bg-warning/10">
-      <CardHeader><CardTitle className="text-base">Há pedidos fora de turno</CardTitle></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-base">Há pedidos fora de turno</CardTitle>
+        {days.length > 1 && <Button size="sm" variant="ghost" disabled={dm.isPending} onClick={() => dismiss(days.map((d) => d.day))}>Dispensar todos</Button>}
+      </CardHeader>
       <CardContent className="space-y-2 text-sm">
         <p className="text-muted-foreground">Estes dias tiveram vendas sem turno de caixa aberto, por isso não aparecem nos turnos.</p>
         <ul className="divide-y">
           {days.map((d) => (
             <li key={d.day} className="flex items-center justify-between gap-2 py-2">
               <span><b>{fmtDay(d.day)}</b> · {d.orders} pedido(s) · {brlFmt(d.total)}</span>
-              <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(d.day)}>Criar turno retroativo</Button>
+              <span className="flex gap-2">
+                <Button size="sm" variant="ghost" disabled={dm.isPending} onClick={() => dismiss([d.day])}>Dispensar</Button>
+                <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(d.day)}>Criar turno retroativo</Button>
+              </span>
             </li>
           ))}
         </ul>
@@ -358,38 +376,10 @@ function CashPage() {
 
         <OffShiftWarning onDone={refresh} />
 
-        {(data?.history?.length ?? 0) > 0 && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Turnos anteriores</CardTitle></CardHeader>
-            <CardContent>
-              <ul className="divide-y text-sm">
-                {data!.history.map((h) => {
-                  const diff = Number(h.difference ?? 0);
-                  return (
-                    <li key={h.id} className="grid gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                      <button type="button" className="grid min-w-0 gap-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" onClick={() => setDetailId(h.id)}>
-                        <span className="font-medium">{fmtDate(h.opened_at)} → {h.closed_at ? fmtDate(h.closed_at) : "-"}</span>
-                        <span className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                          <span>Esperado <b className="text-foreground">{brl(Number(h.expected_amount ?? 0))}</b></span>
-                          <span>Contado <b className="text-foreground">{brl(Number(h.counted_amount ?? 0))}</b></span>
-                        </span>
-                      </button>
-                      <div className="flex items-center justify-between gap-2 sm:justify-end">
-                        <DiffBadge diff={diff} />
-                        <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setDetailId(h.id)}>
-                          <Eye className="h-4 w-4" /> Ver detalhes
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+        {(data?.history?.length ?? 0) > 0 && <ShiftHistory history={data!.history} onOpen={setDetailId} />}
 
         <Dialog open={!!detailId} onOpenChange={(openDialog) => { if (!openDialog) setDetailId(null); }}>
-          <DialogContent className="max-h-[92dvh] w-[calc(100%-1rem)] max-w-3xl overflow-y-auto p-0 sm:w-full">
+          <DialogContent className="max-h-[92dvh] w-[calc(100%-1rem)] max-w-6xl overflow-y-auto p-0 sm:w-full">
             <DialogHeader className="border-b px-5 py-4 pr-12">
               <DialogTitle>Detalhes do turno</DialogTitle>
               {detailQ.data && (
@@ -407,7 +397,8 @@ function CashPage() {
                 <Button variant="outline" className="gap-2" onClick={() => detailQ.refetch()}><RefreshCw className="h-4 w-4" /> Tentar novamente</Button>
               </div>
             ) : detailQ.data ? (
-              <div className="space-y-6 px-5 py-5">
+              <div className="grid gap-6 px-5 py-5 lg:grid-cols-2">
+                <div className="min-w-0 space-y-6">
                 <section>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-lg border bg-muted/30 p-4">
@@ -443,6 +434,20 @@ function CashPage() {
                 </section>
 
                 <section>
+                  <h3 className="mb-3 text-sm font-bold">Total do turno por forma de pagamento</h3>
+                  <div className="divide-y rounded-lg border text-sm">
+                    {detailQ.data.payments.methods.length === 0 && <p className="px-4 py-3 text-muted-foreground">Nenhum pedido neste turno.</p>}
+                    {detailQ.data.payments.methods.map((pm) => (
+                      <div key={pm.label} className="flex justify-between gap-3 px-4 py-2.5">
+                        <span>{pm.label} <span className="text-xs text-muted-foreground">· {pm.count} pedido(s)</span></span><b>{brl(pm.total)}</b>
+                      </div>
+                    ))}
+                    <div className="flex justify-between gap-3 bg-muted/30 px-4 py-3 font-bold"><span>Total geral do turno</span><span>{brl(detailQ.data.payments.total)}</span></div>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">Todas as formas de pagamento, sem pedidos cancelados.</p>
+                </section>
+
+                <section>
                   <h3 className="mb-3 text-sm font-bold">Sangrias</h3>
                   {detailQ.data.movements.length === 0 ? (
                     <p className="rounded-lg border px-4 py-4 text-sm text-muted-foreground">Nenhuma sangria registrada neste turno.</p>
@@ -457,8 +462,9 @@ function CashPage() {
                     </ul>
                   )}
                 </section>
+                </div>
 
-                <section>
+                <section className="min-w-0 lg:border-l lg:pl-6">
                   <h3 className="mb-3 text-sm font-bold">Entregadores</h3>
                   {detailQ.data.drivers.length === 0 ? (
                     <p className="rounded-lg border px-4 py-4 text-sm text-muted-foreground">Nenhuma entrega com entregador neste turno.</p>
@@ -501,27 +507,34 @@ function CashPage() {
                             )}
                           </div>
 
-                          <div className="rounded-md border">
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
-                              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega (loja → entregador)</span>
-                              {driver.fees_paid_at ? (
-                                <Badge variant="secondary" title="A loja já pagou ao entregador as taxas deste turno.">Taxas pagas em {driver.fees_paid_method === "cash" ? "dinheiro" : "Pix"} · {fmtDate(driver.fees_paid_at)}</Badge>
-                              ) : driver.fees_total > 0 ? (
-                                <Badge variant="outline" title="A loja ainda não pagou ao entregador as taxas de entrega deste turno.">Taxas a pagar ao entregador</Badge>
-                              ) : null}
-                            </div>
-                            <div className="px-3 py-2 text-sm">
-                              <div className="flex justify-between"><span className="text-muted-foreground">{driver.deliveries.length} entrega(s) · taxas {driver.fees_paid_at ? "pagas" : "a receber"}</span><b>{brl(driver.fees_total)}</b></div>
-                              <ul className="mt-1 divide-y text-xs">
-                                {driver.deliveries.map((x) => (
-                                  <li key={x.id} className="flex justify-between gap-2 py-1">
-                                    <span>#{x.number} · {x.neighborhood || "—"} · {x.is_cash ? "Dinheiro" : x.payment_label || "—"}</span>
-                                    <b>{brl(x.fee)}</b>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
+                          <Accordion type="single" collapsible className="rounded-md border">
+                            <AccordionItem value="fees" className="border-0">
+                              <AccordionTrigger className="bg-muted/40 px-3 py-2 hover:no-underline">
+                                <span className="flex flex-1 flex-wrap items-center justify-between gap-2 pr-2 text-left">
+                                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Taxas de entrega (loja → entregador)</span>
+                                  <span className="flex items-center gap-2">
+                                    {driver.fees_paid_at ? (
+                                      <Badge variant="secondary">Pagas em {driver.fees_paid_method === "cash" ? "dinheiro" : "Pix"}</Badge>
+                                    ) : driver.fees_total > 0 ? (
+                                      <Badge variant="outline">A pagar</Badge>
+                                    ) : null}
+                                    <b className="text-sm">{brl(driver.fees_total)}</b>
+                                  </span>
+                                </span>
+                              </AccordionTrigger>
+                              <AccordionContent className="px-3 pb-2 pt-2 text-sm">
+                                <div className="flex justify-between"><span className="text-muted-foreground">{driver.deliveries.length} entrega(s) · taxas {driver.fees_paid_at ? `pagas em ${fmtDate(driver.fees_paid_at)}` : "a receber"}</span><b>{brl(driver.fees_total)}</b></div>
+                                <ul className="mt-1 divide-y text-xs">
+                                  {driver.deliveries.map((x) => (
+                                    <li key={x.id} className="flex justify-between gap-2 py-1">
+                                      <span>#{x.number} · {x.neighborhood || "—"} · {x.is_cash ? "Dinheiro" : x.payment_label || "—"}</span>
+                                      <b>{brl(x.fee)}</b>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
                         </div>
                       ))}
                     </div>
@@ -533,6 +546,79 @@ function CashPage() {
         </Dialog>
       </div>
     </AdminLayout>
+  );
+}
+
+type HistoryRow = { id: string; opened_at: string; closed_at: string | null; expected_amount: number | null; counted_amount: number | null; difference: number | null; total_all: number };
+
+function ShiftHistory({ history, onOpen }: { history: HistoryRow[]; onOpen: (id: string) => void }) {
+  const [month, setMonth] = useState("all");
+  const [kind, setKind] = useState("all");
+  const months = groupBy(history, (h) => spMonthKey(h.closed_at ?? h.opened_at));
+  const groups = months
+    .filter((g) => month === "all" || g.key === month)
+    .map((g) => ({ ...g, items: g.items.filter((h) => kind === "all" || diffKind(Number(h.difference ?? 0)) === kind) }))
+    .filter((g) => g.items.length);
+  const Lbl = ({ children }: { children: React.ReactNode }) => <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">{children}</span>;
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardTitle className="text-base">Turnos anteriores</CardTitle>
+        <div className="flex flex-wrap gap-2">
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger className="h-8 w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
+              {months.map((g) => <SelectItem key={g.key} value={g.key}>{monthLabel(g.key)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={kind} onValueChange={setKind}>
+            <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as situações</SelectItem>
+              <SelectItem value="ok">Sem diferença</SelectItem>
+              <SelectItem value="sobra">Sobra</SelectItem>
+              <SelectItem value="falta">Falta</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {groups.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum turno encontrado com esses filtros.</p> : (
+          <Accordion type="multiple" defaultValue={[groups[0].key]} className="space-y-2">
+            {groups.map((g) => (
+              <AccordionItem key={g.key} value={g.key} className="rounded-lg border px-3">
+                <AccordionTrigger className="py-3 hover:no-underline">
+                  <span className="flex flex-1 items-center justify-between pr-2">
+                    <span className="font-semibold">{monthLabel(g.key)} <span className="text-xs font-normal text-muted-foreground">· {g.items.length} turno(s)</span></span>
+                    <b className="text-sm">{brl(g.items.reduce((a, h) => a + Number(h.total_all ?? 0), 0))}</b>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="divide-y text-sm">
+                    {g.items.map((h) => (
+                      <li key={h.id} className="grid gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                        <button type="button" className="grid min-w-0 grid-cols-2 gap-3 text-left md:grid-cols-5" onClick={() => onOpen(h.id)}>
+                          <span><Lbl>Abertura</Lbl>{fmtDate(h.opened_at)}</span>
+                          <span><Lbl>Fechamento</Lbl>{h.closed_at ? fmtDate(h.closed_at) : "-"}</span>
+                          <span><Lbl>Esperado (dinheiro)</Lbl><b>{brl(Number(h.expected_amount ?? 0))}</b></span>
+                          <span><Lbl>Contado (dinheiro)</Lbl><b>{brl(Number(h.counted_amount ?? 0))}</b></span>
+                          <span><Lbl>Total do turno</Lbl><b className="text-primary">{brl(Number(h.total_all ?? 0))}</b></span>
+                        </button>
+                        <div className="flex items-center justify-between gap-2 sm:justify-end">
+                          <DiffBadge diff={Number(h.difference ?? 0)} />
+                          <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => onOpen(h.id)}><Eye className="h-4 w-4" /> Ver detalhes</Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

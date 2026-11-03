@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
 import { isCashLabel, changeDue } from "@/lib/cash-change";
+import { summarizeByMethod } from "@/lib/cash-grouping";
 
 type Ctx = { supabase: Parameters<typeof tryResolveEffectiveTenantId>[0]; userId: string };
 
@@ -203,8 +204,26 @@ export const getCashOverview = createServerFn({ method: "POST" })
       .eq("tenant_id", tenantId).eq("status", "open").maybeSingle();
     const { data: history } = await sb.from("cash_sessions")
       .select("id, opened_at, closed_at, opening_float, counted_amount, expected_amount, difference, opened_by_name")
-      .eq("tenant_id", tenantId).eq("status", "closed").order("closed_at", { ascending: false }).limit(15);
-    if (!open) return { open: null, history: history ?? [] };
+      .eq("tenant_id", tenantId).eq("status", "closed").order("closed_at", { ascending: false }).limit(200);
+    const hist = history ?? [];
+    let historyOut = hist.map((h) => ({ ...h, total_all: 0 }));
+    if (hist.length) {
+      const minFrom = hist.reduce((m, h) => (h.opened_at < m ? h.opened_at : m), hist[0].opened_at);
+      const maxTo = hist.reduce((m, h) => ((h.closed_at ?? "") > m ? (h.closed_at as string) : m), "");
+      const all: { created_at: string; total: number | null }[] = [];
+      for (let page = 0; page < 10; page++) {
+        const { data: rows } = await sb.from("orders").select("created_at, total").eq("tenant_id", tenantId)
+          .neq("status", "cancelado").gte("created_at", minFrom).lte("created_at", maxTo)
+          .order("created_at").range(page * 1000, page * 1000 + 999);
+        all.push(...(rows ?? []));
+        if (!rows || rows.length < 1000) break;
+      }
+      historyOut = hist.map((h) => ({
+        ...h,
+        total_all: r2(all.filter((o) => o.created_at >= h.opened_at && o.created_at <= (h.closed_at ?? "")).reduce((acc, o) => acc + Number(o.total ?? 0), 0)),
+      }));
+    }
+    if (!open) return { open: null, history: historyOut };
     const calc = await computeSession(tenantId, open);
     // Blind close: never expose expected value while the session is open.
     return {
@@ -214,7 +233,7 @@ export const getCashOverview = createServerFn({ method: "POST" })
         movements: calc.movements, drivers: calc.drivers, pending: calc.pending,
         finishedCount: calc.finishedCount,
       },
-      history: history ?? [],
+      history: historyOut,
     };
   });
 
@@ -326,6 +345,7 @@ export const getClosedCashSessionDetail = createServerFn({ method: "POST" })
         created_at: movement.created_at,
       })),
       drivers: calc.drivers,
+      payments: summarizeByMethod(calc.orders.filter((o) => o.created_at >= session.opened_at && o.created_at <= (session.closed_at as string))),
     };
   });
 
@@ -364,16 +384,19 @@ export const getOffShiftDays = createServerFn({ method: "POST" })
     const tenantId = await tenantOf(context as Ctx);
     const sb = await admin();
     const since = new Date(Date.now() - 30 * 86400000).toISOString();
-    const [{ data: orders }, { data: sessions }] = await Promise.all([
+    const [{ data: orders }, { data: sessions }, { data: dismissed }] = await Promise.all([
       sb.from("orders").select("created_at, total").eq("tenant_id", tenantId).neq("status", "cancelado").gte("created_at", since).limit(5000),
       sb.from("cash_sessions").select("opened_at, closed_at").eq("tenant_id", tenantId).gte("opened_at", new Date(Date.now() - 45 * 86400000).toISOString()),
+      sb.from("cash_offshift_dismissals").select("day").eq("tenant_id", tenantId),
     ]);
+    const skip = new Set((dismissed ?? []).map((d) => String(d.day)));
     const ranges = (sessions ?? []).map((s) => [new Date(s.opened_at as string).getTime(), s.closed_at ? new Date(s.closed_at as string).getTime() : Infinity]);
     const days = new Map<string, { day: string; orders: number; total: number; first: string; last: string }>();
     for (const o of orders ?? []) {
       const t = new Date(o.created_at as string).getTime();
       if (ranges.some(([a, b]) => t >= a && t <= b)) continue;
       const d = spDay(o.created_at as string);
+      if (skip.has(d)) continue;
       const cur = days.get(d) ?? { day: d, orders: 0, total: 0, first: o.created_at as string, last: o.created_at as string };
       cur.orders += 1; cur.total = r2(cur.total + Number(o.total ?? 0));
       if ((o.created_at as string) < cur.first) cur.first = o.created_at as string;
@@ -381,6 +404,22 @@ export const getOffShiftDays = createServerFn({ method: "POST" })
       days.set(d, cur);
     }
     return [...days.values()].sort((a, b) => b.day.localeCompare(a.day));
+  });
+
+/** Dispensa dias do aviso de pedidos fora de turno (não altera pedidos). */
+export const dismissOffShiftDays = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ days: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(60) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const tenantId = await tenantOf(context as Ctx);
+    await requireOwnerOrAdmin(context, tenantId);
+    const sb = await admin();
+    const { error } = await sb.from("cash_offshift_dismissals").upsert(
+      data.days.map((day) => ({ tenant_id: tenantId, day, dismissed_by: (context as Ctx).userId })),
+      { onConflict: "tenant_id,day", ignoreDuplicates: true },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true, count: data.days.length };
   });
 
 /** Cria turno retroativo já fechado cobrindo os pedidos fora de turno de um dia. */
