@@ -123,6 +123,24 @@ export const createOrder = createServerFn({ method: "POST" })
       appliedCouponUsedCount = Number(coupon.used_count ?? 0);
     }
 
+    // Taxa de entrega sempre recalculada no servidor (nunca confiar no checkout).
+    if (data.mode === "entrega") {
+      const { computeDeliveryFeeServer } = await import("@/lib/delivery-zones.functions");
+      const a = (data.address ?? {}) as Record<string, string>;
+      const fee = await computeDeliveryFeeServer({
+        tenant_slug: data.tenant_slug,
+        cep: a.cep ?? null, neighborhood: a.neighborhood ?? null, zone_id: a.zone_id || null,
+        street: a.street ?? null, number: a.number ?? null, city: a.city ?? null, state: a.state ?? null,
+      });
+      if (!fee.available) {
+        throw new Error(fee.message || "Não conseguimos calcular a taxa para este endereço.");
+      }
+      data.delivery_fee = Number(fee.fee ?? 0);
+      data.delivery_fee_full = Number(fee.fee_full ?? fee.fee ?? 0);
+      data.delivery_fee_source = (fee.source ?? null) as typeof data.delivery_fee_source;
+      if (fee.neighborhood) data.delivery_neighborhood_snapshot = fee.neighborhood;
+    }
+
     const total = Math.max(0, subtotal - discountAmount) + (data.delivery_fee ?? 0);
 
     if (data.change_for != null && data.change_for > 0 && !data.no_change) {
