@@ -62,7 +62,7 @@ export function PrintKitchenButton({
 
   if (!can("kitchenPrinter")) return null;
 
-  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active);
+  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active && Boolean(p.printer_name?.trim()));
 
   const handlePrint = async () => {
     if (printing) return;

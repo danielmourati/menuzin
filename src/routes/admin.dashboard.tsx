@@ -113,7 +113,7 @@ function DashboardPage() {
   );
 
   const hasPrinter = (tenantPrintersData?.printers ?? []).some(
-    (p) => p.role === "kitchen" && p.is_active && Boolean(p.printer_name?.trim() || p.name?.trim())
+    (p) => p.role === "kitchen" && p.is_active && Boolean(p.printer_name?.trim())
   );
 
   const greet = greetingFor(new Date());

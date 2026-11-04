@@ -76,7 +76,7 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
     | null
     | undefined;
 
-  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active);
+  const kitchenPrinter = (data?.printers ?? []).find((p) => p.role === "kitchen" && p.is_active && Boolean(p.printer_name?.trim()));
 
   const { data: printerSettings } = useQuery({
     queryKey: ["printer-settings-auto-accept"],

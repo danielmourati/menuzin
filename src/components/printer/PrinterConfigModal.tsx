@@ -183,6 +183,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       const res = await listQzPrintersWithDefault();
       setSystemPrinters(res.printers);
       setQzStatus("connected");
+      qc.invalidateQueries({ queryKey: ["qz-printer-live-status"] });
       if (!silent) {
         if (res.printers.length > 0) {
           toast.success(
@@ -194,6 +195,8 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       }
     } catch (err) {
       setQzStatus("offline");
+      setSystemPrinters([]);
+      qc.invalidateQueries({ queryKey: ["qz-printer-live-status"] });
       if (!silent) {
         if (err instanceof QzNotRunningError) {
           toast.error("O programa de impressão (QZ Tray) não está aberto neste computador.");
@@ -213,7 +216,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
 
   useEffect(() => {
     if (open) {
-      setSelectedId("device");
+      setSelectedId(isMobile ? "device" : "caixa");
       setAdvancedOpen(false);
       void detect(true);
     }
@@ -375,6 +378,7 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       qc.invalidateQueries({ queryKey: ["printer-settings"] });
       qc.invalidateQueries({ queryKey: ["tenant-printers"] });
       qc.invalidateQueries({ queryKey: ["tenant-printers-indicator"] });
+      qc.invalidateQueries({ queryKey: ["qz-printer-live-status"] });
       toast.success("Configuração salva com sucesso!");
       if (closeAfterSave) {
         onOpenChange(false);
@@ -424,6 +428,11 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
               <SelectItem value="__none__" className="text-muted-foreground italic">
                 Nenhuma impressora (desvinculada)
               </SelectItem>
+              {value && !systemPrinters.some((p) => p.name.toLowerCase() === value.trim().toLowerCase()) && (
+                <SelectItem value={value} className="text-amber-600 dark:text-amber-400">
+                  {value} (não encontrada neste PC)
+                </SelectItem>
+              )}
               {systemPrinters.map((p) => (
                 <SelectItem key={p.name} value={p.name}>
                   {p.name}
@@ -828,7 +837,21 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
                 <span className="flex items-center gap-1.5 text-xs">
                   {qzStatus === "connected" ? (
                     <>
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Impressão ligada
+                      {currentPrinterName.trim() &&
+                      systemPrinters.some(
+                        (p) => p.name.toLowerCase() === currentPrinterName.trim().toLowerCase(),
+                      ) ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Impressão ligada
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-3.5 w-3.5 text-amber-500" />{" "}
+                          {currentPrinterName.trim()
+                            ? "Impressora não encontrada neste PC"
+                            : "Nenhuma impressora selecionada"}
+                        </>
+                      )}
                     </>
                   ) : qzStatus === "offline" ? (
                     <>

@@ -200,12 +200,12 @@ export async function ensureQzConnected(): Promise<QZ> {
   // not a function`). Detecta esse estado “fantasma” e força reconexão.
   const wsAny = qz.websocket as unknown as {
     isActive: () => boolean;
-    connection?: { sendData?: unknown } | null;
+    connection?: { sendData?: unknown; readyState?: number } | null;
   };
   const active = wsAny.isActive();
   const conn = wsAny.connection;
   const stale =
-    active && (!conn || typeof (conn as { sendData?: unknown }).sendData !== "function");
+    active && (!conn || typeof (conn as { sendData?: unknown }).sendData !== "function" || (typeof conn.readyState === "number" && conn.readyState !== 1));
   if (stale) {
     try {
       await qz.websocket.disconnect();
@@ -394,7 +394,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, err: Error): Promise<T> {
  * Nunca lança — sempre retorna `{ ok, reason }`. Erros de conexão com QZ
  * propagam como `QzNotRunningError` via `ensureQzConnected`.
  */
-export async function getQzPrinterStatus(
+export async function getQzPrinterStatus(printerName: string | undefined): Promise<QzPrinterStatus> {
+  if (!printerName?.trim()) {
+    return { ok: false, reason: "Nenhuma impressora configurada.", code: "UNCONFIGURED" };
+  }
+  return getQzPrinterStatusInternal(printerName.trim());
+}
+
+async function getQzPrinterStatusInternal(
   printerName: string | undefined,
 ): Promise<QzPrinterStatus> {
   const qz = await ensureQzConnected();
@@ -478,6 +485,31 @@ export async function getQzPrinterStatus(
   }
 
   return { ok: true };
+}
+
+export async function checkQzPrinterReady(
+  printerName: string | undefined,
+): Promise<QzPrinterStatus> {
+  const target = printerName?.trim();
+  if (!target) {
+    return { ok: false, reason: "Nenhuma impressora configurada.", code: "UNCONFIGURED" };
+  }
+  try {
+    return await getQzPrinterStatus(target);
+  } catch (err) {
+    if (err instanceof QzNotRunningError) {
+      return {
+        ok: false,
+        reason: "O QZ Tray está desligado neste computador.",
+        code: "QZ_OFFLINE",
+      };
+    }
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : "Não foi possível conectar ao QZ Tray.",
+      code: "QZ_ERROR",
+    };
+  }
 }
 
 /** Faz o download do cert.pem servido pelo backend. */
