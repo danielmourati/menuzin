@@ -51,6 +51,7 @@ import { useCart } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
+import { PizzaFlavorCountSelector } from "@/components/storefront/PizzaFlavorCountSelector";
 import { PromoModal } from "@/components/storefront/PromoModal";
 import { PushPermissionBanner } from "@/components/storefront/PushPermissionBanner";
 import { PwaInstallBanner } from "@/components/storefront/PwaInstallBanner";
@@ -263,7 +264,22 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [activeCat, setActiveCat] = useState<string>("Todos");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [pizzaFlavorCounts, setPizzaFlavorCounts] = useState<Record<string, number>>({});
+  const [pizzaDraftSelections, setPizzaDraftSelections] = useState<Record<string, string[]>>({});
+  const [modalInitialFlavorCount, setModalInitialFlavorCount] = useState<number | null>(null);
+  const [modalInitialFlavorIds, setModalInitialFlavorIds] = useState<string[] | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+
+  const openProductModal = (
+    product: Product,
+    flavorCount: number | null = null,
+    flavorIds: string[] | null = null,
+  ) => {
+    setSelectedProduct(product);
+    setModalInitialFlavorCount(flavorCount);
+    setModalInitialFlavorIds(flavorIds);
+    setModalOpen(true);
+  };
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [visibleCat, setVisibleCat] = useState<string>("Todos");
   const [isScrolled, setIsScrolled] = useState(false);
@@ -361,8 +377,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     const p = products.find((x) => x.id === deepLinkProductId || (x.slug ?? "").toLowerCase() === ref);
     if (!p) return;
     deepLinkDone.current = true;
-    setSelectedProduct(p);
-    setModalOpen(true);
+    openProductModal(p);
   }, [deepLinkProductId, products]);
 
 
@@ -408,8 +423,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     if (!promo?.product) return;
     const target = products.find((p) => p.id === promo.product!.id);
     if (target) {
-      setSelectedProduct(target);
-      setModalOpen(true);
+      openProductModal(target);
     }
   };
 
@@ -776,8 +790,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               viewAllHref={`/${tenant.slug}/destaques`}
               onSelect={(p) => {
                 if (!canOrder) return;
-                setSelectedProduct(p);
-                setModalOpen(true);
+                openProductModal(p);
               }}
             />
             {(() => {
@@ -797,8 +810,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                   viewAllHref={`/${tenant.slug}/promocoes`}
                   onSelect={(p) => {
                     if (!canOrder) return;
-                    setSelectedProduct(p);
-                    setModalOpen(true);
+                    openProductModal(p);
                   }}
                 />
               );
@@ -980,32 +992,140 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
                   {g.isPizzaParent && g.children ? (
                     <div className="space-y-6">
-                      {g.children.map((sub) => (
-                        <div key={sub.name}>
-                          <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{sub.name}</h3>
-                          <div
-                            className={
-                              viewMode === "grid"
-                                ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                                : "flex flex-col gap-3"
-                            }
-                          >
-                            {sub.items.map((p) => (
-                              <ProductCard
-                                key={p.id}
-                                product={p}
-                                view={viewMode}
- showCategory={!!search}
-                                onClick={() => {
-                                  if (!canOrder) return;
-                                  setSelectedProduct(p);
-                                  setModalOpen(true);
-                                }}
-                              />
-                            ))}
+                      {g.children.map((sub) => {
+                        const cat = categories.find((c) => c.name === sub.name && c.kind === "pizza");
+                        const catKeySub = cat?.id ?? sub.name;
+                        const catSizes = cat ? pizzaSizes.filter((s) => s.category_id === cat.id && s.active) : [];
+                        const maxCatFlavors = catSizes.length > 0 ? Math.max(...catSizes.map((s) => s.max_flavors ?? 1)) : 1;
+                        const selectedCountMode = Math.min(
+                          Math.max(1, maxCatFlavors),
+                          pizzaFlavorCounts[catKeySub] ?? 1,
+                        );
+                        const validItemIds = new Set(
+                          sub.items
+                            .filter((it) => it.available && it.listedAsFlavor !== false)
+                            .map((it) => it.id),
+                        );
+                        const draftIds = (pizzaDraftSelections[catKeySub] ?? []).filter((id) => validItemIds.has(id));
+                        const catPriceRule = catSizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions";
+
+                        return (
+                          <div key={sub.name} className="space-y-3">
+                            <h3 className="text-sm font-semibold text-muted-foreground">{sub.name}</h3>
+
+                            {canOrder && maxCatFlavors > 1 && (
+                              <div className="rounded-2xl border bg-card/80 p-3.5 shadow-xs">
+                                <PizzaFlavorCountSelector
+                                  maxFlavors={maxCatFlavors}
+                                  value={selectedCountMode}
+                                  selectedCount={draftIds.length}
+                                  priceRule={catPriceRule}
+                                  showHint={selectedCountMode > 1}
+                                  onChange={(nextCount) => {
+                                    setPizzaFlavorCounts((prev) => ({ ...prev, [catKeySub]: nextCount }));
+                                    setPizzaDraftSelections((prev) => {
+                                      const cur = prev[catKeySub] ?? [];
+                                      if (nextCount <= 1) {
+                                        if (cur.length === 0) return prev;
+                                        const next = { ...prev };
+                                        delete next[catKeySub];
+                                        return next;
+                                      }
+                                      if (cur.length > nextCount) {
+                                        return { ...prev, [catKeySub]: cur.slice(0, nextCount) };
+                                      }
+                                      return prev;
+                                    });
+                                  }}
+                                />
+                                {selectedCountMode > 1 && draftIds.length > 0 && (
+                                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setPizzaDraftSelections((prev) => {
+                                          const next = { ...prev };
+                                          delete next[catKeySub];
+                                          return next;
+                                        })
+                                      }
+                                      className="text-xs font-medium text-muted-foreground underline hover:text-foreground"
+                                    >
+                                      Limpar seleção
+                                    </button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-8 rounded-full px-4 text-xs font-semibold"
+                                      onClick={() => {
+                                        const firstProd = sub.items.find((x) => x.id === draftIds[0]) ?? sub.items[0];
+                                        if (!firstProd) return;
+                                        openProductModal(firstProd, selectedCountMode, draftIds);
+                                        setPizzaDraftSelections((prev) => {
+                                          const next = { ...prev };
+                                          delete next[catKeySub];
+                                          return next;
+                                        });
+                                      }}
+                                    >
+                                      Continuar ({draftIds.length}/{selectedCountMode})
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <div
+                              className={
+                                viewMode === "grid"
+                                  ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                                  : "flex flex-col gap-3"
+                              }
+                            >
+                              {sub.items.map((p) => {
+                                const canPickInline = canOrder && selectedCountMode > 1 && p.listedAsFlavor !== false && p.available;
+                                const isChecked = canPickInline && draftIds.includes(p.id);
+                                return (
+                                  <ProductCard
+                                    key={p.id}
+                                    product={p}
+                                    view={viewMode}
+                                    showCategory={!!search}
+                                    selectable={canPickInline}
+                                    selected={isChecked}
+                                    onClick={() => {
+                                      if (!canOrder) return;
+                                      if (canPickInline) {
+                                        const nextIds = isChecked
+                                          ? draftIds.filter((id) => id !== p.id)
+                                          : [...draftIds, p.id];
+                                        if (nextIds.length >= selectedCountMode) {
+                                          const finalIds = nextIds.slice(0, selectedCountMode);
+                                          const firstProd = sub.items.find((x) => x.id === finalIds[0]) ?? p;
+                                          openProductModal(firstProd, selectedCountMode, finalIds);
+                                          setPizzaDraftSelections((prev) => {
+                                            const next = { ...prev };
+                                            delete next[catKeySub];
+                                            return next;
+                                          });
+                                        } else {
+                                          setPizzaDraftSelections((prev) => ({ ...prev, [catKeySub]: nextIds }));
+                                        }
+                                        return;
+                                      }
+                                      openProductModal(
+                                        p,
+                                        p.listedAsFlavor !== false ? 1 : null,
+                                        p.listedAsFlavor !== false ? [p.id] : null,
+                                      );
+                                    }}
+                                  />
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div
@@ -1023,8 +1143,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
  showCategory={!!search}
                           onClick={() => {
                             if (!canOrder) return;
-                            setSelectedProduct(p);
-                            setModalOpen(true);
+                            openProductModal(p);
                           }}
                         />
                       ))}
@@ -1036,6 +1155,65 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           )}
         </div>
       </div>
+
+      {/* Indicador flutuante quando há sabores parcialmente selecionados na vitrine */}
+      {(() => {
+        if (!canOrder || modalOpen || cartOpen) return null;
+        const activeEntry = Object.entries(pizzaDraftSelections).find(([, ids]) => ids.length > 0);
+        if (!activeEntry) return null;
+        const [draftCatKey, rawIds] = activeEntry;
+        const draftCat = categories.find((c) => c.id === draftCatKey || c.name === draftCatKey);
+        const catSizes = draftCat ? pizzaSizes.filter((s) => s.category_id === draftCat.id && s.active) : [];
+        const maxCat = catSizes.length > 0 ? Math.max(...catSizes.map((s) => s.max_flavors ?? 1)) : 1;
+        const targetCount = Math.min(Math.max(1, maxCat), pizzaFlavorCounts[draftCatKey] ?? 1);
+        if (targetCount <= 1) return null;
+        return (
+          <div className="fixed inset-x-4 bottom-20 z-40 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-2.5 shadow-lg">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold text-foreground">
+                🍕 {rawIds.length} de {targetCount} sabores selecionados
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                Escolha mais {Math.max(1, targetCount - rawIds.length)} {targetCount - rawIds.length === 1 ? "sabor" : "sabores"} em {draftCat?.name ?? "Pizzas"}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() =>
+                  setPizzaDraftSelections((prev) => {
+                    const next = { ...prev };
+                    delete next[draftCatKey];
+                    return next;
+                  })
+                }
+              >
+                Limpar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs font-semibold"
+                onClick={() => {
+                  const firstProd = products.find((p) => p.id === rawIds[0]);
+                  if (!firstProd) return;
+                  openProductModal(firstProd, targetCount, rawIds);
+                  setPizzaDraftSelections((prev) => {
+                    const next = { ...prev };
+                    delete next[draftCatKey];
+                    return next;
+                  });
+                }}
+              >
+                Avançar
+              </Button>
+            </div>
+          </div>
+        );
+      })()}
 
 
       {canOrder && count > 0 && (
@@ -1063,7 +1241,15 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       <ProductModal
         product={selectedProduct}
         open={modalOpen && canOrder}
-        onOpenChange={setModalOpen}
+        initialFlavorCount={modalInitialFlavorCount}
+        initialFlavorIds={modalInitialFlavorIds}
+        onOpenChange={(v) => {
+          setModalOpen(v);
+          if (!v) {
+            setModalInitialFlavorCount(null);
+            setModalInitialFlavorIds(null);
+          }
+        }}
         tenantSlug={tenant.slug}
         tenantInfo={{ name: tenant.name, logoUrl: tenant.logoUrl ?? null, logoLetter: tenant.logoLetter ?? null, ratingAvg: (tenant as { ratingAvg?: number | null }).ratingAvg ?? null, prepTimeLabel: tenant.prepTime ?? null }}
         pizzaSizes={selectedProduct?.categoryId ? pizzaSizes.filter((s) => s.category_id === selectedProduct.categoryId && s.active).map((s) => ({ id: s.id, name: s.name, pieces: s.pieces, maxFlavors: s.max_flavors, priceRule: (s.price_rule ?? "sum_fractions") as "sum_fractions" | "max_value" | "fixed" })) : []}

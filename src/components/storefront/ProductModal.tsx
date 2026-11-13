@@ -16,6 +16,7 @@ import { useCart, type CartSelectedGroupOption } from "@/lib/cart-context";
 import { PdvCustomizeColumns } from "@/components/pdv/PdvCustomizeColumns";
 import { toast } from "sonner";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
+import { PizzaFlavorCountSelector } from "@/components/storefront/PizzaFlavorCountSelector";
 import {
   validateSelection,
   computeBasePrice,
@@ -26,8 +27,6 @@ import {
   pizzaPreviewDivisor,
   pizzaChargeDivisor,
   pizzaFlavorShare,
-  computeFractionedPizzaPrice,
-  requiresExplicitFlavorSelection,
   validatePizzaFlavorCount,
 } from "@/lib/product-selection";
 
@@ -45,7 +44,7 @@ type PizzaFlavorOption = {
 
 
 export function ProductModal({
-  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart, compact = false, initialSizeId = null,
+  product, open, onOpenChange, pizzaSizes = [], pizzaFlavors = [], pizzaDoughs = [], pizzaCrusts = [], freeGiftProduct, tenantSlug, tenantInfo, onAddToCart, compact = false, initialSizeId = null, initialFlavorCount = null, initialFlavorIds = null,
 }: {
   product: Product | null;
   open: boolean;
@@ -62,6 +61,10 @@ export function ProductModal({
   compact?: boolean;
   /** Tamanho pré-selecionado ao abrir (ex.: linha escolhida no PDV). */
   initialSizeId?: string | null;
+  /** Quantidade de sabores pré-selecionada na vitrine. */
+  initialFlavorCount?: number | null;
+  /** Sabores já marcados na vitrine antes de abrir o modal. */
+  initialFlavorIds?: string[] | null;
 }) {
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -69,6 +72,7 @@ export function ProductModal({
   const [sizeId, setSizeId] = useState<string | null>(null);
   const [sizeTouched, setSizeTouched] = useState(false);
   const [flavorIds, setFlavorIds] = useState<string[]>([]);
+  const [desiredFlavorCount, setDesiredFlavorCount] = useState(1);
   const [groupSelections, setGroupSelections] = useState<Record<string, string[]>>({});
   const [doughId, setDoughId] = useState<string | null>(null);
   const [crustId, setCrustId] = useState<string | null>(null);
@@ -127,12 +131,45 @@ export function ProductModal({
       setQty(1);
       setLegacyAddons([]);
       if (product.categoryKind === "pizza" && visiblePizzaSizes.length > 0) {
-        const firstSize = visiblePizzaSizes.find((s) => s.id === initialSizeId) ?? visiblePizzaSizes[0];
+        const targetMinCount = initialFlavorCount ?? (initialFlavorIds?.length ?? 1);
+        const preIds = initialFlavorIds ?? [];
+        const firstSize =
+          (initialSizeId ? visiblePizzaSizes.find((s) => s.id === initialSizeId) : undefined) ??
+          (preIds.length > 0
+            ? visiblePizzaSizes.find(
+                (s) =>
+                  s.maxFlavors >= targetMinCount &&
+                  preIds.every((fid) => {
+                    const flv = pizzaFlavors.find((f) => f.id === fid);
+                    return flv ? positivePizzaFlavorPrice(flv, s.id) > 0 : false;
+                  }),
+              )
+            : undefined) ??
+          (targetMinCount > 1
+            ? visiblePizzaSizes.find((s) => s.maxFlavors >= targetMinCount)
+            : undefined) ??
+          visiblePizzaSizes[0];
+
         setSizeId(firstSize.id);
         const productIsListed = pizzaFlavors.some((f) => f.id === product.id);
-        // Tamanho 1 sabor: sabor é o próprio produto. 2+ sabores: cliente escolhe todos manualmente.
-        if (!requiresExplicitFlavorSelection(firstSize.maxFlavors) && productIsListed) {
-          setFlavorIds([product.id]);
+        const maxAllowed = Math.max(1, firstSize.maxFlavors);
+        const nextDesired =
+          initialFlavorCount && initialFlavorCount >= 1
+            ? Math.min(maxAllowed, initialFlavorCount)
+            : productIsListed
+              ? 1
+              : Math.min(4, maxAllowed);
+        setDesiredFlavorCount(nextDesired);
+
+        const validIdsForSize = new Set(
+          pizzaFlavors
+            .filter((f) => positivePizzaFlavorPrice(f, firstSize.id) > 0)
+            .map((f) => f.id),
+        );
+        if (preIds.length > 0) {
+          setFlavorIds(preIds.filter((id) => validIdsForSize.has(id)).slice(0, nextDesired));
+        } else if (productIsListed) {
+          setFlavorIds(validIdsForSize.has(product.id) ? [product.id] : []);
         } else {
           setFlavorIds([]);
         }
@@ -141,6 +178,7 @@ export function ProductModal({
         setSizeId(pre ? pre.id : product.sizes && product.sizes.length > 0 ? product.sizes[0].id : null);
         setSizeTouched(!!pre);
         setFlavorIds([]);
+        setDesiredFlavorCount(1);
       }
       setGroupSelections({});
       setDoughId(pizzaDoughs[0]?.id ?? null);
@@ -149,7 +187,7 @@ export function ProductModal({
       setNote("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, product?.id, initialSizeId]);
+  }, [open, product?.id, initialSizeId, initialFlavorCount, initialFlavorIds]);
 
   const groupOptionsSelected: CartSelectedGroupOption[] = useMemo(() => {
     const out: CartSelectedGroupOption[] = [];
@@ -216,6 +254,10 @@ export function ProductModal({
   const selectedPizzaSize = isPizzaCategory ? visiblePizzaSizes.find((s) => s.id === sizeId) ?? visiblePizzaSizes[0] : undefined;
   const pizzaMaxFlavors = selectedPizzaSize?.maxFlavors ?? 1;
   const pizzaPriceRule = selectedPizzaSize?.priceRule ?? "sum_fractions";
+  const productIsListed = isPizzaCategory ? pizzaFlavors.some((f) => f.id === product.id) : false;
+  const effectiveFlavorTarget = isPizzaCategory
+    ? Math.min(Math.max(1, pizzaMaxFlavors), Math.max(1, desiredFlavorCount))
+    : 1;
   // Preço cadastrado do sabor para o tamanho atual (0 = não cadastrado).
   const configuredPriceOfFlavor = (f: PizzaFlavorOption) =>
     selectedPizzaSize ? positivePizzaFlavorPrice(f, selectedPizzaSize.id) : 0;
@@ -227,19 +269,37 @@ export function ProductModal({
     ? availablePizzaFlavors.filter((f) => flavorIds.includes(f.id))
     : [];
   const priceOfFlavor = (f: PizzaFlavorOption) => configuredPriceOfFlavor(f);
-  // Fracionamento cobrado: 1 sabor = valor cheio; 2+ sabores = valor / quantidade escolhida.
-  const shareOfFlavor = (f: PizzaFlavorOption, divisor: number) =>
-    pizzaFlavorShare(priceOfFlavor(f), divisor);
+  // Fracionamento cobrado: respeita fração cadastrada no tamanho ou divide por quantidade escolhida.
+  const shareOfFlavor = (f: PizzaFlavorOption, divisor: number) => {
+    if (divisor > 1 && selectedPizzaSize) {
+      const custom = Number(f.fractionPricesByCategorySizeId?.[selectedPizzaSize.id]?.[String(divisor)] ?? 0);
+      if (Number.isFinite(custom) && custom > 0) return custom;
+    }
+    return pizzaFlavorShare(priceOfFlavor(f), divisor);
+  };
   const n = selectedPizzaFlavors.length;
   const chargeDivisor = pizzaChargeDivisor(n);
-  const pizzaBase = isPizzaCategory && n > 0 && selectedPizzaSize
-    ? (pizzaPriceRule === "max_value"
-        ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
-        : computeFractionedPizzaPrice(selectedPizzaFlavors.map(priceOfFlavor), n))
+  const ownPizzaSizePrice = selectedPizzaSize
+    ? Number(product.sizes?.find((s) => s.categorySizeId === selectedPizzaSize.id)?.price ?? 0)
     : 0;
-  // "A partir de" no header: menor preço cadastrado entre sabores disponíveis no tamanho atual.
-  const pizzaStartingFrom = isPizzaCategory && availablePizzaFlavors.length > 0
-    ? Math.min(...availablePizzaFlavors.map(configuredPriceOfFlavor))
+  const pizzaBase = (() => {
+    if (!isPizzaCategory || !selectedPizzaSize) return 0;
+    if (pizzaPriceRule === "fixed" && ownPizzaSizePrice > 0) return ownPizzaSizePrice;
+    if (n === 0) return !productIsListed && ownPizzaSizePrice > 0 ? ownPizzaSizePrice : 0;
+    const flavorCalc =
+      pizzaPriceRule === "max_value"
+        ? Math.max(...selectedPizzaFlavors.map(priceOfFlavor))
+        : selectedPizzaFlavors.reduce((sum, f) => sum + shareOfFlavor(f, chargeDivisor), 0);
+    if (!productIsListed && ownPizzaSizePrice > 0) {
+      return Math.max(ownPizzaSizePrice, flavorCalc);
+    }
+    return flavorCalc;
+  })();
+  // "A partir de" no header: menor preço cadastrado entre sabores disponíveis no tamanho atual (ou preço próprio do combo).
+  const pizzaStartingFrom = isPizzaCategory
+    ? (!productIsListed && ownPizzaSizePrice > 0
+        ? ownPizzaSizePrice
+        : (availablePizzaFlavors.length > 0 ? Math.min(...availablePizzaFlavors.map(configuredPriceOfFlavor)) : 0))
     : 0;
   
 
@@ -275,10 +335,13 @@ export function ProductModal({
   if (isPizzaCategory) {
     if (!selectedPizzaSize) pizzaValidations.push("Escolha um tamanho");
     else {
-      const flavorErr = validatePizzaFlavorCount(selectedPizzaFlavors.length, pizzaMaxFlavors);
+      const flavorErr = validatePizzaFlavorCount(selectedPizzaFlavors.length, effectiveFlavorTarget);
       if (flavorErr) pizzaValidations.push(flavorErr);
     }
   }
+  const missingPizzaFlavors = isPizzaCategory && selectedPizzaSize
+    ? Math.max(0, effectiveFlavorTarget - selectedPizzaFlavors.length)
+    : 0;
   const validations = isPizzaCategory
     ? pizzaValidations
     : validateSelection({ product, sizeId, flavorIds, groupSelections });
@@ -303,17 +366,46 @@ export function ProductModal({
   const handleSelectSize = (v: string) => {
     setSizeId(v);
     const nextSize = visiblePizzaSizes.find((s) => s.id === v);
-    const productIsListed = pizzaFlavors.some((f) => f.id === product?.id);
-    if (nextSize && !requiresExplicitFlavorSelection(nextSize.maxFlavors) && productIsListed && product) {
-      setFlavorIds([product.id]);
-    } else {
-      setFlavorIds([]);
-    }
+    const maxForSize = Math.max(1, nextSize?.maxFlavors ?? 1);
+    const nextDesired = !productIsListed
+      ? Math.min(4, maxForSize)
+      : Math.min(desiredFlavorCount, maxForSize);
+    setDesiredFlavorCount(nextDesired);
 
-    const nextTarget = isPizzaCategory && requiresExplicitFlavorSelection(nextSize?.maxFlavors ?? 1)
-      ? "flavors"
-      : (showPizzaExtras && pizzaDoughs.length > 0 ? "dough" : (showPizzaExtras && visibleCrusts.length > 0 ? "crust" : (allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart")));
+    const validIds = new Set(
+      pizzaFlavors
+        .filter((f) => positivePizzaFlavorPrice(f, v) > 0)
+        .map((f) => f.id),
+    );
+    setFlavorIds((prev) => {
+      const kept = prev.filter((id) => validIds.has(id)).slice(0, nextDesired);
+      if (kept.length > 0) return kept;
+      if (productIsListed && product && validIds.has(product.id)) return [product.id];
+      return [];
+    });
+
+    const nextTarget =
+      nextDesired > 1 || !productIsListed
+        ? "flavors"
+        : (showPizzaExtras && pizzaDoughs.length > 0 ? "dough" : (showPizzaExtras && visibleCrusts.length > 0 ? "crust" : (allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart")));
     scrollToNextSection(nextTarget);
+  };
+
+  const handleSelectFlavorCount = (nextCount: number) => {
+    const clamped = Math.min(Math.max(1, pizzaMaxFlavors), Math.max(1, nextCount));
+    setDesiredFlavorCount(clamped);
+    setFlavorIds((prev) => {
+      const validIds = new Set(availablePizzaFlavors.map((f) => f.id));
+      const filtered = prev.filter((id) => validIds.has(id));
+      if (filtered.length > clamped) return filtered.slice(0, clamped);
+      if (filtered.length === 0 && productIsListed && product && validIds.has(product.id)) {
+        return [product.id];
+      }
+      return filtered;
+    });
+    if (clamped > 1 || !productIsListed) {
+      scrollToNextSection("flavors");
+    }
   };
 
   const handleSelectStandardSize = (v: string) => {
@@ -343,8 +435,8 @@ export function ProductModal({
 
   const togglePizzaFlavor = (id: string) => {
     setFlavorIds((prev) => {
-      const next = toggleFlavorId(prev, id, pizzaMaxFlavors);
-      if (prev.length < pizzaMaxFlavors && next.length === pizzaMaxFlavors) {
+      const next = toggleFlavorId(prev, id, effectiveFlavorTarget);
+      if (prev.length < effectiveFlavorTarget && next.length === effectiveFlavorTarget) {
         const nextTarget = showPizzaExtras && pizzaDoughs.length > 0
           ? "dough"
           : (showPizzaExtras && visibleCrusts.length > 0 ? "crust" : (allGroups.length > 0 ? `group-${allGroups[0].id}` : "add-to-cart"));
@@ -597,7 +689,7 @@ export function ProductModal({
 
           <h2 className="text-2xl font-bold leading-tight">{product.name}</h2>
           <p className="mt-1 text-base">
-            {isPizzaCategory && n === 0 && pizzaStartingFrom > 0 ? (
+            {isPizzaCategory && basePrice <= 0 && pizzaStartingFrom > 0 ? (
               <>
                 <span className="text-sm text-muted-foreground">A partir de </span>
                 <span className="font-bold">{brl(pizzaStartingFrom)}</span>
@@ -610,7 +702,7 @@ export function ProductModal({
             ) : (
               <>
                 <span className="font-bold">{brl(basePrice)}</span>
-                <span className="text-sm text-muted-foreground">/UN</span>
+                {!isPizzaCategory && <span className="text-sm text-muted-foreground">/UN</span>}
                 {product.promoPrice && !selectedSize && !isPizzaCategory && (
                   <span className="ml-2 text-sm text-muted-foreground line-through">{brl(product.price)}</span>
                 )}
@@ -623,32 +715,59 @@ export function ProductModal({
           )}
           </>)}
 
-          {/* Tamanhos (pizza-category) */}
+          {/* 1. QUAL O TAMANHO? (pizza-category estilo Degust) */}
           {!lockedSizeName && isPizzaCategory && visiblePizzaSizes.length > 0 && (
-            <Section id="size" title="Tamanho" required isInvalid={hasAttemptedSubmit && !selectedPizzaSize}>
-              <RadioGroup value={sizeId ?? ""} onValueChange={handleSelectSize} className="mt-2 space-y-2">
+            <div
+              data-scroll-target="size"
+              data-invalid={hasAttemptedSubmit && !selectedPizzaSize ? "true" : undefined}
+              className="mt-5 space-y-2.5"
+            >
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                1. Qual o tamanho?
+              </p>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {visiblePizzaSizes.map((s) => {
-                  const prices = pizzaFlavors
+                  const isSelected = selectedPizzaSize?.id === s.id;
+                  const ownSize = product.sizes?.find((ps) => ps.categorySizeId === s.id && ps.price > 0);
+                  const flavorPrices = pizzaFlavors
                     .map((f) => positivePizzaFlavorPrice(f, s.id))
-                    .filter((n) => n > 0);
-                  const minPrice = prices.length ? Math.min(...prices) : 0;
+                    .filter((v) => v > 0);
+                  const minPrice = flavorPrices.length ? Math.min(...flavorPrices) : 0;
+                  const cardPrice = ownSize && (!productIsListed || ownSize.price > 0) ? Number(ownSize.price) : minPrice;
+                  const showFrom = !ownSize || (productIsListed && flavorPrices.length > 1 && cardPrice === minPrice && minPrice < Math.max(...flavorPrices));
                   return (
-                    <label key={s.id} className="flex cursor-pointer items-center justify-between rounded-xl border bg-card p-3 transition hover:border-primary/40">
-                      <div className="flex items-center gap-3">
-                        <RadioGroupItem value={s.id} id={`psize-${s.id}`} />
-                        <div>
-                          <Label htmlFor={`psize-${s.id}`} className="cursor-pointer text-sm font-medium">{s.name}</Label>
-                          <p className="text-xs text-muted-foreground">{s.pieces} pedaços · até {s.maxFlavors} sabor{s.maxFlavors > 1 ? "es" : ""}</p>
-                        </div>
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleSelectSize(s.id)}
+                      className={`flex flex-col justify-between rounded-xl border p-3 text-left transition active:scale-[0.98] ${
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                          : "border-border bg-card text-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-1.5">
+                        <span className="text-sm font-bold leading-snug">{s.name}</span>
+                        <span
+                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap ${
+                            isSelected
+                              ? "bg-black/20 text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {s.maxFlavors > 1 ? `até ${s.maxFlavors} sab.` : "1 sab."}
+                        </span>
                       </div>
-                      <span className="text-right text-xs text-muted-foreground">
-                        A partir de<br /><span className="text-sm font-semibold text-primary">{brl(minPrice)}</span>
-                      </span>
-                    </label>
+                      <div className="mt-2 flex items-baseline justify-between gap-1">
+                        <span className={`text-sm font-bold ${isSelected ? "text-primary-foreground" : "text-primary"}`}>
+                          {showFrom && !(!productIsListed && ownSize) ? `A partir de ${brl(cardPrice)}` : brl(cardPrice)}
+                        </span>
+                      </div>
+                    </button>
                   );
                 })}
-              </RadioGroup>
-            </Section>
+              </div>
+            </div>
           )}
 
           {/* Tamanhos (standard) */}
@@ -668,53 +787,86 @@ export function ProductModal({
             </Section>
           )}
 
-          {/* Sabores (pizza-category — siblings). Oculto quando o tamanho aceita só 1 sabor. */}
-          {isPizzaCategory && availablePizzaFlavors.length > 0 && requiresExplicitFlavorSelection(pizzaMaxFlavors) && (
-            <Section
-              id="flavors"
-              title="Sabores"
-              required
-              isInvalid={hasAttemptedSubmit && selectedPizzaFlavors.length < pizzaMaxFlavors}
-              hint={`Escolha ${pizzaMaxFlavors} sabores (${selectedPizzaFlavors.length}/${pizzaMaxFlavors})`}
+          {/* quantos sabores? + lista de sabores (pizza-category estilo Aiqfome/Degust) */}
+          {isPizzaCategory && selectedPizzaSize && (pizzaMaxFlavors > 1 || !productIsListed) && availablePizzaFlavors.length > 0 && (
+            <div
+              data-scroll-target="flavors"
+              data-invalid={hasAttemptedSubmit && selectedPizzaFlavors.length < effectiveFlavorTarget ? "true" : undefined}
+              className={`mt-5 rounded-2xl transition-all ${
+                hasAttemptedSubmit && selectedPizzaFlavors.length < effectiveFlavorTarget
+                  ? "border-2 border-destructive bg-destructive/5 p-3 ring-4 ring-destructive/10"
+                  : ""
+              }`}
             >
-              <div className="mt-2 space-y-2">
-                {availablePizzaFlavors.map((f) => {
-                  const checked = flavorIds.includes(f.id);
-                  const price = priceOfFlavor(f);
-                  const displayDivisor = pizzaPreviewDivisor(n, pizzaMaxFlavors);
-                  const showFraction = displayDivisor > 1;
-                  const displayShare = pizzaFlavorShare(price, displayDivisor);
-                  return (
-                    <label key={f.id} className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/40">
-                      <div className="flex items-start gap-3">
-                        <Checkbox checked={checked} onCheckedChange={() => togglePizzaFlavor(f.id)} className="mt-0.5" />
-                        <div>
-                          <p className="flex items-center gap-2 text-sm font-medium">
-                            {showFraction && (
-                              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                                1/{displayDivisor}
-                              </span>
+              <PizzaFlavorCountSelector
+                maxFlavors={pizzaMaxFlavors}
+                value={effectiveFlavorTarget}
+                onChange={handleSelectFlavorCount}
+                selectedCount={selectedPizzaFlavors.length}
+                priceRule={pizzaPriceRule}
+                showHint={effectiveFlavorTarget > 1 || !productIsListed}
+              />
+
+              {hasAttemptedSubmit && selectedPizzaFlavors.length < effectiveFlavorTarget && (
+                <p className="mt-2 text-xs font-semibold text-destructive">
+                  ⚠️ Selecione {effectiveFlavorTarget} {effectiveFlavorTarget === 1 ? "sabor" : "sabores"} para continuar ({selectedPizzaFlavors.length}/{effectiveFlavorTarget}).
+                </p>
+              )}
+
+              {(effectiveFlavorTarget > 1 || !productIsListed) && (
+                <div className="mt-3 divide-y rounded-xl border bg-card">
+                  {availablePizzaFlavors.map((f) => {
+                    const checked = flavorIds.includes(f.id);
+                    const price = priceOfFlavor(f);
+                    const displayDivisor = pizzaPreviewDivisor(n, effectiveFlavorTarget);
+                    const showFraction = displayDivisor > 1 && pizzaPriceRule !== "max_value" && pizzaPriceRule !== "fixed";
+                    const displayShare = shareOfFlavor(f, displayDivisor);
+                    const hasPhoto = !compact && !isDefaultProductImage(f.image);
+                    return (
+                      <label
+                        key={f.id}
+                        className={`flex w-full cursor-pointer items-center justify-between gap-3 p-3.5 text-left transition first:rounded-t-xl last:rounded-b-xl ${
+                          checked ? "bg-primary/5" : "hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                          <Checkbox checked={checked} onCheckedChange={() => togglePizzaFlavor(f.id)} className="mt-0.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-sm font-bold text-foreground">{f.name}</span>
+                              {checked && effectiveFlavorTarget > 1 && (
+                                <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                                  1/{effectiveFlavorTarget}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-xs font-semibold text-primary">
+                              a partir de {brl(price)}
+                              {showFraction && (
+                                <span className="ml-1.5 font-normal text-muted-foreground">
+                                  (1/{displayDivisor}: {brl(displayShare)})
+                                </span>
+                              )}
+                            </p>
+                            {f.description && (
+                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>
                             )}
-                            {f.name}
-                          </p>
-                          {f.description && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{f.description}</p>}
+                          </div>
                         </div>
-                      </div>
-                      <span className="shrink-0 text-right text-sm font-semibold text-primary">
-                        {showFraction ? (
-                          <>
-                            <span className="block text-[10px] font-normal text-muted-foreground">1/{displayDivisor} de {brl(price)}</span>
-                            {brl(displayShare)}
-                          </>
-                        ) : (
-                          brl(price)
+                        {hasPhoto && (
+                          <img
+                            src={productImage(f.image)}
+                            alt={f.name}
+                            className="h-14 w-14 shrink-0 rounded-xl object-cover bg-muted"
+                            loading="lazy"
+                          />
                         )}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </Section>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
 
 
@@ -1019,8 +1171,16 @@ export function ProductModal({
               <Button variant="outline" className="h-12 rounded-lg text-sm font-bold uppercase" onClick={() => onOpenChange(false)}>
                 <ChevronLeft className="mr-1 h-4 w-4" /> Voltar
               </Button>
-              <Button className="h-12 rounded-lg bg-success text-sm font-bold uppercase text-success-foreground hover:bg-success/90" onClick={onAdd}>
-                <Check className="mr-1 h-4 w-4" /> OK
+              <Button
+                className={`h-12 rounded-lg text-sm font-bold uppercase ${
+                  missingPizzaFlavors > 0
+                    ? "bg-primary/60 text-primary-foreground hover:bg-primary/75"
+                    : "bg-success text-success-foreground hover:bg-success/90"
+                }`}
+                onClick={onAdd}
+              >
+                <Check className="mr-1 h-4 w-4" />
+                {missingPizzaFlavors > 0 ? `ESCOLHA ${missingPizzaFlavors} SABOR(ES)` : "OK"}
               </Button>
             </div>
           </div>
@@ -1046,12 +1206,24 @@ export function ProductModal({
               <p className="text-base font-bold">{brl(total)}</p>
             </div>
             <Button
-              className={`h-12 min-w-[140px] rounded-xl text-base font-semibold transition-all ${
-                !canAdd && hasAttemptedSubmit ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""
+              className={`h-12 min-w-[160px] rounded-xl px-4 text-sm font-bold uppercase transition-all ${
+                !canAdd && hasAttemptedSubmit
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : missingPizzaFlavors > 0
+                    ? "bg-primary/65 text-primary-foreground hover:bg-primary/80"
+                    : "text-base font-semibold normal-case"
               }`}
               onClick={onAdd}
             >
-              {!canAdd && hasAttemptedSubmit ? "Ver opções" : "Adicionar"}
+              {!canAdd && hasAttemptedSubmit ? (
+                "Ver opções"
+              ) : missingPizzaFlavors > 0 ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="h-4 w-4" /> ESCOLHA {missingPizzaFlavors} SABOR(ES)
+                </span>
+              ) : (
+                "Adicionar"
+              )}
             </Button>
           </div>
         </div>

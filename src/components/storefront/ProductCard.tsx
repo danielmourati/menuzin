@@ -1,6 +1,6 @@
 import { getPriceRange } from "@/lib/product-selection";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { Product } from "@/lib/domain-types";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
@@ -13,11 +13,15 @@ export function ProductCard({
   onClick,
   view = "grid",
   showCategory = false,
+  selectable = false,
+  selected = false,
 }: {
   showCategory?: boolean;
   product: Product;
   onClick: () => void;
   view?: "grid" | "list";
+  selectable?: boolean;
+  selected?: boolean;
 }) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const unavailable = !product.available;
@@ -33,8 +37,22 @@ export function ProductCard({
       <button
         onClick={onClick}
         disabled={unavailable}
-        className="group relative flex w-full items-stretch gap-3 overflow-hidden rounded-2xl border bg-card p-2 text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
+        className={`group relative flex w-full items-stretch gap-3 overflow-hidden rounded-2xl border p-2 text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60 ${
+          selectable && selected ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "bg-card"
+        }`}
       >
+        {selectable && (
+          <span
+            aria-hidden="true"
+            className={`ml-1 grid h-5 w-5 shrink-0 self-center place-items-center rounded border-2 transition ${
+              selected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-muted-foreground/40 bg-background"
+            }`}
+          >
+            {selected && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+          </span>
+        )}
         <div
           className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-28 sm:w-28"
           onClick={(e) => {
@@ -84,7 +102,7 @@ export function ProductCard({
 
           {!unavailable && (
             <span className="absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition group-hover:scale-110">
-              <Plus className="h-5 w-5" />
+              {selectable && selected ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
             </span>
           )}
         </div>
@@ -102,7 +120,9 @@ export function ProductCard({
     <button
       onClick={onClick}
       disabled={unavailable}
-      className="group relative flex w-full flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60"
+      className={`group relative flex w-full flex-col overflow-hidden rounded-2xl border text-left shadow-[var(--shadow-soft)] transition hover:border-primary/40 hover:shadow-md disabled:opacity-60 ${
+        selectable && selected ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "bg-card"
+      }`}
     >
       <div
         className="relative aspect-[4/3] w-full overflow-hidden bg-muted"
@@ -113,6 +133,18 @@ export function ProductCard({
           }
         }}
       >
+        {selectable && (
+          <span
+            aria-hidden="true"
+            className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border-2 shadow-sm transition ${
+              selected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-white/90 bg-background/90"
+            }`}
+          >
+            {selected && <Check className="h-4 w-4 stroke-[3]" />}
+          </span>
+        )}
         <ImageWithSkeleton
           src={productImage(product.image)}
           alt={product.name}
@@ -153,7 +185,7 @@ export function ProductCard({
 
         {!unavailable && (
           <span className="absolute bottom-2 right-2 grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition group-hover:scale-110">
-            <Plus className="h-4 w-4" />
+            {selectable && selected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </span>
         )}
       </div>
