@@ -1,22 +1,84 @@
-import { confirmDialog } from "@/hooks/useConfirm";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { confirmDialog } from "@/hooks/useConfirm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Zap, Check } from "lucide-react";
 import { toast } from "sonner";
 import { brl } from "@/lib/format";
+import type { DbCategoryPizzaSize } from "@/lib/db-types";
 import {
   listCategoryPizzaConfig,
   saveCategoryPizzaSize, deleteCategoryPizzaSize,
   saveCategoryPizzaDough, deleteCategoryPizzaDough,
   saveCategoryPizzaCrust, deleteCategoryPizzaCrust,
 } from "@/lib/catalog-admin.functions";
+
+export type PizzaPriceRule = "sum_fractions" | "max_value" | "fixed";
+
+export type PizzaSizePreset = {
+  name: string;
+  pieces: number;
+  max_flavors: number;
+  standard?: boolean;
+};
+
+export const DEFAULT_PIZZA_SIZES_PRESET: PizzaSizePreset[] = [
+  { name: "Brotinho", pieces: 4, max_flavors: 1, standard: false },
+  { name: "Pequena", pieces: 4, max_flavors: 2, standard: true },
+  { name: "Média", pieces: 6, max_flavors: 2, standard: true },
+  { name: "Grande", pieces: 8, max_flavors: 3, standard: true },
+  { name: "Família", pieces: 12, max_flavors: 4, standard: true },
+];
+
+export const STANDARD_PIZZA_SIZES_PRESET = DEFAULT_PIZZA_SIZES_PRESET.filter((s) => s.standard);
+
+export const DEFAULT_PIZZA_DOUGHS_PRESET = [
+  { name: "Tradicional", extra_price: 0 },
+  { name: "Massa Fina", extra_price: 0 },
+  { name: "Massa Pan", extra_price: 0 },
+];
+
+export const DEFAULT_PIZZA_CRUSTS_PRESET = [
+  { name: "Tradicional (sem recheio)", extra_price: 0 },
+  { name: "Catupiry", extra_price: 0 },
+  { name: "Cheddar", extra_price: 0 },
+  { name: "Cream Cheese", extra_price: 0 },
+  { name: "Chocolate", extra_price: 0 },
+];
+
+const normName = (v: string) => v.trim().toLowerCase();
+
+export async function createMissingPizzaSizes(
+  categoryId: string,
+  existingNames: string[],
+  presets: PizzaSizePreset[],
+  priceRule: PizzaPriceRule = "sum_fractions",
+  startSortOrder = 0
+): Promise<number> {
+  const existingSet = new Set(existingNames.map(normName));
+  const missing = presets.filter((p) => !existingSet.has(normName(p.name)));
+  for (let i = 0; i < missing.length; i++) {
+    const p = missing[i];
+    await saveCategoryPizzaSize({
+      data: {
+        category_id: categoryId,
+        name: p.name,
+        pieces: p.pieces,
+        max_flavors: p.max_flavors,
+        pdv_code: "",
+        active: true,
+        sort_order: startSortOrder + i,
+        price_rule: priceRule,
+      },
+    });
+  }
+  return missing.length;
+}
 
 export function PizzaCategoryConfigDialog({
   open, onOpenChange, categoryId, categoryName,
@@ -27,20 +89,89 @@ export function PizzaCategoryConfigDialog({
   categoryName: string;
 }) {
   const qc = useQueryClient();
+  const [overrideRule, setOverrideRule] = useState<PizzaPriceRule | null>(null);
+
   const cfgQ = useQuery({
     queryKey: ["admin", "pizza-config", categoryId],
     queryFn: () => listCategoryPizzaConfig({ data: { category_id: categoryId } }),
-    enabled: open,
+    enabled: open && !!categoryId,
   });
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "pizza-config", categoryId] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "pizza-config", categoryId] });
+    qc.invalidateQueries({ queryKey: ["admin", "products"] });
+  };
+
+  const sizes = cfgQ.data?.sizes ?? [];
+  const doughs = cfgQ.data?.doughs ?? [];
+  const crusts = cfgQ.data?.crusts ?? [];
+
+  const activeRule: PizzaPriceRule =
+    overrideRule ?? sizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions";
+
+  const ruleMut = useMutation({
+    mutationFn: async (rule: PizzaPriceRule) => {
+      setOverrideRule(rule);
+      await Promise.all(
+        sizes.map((s) =>
+          saveCategoryPizzaSize({
+            data: {
+              id: s.id,
+              category_id: s.category_id,
+              name: s.name,
+              pieces: s.pieces,
+              max_flavors: s.max_flavors,
+              pdv_code: s.pdv_code ?? "",
+              active: s.active,
+              sort_order: s.sort_order,
+              price_rule: rule,
+            },
+          })
+        )
+      );
+      return rule;
+    },
+    onSuccess: (rule) => {
+      setOverrideRule(rule);
+      invalidate();
+      if (sizes.length > 0) {
+        toast.success("Regra de cálculo atualizada para os tamanhos!");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const presetMut = useMutation({
+    mutationFn: (presets: PizzaSizePreset[]) =>
+      createMissingPizzaSizes(
+        categoryId,
+        sizes.map((s) => s.name),
+        presets,
+        activeRule,
+        sizes.length
+      ),
+    onSuccess: (created) => {
+      invalidate();
+      if (created > 0) {
+        toast.success(`${created} tamanho${created > 1 ? "s" : ""} adicionado${created > 1 ? "s" : ""}!`);
+      } else {
+        toast.info("Esses tamanhos já estão cadastrados nesta categoria.");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const existingSizeNames = new Set(sizes.map((s) => normName(s.name)));
+  const missingStandardCount = STANDARD_PIZZA_SIZES_PRESET.filter(
+    (p) => !existingSizeNames.has(normName(p.name))
+  ).length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) setOverrideRule(null); onOpenChange(v); }}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{categoryName}</DialogTitle>
-          <p className="text-sm text-muted-foreground">Detalhes da categoria pizza</p>
+          <p className="text-sm text-muted-foreground">Tamanhos, regra meio a meio, massas e bordas</p>
         </DialogHeader>
 
         {cfgQ.isLoading && (
@@ -50,21 +181,117 @@ export function PizzaCategoryConfigDialog({
         {cfgQ.data && (
           <Tabs defaultValue="tamanhos">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="tamanhos">Tamanhos</TabsTrigger>
-              <TabsTrigger value="massas">Massas</TabsTrigger>
-              <TabsTrigger value="bordas">Bordas</TabsTrigger>
+              <TabsTrigger value="tamanhos">Tamanhos ({sizes.length})</TabsTrigger>
+              <TabsTrigger value="massas">Massas ({doughs.length})</TabsTrigger>
+              <TabsTrigger value="bordas">Bordas ({crusts.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tamanhos" className="mt-4 space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Indique quais os tamanhos das pizzas, em quantos pedaços são cortadas e até quantos sabores cada tamanho monta.
-              </p>
+              {/* Regra de cálculo para pizzas com 2 ou mais sabores */}
+              <div className="rounded-xl border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-semibold">Regra de preço para múltiplos sabores (meio a meio)</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Define como o sistema calcula automaticamente quando o cliente escolhe 2 ou mais sabores.
+                    </p>
+                  </div>
+                  {ruleMut.isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={ruleMut.isPending}
+                    onClick={() => ruleMut.mutate("sum_fractions")}
+                    className={`rounded-lg border p-2.5 text-left transition ${
+                      activeRule === "sum_fractions"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">Média / Proporcional</span>
+                      {activeRule === "sum_fractions" && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Soma as frações escolhidas (ex.: ½ Frango + ½ Camarão).
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={ruleMut.isPending}
+                    onClick={() => ruleMut.mutate("max_value")}
+                    className={`rounded-lg border p-2.5 text-left transition ${
+                      activeRule === "max_value"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold">Maior valor</span>
+                      {activeRule === "max_value" && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Cobra sempre pelo valor do sabor mais caro da pizza.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Atalhos 1 clique */}
+              <div className="rounded-xl border border-dashed p-3 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Atalhos rápidos — preencha com 1 clique e ajuste se quiser:
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={sizes.length === 0 ? "default" : "outline"}
+                    disabled={presetMut.isPending || missingStandardCount === 0}
+                    onClick={() => presetMut.mutate(STANDARD_PIZZA_SIZES_PRESET)}
+                  >
+                    {presetMut.isPending ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Zap className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Adicionar tamanhos padrão (P, M, G, Família)
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {DEFAULT_PIZZA_SIZES_PRESET.map((preset) => {
+                    const exists = existingSizeNames.has(normName(preset.name));
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        disabled={exists || presetMut.isPending}
+                        onClick={() => presetMut.mutate([preset])}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition ${
+                          exists
+                            ? "border-primary/30 bg-primary/10 text-primary cursor-default"
+                            : "bg-background hover:border-primary hover:bg-primary/5"
+                        }`}
+                      >
+                        {exists ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                        <span className="font-medium">{preset.name}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          ({preset.pieces}p · {preset.max_flavors}s)
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <SizesTable
-                sizes={cfgQ.data.sizes}
+                sizes={sizes}
                 onChange={invalidate}
                 categoryId={categoryId}
+                defaultPriceRule={activeRule}
               />
-              <ResumoTamanhos sizes={cfgQ.data.sizes} />
+              <ResumoTamanhos sizes={sizes} />
             </TabsContent>
 
             <TabsContent value="massas" className="mt-4 space-y-4">
@@ -72,11 +299,12 @@ export function PizzaCategoryConfigDialog({
                 Defina as opções de massas que seus clientes terão como escolha.
               </p>
               <ExtraTable
-                items={cfgQ.data.doughs}
+                items={doughs}
                 onChange={invalidate}
                 categoryId={categoryId}
                 addLabel="+ Adicionar massa"
                 colName="Massa"
+                presets={DEFAULT_PIZZA_DOUGHS_PRESET}
                 save={(d) => saveCategoryPizzaDough({ data: d })}
                 remove={(id) => deleteCategoryPizzaDough({ data: { id } })}
               />
@@ -87,11 +315,12 @@ export function PizzaCategoryConfigDialog({
                 Cadastre as bordas (recheada, tradicional…) que o cliente pode escolher.
               </p>
               <ExtraTable
-                items={cfgQ.data.crusts}
+                items={crusts}
                 onChange={invalidate}
                 categoryId={categoryId}
                 addLabel="+ Adicionar borda"
                 colName="Borda"
+                presets={DEFAULT_PIZZA_CRUSTS_PRESET}
                 save={(d) => saveCategoryPizzaCrust({ data: d })}
                 remove={(id) => deleteCategoryPizzaCrust({ data: { id } })}
               />
@@ -107,11 +336,28 @@ export function PizzaCategoryConfigDialog({
   );
 }
 
-type PizzaSize = { id: string; category_id: string; name: string; pieces: number; max_flavors: number; pdv_code: string | null; active: boolean; sort_order: number };
+type PizzaSize = DbCategoryPizzaSize;
 
-type SizeInput = { id?: string; category_id: string; name: string; pieces: number; max_flavors: number; pdv_code: string; active: boolean; sort_order: number };
+type SizeInput = {
+  id?: string;
+  category_id: string;
+  name: string;
+  pieces: number;
+  max_flavors: number;
+  pdv_code: string;
+  active: boolean;
+  sort_order: number;
+  price_rule: PizzaPriceRule;
+};
 
-function SizesTable({ sizes, onChange, categoryId }: { sizes: PizzaSize[]; onChange: () => void; categoryId: string }) {
+function SizesTable({
+  sizes, onChange, categoryId, defaultPriceRule,
+}: {
+  sizes: PizzaSize[];
+  onChange: () => void;
+  categoryId: string;
+  defaultPriceRule: PizzaPriceRule;
+}) {
   const [draft, setDraft] = useState({ name: "", pieces: 8, max_flavors: 1 });
   const saveMut = useMutation({
     mutationFn: (d: SizeInput) => saveCategoryPizzaSize({ data: d }),
@@ -134,15 +380,40 @@ function SizesTable({ sizes, onChange, categoryId }: { sizes: PizzaSize[]; onCha
         <div></div>
       </div>
       {sizes.map((s) => (
-        <SizeRow key={s.id} size={s} onSave={(d) => saveMut.mutate(d)} onDelete={async () => { if (await confirmDialog({ title: `Remover "${s.name}"?`, variant: "destructive", confirmText: "Remover" })) delMut.mutate(s.id); }} />
+        <SizeRow
+          key={s.id}
+          size={s}
+          defaultPriceRule={defaultPriceRule}
+          onSave={(d) => saveMut.mutate(d)}
+          onDelete={async () => {
+            if (await confirmDialog({ title: `Remover "${s.name}"?`, variant: "destructive", confirmText: "Remover" })) {
+              delMut.mutate(s.id);
+            }
+          }}
+        />
       ))}
       <div className="grid grid-cols-[1fr_120px_180px_120px_40px] items-center gap-2 px-3 py-3">
         <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ex: Pequena" />
         <Input type="number" min={1} max={24} value={draft.pieces} onChange={(e) => setDraft({ ...draft, pieces: Number(e.target.value) })} />
         <FlavorsPicker value={draft.max_flavors} onChange={(v) => setDraft({ ...draft, max_flavors: v })} />
         <div className="text-xs text-muted-foreground">Ativo</div>
-        <Button size="icon" variant="ghost" disabled={!draft.name || saveMut.isPending}
-          onClick={() => saveMut.mutate({ category_id: categoryId, name: draft.name, pieces: draft.pieces, max_flavors: draft.max_flavors, active: true, sort_order: sizes.length, pdv_code: "" })}>
+        <Button
+          size="icon"
+          variant="ghost"
+          disabled={!draft.name || saveMut.isPending}
+          onClick={() =>
+            saveMut.mutate({
+              category_id: categoryId,
+              name: draft.name,
+              pieces: draft.pieces,
+              max_flavors: draft.max_flavors,
+              active: true,
+              sort_order: sizes.length,
+              pdv_code: "",
+              price_rule: defaultPriceRule,
+            })
+          }
+        >
           <Plus className="h-4 w-4 text-primary" />
         </Button>
       </div>
@@ -150,14 +421,33 @@ function SizesTable({ sizes, onChange, categoryId }: { sizes: PizzaSize[]; onCha
   );
 }
 
-function SizeRow({ size, onSave, onDelete }: { size: PizzaSize; onSave: (d: SizeInput) => void; onDelete: () => void }) {
+function SizeRow({
+  size, defaultPriceRule, onSave, onDelete,
+}: {
+  size: PizzaSize;
+  defaultPriceRule: PizzaPriceRule;
+  onSave: (d: SizeInput) => void;
+  onDelete: () => void;
+}) {
+  const rule = size.price_rule ?? defaultPriceRule;
+  const basePayload = {
+    id: size.id,
+    category_id: size.category_id,
+    name: size.name,
+    pieces: size.pieces,
+    max_flavors: size.max_flavors,
+    active: size.active,
+    sort_order: size.sort_order,
+    pdv_code: size.pdv_code ?? "",
+    price_rule: rule,
+  };
   return (
     <div className="grid grid-cols-[1fr_120px_180px_120px_40px] items-center gap-2 border-b px-3 py-2">
-      <Input defaultValue={size.name} onBlur={(e) => e.target.value !== size.name && onSave({ id: size.id, category_id: size.category_id, name: e.target.value, pieces: size.pieces, max_flavors: size.max_flavors, active: size.active, sort_order: size.sort_order, pdv_code: size.pdv_code ?? "" })} />
-      <Input type="number" min={1} max={24} defaultValue={size.pieces} onBlur={(e) => Number(e.target.value) !== size.pieces && onSave({ id: size.id, category_id: size.category_id, name: size.name, pieces: Number(e.target.value), max_flavors: size.max_flavors, active: size.active, sort_order: size.sort_order, pdv_code: size.pdv_code ?? "" })} />
-      <FlavorsPicker value={size.max_flavors} onChange={(v) => onSave({ id: size.id, category_id: size.category_id, name: size.name, pieces: size.pieces, max_flavors: v, active: size.active, sort_order: size.sort_order, pdv_code: size.pdv_code ?? "" })} />
+      <Input defaultValue={size.name} onBlur={(e) => e.target.value !== size.name && onSave({ ...basePayload, name: e.target.value })} />
+      <Input type="number" min={1} max={24} defaultValue={size.pieces} onBlur={(e) => Number(e.target.value) !== size.pieces && onSave({ ...basePayload, pieces: Number(e.target.value) })} />
+      <FlavorsPicker value={size.max_flavors} onChange={(v) => onSave({ ...basePayload, max_flavors: v })} />
       <div className="flex items-center gap-2">
-        <Switch checked={size.active} onCheckedChange={(v) => onSave({ id: size.id, category_id: size.category_id, name: size.name, pieces: size.pieces, max_flavors: size.max_flavors, active: v, sort_order: size.sort_order, pdv_code: size.pdv_code ?? "" })} />
+        <Switch checked={size.active} onCheckedChange={(v) => onSave({ ...basePayload, active: v })} />
         <span className="text-xs">{size.active ? "Ativado" : "Pausado"}</span>
       </div>
       <Button size="icon" variant="ghost" className="text-destructive" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
@@ -169,8 +459,12 @@ function FlavorsPicker({ value, onChange }: { value: number; onChange: (v: numbe
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4].map((n) => (
-        <button key={n} type="button" onClick={() => onChange(n)}
-          className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition ${value >= n ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground"}`}>
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold transition ${value >= n ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground"}`}
+        >
           {n}
         </button>
       ))}
@@ -204,13 +498,14 @@ type Extra = { id: string; category_id: string; name: string; extra_price: numbe
 type ExtraInput = { id?: string; category_id: string; name: string; extra_price: number; pdv_code: string; active: boolean; sort_order: number };
 
 function ExtraTable({
-  items, onChange, categoryId, addLabel, colName, save, remove,
+  items, onChange, categoryId, addLabel, colName, presets, save, remove,
 }: {
   items: Extra[];
   onChange: () => void;
   categoryId: string;
   addLabel: string;
   colName: string;
+  presets: { name: string; extra_price: number }[];
   save: (d: ExtraInput) => Promise<{ id: string }>;
   remove: (id: string) => Promise<{ ok: boolean }>;
 }) {
@@ -226,39 +521,95 @@ function ExtraTable({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const existingNames = new Set(items.map((it) => normName(it.name)));
+
   return (
-    <div className="rounded-xl border">
-      <div className="grid grid-cols-[1fr_140px_140px_40px] gap-2 border-b bg-muted/40 px-3 py-2 text-xs font-medium">
-        <div>{colName}</div>
-        <div>Preço</div>
-        <div>Status</div>
-        <div></div>
-      </div>
-      {items.map((it) => (
-        <div key={it.id} className="grid grid-cols-[1fr_140px_140px_40px] items-center gap-2 border-b px-3 py-2">
-          <Input defaultValue={it.name}
-            onBlur={(e) => e.target.value !== it.name && saveMut.mutate({ id: it.id, category_id: it.category_id, name: e.target.value, extra_price: it.extra_price, pdv_code: it.pdv_code ?? "", active: it.active, sort_order: it.sort_order })} />
-          <CurrencyInput value={Number(it.extra_price)}
-            onChange={(v) => saveMut.mutate({ id: it.id, category_id: it.category_id, name: it.name, extra_price: v, pdv_code: it.pdv_code ?? "", active: it.active, sort_order: it.sort_order })} />
-          <div className="flex items-center gap-2">
-            <Switch checked={it.active} onCheckedChange={(v) => saveMut.mutate({ id: it.id, category_id: it.category_id, name: it.name, extra_price: it.extra_price, pdv_code: it.pdv_code ?? "", active: v, sort_order: it.sort_order })} />
-            <span className="text-xs">{it.active ? "Ativado" : "Pausado"}</span>
+    <div className="space-y-3">
+      {presets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-dashed p-2.5">
+          <span className="mr-1 text-xs font-medium text-muted-foreground">Sugestões:</span>
+          {presets.map((p) => {
+            const exists = existingNames.has(normName(p.name));
+            return (
+              <button
+                key={p.name}
+                type="button"
+                disabled={exists || saveMut.isPending}
+                onClick={() =>
+                  saveMut.mutate({
+                    category_id: categoryId,
+                    name: p.name,
+                    extra_price: p.extra_price,
+                    pdv_code: "",
+                    active: true,
+                    sort_order: items.length,
+                  })
+                }
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition ${
+                  exists
+                    ? "border-primary/30 bg-primary/10 text-primary cursor-default"
+                    : "bg-background hover:border-primary hover:bg-primary/5"
+                }`}
+              >
+                {exists ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                {p.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="rounded-xl border">
+        <div className="grid grid-cols-[1fr_140px_140px_40px] gap-2 border-b bg-muted/40 px-3 py-2 text-xs font-medium">
+          <div>{colName}</div>
+          <div>Preço</div>
+          <div>Status</div>
+          <div></div>
+        </div>
+        {items.map((it) => (
+          <div key={it.id} className="grid grid-cols-[1fr_140px_140px_40px] items-center gap-2 border-b px-3 py-2">
+            <Input
+              defaultValue={it.name}
+              onBlur={(e) => e.target.value !== it.name && saveMut.mutate({ id: it.id, category_id: it.category_id, name: e.target.value, extra_price: it.extra_price, pdv_code: it.pdv_code ?? "", active: it.active, sort_order: it.sort_order })}
+            />
+            <CurrencyInput
+              value={Number(it.extra_price)}
+              onChange={(v) => saveMut.mutate({ id: it.id, category_id: it.category_id, name: it.name, extra_price: v, pdv_code: it.pdv_code ?? "", active: it.active, sort_order: it.sort_order })}
+            />
+            <div className="flex items-center gap-2">
+              <Switch checked={it.active} onCheckedChange={(v) => saveMut.mutate({ id: it.id, category_id: it.category_id, name: it.name, extra_price: it.extra_price, pdv_code: it.pdv_code ?? "", active: v, sort_order: it.sort_order })} />
+              <span className="text-xs">{it.active ? "Ativado" : "Pausado"}</span>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-destructive"
+              onClick={async () => {
+                if (await confirmDialog({ title: `Remover "${it.name}"?`, variant: "destructive", confirmText: "Remover" })) {
+                  delMut.mutate(it.id);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
-          <Button size="icon" variant="ghost" className="text-destructive"
-            onClick={async () => { if (await confirmDialog({ title: `Remover "${it.name}"?`, variant: "destructive", confirmText: "Remover" })) delMut.mutate(it.id); }}><Trash2 className="h-4 w-4" /></Button>
+        ))}
+        <div className="px-3 py-3">
+          <div className="grid grid-cols-[1fr_140px_140px_40px] items-center gap-2">
+            <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder={`Nome da ${colName.toLowerCase()}`} />
+            <CurrencyInput value={draft.extra_price} onChange={(v) => setDraft({ ...draft, extra_price: v })} />
+            <div className="text-xs text-muted-foreground">Ativo</div>
+            <Button
+              size="icon"
+              variant="ghost"
+              disabled={!draft.name || saveMut.isPending}
+              onClick={() => saveMut.mutate({ category_id: categoryId, name: draft.name, extra_price: draft.extra_price, pdv_code: "", active: true, sort_order: items.length })}
+            >
+              <Plus className="h-4 w-4 text-primary" />
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{addLabel}: digite acima e pressione +. Preço cobrado adicional. Total: {brl(items.reduce((s, x) => s + Number(x.extra_price), 0))}.</p>
         </div>
-      ))}
-      <div className="px-3 py-3">
-        <div className="grid grid-cols-[1fr_140px_140px_40px] items-center gap-2">
-          <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder={`Nome da ${colName.toLowerCase()}`} />
-          <CurrencyInput value={draft.extra_price} onChange={(v) => setDraft({ ...draft, extra_price: v })} />
-          <div className="text-xs text-muted-foreground">Ativo</div>
-          <Button size="icon" variant="ghost" disabled={!draft.name || saveMut.isPending}
-            onClick={() => saveMut.mutate({ category_id: categoryId, name: draft.name, extra_price: draft.extra_price, pdv_code: "", active: true, sort_order: items.length })}>
-            <Plus className="h-4 w-4 text-primary" />
-          </Button>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">{addLabel}: digite acima e pressione +. Preço cobrado adicional. Total: {brl(items.reduce((s, x) => s + Number(x.extra_price), 0))}.</p>
       </div>
     </div>
   );

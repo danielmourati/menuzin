@@ -26,12 +26,13 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
-  ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, Loader2, Plus, Rocket, Tag, UtensilsCrossed,
+  ArrowLeft, ArrowRight, Check, CheckCircle2, Eye, Loader2, Plus, Rocket, Tag, UtensilsCrossed, Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  listMyCategories, saveCategory, saveProduct,
+  listMyCategories, saveCategory, saveProduct, listCategoryPizzaConfig, saveProductSize,
 } from "@/lib/catalog-admin.functions";
+import { createMissingPizzaSizes, STANDARD_PIZZA_SIZES_PRESET } from "@/components/admin/PizzaCategoryConfigDialog";
 import { getMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/cardapio/novo")({
@@ -79,12 +80,14 @@ function WizardPage() {
   const [catName, setCatName] = useState("");
   const [catId, setCatId] = useState<string | null>(null);
   const [catKind, setCatKind] = useState<"standard" | "pizza" | "oferta">("standard");
+  const [createDefaultPizzaSizes, setCreateDefaultPizzaSizes] = useState(true);
 
 
   // Passo 2
   const [prodName, setProdName] = useState("");
   const [prodDesc, setProdDesc] = useState("");
   const [prodPrice, setProdPrice] = useState(0);
+  const [sizePrices, setSizePrices] = useState<Record<string, number>>({});
   const [prodImage, setProdImage] = useState<string | null>(null);
   const [listedAsFlavor, setListedAsFlavor] = useState(true);
 
@@ -94,6 +97,31 @@ function WizardPage() {
     () => categories.find((c) => c.id === catId) ?? null,
     [categories, catId],
   );
+  const isPizzaCat = selectedCategory
+    ? selectedCategory.kind === "pizza"
+    : catMode === "new" && isPizzaria && catKind === "pizza";
+
+  useEffect(() => {
+    setSizePrices({});
+  }, [catId]);
+
+  const pizzaConfigQ = useQuery({
+    queryKey: ["admin", "pizza-config", catId],
+    queryFn: () => listCategoryPizzaConfig({ data: { category_id: catId! } }),
+    enabled: step === 2 && isPizzaCat && !!catId,
+  });
+
+  const quickSizesMut = useMutation({
+    mutationFn: async () => {
+      if (!catId) return 0;
+      return createMissingPizzaSizes(catId, [], STANDARD_PIZZA_SIZES_PRESET, "sum_fractions", 0);
+    },
+    onSuccess: (created) => {
+      if (catId) qc.invalidateQueries({ queryKey: ["admin", "pizza-config", catId] });
+      if (created > 0) toast.success("Tamanhos padrão (P, M, G, Família) criados!");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   // Se já existem categorias, o modo padrão é "existing".
   useMemo(() => {
@@ -106,15 +134,20 @@ function WizardPage() {
 
   const catMut = useMutation({
     mutationFn: async (name: string) => {
+      const kind = isPizzaria ? catKind : "standard";
       const res = await saveCategory({
         data: {
           name,
           description: "",
           sort_order: categories.length + 1,
           active: true,
-          kind: isPizzaria ? catKind : "standard",
+          kind,
         },
       });
+      if (kind === "pizza" && createDefaultPizzaSizes) {
+        await createMissingPizzaSizes(res.id, [], STANDARD_PIZZA_SIZES_PRESET, "sum_fractions", 0);
+        qc.invalidateQueries({ queryKey: ["admin", "pizza-config", res.id] });
+      }
       return res.id;
     },
 
@@ -131,12 +164,23 @@ function WizardPage() {
     mutationFn: async (opts: { thenAnother: boolean }) => {
       if (!catId) throw new Error("Selecione uma categoria antes.");
       if (!prodName.trim()) throw new Error("Informe o nome do produto.");
-      await saveProduct({
+
+      const pizzaSizes = pizzaConfigQ.data?.sizes ?? [];
+      const filledSizes = isPizzaCat
+        ? pizzaSizes.filter((sz) => Number(sizePrices[sz.id] || 0) > 0)
+        : [];
+      const basePrice = isPizzaCat
+        ? filledSizes.length > 0
+          ? Math.min(...filledSizes.map((sz) => Number(sizePrices[sz.id])))
+          : prodPrice
+        : prodPrice;
+
+      const saved = await saveProduct({
         data: {
           name: prodName.trim(),
           description: prodDesc.trim(),
           category_id: catId,
-          price: prodPrice,
+          price: basePrice,
           promo_price: null,
           image_url: prodImage || null,
           available: true,
@@ -144,21 +188,42 @@ function WizardPage() {
           bestseller: false,
           prep_time: null,
           sort_order: createdProducts + 1,
-          type: "standard",
+          type: isPizzaCat ? "pizza" : "standard",
           max_flavors: null,
           allow_observations: true,
-          listed_as_flavor: selectedCategory?.kind === "pizza" ? listedAsFlavor : null,
+          listed_as_flavor: isPizzaCat ? listedAsFlavor : null,
           free_gift_kind: null,
           free_gift_ref_id: null,
           free_crust_mode: "none",
         },
       });
+
+      if (isPizzaCat && filledSizes.length > 0) {
+        for (const sz of filledSizes) {
+          const price = Number(sizePrices[sz.id]);
+          const fracs: Record<string, number> = { "1": price };
+          for (let n = 2; n <= (sz.max_flavors ?? 1); n++) {
+            fracs[String(n)] = Number((price / n).toFixed(2));
+          }
+          await saveProductSize({
+            data: {
+              product_id: saved.id,
+              name: sz.name,
+              price,
+              sort_order: sz.sort_order,
+              category_size_id: sz.id,
+              fraction_prices: fracs,
+            },
+          });
+        }
+      }
+
       return opts;
     },
     onSuccess: ({ thenAnother }) => {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
       setCreatedProducts((n) => n + 1);
-      toast.success("Produto adicionado");
+      toast.success(isPizzaCat ? "Sabor adicionado" : "Produto adicionado");
       setProdName("");
       setProdDesc("");
       setProdPrice(0);
@@ -264,7 +329,7 @@ function WizardPage() {
                     <Input
                       value={catName}
                       onChange={(e) => setCatName(e.target.value)}
-                      placeholder="Ex.: Lanches"
+                      placeholder={isPizzaria && catKind === "pizza" ? "Ex.: Pizzas Tradicionais" : "Ex.: Lanches"}
                       autoFocus
                       aria-invalid={duplicateCatName}
                     />
@@ -274,6 +339,20 @@ function WizardPage() {
                       </p>
                     )}
                   </div>
+                  {isPizzaria && catKind === "pizza" && (
+                    <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 p-3">
+                      <div className="space-y-0.5">
+                        <Label className="text-sm font-medium">Criar tamanhos padrão automaticamente (P, M, G, Família)</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Cria Pequena (4 fatias · 2 sab.), Média (6 · 2), Grande (8 · 3) e Família (12 · 4). Você pode editar depois.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={createDefaultPizzaSizes}
+                        onCheckedChange={setCreateDefaultPizzaSizes}
+                      />
+                    </div>
+                  )}
                 </div>
 
               ) : (
@@ -312,33 +391,97 @@ function WizardPage() {
             <CardContent className="space-y-4 p-5">
               <Header
                 icon={<UtensilsCrossed className="h-5 w-5" />}
-                title="2. Adicione um produto"
+                title={isPizzaCat ? "2. Adicione um sabor de pizza" : "2. Adicione um produto"}
                 subtitle={
                   selectedCategory
                     ? `Na categoria: ${selectedCategory.name}`
-                    : "Escolha uma categoria antes."
+                    : isPizzaCat
+                      ? `Na categoria: ${catName.trim()}`
+                      : "Escolha uma categoria antes."
                 }
               />
 
               <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label>Nome</Label>
-                    <Input
-                      value={prodName}
-                      onChange={(e) => setProdName(e.target.value)}
-                      placeholder="Ex.: X-Salada"
-                      autoFocus
-                    />
+                {isPizzaCat ? (
+                  <>
+                    <div className="space-y-1">
+                      <Label>Nome do sabor</Label>
+                      <Input
+                        value={prodName}
+                        onChange={(e) => setProdName(e.target.value)}
+                        placeholder="Ex.: Calabresa com Cebola"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="rounded-lg border p-3 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-sm font-semibold">Preços por tamanho</Label>
+                        <span className="text-[11px] text-muted-foreground">Meio a meio automático</span>
+                      </div>
+                      {pizzaConfigQ.isLoading ? (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : (pizzaConfigQ.data?.sizes?.length ?? 0) === 0 ? (
+                        <div className="rounded-md border border-dashed bg-muted/20 p-3 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Esta categoria ainda não tem tamanhos configurados.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={quickSizesMut.isPending}
+                            onClick={() => quickSizesMut.mutate()}
+                          >
+                            {quickSizesMut.isPending ? (
+                              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Zap className="mr-1.5 h-3.5 w-3.5" />
+                            )}
+                            Criar tamanhos padrão agora (P, M, G, Família)
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="grid gap-2.5 sm:grid-cols-2">
+                          {(pizzaConfigQ.data?.sizes ?? []).map((sz) => (
+                            <div key={sz.id} className="rounded-md border p-2.5 space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold">{sz.name}</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {sz.pieces}p · até {sz.max_flavors}s
+                                </span>
+                              </div>
+                              <CurrencyInput
+                                value={sizePrices[sz.id] ?? 0}
+                                onChange={(v) => setSizePrices((prev) => ({ ...prev, [sz.id]: v }))}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label>Nome</Label>
+                      <Input
+                        value={prodName}
+                        onChange={(e) => setProdName(e.target.value)}
+                        placeholder="Ex.: X-Salada"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Preço</Label>
+                      <CurrencyInput
+                        value={prodPrice}
+                        onChange={setProdPrice}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label>Preço</Label>
-                    <CurrencyInput
-                      value={prodPrice}
-                      onChange={setProdPrice}
-                    />
-                  </div>
-                </div>
+                )}
 
                 <div>
                   <Label className="mb-1 block">Imagem</Label>
@@ -360,14 +503,14 @@ function WizardPage() {
                 />
               </div>
 
-              {selectedCategory?.kind === "pizza" && (
+              {isPizzaCat && (
                 <div className="flex items-center space-x-3 rounded-md border p-3">
                   <Switch
                     checked={listedAsFlavor}
                     onCheckedChange={setListedAsFlavor}
                   />
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Listar como sabor de pizza</Label>
+                    <Label className="text-sm font-medium">Aceitar em pizzas meio a meio / múltiplos sabores</Label>
                     <p className="text-xs text-muted-foreground">
                       Se ativado, este sabor poderá ser escolhido pelos clientes na montagem das pizzas (meio a meio, etc).
                     </p>

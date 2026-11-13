@@ -16,9 +16,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Settings2, Zap } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
+import { PizzaCategoryConfigDialog, STANDARD_PIZZA_SIZES_PRESET, createMissingPizzaSizes } from "@/components/admin/PizzaCategoryConfigDialog";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
@@ -61,10 +61,42 @@ type Editing = {
   free_crust_mode: "none" | "fixed" | "customer_choice";
 };
 
+type DraftPizzaSize = {
+  category_size_id: string;
+  name: string;
+  sort_order: number;
+  max_flavors: number;
+  pieces: number;
+  enabled: boolean;
+  price: number;
+  fraction_prices: Record<string, number>;
+  existingId?: string;
+};
+type DraftPizzaSizeMap = Record<string, DraftPizzaSize>;
+
+function computeFractionPrices(
+  base: number,
+  maxFlavors: number,
+  existing?: Record<string, number> | null,
+  editedKeys?: Set<string>
+): Record<string, number> {
+  const next: Record<string, number> = { "1": base };
+  for (let n = 2; n <= maxFlavors; n++) {
+    const key = String(n);
+    if (editedKeys?.has(key) && existing && existing[key] !== undefined) {
+      next[key] = existing[key];
+    } else {
+      next[key] = Number((base / n).toFixed(2));
+    }
+  }
+  return next;
+}
+
 const getNormalizedProductState = (
   ed: Editing | null,
   groupIds: string[],
-  sizes: { name: string; price: number }[]
+  sizes: { name: string; price: number }[],
+  pizzaSizes: DraftPizzaSizeMap = {}
 ) => {
   if (!ed) return "";
   return JSON.stringify({
@@ -87,6 +119,14 @@ const getNormalizedProductState = (
     free_crust_mode: ed.free_crust_mode ?? "none",
     selectedGroupIds: [...groupIds].sort(),
     draftSizes: sizes.map((s) => ({ name: s.name.trim(), price: Number(s.price || 0) })),
+    pizzaSizes: Object.values(pizzaSizes)
+      .sort((a, b) => a.category_size_id.localeCompare(b.category_size_id))
+      .map((s) => ({
+        id: s.category_size_id,
+        enabled: s.enabled,
+        price: Number(s.price || 0),
+        fraction_prices: s.fraction_prices,
+      })),
   });
 };
 
@@ -131,12 +171,18 @@ function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [editing, setEditing] = useState<Editing | null>(null);
   const [draftSizes, setDraftSizes] = useState<{ name: string; price: number }[]>([]);
+  const [draftPizzaSizes, setDraftPizzaSizes] = useState<DraftPizzaSizeMap>({});
+  const [pizzaConfigCat, setPizzaConfigCat] = useState<{ id: string; name: string } | null>(null);
+  const [pizzaFocusNonce, setPizzaFocusNonce] = useState(0);
   const [draftPrintLocs, setDraftPrintLocs] = useState<string[]>([]);
   const editingKey = editing ? (editing.id ?? "new") : null;
   useEffect(() => { setDraftSizes([]); setDraftPrintLocs([]); }, [editingKey]);
   const [open, setOpen] = useState(false);
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const initialSnapshotRef = useRef<string | null>(null);
+  const initialPizzaMetaRef = useRef<{ editing: Editing; groupIds: string[] } | null>(null);
+  const pizzaHydratedKeyRef = useRef<string | null>(null);
+  const skipNextPizzaHydrateRef = useRef(false);
   const isConfirmingRef = useRef(false);
 
   // States for inline creation/editing of observation/addon groups
@@ -199,6 +245,128 @@ function ProductsPage() {
   );
   const isPizzaCategory = selectedCategory?.kind === "pizza";
 
+  const pizzaConfigQ = useQuery({
+    queryKey: ["admin", "pizza-config", editing?.category_id],
+    queryFn: () => listCategoryPizzaConfig({ data: { category_id: editing!.category_id! } }),
+    enabled: open && isPizzaCategory && !!editing?.category_id,
+  });
+
+  useEffect(() => {
+    if (!open || !isPizzaCategory || !editing?.category_id || !pizzaConfigQ.data?.sizes) return;
+    const catSizes = pizzaConfigQ.data.sizes;
+    const targetKey = `${editing.id ?? "new"}:${editing.category_id}`;
+
+    if (skipNextPizzaHydrateRef.current) {
+      skipNextPizzaHydrateRef.current = false;
+      pizzaHydratedKeyRef.current = targetKey;
+      setDraftPizzaSizes((prev) => {
+        const next: DraftPizzaSizeMap = {};
+        for (const sz of catSizes) {
+          const prevEntry = prev[sz.id];
+          next[sz.id] = prevEntry
+            ? {
+                ...prevEntry,
+                existingId: undefined,
+                name: sz.name,
+                sort_order: sz.sort_order,
+                max_flavors: sz.max_flavors,
+                pieces: sz.pieces,
+              }
+            : {
+                category_size_id: sz.id,
+                name: sz.name,
+                sort_order: sz.sort_order,
+                max_flavors: sz.max_flavors,
+                pieces: sz.pieces,
+                enabled: false,
+                price: 0,
+                fraction_prices: { "1": 0 },
+              };
+        }
+        const base = initialPizzaMetaRef.current;
+        if (base && base.editing.category_id === editing.category_id) {
+          initialSnapshotRef.current = getNormalizedProductState(base.editing, base.groupIds, [], next);
+        }
+        return next;
+      });
+      return;
+    }
+
+    if (pizzaHydratedKeyRef.current !== targetKey) {
+      const nextMap: DraftPizzaSizeMap = {};
+      for (const sz of catSizes) {
+        const matched = editing.id
+          ? currentProduct?.sizes?.find((s) => s.category_size_id === sz.id)
+          : undefined;
+        const basePrice = matched ? Number(matched.price) : 0;
+        const maxFlavors = sz.max_flavors ?? 1;
+        nextMap[sz.id] = {
+          category_size_id: sz.id,
+          name: sz.name,
+          sort_order: sz.sort_order,
+          max_flavors: maxFlavors,
+          pieces: sz.pieces,
+          enabled: !!matched,
+          price: basePrice,
+          fraction_prices: matched?.fraction_prices ?? computeFractionPrices(basePrice, maxFlavors),
+          existingId: matched?.id,
+        };
+      }
+      pizzaHydratedKeyRef.current = targetKey;
+      setDraftPizzaSizes(nextMap);
+      const base = initialPizzaMetaRef.current;
+      if (base && base.editing.category_id === editing.category_id) {
+        initialSnapshotRef.current = getNormalizedProductState(base.editing, base.groupIds, [], nextMap);
+      }
+      return;
+    }
+
+    setDraftPizzaSizes((prev) => {
+      let changed = Object.keys(prev).length !== catSizes.length;
+      const next: DraftPizzaSizeMap = {};
+      for (const sz of catSizes) {
+        const prevEntry = prev[sz.id];
+        if (prevEntry) {
+          if (
+            prevEntry.name !== sz.name ||
+            prevEntry.sort_order !== sz.sort_order ||
+            prevEntry.max_flavors !== sz.max_flavors ||
+            prevEntry.pieces !== sz.pieces
+          ) {
+            changed = true;
+          }
+          next[sz.id] = {
+            ...prevEntry,
+            name: sz.name,
+            sort_order: sz.sort_order,
+            max_flavors: sz.max_flavors,
+            pieces: sz.pieces,
+            fraction_prices: computeFractionPrices(
+              prevEntry.price,
+              sz.max_flavors,
+              prevEntry.fraction_prices,
+              new Set(Object.keys(prevEntry.fraction_prices))
+            ),
+          };
+        } else {
+          changed = true;
+          next[sz.id] = {
+            category_size_id: sz.id,
+            name: sz.name,
+            sort_order: sz.sort_order,
+            max_flavors: sz.max_flavors,
+            pieces: sz.pieces,
+            enabled: false,
+            price: 0,
+            fraction_prices: { "1": 0 },
+          };
+        }
+      }
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isPizzaCategory, editing?.id, editing?.category_id, pizzaConfigQ.data?.sizes]);
+
   const pizzaCatIds = useMemo(() => new Set(categories.filter((c) => c.kind === "pizza").map((c) => c.id)), [categories]);
   const filtered = useMemo(() => products.filter((p) => {
     if (catFilter === "todas") {
@@ -259,8 +427,33 @@ function ProductsPage() {
   };
 
   const saveMut = useMutation({
-    mutationFn: async (input: Editing) => {
-      const payload: Editing = isPizzaCategory ? { ...input, type: "pizza" } : input;
+    mutationFn: async ({
+      input,
+      keepOpenForNext = false,
+      pizzaSizesSnapshot,
+    }: {
+      input: Editing;
+      keepOpenForNext?: boolean;
+      pizzaSizesSnapshot?: DraftPizzaSizeMap;
+    }) => {
+      const inputCat = categories.find((c) => c.id === input.category_id);
+      const isPizza = inputCat?.kind === "pizza";
+      const pizzaSizesList = Object.values(pizzaSizesSnapshot ?? {});
+      const enabledPizzaSizes = pizzaSizesList.filter((s) => s.enabled && Number(s.price) > 0);
+      const minPizzaPrice =
+        isPizza && enabledPizzaSizes.length > 0
+          ? Math.min(...enabledPizzaSizes.map((s) => Number(s.price)))
+          : Number(input.price || 0);
+
+      const payload: Editing = isPizza
+        ? {
+            ...input,
+            type: "pizza",
+            listed_as_flavor: input.listed_as_flavor ?? true,
+            price: minPizzaPrice,
+          }
+        : input;
+
       const res = await saveProduct({ data: payload });
       const pid = res.id;
       if (!input.id && draftPrintLocs.length > 0) {
@@ -270,6 +463,25 @@ function ProductsPage() {
       if (!input.id && payload.type !== "pizza" && draftSizes.length > 0) {
         for (let i = 0; i < draftSizes.length; i++) {
           await saveProductSize({ data: { product_id: pid, name: draftSizes[i].name, price: draftSizes[i].price, sort_order: i } });
+        }
+      }
+      if (isPizza) {
+        for (const sz of pizzaSizesList) {
+          if (sz.enabled && Number(sz.price) > 0) {
+            await saveProductSize({
+              data: {
+                id: sz.existingId,
+                product_id: pid,
+                name: sz.name,
+                price: Number(sz.price),
+                sort_order: sz.sort_order,
+                category_size_id: sz.category_size_id,
+                fraction_prices: sz.fraction_prices,
+              },
+            });
+          } else if (sz.existingId) {
+            await deleteProductSize({ data: { id: sz.existingId } });
+          }
         }
       }
 
@@ -316,13 +528,45 @@ function ProductsPage() {
         }
       }
 
-      return res;
+      return { res, input, isPizza, keepOpenForNext, pizzaSizesSnapshot };
     },
-    onSuccess: (res) => {
+    onSuccess: ({ input, isPizza, keepOpenForNext, pizzaSizesSnapshot }) => {
       qc.invalidateQueries({ queryKey: ["admin", "products"] });
       qc.invalidateQueries({ queryKey: ["admin", "addon-groups"] });
-      toast.success("Produto salvo com sucesso!");
+      if (keepOpenForNext) {
+        toast.success("Sabor salvo! Pronto para cadastrar o próximo.");
+        const clearedSizes: DraftPizzaSizeMap = {};
+        for (const [k, v] of Object.entries(pizzaSizesSnapshot ?? {})) {
+          clearedSizes[k] = { ...v, existingId: undefined };
+        }
+        const nextEditing: Editing = {
+          ...input,
+          id: undefined,
+          name: "",
+          description: "",
+          image_url: "",
+          available: true,
+          featured: false,
+          bestseller: false,
+          free_gift_kind: null,
+          free_gift_ref_id: null,
+          free_crust_mode: "none",
+          sort_order: products.length + 2,
+        };
+        pizzaHydratedKeyRef.current = `new:${nextEditing.category_id ?? ""}`;
+        setDraftPrintLocs([]);
+        setDraftPizzaSizes(clearedSizes);
+        setEditing(nextEditing);
+        initialPizzaMetaRef.current = { editing: nextEditing, groupIds: selectedGroupIds };
+        initialSnapshotRef.current = getNormalizedProductState(nextEditing, selectedGroupIds, [], clearedSizes);
+        setPizzaFocusNonce((n) => n + 1);
+        return;
+      }
+      toast.success(isPizza ? "Sabor salvo com sucesso!" : "Produto salvo com sucesso!");
       initialSnapshotRef.current = null;
+      initialPizzaMetaRef.current = null;
+      pizzaHydratedKeyRef.current = null;
+      setDraftPizzaSizes({});
       setOpen(false);
       setEditing(null);
     },
@@ -349,33 +593,68 @@ function ProductsPage() {
       navigate({ to: "/admin/cardapio/novo" });
       return;
     }
+    const defaultCat = categories[0];
+    const isPizza = defaultCat?.kind === "pizza";
     const initialEditing: Editing = {
-      name: "", description: "", category_id: categories[0]?.id ?? null,
+      name: "", description: "", category_id: defaultCat?.id ?? null,
       price: 0, promo_price: null, image_url: "", available: true,
       featured: false, bestseller: false, prep_time: null, sort_order: products.length + 1,
-      type: categories[0]?.kind === "pizza" ? "pizza" : "standard", max_flavors: null, allow_observations: true,
-      listed_as_flavor: categories[0]?.kind === "pizza" ? null : null,
+      type: isPizza ? "pizza" : "standard", max_flavors: null, allow_observations: true,
+      listed_as_flavor: isPizza ? true : null,
       free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
     };
     setEditing(initialEditing);
     // Novos produtos sempre nascem sem nenhum adicional ou observação marcados
     setSelectedGroupIds([]);
     setDraftSizes([]);
-    initialSnapshotRef.current = getNormalizedProductState(initialEditing, [], []);
+    setDraftPizzaSizes({});
+    pizzaHydratedKeyRef.current = null;
+    initialPizzaMetaRef.current = { editing: initialEditing, groupIds: [] };
+    initialSnapshotRef.current = getNormalizedProductState(initialEditing, [], [], {});
+    if (isPizza) setPizzaFocusNonce((n) => n + 1);
+    setOpen(true);
+  };
+
+  const openNewPizzaFlavor = () => {
+    const preferredCat =
+      categories.find((c) => c.id === catFilter && c.kind === "pizza") ??
+      categories.find((c) => c.kind === "pizza");
+    if (!preferredCat) {
+      navigate({ to: "/admin/cardapio/novo" });
+      return;
+    }
+    const initialEditing: Editing = {
+      name: "", description: "", category_id: preferredCat.id,
+      price: 0, promo_price: null, image_url: "", available: true,
+      featured: false, bestseller: false, prep_time: null, sort_order: products.length + 1,
+      type: "pizza", max_flavors: null, allow_observations: true,
+      listed_as_flavor: true,
+      free_gift_kind: null, free_gift_ref_id: null, free_crust_mode: "none",
+    };
+    setEditing(initialEditing);
+    setSelectedGroupIds([]);
+    setDraftSizes([]);
+    setDraftPizzaSizes({});
+    pizzaHydratedKeyRef.current = null;
+    initialPizzaMetaRef.current = { editing: initialEditing, groupIds: [] };
+    initialSnapshotRef.current = getNormalizedProductState(initialEditing, [], [], {});
+    setPizzaFocusNonce((n) => n + 1);
     setOpen(true);
   };
 
   const openEditProduct = (p: typeof products[number]) => {
+    const pCat = categories.find((c) => c.id === p.category_id);
+    const isPizza = pCat?.kind === "pizza";
     const initialEditing: Editing = {
       id: p.id, name: p.name, description: p.description ?? "",
       category_id: p.category_id, price: Number(p.price),
       promo_price: p.promo_price != null ? Number(p.promo_price) : null,
       image_url: p.image_url ?? "", available: p.available, featured: p.featured, bestseller: (p as { bestseller?: boolean }).bestseller ?? false,
       prep_time: p.prep_time ?? null, sort_order: p.sort_order,
-      type: (p.type ?? "standard") as "standard" | "pizza",
+      type: isPizza ? "pizza" : ((p.type ?? "standard") as "standard" | "pizza"),
       max_flavors: p.max_flavors ?? null,
       allow_observations: p.allow_observations ?? true,
-      listed_as_flavor: (p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? null,
+      listed_as_flavor: isPizza ? ((p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? true) : ((p as { listed_as_flavor?: boolean | null }).listed_as_flavor ?? null),
       free_gift_kind: (p.free_gift_kind ?? null) as "crust" | "product" | null,
       free_gift_ref_id: p.free_gift_ref_id ?? null,
       free_crust_mode: ((p.free_crust_mode ?? "none") as "none" | "fixed" | "customer_choice"),
@@ -386,7 +665,10 @@ function ProductsPage() {
     setEditing(initialEditing);
     setSelectedGroupIds(initialGroupIds);
     setDraftSizes([]);
-    initialSnapshotRef.current = getNormalizedProductState(initialEditing, initialGroupIds, []);
+    setDraftPizzaSizes({});
+    pizzaHydratedKeyRef.current = null;
+    initialPizzaMetaRef.current = { editing: initialEditing, groupIds: initialGroupIds };
+    initialSnapshotRef.current = getNormalizedProductState(initialEditing, initialGroupIds, [], {});
     setOpen(true);
   };
 
@@ -493,13 +775,22 @@ function ProductsPage() {
     }
   };
 
-  const save = () => {
+  const save = (keepOpenForNext = false) => {
     if (!editing) return;
-    if (!editing.name) return toast.error("Nome é obrigatório");
-    if (isPizzaCategory && editing.listed_as_flavor === null) {
-      return toast.error("Defina se este sabor entra na montagem de pizzas.");
+    if (!editing.name.trim()) return toast.error("Nome é obrigatório");
+    if (
+      isPizzaCategory &&
+      Object.keys(draftPizzaSizes).length > 0 &&
+      editing.available &&
+      !Object.values(draftPizzaSizes).some((s) => s.enabled && Number(s.price) > 0)
+    ) {
+      return toast.error("Informe o preço de pelo menos 1 tamanho disponível (ou pause o sabor).");
     }
-    saveMut.mutate(editing);
+    saveMut.mutate({
+      input: editing,
+      keepOpenForNext,
+      pizzaSizesSnapshot: isPizzaCategory ? draftPizzaSizes : undefined,
+    });
   };
 
   const catNameById = new Map(categories.map((c) => [c.id, c.name]));
@@ -507,7 +798,12 @@ function ProductsPage() {
 
   const checkIsDirty = (): boolean => {
     if (!editing || !initialSnapshotRef.current) return false;
-    const current = getNormalizedProductState(editing, selectedGroupIds, draftSizes);
+    const current = getNormalizedProductState(
+      editing,
+      selectedGroupIds,
+      draftSizes,
+      isPizzaCategory ? draftPizzaSizes : {}
+    );
     return current !== initialSnapshotRef.current;
   };
 
@@ -529,6 +825,9 @@ function ProductsPage() {
       }
     }
     initialSnapshotRef.current = null;
+    initialPizzaMetaRef.current = null;
+    pizzaHydratedKeyRef.current = null;
+    setDraftPizzaSizes({});
     setOpen(false);
     setEditing(null);
   };
@@ -541,8 +840,8 @@ function ProductsPage() {
     }
   };
 
-  const saveRef = useRef(save);
-  saveRef.current = save;
+  const saveRef = useRef(() => save(false));
+  saveRef.current = () => save(false);
   const handleSaveInlineGroupRef = useRef(handleSaveInlineGroup);
   handleSaveInlineGroupRef.current = handleSaveInlineGroup;
   const handleRequestCloseRef = useRef(handleRequestClose);
@@ -604,7 +903,32 @@ function ProductsPage() {
   }
 
   return (
-    <AdminLayout title="Produtos" action={<Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>}>
+    <AdminLayout
+      title="Produtos"
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          {isPizzaria && pizzaCatIds.size > 0 && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const preferred =
+                    categories.find((c) => c.id === catFilter && c.kind === "pizza") ??
+                    categories.find((c) => c.kind === "pizza");
+                  if (preferred) setPizzaConfigCat({ id: preferred.id, name: preferred.name });
+                }}
+              >
+                <Settings2 className="mr-1.5 h-4 w-4" /> Tamanhos e Bordas
+              </Button>
+              <Button variant="secondary" onClick={openNewPizzaFlavor}>
+                <Pizza className="mr-1.5 h-4 w-4" /> Novo sabor de pizza
+              </Button>
+            </>
+          )}
+          <Button onClick={openNew}><Plus className="mr-1 h-4 w-4" /> Novo produto</Button>
+        </div>
+      }
+    >
       <div className="space-y-4">
         <div className="relative">
           <Card className={showTutorial ? "ring-4 ring-blue-500/80 shadow-2xl relative z-20 border-blue-500" : ""}>
@@ -821,7 +1145,14 @@ function ProductsPage() {
               setEditing={setEditing}
               categories={categories}
               allProducts={products.map((p) => ({ id: p.id, name: p.name }))}
-              currentProductSizes={currentProduct?.sizes ?? []}
+              categorySizes={pizzaConfigQ.data?.sizes ?? []}
+              pizzaConfigLoading={pizzaConfigQ.isLoading}
+              draftPizzaSizes={draftPizzaSizes}
+              setDraftPizzaSizes={setDraftPizzaSizes}
+              draftPrintLocs={draftPrintLocs}
+              setDraftPrintLocs={setDraftPrintLocs}
+              focusNonce={pizzaFocusNonce}
+              onOpenPizzaConfig={(cat) => setPizzaConfigCat(cat)}
               onClose={handleRequestClose}
               onSave={save}
               isSaving={saveMut.isPending}
@@ -852,7 +1183,12 @@ function ProductsPage() {
                       value={editing.category_id ?? ""}
                       onValueChange={(v) => {
                         const cat = categories.find((c) => c.id === v);
-                        setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
+                        setEditing({
+                          ...editing,
+                          category_id: v,
+                          type: cat?.kind === "pizza" ? "pizza" : "standard",
+                          listed_as_flavor: cat?.kind === "pizza" ? (editing.listed_as_flavor ?? true) : editing.listed_as_flavor,
+                        });
                       }}
                     >
                       <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
@@ -1200,7 +1536,7 @@ function ProductsPage() {
 
               <DialogFooter className="pt-3 border-t mt-4">
                 <Button variant="outline" onClick={handleRequestClose}>Cancelar</Button>
-                <Button onClick={save} disabled={saveMut.isPending} className="px-6 gap-2">
+                <Button onClick={() => save(false)} disabled={saveMut.isPending} className="px-6 gap-2">
                   {saveMut.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -1217,6 +1553,15 @@ function ProductsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {pizzaConfigCat && (
+        <PizzaCategoryConfigDialog
+          open={!!pizzaConfigCat}
+          onOpenChange={(v) => { if (!v) setPizzaConfigCat(null); }}
+          categoryId={pizzaConfigCat.id}
+          categoryName={pizzaConfigCat.name}
+        />
+      )}
 
       {/* Inline Modal for creation/editing of Observation Groups or Addon Subcategories */}
       <Dialog open={inlineGroupOpen} onOpenChange={setInlineGroupOpen}>
@@ -1391,298 +1736,487 @@ function ProductsPage() {
 // ===== Pizza product form (Detalhes / Preço / Classificação) =====
 
 function PizzaProductForm({
-  editing, setEditing, categories, currentProductSizes, allProducts, onClose, onSave, isSaving,
+  editing, setEditing, categories, allProducts,
+  categorySizes, pizzaConfigLoading, draftPizzaSizes, setDraftPizzaSizes,
+  draftPrintLocs, setDraftPrintLocs, focusNonce,
+  onOpenPizzaConfig, onClose, onSave, isSaving,
 }: {
   editing: Editing;
   setEditing: (e: Editing) => void;
   categories: { id: string; name: string; kind: "standard" | "pizza" | "oferta" }[];
-  currentProductSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null; fraction_prices?: Record<string, number> | null }[];
   allProducts: { id: string; name: string }[];
+  categorySizes: {
+    id: string;
+    name: string;
+    pieces: number;
+    max_flavors: number;
+    sort_order: number;
+    active: boolean;
+    price_rule?: "sum_fractions" | "max_value" | "fixed" | null;
+  }[];
+  pizzaConfigLoading: boolean;
+  draftPizzaSizes: DraftPizzaSizeMap;
+  setDraftPizzaSizes: React.Dispatch<React.SetStateAction<DraftPizzaSizeMap>>;
+  draftPrintLocs: string[];
+  setDraftPrintLocs: (ids: string[]) => void;
+  focusNonce: number;
+  onOpenPizzaConfig: (cat: { id: string; name: string }) => void;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (keepOpenForNext?: boolean) => void;
   isSaving: boolean;
 }) {
-  const [tab, setTab] = useState<string>("detalhes");
+  const qc = useQueryClient();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const currentCat = categories.find((c) => c.id === editing.category_id) ?? null;
+  const priceRule = categorySizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions";
+
+  useEffect(() => {
+    if (!editing.id) {
+      const t = setTimeout(() => nameInputRef.current?.focus(), 60);
+      return () => clearTimeout(t);
+    }
+  }, [focusNonce, editing.id]);
+
+  const quickSizesMut = useMutation({
+    mutationFn: async () => {
+      if (!editing.category_id) return 0;
+      return createMissingPizzaSizes(editing.category_id, [], STANDARD_PIZZA_SIZES_PRESET, "sum_fractions", 0);
+    },
+    onSuccess: (created) => {
+      if (editing.category_id) {
+        qc.invalidateQueries({ queryKey: ["admin", "pizza-config", editing.category_id] });
+      }
+      if (created > 0) {
+        toast.success("Tamanhos padrão (P, M, G, Família) criados!");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const hasGift = editing.free_crust_mode !== "none" || editing.free_gift_kind !== null;
+
   return (
-    <Tabs value={tab} onValueChange={setTab}>
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-        <TabsTrigger value="preco" disabled={!editing.id}>Preço</TabsTrigger>
-        <TabsTrigger value="classificacao" disabled={!editing.id}>Classificação</TabsTrigger>
-      </TabsList>
+    <div className="space-y-4 pt-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* COLUNA ESQUERDA: Dados do Sabor */}
+        <div className="space-y-3.5 rounded-xl border p-4 bg-muted/10">
+          <h4 className="font-semibold text-sm text-foreground flex items-center gap-1.5 border-b pb-2">
+            <Pizza className="h-4 w-4 text-primary" /> Dados do Sabor
+          </h4>
 
-      <TabsContent value="detalhes" className="mt-4 space-y-3">
-        <div><Label>Categoria</Label>
-          <Select value={editing.category_id ?? ""} onValueChange={(v) => {
-            const cat = categories.find((c) => c.id === v);
-            setEditing({ ...editing, category_id: v, type: cat?.kind === "pizza" ? "pizza" : "standard" });
-          }}>
-            <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {categories.filter((c) => c.kind === "pizza").map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name} 🍕</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="mt-1 text-[11px] text-muted-foreground">Apenas categorias do tipo pizza são listadas.</p>
-        </div>
-        <PrintLocationPicker kind="product" id={editing.id} categoryId={editing.category_id} categoryName={categories.find((c) => c.id === editing.category_id)?.name} />
-        <div><Label>Sabor</Label><Input maxLength={80} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" placeholder="Ex: Pizza de Mussarela" /><p className="text-right text-[10px] text-muted-foreground">{editing.name.length}/80 caracteres</p></div>
-        <div><Label>Descrição</Label><Textarea maxLength={1000} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
-        <ImageUploader
-          label="Foto da pizza"
-          value={editing.image_url}
-          onChange={(url) => setEditing({ ...editing, image_url: url })}
-          folder="produtos"
-        />
-        <p className="text-[10px] text-muted-foreground">Formatos: JPEG, JPG, PNG. Resolução mínima: 300×275.</p>
-
-        <div className={`rounded-xl border p-3 ${editing.listed_as_flavor === null ? "border-destructive/60 bg-destructive/5" : ""}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <Label className="text-sm font-semibold">Listar como sabor na montagem da pizza</Label>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Quando ativado, este item aparece como opção de sabor para o cliente montar pizzas (inclusive fracionadas — 1/2, 1/3, 1/4). Quando desativado, fica apenas como produto vendido inteiro.
-              </p>
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs font-semibold">Categoria</Label>
+              {currentCat && (
+                <button
+                  type="button"
+                  onClick={() => onOpenPizzaConfig({ id: currentCat.id, name: currentCat.name })}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+                >
+                  <Settings2 className="h-3 w-3" /> Tamanhos e bordas
+                </button>
+              )}
             </div>
-            <Switch
-              checked={editing.listed_as_flavor === true}
-              onCheckedChange={(v) => setEditing({ ...editing, listed_as_flavor: v })}
+            <Select
+              value={editing.category_id ?? ""}
+              onValueChange={(v) => {
+                const cat = categories.find((c) => c.id === v);
+                const nextIsPizza = cat?.kind === "pizza";
+                setEditing({
+                  ...editing,
+                  category_id: v,
+                  type: nextIsPizza ? "pizza" : "standard",
+                  listed_as_flavor: nextIsPizza ? (editing.listed_as_flavor ?? true) : editing.listed_as_flavor,
+                });
+              }}
+            >
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione a categoria" /></SelectTrigger>
+              <SelectContent>
+                {categories.filter((c) => c.kind === "pizza").map((c) => (
+                  <SelectItem key={c.id} value={c.id}>🍕 {c.name}</SelectItem>
+                ))}
+                {categories.some((c) => c.kind !== "pizza") && (
+                  <>
+                    <div className="px-2 pt-2 pb-1 text-xs font-semibold text-muted-foreground">Outras categorias</div>
+                    {categories.filter((c) => c.kind !== "pizza").map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Nome do Sabor</Label>
+              <span className="text-[10px] text-muted-foreground">{editing.name.length}/80</span>
+            </div>
+            <Input
+              ref={nameInputRef}
+              maxLength={80}
+              value={editing.name}
+              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              className="mt-1"
+              placeholder="Ex: Calabresa com Cebola"
             />
           </div>
-          {editing.listed_as_flavor === null && (
-            <p className="mt-2 text-[11px] font-medium text-destructive">
-              Obrigatório: defina Sim ou Não antes de salvar.
-            </p>
-          )}
+
+          <div>
+            <Label className="text-xs font-semibold">Ingredientes / Descrição</Label>
+            <Textarea
+              maxLength={1000}
+              rows={3}
+              value={editing.description}
+              onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+              className="mt-1 text-xs"
+              placeholder="Ex: Molho artesanal, mussarela especial, calabresa fatiada e cebola..."
+            />
+          </div>
+
+          <ImageUploader
+            label="Foto do sabor (opcional)"
+            value={editing.image_url}
+            onChange={(url) => setEditing({ ...editing, image_url: url })}
+            folder="produtos"
+          />
+
+          <PrintLocationPicker
+            kind="product"
+            id={editing.id}
+            categoryId={editing.category_id}
+            categoryName={currentCat?.name}
+            draft={draftPrintLocs}
+            onDraftChange={setDraftPrintLocs}
+          />
         </div>
 
-        <DialogFooter className="pt-3">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={onSave} disabled={isSaving || !editing.name || editing.listed_as_flavor === null} className="gap-2">
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+        {/* COLUNA DIREITA: Tamanhos e Preços + Opções */}
+        <div className="space-y-4">
+          <div className="rounded-xl border p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+              <h4 className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                Tamanhos e Preços
+              </h4>
+              {currentCat && categorySizes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onOpenPizzaConfig({ id: currentCat.id, name: currentCat.name })}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground transition"
+                >
+                  <span>Meio a meio: {priceRule === "max_value" ? "Maior valor" : "Média proporcional"}</span>
+                  <span className="text-primary">· Alterar</span>
+                </button>
+              )}
+            </div>
+
+            {pizzaConfigLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : categorySizes.length === 0 ? (
+              <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-center space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Esta categoria ainda não tem tamanhos configurados (Pequena, Média, Grande…).
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={quickSizesMut.isPending}
+                    onClick={() => quickSizesMut.mutate()}
+                  >
+                    {quickSizesMut.isPending ? (
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Zap className="mr-1.5 h-3.5 w-3.5" />
+                    )}
+                    Criar tamanhos padrão agora (P, M, G, Família)
+                  </Button>
+                  {currentCat && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onOpenPizzaConfig({ id: currentCat.id, name: currentCat.name })}
+                    >
+                      Configurar manualmente
+                    </Button>
+                  )}
+                </div>
+              </div>
             ) : (
               <>
-                <span>{editing.id ? "Salvar" : "Continuar"}</span>
-                <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1.5 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
-                  F2
-                </kbd>
+                <p className="text-xs text-muted-foreground">
+                  Informe o valor da pizza inteira em cada tamanho vendido. Pizzas meio a meio são calculadas automaticamente.
+                </p>
+                <div className="space-y-2">
+                  {categorySizes.map((sz) => {
+                    const entry = draftPizzaSizes[sz.id] ?? {
+                      category_size_id: sz.id,
+                      name: sz.name,
+                      sort_order: sz.sort_order,
+                      max_flavors: sz.max_flavors,
+                      pieces: sz.pieces,
+                      enabled: false,
+                      price: 0,
+                      fraction_prices: { "1": 0 },
+                    };
+                    return (
+                      <PizzaSizePriceRow
+                        key={sz.id}
+                        size={sz}
+                        entry={entry}
+                        priceRule={priceRule}
+                        onChange={(nextEntry) =>
+                          setDraftPizzaSizes((prev) => ({ ...prev, [sz.id]: nextEntry }))
+                        }
+                      />
+                    );
+                  })}
+                </div>
               </>
             )}
-          </Button>
-        </DialogFooter>
-      </TabsContent>
+          </div>
 
-      <TabsContent value="preco" className="mt-4 space-y-3">
-        {editing.id && editing.category_id && (
-          <PizzaPriceMatrix
-            productId={editing.id}
-            categoryId={editing.category_id}
-            existingSizes={currentProductSizes}
-          />
-        )}
-        <DialogFooter className="pt-3">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={() => setTab("classificacao")}>Avançar</Button>
-        </DialogFooter>
-      </TabsContent>
+          <div className="rounded-xl border p-4 space-y-2.5">
+            <h4 className="font-semibold text-sm text-foreground border-b pb-2">Opções e Destaques</h4>
 
-      <TabsContent value="classificacao" className="mt-4 space-y-3">
-        <div><Label>Tempo de preparo</Label><Input value={editing.prep_time ?? ""} onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })} className="mt-1.5" placeholder="Ex: 30 min" /></div>
-        <div className="flex items-center justify-between rounded-xl border p-3"><Label>Disponível</Label><Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} /></div>
-        <div className="flex items-center justify-between rounded-xl border p-3"><Label>Em destaque</Label><Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} /></div>
-        <div className="flex items-center justify-between rounded-xl border p-3"><Label>🔥 Mais vendido</Label><Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} /></div>
-        <div className="flex items-center justify-between rounded-xl border p-3"><Label>Aceita observação</Label><Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} /></div>
+            <div className="flex items-center justify-between gap-3 py-1">
+              <Label className="text-xs font-medium">Disponível no cardápio</Label>
+              <Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} />
+            </div>
 
-        <BordaGratisPicker
-          categoryId={editing.category_id}
-          mode={editing.free_crust_mode}
-          fixedCrustId={editing.free_crust_mode === "fixed" ? (editing.free_gift_kind === "crust" ? editing.free_gift_ref_id : null) : null}
-          onChange={(mode, fixedId) => {
-            if (mode === "fixed") {
-              setEditing({ ...editing, free_crust_mode: "fixed", free_gift_kind: "crust", free_gift_ref_id: fixedId });
-            } else if (mode === "customer_choice") {
-              setEditing({ ...editing, free_crust_mode: "customer_choice", free_gift_kind: null, free_gift_ref_id: null });
-            } else {
-              // none: limpa apenas se o brinde anterior era de borda
-              const wasProduct = editing.free_gift_kind === "product";
-              setEditing({
-                ...editing,
-                free_crust_mode: "none",
-                free_gift_kind: wasProduct ? "product" : null,
-                free_gift_ref_id: wasProduct ? editing.free_gift_ref_id : null,
-              });
-            }
-          }}
-        />
-        <ProductGiftPicker
-          allProducts={allProducts.filter((p) => p.id !== editing.id)}
-          enabled={editing.free_gift_kind === "product"}
-          giftRefId={editing.free_gift_kind === "product" ? editing.free_gift_ref_id : null}
-          onChange={(enabled, id) => {
-            if (enabled) {
-              setEditing({ ...editing, free_gift_kind: "product", free_gift_ref_id: id });
-            } else if (editing.free_gift_kind === "product") {
-              setEditing({ ...editing, free_gift_kind: null, free_gift_ref_id: null });
-            }
-          }}
-        />
-        <DialogFooter className="pt-3">
-          <Button variant="outline" onClick={onClose}>Fechar</Button>
-          <Button onClick={onSave} disabled={isSaving || editing.listed_as_flavor === null} className="gap-2">
-            {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <span>Salvar</span>
-                <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1.5 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
-                  F2
-                </kbd>
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </TabsContent>
-    </Tabs>
-  );
-}
+            <div className="flex items-center justify-between gap-3 py-1">
+              <div>
+                <Label className="text-xs font-medium">Aceitar em pizzas meio a meio / múltiplos sabores</Label>
+                <p className="text-[11px] text-muted-foreground">Permite combinar este sabor com outros na montagem da pizza.</p>
+              </div>
+              <Switch
+                checked={editing.listed_as_flavor !== false}
+                onCheckedChange={(v) => setEditing({ ...editing, listed_as_flavor: v })}
+              />
+            </div>
 
-function PizzaPriceMatrix({ productId, categoryId, existingSizes }: { productId: string; categoryId: string; existingSizes: { id: string; name: string; price: number; sort_order: number; category_size_id: string | null; fraction_prices?: Record<string, number> | null }[] }) {
-  const qc = useQueryClient();
-  const cfgQ = useQuery({
-    queryKey: ["admin", "pizza-config", categoryId],
-    queryFn: () => listCategoryPizzaConfig({ data: { category_id: categoryId } }),
-  });
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <label className="flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs cursor-pointer">
+                <span>Em destaque</span>
+                <Switch checked={editing.featured} onCheckedChange={(v) => setEditing({ ...editing, featured: v })} />
+              </label>
+              <label className="flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs cursor-pointer">
+                <span>🔥 Mais vendido</span>
+                <Switch checked={editing.bestseller} onCheckedChange={(v) => setEditing({ ...editing, bestseller: v })} />
+              </label>
+            </div>
 
-  const sizes = cfgQ.data?.sizes ?? [];
-  const sizeMap = useMemo(() => {
-    const m = new Map<string, { id: string; price: number; fraction_prices: Record<string, number> | null }>();
-    for (const s of existingSizes) if (s.category_size_id) m.set(s.category_size_id, { id: s.id, price: Number(s.price), fraction_prices: s.fraction_prices ?? null });
-    return m;
-  }, [existingSizes]);
+            <div className="grid grid-cols-2 gap-2 items-center pt-1">
+              <label className="flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs cursor-pointer">
+                <span>Aceita observação</span>
+                <Switch checked={editing.allow_observations} onCheckedChange={(v) => setEditing({ ...editing, allow_observations: v })} />
+              </label>
+              <Input
+                value={editing.prep_time ?? ""}
+                onChange={(e) => setEditing({ ...editing, prep_time: e.target.value })}
+                className="h-9 text-xs"
+                placeholder="Preparo (ex: 30 min)"
+              />
+            </div>
+          </div>
 
-  const saveMut = useMutation({
-    mutationFn: (d: { id?: string; product_id: string; name: string; price: number; sort_order: number; category_size_id: string; fraction_prices?: Record<string, number> }) => saveProductSize({ data: d }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
-  const delMut = useMutation({
-    mutationFn: (id: string) => deleteProductSize({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin", "products"] }),
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  if (cfgQ.isLoading) return <div className="flex justify-center p-6"><Loader2 className="h-4 w-4 animate-spin" /></div>;
-  if (sizes.length === 0) {
-    return <p className="rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground">Cadastre os tamanhos na categoria pizza primeiro (Categorias → Configurar).</p>;
-  }
-
-  return (
-    <div>
-      <h4 className="mb-3 font-bold">Preços</h4>
-      <p className="mb-4 text-xs text-muted-foreground">Marque os tamanhos em que este sabor é vendido. Para pizzas fracionadas o valor é dividido automaticamente — você pode ajustar cada fração.</p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {sizes.map((sz) => {
-          const existing = sizeMap.get(sz.id);
-          const enabled = !!existing;
-          const maxFlavors = (sz as { max_flavors?: number }).max_flavors ?? 1;
-          return (
-            <PriceCell
-              key={sz.id}
-              sizeName={sz.name}
-              maxFlavors={maxFlavors}
-              enabled={enabled}
-              price={existing?.price ?? 0}
-              fractionPrices={existing?.fraction_prices ?? null}
-              onToggle={(v) => {
-                if (!v && existing) delMut.mutate(existing.id);
-                if (v && !existing) saveMut.mutate({ product_id: productId, name: sz.name, price: 0, sort_order: sz.sort_order, category_size_id: sz.id, fraction_prices: { "1": 0 } });
-              }}
-              onCommit={(price, fracs) => {
-                if (existing) saveMut.mutate({ id: existing.id, product_id: productId, name: sz.name, price, sort_order: sz.sort_order, category_size_id: sz.id, fraction_prices: fracs });
-                else if (price > 0) saveMut.mutate({ product_id: productId, name: sz.name, price, sort_order: sz.sort_order, category_size_id: sz.id, fraction_prices: fracs });
-              }}
-            />
-          );
-        })}
+          <details className="rounded-xl border p-3 group" open={hasGift}>
+            <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-foreground">
+              <span>Brindes e Promoções (opcional)</span>
+              <span className="text-[11px] font-normal text-muted-foreground">
+                {hasGift ? "Ativo" : "Clique para expandir"}
+              </span>
+            </summary>
+            <div className="mt-3 space-y-3 pt-2 border-t">
+              <BordaGratisPicker
+                categoryId={editing.category_id}
+                mode={editing.free_crust_mode}
+                fixedCrustId={editing.free_crust_mode === "fixed" ? (editing.free_gift_kind === "crust" ? editing.free_gift_ref_id : null) : null}
+                onChange={(mode, fixedId) => {
+                  if (mode === "fixed") {
+                    setEditing({ ...editing, free_crust_mode: "fixed", free_gift_kind: "crust", free_gift_ref_id: fixedId });
+                  } else if (mode === "customer_choice") {
+                    setEditing({ ...editing, free_crust_mode: "customer_choice", free_gift_kind: null, free_gift_ref_id: null });
+                  } else {
+                    const wasProduct = editing.free_gift_kind === "product";
+                    setEditing({
+                      ...editing,
+                      free_crust_mode: "none",
+                      free_gift_kind: wasProduct ? "product" : null,
+                      free_gift_ref_id: wasProduct ? editing.free_gift_ref_id : null,
+                    });
+                  }
+                }}
+              />
+              <ProductGiftPicker
+                allProducts={allProducts.filter((p) => p.id !== editing.id)}
+                enabled={editing.free_gift_kind === "product"}
+                giftRefId={editing.free_gift_kind === "product" ? editing.free_gift_ref_id : null}
+                onChange={(enabled, id) => {
+                  if (enabled) {
+                    setEditing({ ...editing, free_gift_kind: "product", free_gift_ref_id: id });
+                  } else if (editing.free_gift_kind === "product") {
+                    setEditing({ ...editing, free_gift_kind: null, free_gift_ref_id: null });
+                  }
+                }}
+              />
+            </div>
+          </details>
+        </div>
       </div>
+
+      <DialogFooter className="pt-3 border-t mt-2 flex-wrap gap-2 sm:justify-between">
+        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isSaving || !editing.name.trim()}
+            onClick={() => onSave(true)}
+          >
+            Salvar e adicionar outro
+          </Button>
+          <Button
+            type="button"
+            onClick={() => onSave(false)}
+            disabled={isSaving || !editing.name.trim()}
+            className="gap-2 px-5"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <span>Salvar Sabor</span>
+                <kbd className="hidden sm:inline-flex items-center text-[10px] font-medium bg-primary-foreground/20 px-1.5 py-0.5 rounded border border-primary-foreground/30 text-primary-foreground">
+                  F2
+                </kbd>
+              </>
+            )}
+          </Button>
+        </div>
+      </DialogFooter>
     </div>
   );
 }
 
-function PriceCell({ sizeName, maxFlavors, enabled, price, fractionPrices, onToggle, onCommit }: {
-  sizeName: string;
-  maxFlavors: number;
-  enabled: boolean;
-  price: number;
-  fractionPrices: Record<string, number> | null;
-  onToggle: (v: boolean) => void;
-  onCommit: (price: number, fracs: Record<string, number>) => void;
+function PizzaSizePriceRow({
+  size, entry, priceRule, onChange,
+}: {
+  size: { id: string; name: string; pieces: number; max_flavors: number; active: boolean };
+  entry: DraftPizzaSize;
+  priceRule: "sum_fractions" | "max_value" | "fixed";
+  onChange: (next: DraftPizzaSize) => void;
 }) {
-  const [full, setFull] = useState(price);
-  const [fracs, setFracs] = useState<Record<string, number>>(() => fractionPrices ?? { "1": price });
-  const [edited, setEdited] = useState<Set<string>>(new Set());
+  const [editedFracs, setEditedFracs] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    setFull(price);
-    setFracs(fractionPrices ?? { "1": price });
-    setEdited(new Set());
-  }, [price, fractionPrices]);
-
-  const recompute = (base: number, keepEdited: Set<string>) => {
-    const next: Record<string, number> = { "1": base };
-    for (let n = 2; n <= maxFlavors; n++) {
-      const key = String(n);
-      next[key] = keepEdited.has(key) ? (fracs[key] ?? base / n) : Number((base / n).toFixed(2));
-    }
-    return next;
+  const handlePriceChange = (val: number) => {
+    const nextFracs = computeFractionPrices(val, size.max_flavors, entry.fraction_prices, editedFracs);
+    onChange({
+      ...entry,
+      enabled: val > 0 ? true : entry.enabled,
+      price: val,
+      fraction_prices: nextFracs,
+    });
   };
 
-  const handleFullCommit = (v: number) => {
-    setFull(v);
-    const next = recompute(v, edited);
-    setFracs(next);
-    onCommit(v, next);
+  const handleToggle = (checked: boolean) => {
+    onChange({
+      ...entry,
+      enabled: checked,
+    });
   };
-  const handleFracCommit = (key: string, v: number) => {
-    const next = { ...fracs, [key]: v };
-    const e2 = new Set(edited); e2.add(key);
-    setEdited(e2);
-    setFracs(next);
-    onCommit(full, next);
+
+  const handleFractionChange = (key: string, val: number) => {
+    const nextEdited = new Set(editedFracs);
+    nextEdited.add(key);
+    setEditedFracs(nextEdited);
+    onChange({
+      ...entry,
+      fraction_prices: { ...entry.fraction_prices, [key]: val },
+    });
   };
-  const resetAuto = () => {
-    setEdited(new Set());
-    const next = recompute(full, new Set());
-    setFracs(next);
-    onCommit(full, next);
+
+  const handleRecalc = () => {
+    setEditedFracs(new Set());
+    onChange({
+      ...entry,
+      fraction_prices: computeFractionPrices(entry.price, size.max_flavors),
+    });
   };
 
   return (
-    <div className="rounded-xl border p-3">
-      <label className="flex items-center justify-between gap-2 cursor-pointer">
-        <span className="flex items-center gap-2 text-sm font-medium">
-          <Checkbox checked={enabled} onCheckedChange={(v) => onToggle(!!v)} />
-          🍕 {sizeName}
-          {maxFlavors > 1 && <span className="text-xs text-muted-foreground">(até {maxFlavors} sabores)</span>}
-        </span>
-        {maxFlavors > 1 && enabled && (
-          <button type="button" onClick={resetAuto} className="text-[11px] text-primary hover:underline">Recalcular</button>
-        )}
-      </label>
-      <div className="mt-3 space-y-2">
-        <div>
-          <p className="mb-1 text-[11px] text-muted-foreground">Valor cheio (1 sabor)</p>
-          <CurrencyBlurInput initialValue={full} onCommit={handleFullCommit} className="text-center" />
-        </div>
-        {maxFlavors > 1 && enabled && Array.from({ length: maxFlavors - 1 }, (_, i) => i + 2).map((n) => (
-          <div key={n}>
-            <p className="mb-1 text-[11px] text-muted-foreground">Valor 1/{n} (quando dividido em {n} sabores)</p>
-            <CurrencyBlurInput initialValue={fracs[String(n)] ?? Number((full / n).toFixed(2))} onCommit={(v) => handleFracCommit(String(n), v)} className="text-center" />
+    <div className={`rounded-lg border p-2.5 transition ${entry.enabled ? "bg-card border-border" : "bg-muted/20 border-dashed"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex items-center gap-2.5 cursor-pointer min-w-0">
+          <Checkbox checked={entry.enabled} onCheckedChange={(v) => handleToggle(!!v)} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className={`text-sm font-semibold ${!entry.enabled ? "text-muted-foreground" : ""}`}>
+                {size.name}
+              </span>
+              {!size.active && (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Pausado</span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {size.pieces} {size.pieces === 1 ? "pedaço" : "pedaços"} · até {size.max_flavors} {size.max_flavors > 1 ? "sabores" : "sabor"}
+            </p>
           </div>
-        ))}
+        </label>
+
+        <div className="w-32 shrink-0">
+          <CurrencyInput
+            value={entry.price}
+            onChange={handlePriceChange}
+            className="h-9 text-right font-semibold"
+          />
+        </div>
       </div>
+
+      {entry.enabled && entry.price > 0 && size.max_flavors > 1 && (
+        <div className="mt-2 pt-2 border-t border-dashed space-y-2">
+          <p className="text-[11px] text-muted-foreground">
+            {priceRule === "max_value" ? (
+              "Meio a meio: prevalece o sabor de maior valor selecionado"
+            ) : (
+              <>
+                Meio a meio automático:{" "}
+                {Array.from({ length: size.max_flavors - 1 }, (_, i) => i + 2)
+                  .map((n) => `1/${n} = ${brl(entry.fraction_prices[String(n)] ?? Number((entry.price / n).toFixed(2)))}`)
+                  .join(" · ")}
+              </>
+            )}
+          </p>
+
+          {priceRule !== "max_value" && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-[11px] font-medium text-primary hover:underline w-fit">
+                Personalizar frações (1/2{size.max_flavors >= 3 ? ", 1/3…" : ""})
+              </summary>
+              <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Array.from({ length: size.max_flavors - 1 }, (_, i) => i + 2).map((n) => (
+                  <div key={n} className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Valor 1/{n} sabor</Label>
+                    <CurrencyInput
+                      value={entry.fraction_prices[String(n)] ?? Number((entry.price / n).toFixed(2))}
+                      onChange={(v) => handleFractionChange(String(n), v)}
+                      className="h-8 text-xs text-right"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleRecalc}
+                className="mt-1.5 text-[11px] text-muted-foreground hover:text-primary hover:underline"
+              >
+                Recalcular proporcional automático
+              </button>
+            </details>
+          )}
+        </div>
+      )}
     </div>
   );
 }
