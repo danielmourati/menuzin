@@ -15,11 +15,16 @@ import { Plus, Edit2, Trash2, Loader2, Pizza, UtensilsCrossed, Settings2, Tag, F
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
 import { toast } from "sonner";
 import {
-  listMyCategories, saveCategory, deleteCategory,
+  listMyCategories, saveCategory, deleteCategory, listCategoryPizzaConfig,
 } from "@/lib/catalog-admin.functions";
 import { getMyTenant } from "@/lib/tenants.functions";
 import type { DbCategory } from "@/lib/db-types";
-import { PizzaCategoryConfigDialog } from "@/components/admin/PizzaCategoryConfigDialog";
+import {
+  PizzaCategoryConfigDialog,
+  PizzaCategoryBehaviorSelector,
+  applyPizzaCategoryFlavorMode,
+  isSingleFlavorPizzaCategory,
+} from "@/components/admin/PizzaCategoryConfigDialog";
 import { confirmDialog } from "@/hooks/useConfirm";
 
 
@@ -34,6 +39,7 @@ type Editing = {
   sort_order: number;
   active: boolean;
   kind: "standard" | "pizza" | "oferta";
+  allow_multiple_flavors?: boolean;
 };
 
 function CategoriesPage() {
@@ -57,10 +63,47 @@ function CategoriesPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [behaviorTouched, setBehaviorTouched] = useState(false);
   const [pizzaCfg, setPizzaCfg] = useState<{ id: string; name: string } | null>(null);
 
+  const editPizzaCfgQ = useQuery({
+    queryKey: ["admin", "pizza-config", editing?.id],
+    queryFn: () => listCategoryPizzaConfig({ data: { category_id: editing!.id! } }),
+    enabled: open && editing?.kind === "pizza" && !!editing?.id,
+  });
+
+  const effectiveAllowMulti =
+    editing?.kind === "pizza"
+      ? behaviorTouched || !editing?.id || !editPizzaCfgQ.data
+        ? editing.allow_multiple_flavors !== false
+        : !isSingleFlavorPizzaCategory(editing.id, editPizzaCfgQ.data.sizes)
+      : true;
+
   const saveMut = useMutation({
-    mutationFn: (input: Editing) => saveCategory({ data: input }),
+    mutationFn: async (input: Editing) => {
+      const res = await saveCategory({
+        data: {
+          id: input.id,
+          name: input.name,
+          description: input.description,
+          sort_order: input.sort_order,
+          active: input.active,
+          kind: input.kind,
+        },
+      });
+      if (input.kind === "pizza") {
+        const allowMulti = input.allow_multiple_flavors !== false;
+        const existingSizes = input.id
+          ? editPizzaCfgQ.data?.sizes ??
+            (await listCategoryPizzaConfig({ data: { category_id: res.id } })).sizes ??
+            []
+          : [];
+        await applyPizzaCategoryFlavorMode(res.id, existingSizes, allowMulti);
+        qc.invalidateQueries({ queryKey: ["admin", "pizza-config", res.id] });
+        qc.invalidateQueries({ queryKey: ["admin", "products"] });
+      }
+      return res;
+    },
     onSuccess: (res, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
       toast.success("Categoria salva");
@@ -98,13 +141,24 @@ function CategoriesPage() {
 
   const openNew = (kind: "standard" | "pizza" | "oferta") => {
     setPickerOpen(false);
-    setEditing({ name: "", description: "", sort_order: list.length + 1, active: true, kind });
+    setBehaviorTouched(false);
+    setEditing({
+      name: "",
+      description: "",
+      sort_order: list.length + 1,
+      active: true,
+      kind,
+      allow_multiple_flavors: true,
+    });
     setOpen(true);
   };
 
   const save = () => {
     if (!editing?.name) return toast.error("Nome obrigatório");
-    saveMut.mutate(editing);
+    saveMut.mutate({
+      ...editing,
+      allow_multiple_flavors: effectiveAllowMulti,
+    });
   };
 
   return (
@@ -157,9 +211,11 @@ function CategoriesPage() {
                 )}
                 <Switch checked={c.active} onCheckedChange={() => toggleMut.mutate(c)} />
                 <Button size="icon" variant="ghost" onClick={() => {
+                  setBehaviorTouched(false);
                   setEditing({
                     id: c.id, name: c.name, description: c.description ?? "",
                     sort_order: c.sort_order, active: c.active, kind: c.kind ?? "standard",
+                    allow_multiple_flavors: !isSingleFlavorPizzaCategory(c.id),
                   });
                   setOpen(true);
                 }}><Edit2 className="h-4 w-4" /></Button>
@@ -229,6 +285,17 @@ function CategoriesPage() {
           {editing && (
             <div className="space-y-3">
               <div><Label>Nome da categoria</Label><Input value={editing.name} maxLength={40} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="mt-1.5" placeholder="Exemplo: Carros chefe ou promoção" /><p className="text-right text-[10px] text-muted-foreground">{editing.name.length}/40 caracteres</p></div>
+              {editing.kind === "pizza" && (
+                <div className="rounded-xl border bg-muted/15 p-3">
+                  <PizzaCategoryBehaviorSelector
+                    allowMultipleFlavors={effectiveAllowMulti}
+                    onChange={(v) => {
+                      setBehaviorTouched(true);
+                      setEditing({ ...editing, allow_multiple_flavors: v });
+                    }}
+                  />
+                </div>
+              )}
               <div><Label>Descrição</Label><Textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="mt-1.5" /></div>
               <div><Label>Ordem</Label><Input type="number" value={editing.sort_order} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} className="mt-1.5" /></div>
               <PrintLocationPicker kind="category" id={editing.id} value={(list.find((x) => x.id === editing.id) as { print_location_ids?: string[] } | undefined)?.print_location_ids} />

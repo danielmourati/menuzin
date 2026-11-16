@@ -748,15 +748,17 @@ export function ProductModal({
                     >
                       <div className="flex items-start justify-between gap-1.5">
                         <span className="text-sm font-bold leading-snug">{s.name}</span>
-                        <span
-                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap ${
-                            isSelected
-                              ? "bg-black/20 text-primary-foreground"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {s.maxFlavors > 1 ? `até ${s.maxFlavors} sab.` : "1 sab."}
-                        </span>
+                        {visiblePizzaSizes.some((sz) => (sz.maxFlavors ?? 1) > 1) && (
+                          <span
+                            className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap ${
+                              isSelected
+                                ? "bg-black/20 text-primary-foreground"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {s.maxFlavors > 1 ? `até ${s.maxFlavors} sab.` : "1 sab."}
+                          </span>
+                        )}
                       </div>
                       <div className="mt-2 flex items-baseline justify-between gap-1">
                         <span className={`text-sm font-bold ${isSelected ? "text-primary-foreground" : "text-primary"}`}>

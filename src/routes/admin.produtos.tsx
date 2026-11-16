@@ -18,7 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Search, Edit2, Trash2, Star, Loader2, Pizza, Link2 as LinkIcon, Package, MessageSquare, Layers, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Settings2, Zap } from "lucide-react";
 import { ReorderButtons } from "@/components/admin/ReorderButtons";
-import { PizzaCategoryConfigDialog, STANDARD_PIZZA_SIZES_PRESET, createMissingPizzaSizes } from "@/components/admin/PizzaCategoryConfigDialog";
+import {
+  PizzaCategoryConfigDialog,
+  STANDARD_PIZZA_SIZES_PRESET,
+  createMissingPizzaSizes,
+  isSingleFlavorPizzaCategory,
+} from "@/components/admin/PizzaCategoryConfigDialog";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { productImage, isDefaultProductImage } from "@/lib/product-image";
@@ -1768,7 +1773,10 @@ function PizzaProductForm({
   const qc = useQueryClient();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const currentCat = categories.find((c) => c.id === editing.category_id) ?? null;
-  const priceRule = categorySizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions";
+  const singleFlavorOnly = isSingleFlavorPizzaCategory(editing.category_id, categorySizes);
+  const priceRule = singleFlavorOnly
+    ? "fixed"
+    : (categorySizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions");
 
   useEffect(() => {
     if (!editing.id) {
@@ -1780,7 +1788,14 @@ function PizzaProductForm({
   const quickSizesMut = useMutation({
     mutationFn: async () => {
       if (!editing.category_id) return 0;
-      return createMissingPizzaSizes(editing.category_id, [], STANDARD_PIZZA_SIZES_PRESET, "sum_fractions", 0);
+      return createMissingPizzaSizes(
+        editing.category_id,
+        [],
+        STANDARD_PIZZA_SIZES_PRESET,
+        singleFlavorOnly ? "fixed" : "sum_fractions",
+        0,
+        singleFlavorOnly,
+      );
     },
     onSuccess: (created) => {
       if (editing.category_id) {
@@ -1904,7 +1919,11 @@ function PizzaProductForm({
                   onClick={() => onOpenPizzaConfig({ id: currentCat.id, name: currentCat.name })}
                   className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground transition"
                 >
-                  <span>Meio a meio: {priceRule === "max_value" ? "Maior valor" : "Média proporcional"}</span>
+                  <span>
+                    {singleFlavorOnly
+                      ? "Apenas 1 sabor (Inteira fixa)"
+                      : `Meio a meio: ${priceRule === "max_value" ? "Maior valor" : "Média proporcional"}`}
+                  </span>
                   <span className="text-primary">· Alterar</span>
                 </button>
               )}
@@ -1946,7 +1965,9 @@ function PizzaProductForm({
             ) : (
               <>
                 <p className="text-xs text-muted-foreground">
-                  Informe o valor da pizza inteira em cada tamanho vendido. Pizzas meio a meio são calculadas automaticamente.
+                  {singleFlavorOnly
+                    ? "Informe o preço fixo da pizza inteira em cada tamanho vendido."
+                    : "Informe o valor da pizza inteira em cada tamanho vendido. Pizzas meio a meio são calculadas automaticamente."}
                 </p>
                 <div className="space-y-2">
                   {categorySizes.map((sz) => {
@@ -1966,6 +1987,7 @@ function PizzaProductForm({
                         size={sz}
                         entry={entry}
                         priceRule={priceRule}
+                        singleFlavorOnly={singleFlavorOnly}
                         onChange={(nextEntry) =>
                           setDraftPizzaSizes((prev) => ({ ...prev, [sz.id]: nextEntry }))
                         }
@@ -1985,16 +2007,18 @@ function PizzaProductForm({
               <Switch checked={editing.available} onCheckedChange={(v) => setEditing({ ...editing, available: v })} />
             </div>
 
-            <div className="flex items-center justify-between gap-3 py-1">
-              <div>
-                <Label className="text-xs font-medium">Aceitar em pizzas meio a meio / múltiplos sabores</Label>
-                <p className="text-[11px] text-muted-foreground">Permite combinar este sabor com outros na montagem da pizza.</p>
+            {!singleFlavorOnly && (
+              <div className="flex items-center justify-between gap-3 py-1">
+                <div>
+                  <Label className="text-xs font-medium">Aceitar em pizzas meio a meio / múltiplos sabores</Label>
+                  <p className="text-[11px] text-muted-foreground">Permite combinar este sabor com outros na montagem da pizza.</p>
+                </div>
+                <Switch
+                  checked={editing.listed_as_flavor !== false}
+                  onCheckedChange={(v) => setEditing({ ...editing, listed_as_flavor: v })}
+                />
               </div>
-              <Switch
-                checked={editing.listed_as_flavor !== false}
-                onCheckedChange={(v) => setEditing({ ...editing, listed_as_flavor: v })}
-              />
-            </div>
+            )}
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <label className="flex items-center justify-between rounded-lg border px-2.5 py-2 text-xs cursor-pointer">
@@ -2101,11 +2125,12 @@ function PizzaProductForm({
 }
 
 function PizzaSizePriceRow({
-  size, entry, priceRule, onChange,
+  size, entry, priceRule, singleFlavorOnly, onChange,
 }: {
   size: { id: string; name: string; pieces: number; max_flavors: number; active: boolean };
   entry: DraftPizzaSize;
   priceRule: "sum_fractions" | "max_value" | "fixed";
+  singleFlavorOnly: boolean;
   onChange: (next: DraftPizzaSize) => void;
 }) {
   const [editedFracs, setEditedFracs] = useState<Set<string>>(new Set());
@@ -2160,7 +2185,8 @@ function PizzaSizePriceRow({
               )}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              {size.pieces} {size.pieces === 1 ? "pedaço" : "pedaços"} · até {size.max_flavors} {size.max_flavors > 1 ? "sabores" : "sabor"}
+              {size.pieces} {size.pieces === 1 ? "pedaço" : "pedaços"}
+              {!singleFlavorOnly && ` · até ${size.max_flavors} ${size.max_flavors > 1 ? "sabores" : "sabor"}`}
             </p>
           </div>
         </label>
@@ -2174,7 +2200,7 @@ function PizzaSizePriceRow({
         </div>
       </div>
 
-      {entry.enabled && entry.price > 0 && size.max_flavors > 1 && (
+      {!singleFlavorOnly && entry.enabled && entry.price > 0 && size.max_flavors > 1 && (
         <div className="mt-2 pt-2 border-t border-dashed space-y-2">
           <p className="text-[11px] text-muted-foreground">
             {priceRule === "max_value" ? (

@@ -32,7 +32,13 @@ import { toast } from "sonner";
 import {
   listMyCategories, saveCategory, saveProduct, listCategoryPizzaConfig, saveProductSize,
 } from "@/lib/catalog-admin.functions";
-import { createMissingPizzaSizes, STANDARD_PIZZA_SIZES_PRESET } from "@/components/admin/PizzaCategoryConfigDialog";
+import {
+  createMissingPizzaSizes,
+  STANDARD_PIZZA_SIZES_PRESET,
+  PizzaCategoryBehaviorSelector,
+  isSingleFlavorPizzaCategory,
+  setStoredPizzaCategoryMode,
+} from "@/components/admin/PizzaCategoryConfigDialog";
 import { getMyTenant } from "@/lib/tenants.functions";
 
 export const Route = createFileRoute("/admin/cardapio/novo")({
@@ -81,6 +87,7 @@ function WizardPage() {
   const [catId, setCatId] = useState<string | null>(null);
   const [catKind, setCatKind] = useState<"standard" | "pizza" | "oferta">("standard");
   const [createDefaultPizzaSizes, setCreateDefaultPizzaSizes] = useState(true);
+  const [allowMultipleFlavors, setAllowMultipleFlavors] = useState(true);
 
 
   // Passo 2
@@ -111,10 +118,21 @@ function WizardPage() {
     enabled: step === 2 && isPizzaCat && !!catId,
   });
 
+  const singleFlavorOnly = isPizzaCat
+    ? isSingleFlavorPizzaCategory(catId, pizzaConfigQ.data?.sizes)
+    : false;
+
   const quickSizesMut = useMutation({
     mutationFn: async () => {
       if (!catId) return 0;
-      return createMissingPizzaSizes(catId, [], STANDARD_PIZZA_SIZES_PRESET, "sum_fractions", 0);
+      return createMissingPizzaSizes(
+        catId,
+        [],
+        STANDARD_PIZZA_SIZES_PRESET,
+        singleFlavorOnly ? "fixed" : "sum_fractions",
+        0,
+        singleFlavorOnly,
+      );
     },
     onSuccess: (created) => {
       if (catId) qc.invalidateQueries({ queryKey: ["admin", "pizza-config", catId] });
@@ -144,9 +162,19 @@ function WizardPage() {
           kind,
         },
       });
-      if (kind === "pizza" && createDefaultPizzaSizes) {
-        await createMissingPizzaSizes(res.id, [], STANDARD_PIZZA_SIZES_PRESET, "sum_fractions", 0);
-        qc.invalidateQueries({ queryKey: ["admin", "pizza-config", res.id] });
+      if (kind === "pizza") {
+        setStoredPizzaCategoryMode(res.id, allowMultipleFlavors);
+        if (createDefaultPizzaSizes) {
+          await createMissingPizzaSizes(
+            res.id,
+            [],
+            STANDARD_PIZZA_SIZES_PRESET,
+            allowMultipleFlavors ? "sum_fractions" : "fixed",
+            0,
+            !allowMultipleFlavors,
+          );
+          qc.invalidateQueries({ queryKey: ["admin", "pizza-config", res.id] });
+        }
       }
       return res.id;
     },
@@ -340,17 +368,27 @@ function WizardPage() {
                     )}
                   </div>
                   {isPizzaria && catKind === "pizza" && (
-                    <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 p-3">
-                      <div className="space-y-0.5">
-                        <Label className="text-sm font-medium">Criar tamanhos padrão automaticamente (P, M, G, Família)</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Cria Pequena (4 fatias · 2 sab.), Média (6 · 2), Grande (8 · 3) e Família (12 · 4). Você pode editar depois.
-                        </p>
+                    <div className="space-y-3">
+                      <div className="rounded-lg border bg-muted/15 p-3">
+                        <PizzaCategoryBehaviorSelector
+                          allowMultipleFlavors={allowMultipleFlavors}
+                          onChange={setAllowMultipleFlavors}
+                        />
                       </div>
-                      <Switch
-                        checked={createDefaultPizzaSizes}
-                        onCheckedChange={setCreateDefaultPizzaSizes}
-                      />
+                      <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 p-3">
+                        <div className="space-y-0.5">
+                          <Label className="text-sm font-medium">Criar tamanhos padrão automaticamente (P, M, G, Família)</Label>
+                          <p className="text-xs text-muted-foreground">
+                            {allowMultipleFlavors
+                              ? "Cria Pequena (4 fatias · 2 sab.), Média (6 · 2), Grande (8 · 3) e Família (12 · 4). Você pode editar depois."
+                              : "Cria Pequena (4 fatias), Média (6), Grande (8) e Família (12) como pizzas inteiras fixas."}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={createDefaultPizzaSizes}
+                          onCheckedChange={setCreateDefaultPizzaSizes}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -417,7 +455,9 @@ function WizardPage() {
                     <div className="rounded-lg border p-3 space-y-2.5">
                       <div className="flex items-center justify-between gap-2">
                         <Label className="text-sm font-semibold">Preços por tamanho</Label>
-                        <span className="text-[11px] text-muted-foreground">Meio a meio automático</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {singleFlavorOnly ? "Preço fixo (1 sabor)" : "Meio a meio automático"}
+                        </span>
                       </div>
                       {pizzaConfigQ.isLoading ? (
                         <div className="flex justify-center py-4">
@@ -449,7 +489,9 @@ function WizardPage() {
                               <div className="flex items-center justify-between text-xs">
                                 <span className="font-semibold">{sz.name}</span>
                                 <span className="text-[11px] text-muted-foreground">
-                                  {sz.pieces}p · até {sz.max_flavors}s
+                                  {singleFlavorOnly
+                                    ? `${sz.pieces} fatias`
+                                    : `${sz.pieces}p · até ${sz.max_flavors}s`}
                                 </span>
                               </div>
                               <CurrencyInput
@@ -503,7 +545,7 @@ function WizardPage() {
                 />
               </div>
 
-              {isPizzaCat && (
+              {isPizzaCat && !singleFlavorOnly && (
                 <div className="flex items-center space-x-3 rounded-md border p-3">
                   <Switch
                     checked={listedAsFlavor}
