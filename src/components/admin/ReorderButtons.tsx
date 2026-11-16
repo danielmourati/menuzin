@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { reorderCatalogItem } from "@/lib/catalog-admin.functions";
+import { broadcastStoreSync } from "@/lib/store-realtime";
 
 type Entity = "category" | "product" | "addonGroup" | "addonOption";
 
@@ -22,12 +23,15 @@ export function ReorderButtons({ entity, id, invalidateKeys, siblingIds, isFirst
   const mut = useMutation({
     mutationFn: (direction: "up" | "down") =>
       reorderCatalogItem({ data: { entity, id, direction, orderedIds: siblingIds } }),
-    onSettled: () =>
-      Promise.all(
-        invalidateKeys.map((key) =>
+    onSettled: async () => {
+      await Promise.all([
+        ...invalidateKeys.map((key) =>
           qc.invalidateQueries({ queryKey: key as unknown as readonly unknown[] }),
         ),
-      ),
+        qc.invalidateQueries({ queryKey: ["catalog"] }),
+      ]);
+      broadcastStoreSync({ type: "CATALOG_CHANGED" });
+    },
     onError: (e: Error) => toast.error(e.message || "Não foi possível mudar a ordem."),
   });
 

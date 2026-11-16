@@ -20,6 +20,8 @@ import {
 
 export type PizzaPriceRule = "sum_fractions" | "max_value" | "fixed";
 
+export type PizzaCategoryFlavorMode = "single" | "half" | "multi";
+
 export type PizzaSizePreset = {
   name: string;
   pieces: number;
@@ -55,42 +57,63 @@ const normName = (v: string) => v.trim().toLowerCase();
 
 const MODE_STORAGE_PREFIX = "menuzin_pizza_cat_mode_";
 
-export function getStoredPizzaCategoryMode(categoryId: string | null | undefined): "multi" | "single" | null {
+export function getStoredPizzaCategoryMode(
+  categoryId: string | null | undefined,
+): PizzaCategoryFlavorMode | null {
   if (!categoryId || typeof window === "undefined") return null;
   const val = window.localStorage.getItem(`${MODE_STORAGE_PREFIX}${categoryId}`);
-  return val === "single" || val === "multi" ? val : null;
+  if (val === "single" || val === "half" || val === "multi") return val;
+  return null;
 }
 
-export function setStoredPizzaCategoryMode(categoryId: string, allowMultipleFlavors: boolean): void {
+export function setStoredPizzaCategoryMode(
+  categoryId: string,
+  mode: PizzaCategoryFlavorMode | boolean,
+): void {
   if (!categoryId || typeof window === "undefined") return;
-  window.localStorage.setItem(
-    `${MODE_STORAGE_PREFIX}${categoryId}`,
-    allowMultipleFlavors ? "multi" : "single",
-  );
+  const resolved: PizzaCategoryFlavorMode =
+    typeof mode === "boolean" ? (mode ? "multi" : "single") : mode;
+  window.localStorage.setItem(`${MODE_STORAGE_PREFIX}${categoryId}`, resolved);
+}
+
+export function getPizzaCategoryFlavorMode(
+  categoryId: string | null | undefined,
+  sizes?: { max_flavors?: number; price_rule?: string | null }[],
+): PizzaCategoryFlavorMode {
+  const stored = getStoredPizzaCategoryMode(categoryId);
+  if (sizes && sizes.length > 0) {
+    if (sizes.every((s) => s.price_rule === "fixed" && (s.max_flavors ?? 1) <= 1)) {
+      return "single";
+    }
+    const maxF = Math.max(...sizes.map((s) => s.max_flavors ?? 1));
+    if (stored === "half" && maxF <= 2) return "half";
+    if (stored === "multi" && maxF >= 2) return "multi";
+    if (maxF <= 2) return "half";
+    return "multi";
+  }
+  return stored ?? "half";
 }
 
 export function isSingleFlavorPizzaCategory(
   categoryId: string | null | undefined,
   sizes?: { max_flavors?: number; price_rule?: string | null }[],
 ): boolean {
-  if (sizes && sizes.length > 0) {
-    return sizes.every((s) => s.price_rule === "fixed" && (s.max_flavors ?? 1) <= 1);
-  }
-  const stored = getStoredPizzaCategoryMode(categoryId);
-  return stored === "single";
+  return getPizzaCategoryFlavorMode(categoryId, sizes) === "single";
 }
 
 export async function applyPizzaCategoryFlavorMode(
   categoryId: string,
   sizes: DbCategoryPizzaSize[],
-  allowMultipleFlavors: boolean,
+  mode: PizzaCategoryFlavorMode | boolean,
 ): Promise<void> {
-  setStoredPizzaCategoryMode(categoryId, allowMultipleFlavors);
+  const resolved: PizzaCategoryFlavorMode =
+    typeof mode === "boolean" ? (mode ? "multi" : "single") : mode;
+  setStoredPizzaCategoryMode(categoryId, resolved);
   if (sizes.length === 0) return;
 
   await Promise.all(
     sizes.map((s) => {
-      if (!allowMultipleFlavors) {
+      if (resolved === "single") {
         return saveCategoryPizzaSize({
           data: {
             id: s.id,
@@ -105,15 +128,25 @@ export async function applyPizzaCategoryFlavorMode(
           },
         });
       }
+
       const preset = DEFAULT_PIZZA_SIZES_PRESET.find((p) => normName(p.name) === normName(s.name));
+      const isBrotinho = normName(s.name) === "brotinho";
       const nextMax =
-        s.max_flavors > 1
-          ? s.max_flavors
+        resolved === "half"
+          ? isBrotinho
+            ? 1
+            : 2
           : preset
-            ? preset.max_flavors
-            : 2;
+            ? Math.max(s.max_flavors, preset.max_flavors)
+            : s.max_flavors > 2
+              ? s.max_flavors
+              : isBrotinho
+                ? 1
+                : 3;
+
       const nextRule: PizzaPriceRule =
         s.price_rule && s.price_rule !== "fixed" ? s.price_rule : "sum_fractions";
+
       return saveCategoryPizzaSize({
         data: {
           id: s.id,
@@ -132,59 +165,78 @@ export async function applyPizzaCategoryFlavorMode(
 }
 
 export function PizzaCategoryBehaviorSelector({
+  value,
   allowMultipleFlavors,
   onChange,
+  onModeChange,
   disabled = false,
 }: {
-  allowMultipleFlavors: boolean;
-  onChange: (allowMultiple: boolean) => void;
+  value?: PizzaCategoryFlavorMode;
+  allowMultipleFlavors?: boolean;
+  onChange?: (allowMultiple: boolean) => void;
+  onModeChange?: (mode: PizzaCategoryFlavorMode) => void;
   disabled?: boolean;
 }) {
+  const currentMode: PizzaCategoryFlavorMode =
+    value ?? (allowMultipleFlavors === false ? "single" : "half");
+
+  const handleSelect = (mode: PizzaCategoryFlavorMode) => {
+    onModeChange?.(mode);
+    onChange?.(mode !== "single");
+  };
+
+  const options: {
+    mode: PizzaCategoryFlavorMode;
+    title: string;
+    desc: string;
+  }[] = [
+    {
+      mode: "single",
+      title: "Apenas 1 sabor (Inteira fixa)",
+      desc: "Venda somente de pizza inteira com preço fixo por tamanho (sem divisão).",
+    },
+    {
+      mode: "half",
+      title: "Meio a Meio (Até 2 sabores)",
+      desc: "O cliente pode pedir inteira (1 sabor) ou dividir em 2 sabores (½ + ½).",
+    },
+    {
+      mode: "multi",
+      title: "Múltiplos sabores (Até 3 ou 4)",
+      desc: "Permite dividir a pizza em até 3 ou 4 sabores conforme o tamanho.",
+    },
+  ];
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold text-foreground">Comportamento da categoria</p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(true)}
-          className={`rounded-xl border p-3 text-left transition ${
-            allowMultipleFlavors
-              ? "border-primary bg-primary/5 ring-1 ring-primary"
-              : "bg-background hover:border-primary/40"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-foreground">
-              Permite múltiplos sabores (Meio a Meio)
-            </span>
-            {allowMultipleFlavors && <Check className="h-4 w-4 shrink-0 text-primary" />}
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            O cliente pode escolher 2, 3 ou 4 sabores na mesma pizza com cálculo automático.
-          </p>
-        </button>
-
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => onChange(false)}
-          className={`rounded-xl border p-3 text-left transition ${
-            !allowMultipleFlavors
-              ? "border-primary bg-primary/5 ring-1 ring-primary"
-              : "bg-background hover:border-primary/40"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-foreground">
-              Apenas 1 sabor (Inteira fixa)
-            </span>
-            {!allowMultipleFlavors && <Check className="h-4 w-4 shrink-0 text-primary" />}
-          </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Venda somente de pizza inteira com preço fixo por tamanho (sem divisão de frações).
-          </p>
-        </button>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {options.map((opt) => {
+          const active = currentMode === opt.mode;
+          return (
+            <button
+              key={opt.mode}
+              type="button"
+              disabled={disabled}
+              onClick={() => handleSelect(opt.mode)}
+              className={`rounded-xl border p-3 text-left transition ${
+                active
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "bg-background hover:border-primary/40"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-xs font-bold leading-snug text-foreground">
+                  {opt.title}
+                </span>
+                {active && <Check className="h-4 w-4 shrink-0 text-primary" />}
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                {opt.desc}
+              </p>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -196,20 +248,31 @@ export async function createMissingPizzaSizes(
   presets: PizzaSizePreset[],
   priceRule: PizzaPriceRule = "sum_fractions",
   startSortOrder = 0,
-  singleFlavorOnly = false,
+  flavorMode: PizzaCategoryFlavorMode | boolean = "multi",
 ): Promise<number> {
-  const isSingle = singleFlavorOnly || priceRule === "fixed";
-  const effectiveRule: PizzaPriceRule = isSingle ? "fixed" : priceRule;
+  const resolvedMode: PizzaCategoryFlavorMode =
+    typeof flavorMode === "boolean" ? (flavorMode ? "single" : "multi") : flavorMode;
+  const isSingle = resolvedMode === "single" || priceRule === "fixed";
+  const effectiveRule: PizzaPriceRule = isSingle
+    ? "fixed"
+    : priceRule === "fixed"
+      ? "sum_fractions"
+      : priceRule;
   const existingSet = new Set(existingNames.map(normName));
   const missing = presets.filter((p) => !existingSet.has(normName(p.name)));
   for (let i = 0; i < missing.length; i++) {
     const p = missing[i];
+    const maxFlavors = isSingle
+      ? 1
+      : resolvedMode === "half"
+        ? Math.min(2, p.max_flavors)
+        : p.max_flavors;
     await saveCategoryPizzaSize({
       data: {
         category_id: categoryId,
         name: p.name,
         pieces: p.pieces,
-        max_flavors: isSingle ? 1 : p.max_flavors,
+        max_flavors: maxFlavors,
         pdv_code: "",
         active: true,
         sort_order: startSortOrder + i,
@@ -230,7 +293,7 @@ export function PizzaCategoryConfigDialog({
 }) {
   const qc = useQueryClient();
   const [overrideRule, setOverrideRule] = useState<PizzaPriceRule | null>(null);
-  const [overrideAllowMulti, setOverrideAllowMulti] = useState<boolean | null>(null);
+  const [overrideMode, setOverrideMode] = useState<PizzaCategoryFlavorMode | null>(null);
 
   const cfgQ = useQuery({
     queryKey: ["admin", "pizza-config", categoryId],
@@ -241,36 +304,38 @@ export function PizzaCategoryConfigDialog({
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin", "pizza-config", categoryId] });
     qc.invalidateQueries({ queryKey: ["admin", "products"] });
+    qc.invalidateQueries({ queryKey: ["catalog"] });
   };
 
   const sizes = cfgQ.data?.sizes ?? [];
   const doughs = cfgQ.data?.doughs ?? [];
   const crusts = cfgQ.data?.crusts ?? [];
 
-  const allowMultipleFlavors =
-    overrideAllowMulti !== null
-      ? overrideAllowMulti
-      : !isSingleFlavorPizzaCategory(categoryId, sizes);
+  const flavorMode: PizzaCategoryFlavorMode =
+    overrideMode ?? getPizzaCategoryFlavorMode(categoryId, sizes);
+  const allowMultipleFlavors = flavorMode !== "single";
 
   const rawRule =
     overrideRule ?? sizes.find((s) => s.price_rule && s.price_rule !== "fixed")?.price_rule ?? "sum_fractions";
   const activeRule: PizzaPriceRule = allowMultipleFlavors ? rawRule : "fixed";
 
   const modeMut = useMutation({
-    mutationFn: async (nextAllowMulti: boolean) => {
-      setOverrideAllowMulti(nextAllowMulti);
-      await applyPizzaCategoryFlavorMode(categoryId, sizes, nextAllowMulti);
-      return nextAllowMulti;
+    mutationFn: async (nextMode: PizzaCategoryFlavorMode) => {
+      setOverrideMode(nextMode);
+      await applyPizzaCategoryFlavorMode(categoryId, sizes, nextMode);
+      return nextMode;
     },
-    onSuccess: (nextAllowMulti) => {
-      setOverrideAllowMulti(nextAllowMulti);
-      if (!nextAllowMulti) setOverrideRule("fixed");
+    onSuccess: (nextMode) => {
+      setOverrideMode(nextMode);
+      if (nextMode === "single") setOverrideRule("fixed");
       else if (overrideRule === "fixed") setOverrideRule("sum_fractions");
       invalidate();
       toast.success(
-        nextAllowMulti
-          ? "Categoria configurada para permitir múltiplos sabores (Meio a Meio)!"
-          : "Categoria configurada para Apenas 1 sabor (Inteira fixa)!",
+        nextMode === "single"
+          ? "Categoria configurada para Apenas 1 sabor (Inteira fixa)!"
+          : nextMode === "half"
+            ? "Categoria configurada para Meio a Meio (Até 2 sabores)!"
+            : "Categoria configurada para Múltiplos sabores (Até 3 ou 4)!",
       );
     },
     onError: (e: Error) => toast.error(e.message),
@@ -316,7 +381,7 @@ export function PizzaCategoryConfigDialog({
         presets,
         activeRule,
         sizes.length,
-        !allowMultipleFlavors,
+        flavorMode,
       ),
     onSuccess: (created) => {
       invalidate();
@@ -340,7 +405,7 @@ export function PizzaCategoryConfigDialog({
       onOpenChange={(v) => {
         if (!v) {
           setOverrideRule(null);
-          setOverrideAllowMulti(null);
+          setOverrideMode(null);
         }
         onOpenChange(v);
       }}
@@ -349,9 +414,11 @@ export function PizzaCategoryConfigDialog({
         <DialogHeader>
           <DialogTitle className="text-2xl">{categoryName}</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            {allowMultipleFlavors
-              ? "Tamanhos, regra meio a meio, massas e bordas"
-              : "Tamanhos (inteira fixa), massas e bordas"}
+            {flavorMode === "single"
+              ? "Tamanhos (inteira fixa), massas e bordas"
+              : flavorMode === "half"
+                ? "Tamanhos (meio a meio — até 2 sabores), massas e bordas"
+                : "Tamanhos (múltiplos sabores), massas e bordas"}
           </p>
         </DialogHeader>
 
@@ -368,12 +435,12 @@ export function PizzaCategoryConfigDialog({
             </TabsList>
 
             <TabsContent value="tamanhos" className="mt-4 space-y-4">
-              {/* Seletor de comportamento da categoria: Múltiplos sabores vs Apenas 1 sabor */}
+              {/* Seletor de comportamento da categoria: 1 sabor vs Meio a Meio vs Múltiplos sabores */}
               <div className="rounded-xl border bg-muted/15 p-3">
                 <PizzaCategoryBehaviorSelector
-                  allowMultipleFlavors={allowMultipleFlavors}
-                  onChange={(next) => {
-                    if (next !== allowMultipleFlavors) modeMut.mutate(next);
+                  value={flavorMode}
+                  onModeChange={(next) => {
+                    if (next !== flavorMode) modeMut.mutate(next);
                   }}
                   disabled={modeMut.isPending}
                 />
@@ -456,6 +523,12 @@ export function PizzaCategoryConfigDialog({
                 <div className="flex flex-wrap gap-1.5">
                   {DEFAULT_PIZZA_SIZES_PRESET.map((preset) => {
                     const exists = existingSizeNames.has(normName(preset.name));
+                    const presetMax =
+                      flavorMode === "single"
+                        ? 1
+                        : flavorMode === "half"
+                          ? Math.min(2, preset.max_flavors)
+                          : preset.max_flavors;
                     return (
                       <button
                         key={preset.name}
@@ -472,7 +545,7 @@ export function PizzaCategoryConfigDialog({
                         <span className="font-medium">{preset.name}</span>
                         <span className="text-[10px] text-muted-foreground">
                           {allowMultipleFlavors
-                            ? `(${preset.pieces}p · ${preset.max_flavors}s)`
+                            ? `(${preset.pieces}p · ${presetMax}s)`
                             : `(${preset.pieces} fatias)`}
                         </span>
                       </button>
@@ -486,7 +559,7 @@ export function PizzaCategoryConfigDialog({
                 onChange={invalidate}
                 categoryId={categoryId}
                 defaultPriceRule={activeRule}
-                singleFlavorOnly={!allowMultipleFlavors}
+                flavorMode={flavorMode}
               />
               <ResumoTamanhos sizes={sizes} singleFlavorOnly={!allowMultipleFlavors} />
             </TabsContent>
@@ -548,18 +621,23 @@ type SizeInput = {
 };
 
 function SizesTable({
-  sizes, onChange, categoryId, defaultPriceRule, singleFlavorOnly,
+  sizes, onChange, categoryId, defaultPriceRule, flavorMode,
 }: {
   sizes: PizzaSize[];
   onChange: () => void;
   categoryId: string;
   defaultPriceRule: PizzaPriceRule;
-  singleFlavorOnly: boolean;
+  flavorMode: PizzaCategoryFlavorMode;
 }) {
-  const [draft, setDraft] = useState({ name: "", pieces: 8, max_flavors: 1 });
+  const singleFlavorOnly = flavorMode === "single";
+  const maxAllowedFlavors = flavorMode === "half" ? 2 : 4;
+  const [draft, setDraft] = useState({ name: "", pieces: 8, max_flavors: flavorMode === "single" ? 1 : 2 });
   const saveMut = useMutation({
     mutationFn: (d: SizeInput) => saveCategoryPizzaSize({ data: d }),
-    onSuccess: () => { onChange(); setDraft({ name: "", pieces: 8, max_flavors: 1 }); },
+    onSuccess: () => {
+      onChange();
+      setDraft({ name: "", pieces: 8, max_flavors: flavorMode === "single" ? 1 : 2 });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const delMut = useMutation({
@@ -586,7 +664,7 @@ function SizesTable({
           key={s.id}
           size={s}
           defaultPriceRule={defaultPriceRule}
-          singleFlavorOnly={singleFlavorOnly}
+          flavorMode={flavorMode}
           onSave={(d) => saveMut.mutate(d)}
           onDelete={async () => {
             if (await confirmDialog({ title: `Remover "${s.name}"?`, variant: "destructive", confirmText: "Remover" })) {
@@ -599,7 +677,11 @@ function SizesTable({
         <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Ex: Pequena" />
         <Input type="number" min={1} max={24} value={draft.pieces} onChange={(e) => setDraft({ ...draft, pieces: Number(e.target.value) })} />
         {!singleFlavorOnly && (
-          <FlavorsPicker value={draft.max_flavors} onChange={(v) => setDraft({ ...draft, max_flavors: v })} />
+          <FlavorsPicker
+            value={Math.min(maxAllowedFlavors, draft.max_flavors)}
+            maxAllowed={maxAllowedFlavors}
+            onChange={(v) => setDraft({ ...draft, max_flavors: v })}
+          />
         )}
         <div className="text-xs text-muted-foreground">Ativo</div>
         <Button
@@ -611,7 +693,7 @@ function SizesTable({
               category_id: categoryId,
               name: draft.name,
               pieces: draft.pieces,
-              max_flavors: singleFlavorOnly ? 1 : draft.max_flavors,
+              max_flavors: singleFlavorOnly ? 1 : Math.min(maxAllowedFlavors, draft.max_flavors),
               active: true,
               sort_order: sizes.length,
               pdv_code: "",
@@ -627,21 +709,24 @@ function SizesTable({
 }
 
 function SizeRow({
-  size, defaultPriceRule, singleFlavorOnly, onSave, onDelete,
+  size, defaultPriceRule, flavorMode, onSave, onDelete,
 }: {
   size: PizzaSize;
   defaultPriceRule: PizzaPriceRule;
-  singleFlavorOnly: boolean;
+  flavorMode: PizzaCategoryFlavorMode;
   onSave: (d: SizeInput) => void;
   onDelete: () => void;
 }) {
+  const singleFlavorOnly = flavorMode === "single";
+  const maxAllowedFlavors = flavorMode === "half" ? 2 : 4;
   const rule = singleFlavorOnly ? "fixed" : (size.price_rule ?? defaultPriceRule);
+  const effectiveMaxFlavors = singleFlavorOnly ? 1 : Math.min(maxAllowedFlavors, size.max_flavors);
   const basePayload = {
     id: size.id,
     category_id: size.category_id,
     name: size.name,
     pieces: size.pieces,
-    max_flavors: singleFlavorOnly ? 1 : size.max_flavors,
+    max_flavors: effectiveMaxFlavors,
     active: size.active,
     sort_order: size.sort_order,
     pdv_code: size.pdv_code ?? "",
@@ -656,7 +741,11 @@ function SizeRow({
       <Input defaultValue={size.name} onBlur={(e) => e.target.value !== size.name && onSave({ ...basePayload, name: e.target.value })} />
       <Input type="number" min={1} max={24} defaultValue={size.pieces} onBlur={(e) => Number(e.target.value) !== size.pieces && onSave({ ...basePayload, pieces: Number(e.target.value) })} />
       {!singleFlavorOnly && (
-        <FlavorsPicker value={size.max_flavors} onChange={(v) => onSave({ ...basePayload, max_flavors: v })} />
+        <FlavorsPicker
+          value={effectiveMaxFlavors}
+          maxAllowed={maxAllowedFlavors}
+          onChange={(v) => onSave({ ...basePayload, max_flavors: v })}
+        />
       )}
       <div className="flex items-center gap-2">
         <Switch checked={size.active} onCheckedChange={(v) => onSave({ ...basePayload, active: v })} />
@@ -667,10 +756,19 @@ function SizeRow({
   );
 }
 
-function FlavorsPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function FlavorsPicker({
+  value,
+  maxAllowed = 4,
+  onChange,
+}: {
+  value: number;
+  maxAllowed?: number;
+  onChange: (v: number) => void;
+}) {
+  const options = Array.from({ length: Math.min(4, Math.max(1, maxAllowed)) }, (_, idx) => idx + 1);
   return (
     <div className="flex gap-1">
-      {[1, 2, 3, 4].map((n) => (
+      {options.map((n) => (
         <button
           key={n}
           type="button"

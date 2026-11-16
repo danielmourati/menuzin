@@ -19,6 +19,7 @@ export function dbProductToUi(p: DbProduct, categoryName: string, categoryKind: 
     category: categoryName,
     categoryId: p.category_id,
     categoryKind,
+    sortOrder: p.sort_order ?? 0,
     description: p.description ?? "",
     price: Number(p.price),
     promoPrice: p.promo_price != null ? Number(p.promo_price) : undefined,

@@ -23,7 +23,8 @@ import {
   PizzaCategoryConfigDialog,
   PizzaCategoryBehaviorSelector,
   applyPizzaCategoryFlavorMode,
-  isSingleFlavorPizzaCategory,
+  getPizzaCategoryFlavorMode,
+  type PizzaCategoryFlavorMode,
 } from "@/components/admin/PizzaCategoryConfigDialog";
 import { confirmDialog } from "@/hooks/useConfirm";
 
@@ -39,7 +40,7 @@ type Editing = {
   sort_order: number;
   active: boolean;
   kind: "standard" | "pizza" | "oferta";
-  allow_multiple_flavors?: boolean;
+  flavor_mode?: PizzaCategoryFlavorMode;
 };
 
 function CategoriesPage() {
@@ -72,12 +73,12 @@ function CategoriesPage() {
     enabled: open && editing?.kind === "pizza" && !!editing?.id,
   });
 
-  const effectiveAllowMulti =
+  const effectiveFlavorMode: PizzaCategoryFlavorMode =
     editing?.kind === "pizza"
       ? behaviorTouched || !editing?.id || !editPizzaCfgQ.data
-        ? editing.allow_multiple_flavors !== false
-        : !isSingleFlavorPizzaCategory(editing.id, editPizzaCfgQ.data.sizes)
-      : true;
+        ? editing.flavor_mode ?? "half"
+        : getPizzaCategoryFlavorMode(editing.id, editPizzaCfgQ.data.sizes)
+      : "half";
 
   const saveMut = useMutation({
     mutationFn: async (input: Editing) => {
@@ -92,20 +93,22 @@ function CategoriesPage() {
         },
       });
       if (input.kind === "pizza") {
-        const allowMulti = input.allow_multiple_flavors !== false;
+        const mode: PizzaCategoryFlavorMode = input.flavor_mode ?? "half";
         const existingSizes = input.id
           ? editPizzaCfgQ.data?.sizes ??
             (await listCategoryPizzaConfig({ data: { category_id: res.id } })).sizes ??
             []
           : [];
-        await applyPizzaCategoryFlavorMode(res.id, existingSizes, allowMulti);
+        await applyPizzaCategoryFlavorMode(res.id, existingSizes, mode);
         qc.invalidateQueries({ queryKey: ["admin", "pizza-config", res.id] });
         qc.invalidateQueries({ queryKey: ["admin", "products"] });
+        qc.invalidateQueries({ queryKey: ["catalog"] });
       }
       return res;
     },
     onSuccess: (res, input) => {
       qc.invalidateQueries({ queryKey: ["admin", "categories"] });
+      qc.invalidateQueries({ queryKey: ["catalog"] });
       toast.success("Categoria salva");
       setOpen(false);
       // Se for pizza recém-criada, abrir wizard de configuração
@@ -148,7 +151,7 @@ function CategoriesPage() {
       sort_order: list.length + 1,
       active: true,
       kind,
-      allow_multiple_flavors: true,
+      flavor_mode: "half",
     });
     setOpen(true);
   };
@@ -157,7 +160,7 @@ function CategoriesPage() {
     if (!editing?.name) return toast.error("Nome obrigatório");
     saveMut.mutate({
       ...editing,
-      allow_multiple_flavors: effectiveAllowMulti,
+      flavor_mode: effectiveFlavorMode,
     });
   };
 
@@ -215,7 +218,7 @@ function CategoriesPage() {
                   setEditing({
                     id: c.id, name: c.name, description: c.description ?? "",
                     sort_order: c.sort_order, active: c.active, kind: c.kind ?? "standard",
-                    allow_multiple_flavors: !isSingleFlavorPizzaCategory(c.id),
+                    flavor_mode: getPizzaCategoryFlavorMode(c.id),
                   });
                   setOpen(true);
                 }}><Edit2 className="h-4 w-4" /></Button>
@@ -278,7 +281,7 @@ function CategoriesPage() {
 
       {/* Edit / Create form */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className={editing?.kind === "pizza" ? "max-w-2xl" : undefined}>
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Editar" : "Nova"} categoria {editing?.kind === "pizza" && <Badge className="ml-2 bg-primary/15 text-primary border-0">Pizza</Badge>}</DialogTitle>
           </DialogHeader>
@@ -288,10 +291,10 @@ function CategoriesPage() {
               {editing.kind === "pizza" && (
                 <div className="rounded-xl border bg-muted/15 p-3">
                   <PizzaCategoryBehaviorSelector
-                    allowMultipleFlavors={effectiveAllowMulti}
-                    onChange={(v) => {
+                    value={effectiveFlavorMode}
+                    onModeChange={(mode) => {
                       setBehaviorTouched(true);
-                      setEditing({ ...editing, allow_multiple_flavors: v });
+                      setEditing({ ...editing, flavor_mode: mode });
                     }}
                   />
                 </div>

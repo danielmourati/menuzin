@@ -36,8 +36,9 @@ import {
   createMissingPizzaSizes,
   STANDARD_PIZZA_SIZES_PRESET,
   PizzaCategoryBehaviorSelector,
-  isSingleFlavorPizzaCategory,
+  getPizzaCategoryFlavorMode,
   setStoredPizzaCategoryMode,
+  type PizzaCategoryFlavorMode,
 } from "@/components/admin/PizzaCategoryConfigDialog";
 import { getMyTenant } from "@/lib/tenants.functions";
 
@@ -87,7 +88,7 @@ function WizardPage() {
   const [catId, setCatId] = useState<string | null>(null);
   const [catKind, setCatKind] = useState<"standard" | "pizza" | "oferta">("standard");
   const [createDefaultPizzaSizes, setCreateDefaultPizzaSizes] = useState(true);
-  const [allowMultipleFlavors, setAllowMultipleFlavors] = useState(true);
+  const [flavorMode, setFlavorMode] = useState<PizzaCategoryFlavorMode>("half");
 
 
   // Passo 2
@@ -118,9 +119,10 @@ function WizardPage() {
     enabled: step === 2 && isPizzaCat && !!catId,
   });
 
-  const singleFlavorOnly = isPizzaCat
-    ? isSingleFlavorPizzaCategory(catId, pizzaConfigQ.data?.sizes)
-    : false;
+  const activeFlavorMode: PizzaCategoryFlavorMode = isPizzaCat
+    ? getPizzaCategoryFlavorMode(catId, pizzaConfigQ.data?.sizes)
+    : "half";
+  const singleFlavorOnly = activeFlavorMode === "single";
 
   const quickSizesMut = useMutation({
     mutationFn: async () => {
@@ -131,7 +133,7 @@ function WizardPage() {
         STANDARD_PIZZA_SIZES_PRESET,
         singleFlavorOnly ? "fixed" : "sum_fractions",
         0,
-        singleFlavorOnly,
+        activeFlavorMode,
       );
     },
     onSuccess: (created) => {
@@ -163,15 +165,15 @@ function WizardPage() {
         },
       });
       if (kind === "pizza") {
-        setStoredPizzaCategoryMode(res.id, allowMultipleFlavors);
+        setStoredPizzaCategoryMode(res.id, flavorMode);
         if (createDefaultPizzaSizes) {
           await createMissingPizzaSizes(
             res.id,
             [],
             STANDARD_PIZZA_SIZES_PRESET,
-            allowMultipleFlavors ? "sum_fractions" : "fixed",
+            flavorMode === "single" ? "fixed" : "sum_fractions",
             0,
-            !allowMultipleFlavors,
+            flavorMode,
           );
           qc.invalidateQueries({ queryKey: ["admin", "pizza-config", res.id] });
         }
@@ -371,17 +373,19 @@ function WizardPage() {
                     <div className="space-y-3">
                       <div className="rounded-lg border bg-muted/15 p-3">
                         <PizzaCategoryBehaviorSelector
-                          allowMultipleFlavors={allowMultipleFlavors}
-                          onChange={setAllowMultipleFlavors}
+                          value={flavorMode}
+                          onModeChange={setFlavorMode}
                         />
                       </div>
                       <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/20 p-3">
                         <div className="space-y-0.5">
                           <Label className="text-sm font-medium">Criar tamanhos padrão automaticamente (P, M, G, Família)</Label>
                           <p className="text-xs text-muted-foreground">
-                            {allowMultipleFlavors
-                              ? "Cria Pequena (4 fatias · 2 sab.), Média (6 · 2), Grande (8 · 3) e Família (12 · 4). Você pode editar depois."
-                              : "Cria Pequena (4 fatias), Média (6), Grande (8) e Família (12) como pizzas inteiras fixas."}
+                            {flavorMode === "single"
+                              ? "Cria Pequena (4 fatias), Média (6), Grande (8) e Família (12) como pizzas inteiras fixas."
+                              : flavorMode === "half"
+                                ? "Cria Pequena (4 fatias · até 2 sab.), Média (6 · 2), Grande (8 · 2) e Família (12 · 2)."
+                                : "Cria Pequena (4 fatias · 2 sab.), Média (6 · 2), Grande (8 · 3) e Família (12 · 4). Você pode editar depois."}
                           </p>
                         </div>
                         <Switch

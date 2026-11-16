@@ -36,6 +36,7 @@ export type Product = {
   category: string;
   categoryId?: string | null;
   categoryKind?: "standard" | "pizza" | "oferta";
+  sortOrder?: number;
   description: string;
   price: number;
   promoPrice?: number;

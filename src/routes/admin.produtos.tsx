@@ -23,6 +23,8 @@ import {
   STANDARD_PIZZA_SIZES_PRESET,
   createMissingPizzaSizes,
   isSingleFlavorPizzaCategory,
+  getPizzaCategoryFlavorMode,
+  type PizzaCategoryFlavorMode,
 } from "@/components/admin/PizzaCategoryConfigDialog";
 import { brl } from "@/lib/format";
 import { ImageUploader } from "@/components/ui/image-uploader";
@@ -1773,7 +1775,11 @@ function PizzaProductForm({
   const qc = useQueryClient();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const currentCat = categories.find((c) => c.id === editing.category_id) ?? null;
-  const singleFlavorOnly = isSingleFlavorPizzaCategory(editing.category_id, categorySizes);
+  const flavorMode: PizzaCategoryFlavorMode = getPizzaCategoryFlavorMode(
+    editing.category_id,
+    categorySizes,
+  );
+  const singleFlavorOnly = flavorMode === "single";
   const priceRule = singleFlavorOnly
     ? "fixed"
     : (categorySizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions");
@@ -1794,7 +1800,7 @@ function PizzaProductForm({
         STANDARD_PIZZA_SIZES_PRESET,
         singleFlavorOnly ? "fixed" : "sum_fractions",
         0,
-        singleFlavorOnly,
+        flavorMode,
       );
     },
     onSuccess: (created) => {
@@ -1920,9 +1926,11 @@ function PizzaProductForm({
                   className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground transition"
                 >
                   <span>
-                    {singleFlavorOnly
+                    {flavorMode === "single"
                       ? "Apenas 1 sabor (Inteira fixa)"
-                      : `Meio a meio: ${priceRule === "max_value" ? "Maior valor" : "Média proporcional"}`}
+                      : flavorMode === "half"
+                        ? `Meio a meio (até 2): ${priceRule === "max_value" ? "Maior valor" : "Média proporcional"}`
+                        : `Múltiplos sabores: ${priceRule === "max_value" ? "Maior valor" : "Média proporcional"}`}
                   </span>
                   <span className="text-primary">· Alterar</span>
                 </button>
@@ -1987,7 +1995,7 @@ function PizzaProductForm({
                         size={sz}
                         entry={entry}
                         priceRule={priceRule}
-                        singleFlavorOnly={singleFlavorOnly}
+                        flavorMode={flavorMode}
                         onChange={(nextEntry) =>
                           setDraftPizzaSizes((prev) => ({ ...prev, [sz.id]: nextEntry }))
                         }
@@ -2125,18 +2133,24 @@ function PizzaProductForm({
 }
 
 function PizzaSizePriceRow({
-  size, entry, priceRule, singleFlavorOnly, onChange,
+  size, entry, priceRule, flavorMode, onChange,
 }: {
   size: { id: string; name: string; pieces: number; max_flavors: number; active: boolean };
   entry: DraftPizzaSize;
   priceRule: "sum_fractions" | "max_value" | "fixed";
-  singleFlavorOnly: boolean;
+  flavorMode: PizzaCategoryFlavorMode;
   onChange: (next: DraftPizzaSize) => void;
 }) {
+  const singleFlavorOnly = flavorMode === "single";
+  const effectiveMaxFlavors = singleFlavorOnly
+    ? 1
+    : flavorMode === "half"
+      ? Math.min(2, size.max_flavors)
+      : size.max_flavors;
   const [editedFracs, setEditedFracs] = useState<Set<string>>(new Set());
 
   const handlePriceChange = (val: number) => {
-    const nextFracs = computeFractionPrices(val, size.max_flavors, entry.fraction_prices, editedFracs);
+    const nextFracs = computeFractionPrices(val, effectiveMaxFlavors, entry.fraction_prices, editedFracs);
     onChange({
       ...entry,
       enabled: val > 0 ? true : entry.enabled,
@@ -2166,7 +2180,7 @@ function PizzaSizePriceRow({
     setEditedFracs(new Set());
     onChange({
       ...entry,
-      fraction_prices: computeFractionPrices(entry.price, size.max_flavors),
+      fraction_prices: computeFractionPrices(entry.price, effectiveMaxFlavors),
     });
   };
 
@@ -2186,7 +2200,7 @@ function PizzaSizePriceRow({
             </div>
             <p className="text-[11px] text-muted-foreground">
               {size.pieces} {size.pieces === 1 ? "pedaço" : "pedaços"}
-              {!singleFlavorOnly && ` · até ${size.max_flavors} ${size.max_flavors > 1 ? "sabores" : "sabor"}`}
+              {!singleFlavorOnly && ` · até ${effectiveMaxFlavors} ${effectiveMaxFlavors > 1 ? "sabores" : "sabor"}`}
             </p>
           </div>
         </label>
@@ -2200,7 +2214,7 @@ function PizzaSizePriceRow({
         </div>
       </div>
 
-      {!singleFlavorOnly && entry.enabled && entry.price > 0 && size.max_flavors > 1 && (
+      {!singleFlavorOnly && entry.enabled && entry.price > 0 && effectiveMaxFlavors > 1 && (
         <div className="mt-2 pt-2 border-t border-dashed space-y-2">
           <p className="text-[11px] text-muted-foreground">
             {priceRule === "max_value" ? (
@@ -2208,7 +2222,7 @@ function PizzaSizePriceRow({
             ) : (
               <>
                 Meio a meio automático:{" "}
-                {Array.from({ length: size.max_flavors - 1 }, (_, i) => i + 2)
+                {Array.from({ length: effectiveMaxFlavors - 1 }, (_, i) => i + 2)
                   .map((n) => `1/${n} = ${brl(entry.fraction_prices[String(n)] ?? Number((entry.price / n).toFixed(2)))}`)
                   .join(" · ")}
               </>
@@ -2218,10 +2232,10 @@ function PizzaSizePriceRow({
           {priceRule !== "max_value" && (
             <details className="text-xs">
               <summary className="cursor-pointer text-[11px] font-medium text-primary hover:underline w-fit">
-                Personalizar frações (1/2{size.max_flavors >= 3 ? ", 1/3…" : ""})
+                Personalizar {effectiveMaxFlavors === 2 ? "fração (1/2)" : "frações (1/2, 1/3…)"}
               </summary>
               <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {Array.from({ length: size.max_flavors - 1 }, (_, i) => i + 2).map((n) => (
+                {Array.from({ length: effectiveMaxFlavors - 1 }, (_, i) => i + 2).map((n) => (
                   <div key={n} className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground">Valor 1/{n} sabor</Label>
                     <CurrencyInput

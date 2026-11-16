@@ -449,59 +449,45 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
 
 
 
-  const PIZZAS_KEY = "__pizzas__";
-  const pizzaCatNames = useMemo(
-    () => new Set(categories.filter((c) => c.kind === "pizza").map((c) => c.name)),
+  const sortedCategories = useMemo(
+    () => categories.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     [categories],
   );
 
-  // Chips apenas para categorias que possuem ao menos um produto cadastrado
+  // Chips apenas para categorias que possuem ao menos um produto cadastrado, respeitando a ordem do admin
   const chips = useMemo(() => {
     const withProducts = new Set(products.map((p) => p.category));
     const list: { key: string; label: string }[] = [{ key: "Todos", label: "Todos" }];
-    if (products.some((p) => pizzaCatNames.has(p.category))) {
-      list.push({ key: PIZZAS_KEY, label: "Pizzas" });
-    }
-    for (const c of categories) {
-      if (c.kind === "pizza" || !withProducts.has(c.name)) continue;
+    for (const c of sortedCategories) {
+      if (!withProducts.has(c.name)) continue;
       list.push({ key: c.name, label: c.name });
     }
     return list;
-  }, [categories, products, pizzaCatNames]);
+  }, [sortedCategories, products]);
 
   const filtered = useMemo(() => {
-    return products.filter((p) => {
-      if (activeCat === PIZZAS_KEY) {
-        if (!pizzaCatNames.has(p.category)) return false;
-      } else if (activeCat !== "Todos" && p.category !== activeCat) return false;
-      if (search && !normalizeSearch(p.name).includes(normalizeSearch(search)))
-        return false;
-      return true;
-    });
-  }, [search, activeCat, products, pizzaCatNames]);
+    return products
+      .filter((p) => {
+        if (activeCat !== "Todos" && p.category !== activeCat) return false;
+        if (search && !normalizeSearch(p.name).includes(normalizeSearch(search)))
+          return false;
+        return true;
+      })
+      .slice()
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [search, activeCat, products]);
 
-  type Group = { name: string; items: Product[]; isPizzaParent?: boolean; children?: { name: string; items: Product[] }[] };
+  type Group = { name: string; items: Product[]; category?: Category };
   const grouped = useMemo<Group[]>(() => {
-    if (activeCat !== "Todos" && activeCat !== PIZZAS_KEY) {
-      return filtered.length > 0 ? [{ name: activeCat, items: filtered }] : [];
-    }
     const out: Group[] = [];
-    const pizzaChildren: { name: string; items: Product[] }[] = [];
-    for (const c of categories) {
+    for (const c of sortedCategories) {
+      if (activeCat !== "Todos" && c.name !== activeCat) continue;
       const items = filtered.filter((p) => p.category === c.name);
       if (items.length === 0) continue;
-      if (c.kind === "pizza") {
-        pizzaChildren.push({ name: c.name, items });
-      } else if (activeCat === "Todos") {
-        out.push({ name: c.name, items });
-      }
-    }
-    if (pizzaChildren.length > 0) {
-      const allPizzaItems = pizzaChildren.flatMap((g) => g.items);
-      out.push({ name: "Pizzas", items: allPizzaItems, isPizzaParent: true, children: pizzaChildren });
+      out.push({ name: c.name, items, category: c });
     }
     return out;
-  }, [filtered, activeCat, categories]);
+  }, [filtered, activeCat, sortedCategories]);
 
   // Scroll spy: destaca automaticamente o chip da categoria visível e ativa o mini-cabeçalho da loja no scroll
   useEffect(() => {
@@ -975,7 +961,26 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
             </div>
           ) : (
             grouped.map((g) => {
-              const catKey = g.isPizzaParent ? PIZZAS_KEY : g.name;
+              const catKey = g.name;
+              const cat = g.category ?? categories.find((c) => c.name === g.name);
+              const isPizzaGroup = cat?.kind === "pizza";
+              const catKeySub = cat?.id ?? g.name;
+              const catSizes = isPizzaGroup && cat
+                ? pizzaSizes.filter((s) => s.category_id === cat.id && s.active)
+                : [];
+              const maxCatFlavors = catSizes.length > 0 ? Math.max(...catSizes.map((s) => s.max_flavors ?? 1)) : 1;
+              const selectedCountMode = Math.min(
+                Math.max(1, maxCatFlavors),
+                pizzaFlavorCounts[catKeySub] ?? 1,
+              );
+              const validItemIds = new Set(
+                g.items
+                  .filter((it) => it.available && it.listedAsFlavor !== false)
+                  .map((it) => it.id),
+              );
+              const draftIds = (pizzaDraftSelections[catKeySub] ?? []).filter((id) => validItemIds.has(id));
+              const catPriceRule = catSizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions";
+
               return (
                 <section
                   key={g.name}
@@ -984,171 +989,131 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                     if (el) sectionRefs.current.set(catKey, el);
                     else sectionRefs.current.delete(catKey);
                   }}
-                  className="scroll-mt-24"
+                  className="scroll-mt-24 space-y-3"
                 >
-                  <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <h2 className="text-lg font-bold">{g.name}</h2>
                   </div>
 
-                  {g.isPizzaParent && g.children ? (
-                    <div className="space-y-6">
-                      {g.children.map((sub) => {
-                        const cat = categories.find((c) => c.name === sub.name && c.kind === "pizza");
-                        const catKeySub = cat?.id ?? sub.name;
-                        const catSizes = cat ? pizzaSizes.filter((s) => s.category_id === cat.id && s.active) : [];
-                        const maxCatFlavors = catSizes.length > 0 ? Math.max(...catSizes.map((s) => s.max_flavors ?? 1)) : 1;
-                        const selectedCountMode = Math.min(
-                          Math.max(1, maxCatFlavors),
-                          pizzaFlavorCounts[catKeySub] ?? 1,
-                        );
-                        const validItemIds = new Set(
-                          sub.items
-                            .filter((it) => it.available && it.listedAsFlavor !== false)
-                            .map((it) => it.id),
-                        );
-                        const draftIds = (pizzaDraftSelections[catKeySub] ?? []).filter((id) => validItemIds.has(id));
-                        const catPriceRule = catSizes.find((s) => s.price_rule)?.price_rule ?? "sum_fractions";
-
-                        return (
-                          <div key={sub.name} className="space-y-3">
-                            <h3 className="text-sm font-semibold text-muted-foreground">{sub.name}</h3>
-
-                            {canOrder && maxCatFlavors > 1 && (
-                              <div className="rounded-2xl border bg-card/80 p-3.5 shadow-xs">
-                                <PizzaFlavorCountSelector
-                                  maxFlavors={maxCatFlavors}
-                                  value={selectedCountMode}
-                                  selectedCount={draftIds.length}
-                                  priceRule={catPriceRule}
-                                  showHint={selectedCountMode > 1}
-                                  onChange={(nextCount) => {
-                                    setPizzaFlavorCounts((prev) => ({ ...prev, [catKeySub]: nextCount }));
-                                    setPizzaDraftSelections((prev) => {
-                                      const cur = prev[catKeySub] ?? [];
-                                      if (nextCount <= 1) {
-                                        if (cur.length === 0) return prev;
-                                        const next = { ...prev };
-                                        delete next[catKeySub];
-                                        return next;
-                                      }
-                                      if (cur.length > nextCount) {
-                                        return { ...prev, [catKeySub]: cur.slice(0, nextCount) };
-                                      }
-                                      return prev;
-                                    });
-                                  }}
-                                />
-                                {selectedCountMode > 1 && draftIds.length > 0 && (
-                                  <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setPizzaDraftSelections((prev) => {
-                                          const next = { ...prev };
-                                          delete next[catKeySub];
-                                          return next;
-                                        })
-                                      }
-                                      className="text-xs font-medium text-muted-foreground underline hover:text-foreground"
-                                    >
-                                      Limpar seleção
-                                    </button>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-8 rounded-full px-4 text-xs font-semibold"
-                                      onClick={() => {
-                                        const firstProd = sub.items.find((x) => x.id === draftIds[0]) ?? sub.items[0];
-                                        if (!firstProd) return;
-                                        openProductModal(firstProd, selectedCountMode, draftIds);
-                                        setPizzaDraftSelections((prev) => {
-                                          const next = { ...prev };
-                                          delete next[catKeySub];
-                                          return next;
-                                        });
-                                      }}
-                                    >
-                                      Continuar ({draftIds.length}/{selectedCountMode})
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            <div
-                              className={
-                                viewMode === "grid"
-                                  ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                                  : "flex flex-col gap-3"
-                              }
-                            >
-                              {sub.items.map((p) => {
-                                const canPickInline = canOrder && selectedCountMode > 1 && p.listedAsFlavor !== false && p.available;
-                                const isChecked = canPickInline && draftIds.includes(p.id);
-                                return (
-                                  <ProductCard
-                                    key={p.id}
-                                    product={p}
-                                    view={viewMode}
-                                    showCategory={!!search}
-                                    selectable={canPickInline}
-                                    selected={isChecked}
-                                    onClick={() => {
-                                      if (!canOrder) return;
-                                      if (canPickInline) {
-                                        const nextIds = isChecked
-                                          ? draftIds.filter((id) => id !== p.id)
-                                          : [...draftIds, p.id];
-                                        if (nextIds.length >= selectedCountMode) {
-                                          const finalIds = nextIds.slice(0, selectedCountMode);
-                                          const firstProd = sub.items.find((x) => x.id === finalIds[0]) ?? p;
-                                          openProductModal(firstProd, selectedCountMode, finalIds);
-                                          setPizzaDraftSelections((prev) => {
-                                            const next = { ...prev };
-                                            delete next[catKeySub];
-                                            return next;
-                                          });
-                                        } else {
-                                          setPizzaDraftSelections((prev) => ({ ...prev, [catKeySub]: nextIds }));
-                                        }
-                                        return;
-                                      }
-                                      openProductModal(
-                                        p,
-                                        p.listedAsFlavor !== false ? 1 : null,
-                                        p.listedAsFlavor !== false ? [p.id] : null,
-                                      );
-                                    }}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {isPizzaGroup && canOrder && maxCatFlavors > 1 && (
+                    <div className="rounded-2xl border bg-card/80 p-3.5 shadow-xs">
+                      <PizzaFlavorCountSelector
+                        maxFlavors={maxCatFlavors}
+                        value={selectedCountMode}
+                        selectedCount={draftIds.length}
+                        priceRule={catPriceRule}
+                        showHint={selectedCountMode > 1}
+                        onChange={(nextCount) => {
+                          setPizzaFlavorCounts((prev) => ({ ...prev, [catKeySub]: nextCount }));
+                          setPizzaDraftSelections((prev) => {
+                            const cur = prev[catKeySub] ?? [];
+                            if (nextCount <= 1) {
+                              if (cur.length === 0) return prev;
+                              const next = { ...prev };
+                              delete next[catKeySub];
+                              return next;
+                            }
+                            if (cur.length > nextCount) {
+                              return { ...prev, [catKeySub]: cur.slice(0, nextCount) };
+                            }
+                            return prev;
+                          });
+                        }}
+                      />
+                      {selectedCountMode > 1 && draftIds.length > 0 && (
+                        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPizzaDraftSelections((prev) => {
+                                const next = { ...prev };
+                                delete next[catKeySub];
+                                return next;
+                              })
+                            }
+                            className="text-xs font-medium text-muted-foreground underline hover:text-foreground"
+                          >
+                            Limpar seleção
+                          </button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 rounded-full px-4 text-xs font-semibold"
+                            onClick={() => {
+                              const firstProd = g.items.find((x) => x.id === draftIds[0]) ?? g.items[0];
+                              if (!firstProd) return;
+                              openProductModal(firstProd, selectedCountMode, draftIds);
+                              setPizzaDraftSelections((prev) => {
+                                const next = { ...prev };
+                                delete next[catKeySub];
+                                return next;
+                              });
+                            }}
+                          >
+                            Continuar ({draftIds.length}/{selectedCountMode})
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div
-                      className={
-                        viewMode === "grid"
-                          ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                          : "flex flex-col gap-3"
-                      }
-                    >
-                      {g.items.map((p) => (
+                  )}
+
+                  <div
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+                        : "flex flex-col gap-3"
+                    }
+                  >
+                    {g.items.map((p) => {
+                      const canPickInline =
+                        isPizzaGroup &&
+                        canOrder &&
+                        selectedCountMode > 1 &&
+                        p.listedAsFlavor !== false &&
+                        p.available;
+                      const isChecked = canPickInline && draftIds.includes(p.id);
+                      return (
                         <ProductCard
                           key={p.id}
                           product={p}
                           view={viewMode}
- showCategory={!!search}
+                          showCategory={!!search}
+                          selectable={canPickInline}
+                          selected={isChecked}
                           onClick={() => {
                             if (!canOrder) return;
-                            openProductModal(p);
+                            if (canPickInline) {
+                              const nextIds = isChecked
+                                ? draftIds.filter((id) => id !== p.id)
+                                : [...draftIds, p.id];
+                              if (nextIds.length >= selectedCountMode) {
+                                const finalIds = nextIds.slice(0, selectedCountMode);
+                                const firstProd = g.items.find((x) => x.id === finalIds[0]) ?? p;
+                                openProductModal(firstProd, selectedCountMode, finalIds);
+                                setPizzaDraftSelections((prev) => {
+                                  const next = { ...prev };
+                                  delete next[catKeySub];
+                                  return next;
+                                });
+                              } else {
+                                setPizzaDraftSelections((prev) => ({ ...prev, [catKeySub]: nextIds }));
+                              }
+                              return;
+                            }
+                            if (isPizzaGroup) {
+                              openProductModal(
+                                p,
+                                p.listedAsFlavor !== false ? 1 : null,
+                                p.listedAsFlavor !== false ? [p.id] : null,
+                              );
+                            } else {
+                              openProductModal(p);
+                            }
                           }}
                         />
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
                 </section>
               );
             })
