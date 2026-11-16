@@ -1,17 +1,19 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { DollarSign, Smartphone, Landmark, Wallet, ChevronRight } from "lucide-react";
 import type { StorePaymentSettingsSafe, PaymentMethod } from "@/lib/payment-types";
 
 interface PaymentMethodSelectorProps {
   settings: StorePaymentSettingsSafe | null;
-  paymentWhen: "agora" | "na_retirada";
+  paymentWhen?: "agora" | "na_retirada" | "all";
+  mode?: "entrega" | "retirada" | "consumo_local";
   selectedMethod: PaymentMethod | null;
   onSelectMethod: (method: PaymentMethod) => void;
 }
 
 export function PaymentMethodSelector({
   settings,
-  paymentWhen,
+  paymentWhen = "all",
+  mode = "entrega",
   selectedMethod,
   onSelectMethod,
 }: PaymentMethodSelectorProps) {
@@ -55,105 +57,192 @@ export function PaymentMethodSelector({
       >
         {icon}
       </span>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm sm:text-base text-foreground leading-tight">{title}</p>
-        {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold text-sm sm:text-base leading-tight text-foreground">{title}</p>
+        {subtitle && <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <ChevronRight className="h-5 w-5 text-muted-foreground" />
     </button>
   );
 
-  return (
-    <div className="space-y-3">
-      {paymentWhen === "agora" ? (
-        // PAGAMENTO AGORA (ONLINE)
-        <div className="space-y-3">
-          {isMpConnected && config.pix_enabled && (
-            <OptionRow
-              method="pix_online"
-              icon={<Landmark className="h-5 w-5" />}
-              title="Pix Online"
-              subtitle="Confirmação e liberação automática e instantânea"
-              active={selectedMethod === "pix_online"}
-            />
-          )}
+  const onlineOptions: { method: PaymentMethod; icon: ReactNode; title: string; subtitle: string }[] = [];
+  if (isMpConnected && config.pix_enabled) {
+    onlineOptions.push({
+      method: "pix_online",
+      icon: <Landmark className="h-5 w-5" />,
+      title: "Pix Online",
+      subtitle: "Confirmação e liberação automática e instantânea",
+    });
+  }
+  if (isMpConnected && config.credit_card_enabled) {
+    onlineOptions.push({
+      method: "credit_card",
+      icon: <Smartphone className="h-5 w-5" />,
+      title: "Cartão de Crédito Online",
+      subtitle: "Pague agora à vista no cartão de crédito",
+    });
+  }
+  if (isMpConnected && config.debit_card_enabled) {
+    onlineOptions.push({
+      method: "debit_card",
+      icon: <Smartphone className="h-5 w-5" />,
+      title: "Cartão de Débito Online",
+      subtitle: "Pague agora usando seu saldo bancário",
+    });
+  }
 
-          {isMpConnected && config.credit_card_enabled && (
-            <OptionRow
-              method="credit_card"
-              icon={<Smartphone className="h-5 w-5" />}
-              title="Cartão de Crédito Online"
-              subtitle="Pague agora à vista no cartão de crédito"
-              active={selectedMethod === "credit_card"}
-            />
-          )}
+  const whenNoun =
+    mode === "entrega" ? "entrega" : mode === "consumo_local" ? "consumo no local" : "retirada";
 
-          {isMpConnected && config.debit_card_enabled && (
-            <OptionRow
-              method="debit_card"
-              icon={<Smartphone className="h-5 w-5" />}
-              title="Cartão de Débito Online"
-              subtitle="Pague agora usando seu saldo bancário"
-              active={selectedMethod === "debit_card"}
-            />
-          )}
+  const manualOptions: { method: PaymentMethod; icon: ReactNode; title: string; subtitle: string }[] = [];
+  if (config.cash_enabled) {
+    manualOptions.push({
+      method: "cash",
+      icon: <DollarSign className="h-5 w-5" />,
+      title: "Dinheiro",
+      subtitle: `Pague com cédulas no momento da ${whenNoun}`,
+    });
+  }
+  if (config.card_on_delivery_enabled) {
+    manualOptions.push({
+      method: "card_on_delivery",
+      icon: <Smartphone className="h-5 w-5" />,
+      title: "Cartão na maquininha",
+      subtitle:
+        mode === "entrega"
+          ? "Crédito ou Débito direto com o entregador"
+          : "Crédito ou Débito direto no balcão/atendimento",
+    });
+  }
+  if (config.pix_manual_enabled) {
+    manualOptions.push({
+      method: "pix_manual",
+      icon: <Wallet className="h-5 w-5" />,
+      title: "Pix Manual",
+      subtitle: "Transfira para a chave Pix e envie o comprovante",
+    });
+  }
 
-          {config.pix_manual_enabled && (
-            <OptionRow
-              method="pix_manual"
-              icon={<Wallet className="h-5 w-5" />}
-              title="Pix Manual"
-              subtitle="Transfira para a chave Pix e envie o comprovante"
-              active={selectedMethod === "pix_manual"}
-            />
-          )}
+  const manualSectionLabel =
+    mode === "entrega"
+      ? "Pagar na entrega"
+      : mode === "consumo_local"
+        ? "Pagar no local"
+        : "Pagar na retirada";
 
-          {!config.pix_manual_enabled && (!isMpConnected || (!config.pix_enabled && !config.credit_card_enabled && !config.debit_card_enabled)) && (
-            <div className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground bg-muted/10 space-y-1">
-              <p className="font-semibold text-sm">Nenhum método online ativado</p>
-              <p className="text-xs">Este estabelecimento não aceita pagamentos online no momento.</p>
-            </div>
-          )}
+  if (paymentWhen === "agora") {
+    const legacyOnline = config.pix_manual_enabled
+      ? [
+          ...onlineOptions,
+          {
+            method: "pix_manual" as PaymentMethod,
+            icon: <Wallet className="h-5 w-5" />,
+            title: "Pix Manual",
+            subtitle: "Transfira para a chave Pix e envie o comprovante",
+          },
+        ]
+      : onlineOptions;
+
+    if (legacyOnline.length === 0) {
+      return (
+        <div className="space-y-1 rounded-2xl border border-dashed bg-muted/10 p-6 text-center text-muted-foreground">
+          <p className="text-sm font-semibold">Nenhum método online ativado</p>
+          <p className="text-xs">Este estabelecimento não aceita pagamentos online no momento.</p>
         </div>
-      ) : (
-        // PAGAMENTO NA ENTREGA/RETIRADA (MANUAIS)
-        <div className="space-y-3">
-          {config.cash_enabled && (
-            <OptionRow
-              method="cash"
-              icon={<DollarSign className="h-5 w-5" />}
-              title="Dinheiro"
-              subtitle="Pague com cédulas físicas no momento da entrega/retirada"
-              active={selectedMethod === "cash"}
-            />
-          )}
+      );
+    }
 
-          {config.pix_manual_enabled && (
-            <OptionRow
-              method="pix_manual"
-              icon={<Wallet className="h-5 w-5" />}
-              title="Pix Manual"
-              subtitle="Transfira para a chave Pix e envie o comprovante"
-              active={selectedMethod === "pix_manual"}
-            />
-          )}
+    return (
+      <div className="space-y-3">
+        {legacyOnline.map((o) => (
+          <OptionRow
+            key={o.method}
+            method={o.method}
+            icon={o.icon}
+            title={o.title}
+            subtitle={o.subtitle}
+            active={selectedMethod === o.method}
+          />
+        ))}
+      </div>
+    );
+  }
 
-          {config.card_on_delivery_enabled && (
-            <OptionRow
-              method="card_on_delivery"
-              icon={<Smartphone className="h-5 w-5" />}
-              title="Cartão na maquininha"
-              subtitle="Crédito ou Débito direto com o entregador/balcão"
-              active={selectedMethod === "card_on_delivery"}
-            />
-          )}
+  if (paymentWhen === "na_retirada") {
+    if (manualOptions.length === 0) {
+      return (
+        <div className="space-y-1 rounded-2xl border border-dashed bg-muted/10 p-6 text-center text-muted-foreground">
+          <p className="text-sm font-semibold">Nenhum método manual disponível</p>
+          <p className="text-xs">Consulte o estabelecimento para acertar a forma de pagamento.</p>
+        </div>
+      );
+    }
 
-          {!config.cash_enabled && !config.pix_manual_enabled && !config.card_on_delivery_enabled && (
-            <div className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground bg-muted/10 space-y-1">
-              <p className="font-semibold text-sm">Nenhum método manual disponível</p>
-              <p className="text-xs">Consulte o estabelecimento para acertar a forma de pagamento.</p>
-            </div>
-          )}
+    return (
+      <div className="space-y-3">
+        {manualOptions.map((o) => (
+          <OptionRow
+            key={o.method}
+            method={o.method}
+            icon={o.icon}
+            title={o.title}
+            subtitle={o.subtitle}
+            active={selectedMethod === o.method}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Modo unificado ("all")
+  if (onlineOptions.length === 0 && manualOptions.length === 0) {
+    return (
+      <div className="space-y-1 rounded-2xl border border-dashed bg-muted/10 p-6 text-center text-muted-foreground">
+        <p className="text-sm font-semibold">Nenhuma forma de pagamento disponível</p>
+        <p className="text-xs">Consulte o estabelecimento para acertar a forma de pagamento.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {onlineOptions.length > 0 && (
+        <div className="space-y-2.5">
+          <p className="px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Pagar online agora (aprovação imediata)
+          </p>
+          <div className="space-y-2.5">
+            {onlineOptions.map((o) => (
+              <OptionRow
+                key={o.method}
+                method={o.method}
+                icon={o.icon}
+                title={o.title}
+                subtitle={o.subtitle}
+                active={selectedMethod === o.method}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {manualOptions.length > 0 && (
+        <div className="space-y-2.5">
+          <p className="px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {manualSectionLabel}
+          </p>
+          <div className="space-y-2.5">
+            {manualOptions.map((o) => (
+              <OptionRow
+                key={o.method}
+                method={o.method}
+                icon={o.icon}
+                title={o.title}
+                subtitle={o.subtitle}
+                active={selectedMethod === o.method}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>

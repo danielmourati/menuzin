@@ -24,7 +24,6 @@ import {
   Mail,
   Phone,
   MapPin,
-  Pencil,
   Home,
   Map,
   Ticket,
@@ -34,9 +33,8 @@ import {
   Clock,
   CreditCard,
   FileText,
-  Receipt,
 } from "lucide-react";
-import { useCart, computeUnitPrice } from "@/lib/cart-context";
+import { useCart, computeUnitPrice, type CartItem } from "@/lib/cart-context";
 import { brl } from "@/lib/format";
 import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 import { useQuery } from "@tanstack/react-query";
@@ -95,7 +93,6 @@ type Step =
   | "mode"
   | "mode-address"
   | "mode-table"
-  | "payment-when"
   | "payment-method"
   | "payment-online-pix"
   | "payment-online-card"
@@ -107,16 +104,31 @@ type Step =
 
 type Mode = "entrega" | "retirada" | "consumo_local";
 
+function getMethodLabel(m: PaymentMethod, currentMode: Mode | null): string {
+  if (m === "pix_online") return "Pix Online (Mercado Pago)";
+  if (m === "credit_card") return "Cartão de Crédito Online (Mercado Pago)";
+  if (m === "debit_card") return "Cartão de Débito Online (Mercado Pago)";
+  if (m === "pix_manual") return "Pix Manual (Comprovante)";
+  if (m === "cash") return "Dinheiro em Espécie";
+  return currentMode === "entrega"
+    ? "Cartão na Maquininha (Entrega)"
+    : currentMode === "consumo_local"
+      ? "Cartão na Maquininha (Local)"
+      : "Cartão na Maquininha (Retirada)";
+}
+
 export function CartDrawer({
   open,
   onOpenChange,
   tenant: storefrontTenant,
   storeOpen = true,
+  onEditItem,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   tenant?: Tenant;
   storeOpen?: boolean;
+  onEditItem?: (item: CartItem) => void;
 }) {
   const { slug } = useParams({ strict: false }) as { slug?: string };
   const effectiveSlug = (storefrontTenant?.slug || slug || "").toLowerCase();
@@ -124,6 +136,7 @@ export function CartDrawer({
   const { items, update, remove, subtotal, clear, activeCouponCode, setActiveCouponCode, clearActiveCoupon } = useCart();
   const [step, setStep] = useState<Step>("cart");
   const [history, setHistory] = useState<Step[]>([]);
+  const [returnToReview, setReturnToReview] = useState(false);
 
   // payment settings from DB
   const [settings, setSettings] = useState<StorePaymentSettingsSafe | null>(null);
@@ -135,7 +148,6 @@ export function CartDrawer({
   // Persisted order (created before online payment, reused in finalize)
   const [dbOrderId, setDbOrderId] = useState<string | null>(null);
   const ensureOrderPromise = useRef<Promise<{ id: string; number: number } | null> | null>(null);
-  const methodBusyRef = useRef(false);
   // Código único por checkout: o servidor usa para nunca criar o mesmo pedido duas vezes.
   const checkoutKeyStorage = `menuzin_checkout_key:${effectiveSlug || "loja"}`;
   const getCheckoutKey = () => {
@@ -262,6 +274,12 @@ export function CartDrawer({
     if (selectedMethod in on && !on[selectedMethod]) setSelectedMethod(null);
   }, [settings, selectedMethod]);
 
+  useEffect(() => {
+    if (selectedMethod === "card_on_delivery") {
+      setPaymentMethod(getMethodLabel("card_on_delivery", mode));
+    }
+  }, [mode, selectedMethod]);
+
   const forgetSavedProfile = () => {
     clearCustomerProfile();
     setUsingSavedProfile(false);
@@ -280,7 +298,7 @@ export function CartDrawer({
 
   // Fetch settings for tenant
   useEffect(() => {
-    if (open && effectiveSlug && (step === "cart" || step === "payment-when" || step === "payment-method")) {
+    if (open && effectiveSlug && (step === "cart" || step === "payment-method")) {
       getPaymentSettingsBySlug(effectiveSlug).then((data) => {
         if (data) {
           setSettings(data);
@@ -618,6 +636,7 @@ export function CartDrawer({
     setCardData(null);
     setCepError(null);
     setCepLoading(false);
+    setReturnToReview(false);
     setHistory([]);
     setStep("mode");
     // toast.success("Campos limpos");
@@ -643,6 +662,7 @@ export function CartDrawer({
   const resetAll = () => {
     setStep("cart");
     setHistory([]);
+    setReturnToReview(false);
     setDbOrderId(null);
     setDbOrderNumber(null);
     ensureOrderPromise.current = null;
@@ -671,53 +691,25 @@ export function CartDrawer({
             : "Pagar na retirada"
         : "";
 
-  const selectMode = (m: Mode) => {
-    setMode(m);
-    if (m === "entrega") goTo("mode-address");
-    else if (m === "consumo_local") goTo("mode-table");
-    else goTo("customer"); // retirada → collect customer info next
-  };
-
-  const confirmAddress = () => {
-    if (!street || !number || !neighborhood) return toast.error("Preencha o endereço");
-    if (!deliveryAvailable) {
-      return toast.error(feeResolution?.message || "Endereço fora da área de entrega");
-    }
-    if (deliveryMinOrder > 0 && subtotal < deliveryMinOrder) {
-      return toast.error(`Pedido mínimo para esta área: ${brl(deliveryMinOrder)}`);
-    }
-    goTo("customer");
-  };
-  const confirmTable = () => {
-    if (!table) return toast.error("Informe a mesa/comanda");
-    goTo("customer");
-  };
-
-  const hasOnlinePayment = !!settings?.mp_connected && !!(settings?.pix_enabled || settings?.credit_card_enabled || settings?.debit_card_enabled);
-  const hasManualPayment = !!(settings?.cash_enabled || settings?.pix_manual_enabled || settings?.card_on_delivery_enabled);
-
   const schedulingEnabled = !isPresencaOnly && !!storefrontTenant?.schedulingEnabled;
-  const confirmCustomer = () => {
-    if (!name || !phone) return toast.error("Informe nome e telefone");
-    if (selectedMethod && (storeOpen || scheduledFor)) {
-      goTo("review");
-      return;
-    }
-    if (schedulingEnabled || !storeOpen) {
-      goTo("when");
-      return;
-    }
-    proceedToPayment();
-  };
 
-  const confirmWhen = () => {
-    if (!storeOpen && !scheduledFor) return toast.error("Escolha um horário para agendar");
-    if (selectedMethod || isPresencaOnly) {
-      goTo("review");
-      return;
-    }
-    proceedToPayment();
-  };
+  const isAddressComplete =
+    mode === "retirada"
+      ? true
+      : mode === "consumo_local"
+        ? Boolean(table.trim())
+        : mode === "entrega"
+          ? Boolean(
+              street.trim() &&
+              number.trim() &&
+              neighborhood.trim() &&
+              !feeLoading &&
+              deliveryAvailable &&
+              (deliveryMinOrder <= 0 || subtotal >= deliveryMinOrder),
+            )
+          : false;
+
+  const isCustomerComplete = Boolean(name.trim() && phoneRaw().length >= 10);
 
   const proceedToPayment = () => {
     if (isPresencaOnly) {
@@ -727,26 +719,158 @@ export function CartDrawer({
       goTo("review");
       return;
     }
-    // Auto-skip when só há um dos modos disponíveis
-    if (hasOnlinePayment && !hasManualPayment) {
-      setPaymentWhen("agora");
-      setSelectedMethod(null);
-      goTo("payment-method");
-      return;
-    }
-    if (!hasOnlinePayment && hasManualPayment) {
-      setPaymentWhen("na_retirada");
-      setSelectedMethod(null);
-      goTo("payment-method");
-      return;
-    }
-    goTo("payment-when");
+    goTo("payment-method");
   };
 
-  const selectPaymentWhen = (w: "agora" | "na_retirada") => {
-    setPaymentWhen(w);
-    setSelectedMethod(null);
-    goTo("payment-method");
+  const handleContinueFromCart = () => {
+    setReturnToReview(false);
+    if (!storeOpen && !schedulingEnabled) {
+      return toast.error("Esta loja está fechada no momento.");
+    }
+    if (mode && isAddressComplete && isCustomerComplete) {
+      if (!storeOpen && !scheduledFor) {
+        goTo("when");
+        return;
+      }
+      if (isPresencaOnly || selectedMethod) {
+        goTo("review");
+        return;
+      }
+      proceedToPayment();
+      return;
+    }
+    if (mode && isAddressComplete && !isCustomerComplete) {
+      goTo("customer");
+      return;
+    }
+    if (mode === "entrega") {
+      goTo("mode-address");
+      return;
+    }
+    if (mode === "consumo_local") {
+      goTo("mode-table");
+      return;
+    }
+    goTo("mode");
+  };
+
+  const selectMode = (m: Mode) => {
+    setMode(m);
+    if (m === "entrega") {
+      goTo("mode-address");
+      return;
+    }
+    if (m === "consumo_local") {
+      goTo("mode-table");
+      return;
+    }
+    // retirada
+    if (returnToReview && isCustomerComplete && (storeOpen || !!scheduledFor) && (isPresencaOnly || !!selectedMethod)) {
+      setReturnToReview(false);
+      goTo("review");
+      return;
+    }
+    if (isCustomerComplete) {
+      if (!storeOpen && !scheduledFor) {
+        goTo("when");
+        return;
+      }
+      if (selectedMethod || isPresencaOnly) {
+        goTo("review");
+        return;
+      }
+      proceedToPayment();
+      return;
+    }
+    goTo("customer");
+  };
+
+  const confirmAddress = () => {
+    if (!street.trim() || !number.trim() || !neighborhood.trim()) {
+      return toast.error("Preencha rua, número e bairro");
+    }
+    if (feeLoading) {
+      return toast.info("Calculando a taxa de entrega, aguarde um instante.");
+    }
+    if (!deliveryAvailable) {
+      return toast.error(feeResolution?.message || "Endereço fora da área de entrega");
+    }
+    if (deliveryMinOrder > 0 && subtotal < deliveryMinOrder) {
+      return toast.error(`Pedido mínimo para esta área: ${brl(deliveryMinOrder)}`);
+    }
+    if (returnToReview && isCustomerComplete && (storeOpen || !!scheduledFor) && (isPresencaOnly || !!selectedMethod)) {
+      setReturnToReview(false);
+      goTo("review");
+      return;
+    }
+    if (isCustomerComplete) {
+      if (!storeOpen && !scheduledFor) {
+        goTo("when");
+        return;
+      }
+      if (selectedMethod || isPresencaOnly) {
+        goTo("review");
+        return;
+      }
+      proceedToPayment();
+      return;
+    }
+    goTo("customer");
+  };
+
+  const confirmTable = () => {
+    if (!table.trim()) return toast.error("Informe a mesa/comanda");
+    if (returnToReview && isCustomerComplete && (storeOpen || !!scheduledFor) && (isPresencaOnly || !!selectedMethod)) {
+      setReturnToReview(false);
+      goTo("review");
+      return;
+    }
+    if (isCustomerComplete) {
+      if (!storeOpen && !scheduledFor) {
+        goTo("when");
+        return;
+      }
+      if (selectedMethod || isPresencaOnly) {
+        goTo("review");
+        return;
+      }
+      proceedToPayment();
+      return;
+    }
+    goTo("customer");
+  };
+
+  const confirmCustomer = () => {
+    if (!name.trim()) return toast.error("Informe seu nome");
+    if (phoneRaw().length < 10) return toast.error("Informe seu telefone/WhatsApp com DDD");
+    if (!storeOpen && !scheduledFor) {
+      goTo("when");
+      return;
+    }
+    if (returnToReview && (isPresencaOnly || !!selectedMethod)) {
+      setReturnToReview(false);
+      goTo("review");
+      return;
+    }
+    if (selectedMethod || isPresencaOnly) {
+      goTo("review");
+      return;
+    }
+    proceedToPayment();
+  };
+
+  const confirmWhen = () => {
+    if (!storeOpen && !scheduledFor) return toast.error("Escolha um horário para agendar");
+    if (returnToReview && (isPresencaOnly || !!selectedMethod)) {
+      setReturnToReview(false);
+      goTo("review");
+      return;
+    }
+    if (selectedMethod || isPresencaOnly) {
+      goTo("review");
+      return;
+    }
+    proceedToPayment();
   };
 
   // Persist a draft order if not already created (used before online MP call).
@@ -856,24 +980,45 @@ export function CartDrawer({
   const [pixRefused, setPixRefused] = useState<string | null>(null);
   useEffect(() => { if (open) loadMpSecurityScript(); }, [open]);
 
-  const handleSelectMethod = async (m: PaymentMethod) => {
+  const handleSelectMethod = (m: PaymentMethod) => {
+    const isOnline = m === "pix_online" || m === "credit_card" || m === "debit_card";
+    setPaymentWhen(isOnline ? "agora" : "na_retirada");
     setSelectedMethod(m);
+    setPaymentMethod(getMethodLabel(m, mode));
+    setPixRefused(null);
+    setPixData(null);
+    setCardData(null);
 
-    const methodLabels: Record<PaymentMethod, string> = {
-      pix_online: "Pix Online (Mercado Pago)",
-      credit_card: "Cartão de Crédito Online (Mercado Pago)",
-      debit_card: "Cartão de Débito Online (Mercado Pago)",
-      pix_manual: "Pix Manual (Comprovante)",
-      cash: "Dinheiro em Espécie",
-      card_on_delivery: "Cartão na Maquininha (Entrega)",
-    };
-    setPaymentMethod(methodLabels[m]);
+    if (m === "cash") {
+      goTo("payment-cash");
+    } else if (m === "pix_manual") {
+      goTo("payment-pix");
+    } else {
+      setReturnToReview(false);
+      goTo("review");
+    }
+  };
 
-    if (m === "pix_online") {
+  const handleConfirmReview = async () => {
+    if (submittingRef.current) return;
+    if (isPresencaOnly) {
+      openWhatsappPresenca();
+      return;
+    }
+    if (!selectedMethod) {
+      toast.error("Escolha uma forma de pagamento");
+      goTo("payment-method");
+      return;
+    }
+    const methodLabel = getMethodLabel(selectedMethod, mode);
+
+    if (selectedMethod === "pix_online") {
+      submittingRef.current = true;
+      setSubmitting(true);
       setPixRefused(null);
       const toastId = toast.loading("Gerando transação Pix segura...");
       try {
-        const persisted = await ensureOrder(methodLabels[m]);
+        const persisted = await ensureOrder(methodLabel);
         if (!persisted) {
           toast.dismiss(toastId);
           return;
@@ -897,6 +1042,7 @@ export function CartDrawer({
         toast.dismiss(toastId);
         if (!res.data?.qr_code) {
           setPixRefused("Não foi possível gerar o QR Code do Pix.");
+          goTo("payment-method");
           return;
         }
         setPixData(res.data);
@@ -906,24 +1052,32 @@ export function CartDrawer({
         const raw = err instanceof Error ? err.message : "";
         const msg = !raw || raw.trim().startsWith("[") ? "Erro ao gerar pagamento Pix." : raw;
         setPixRefused(msg);
+        toast.error(msg);
+      } finally {
+        submittingRef.current = false;
+        setSubmitting(false);
       }
-    } else if (m === "credit_card" || m === "debit_card") {
-      // Ensure order exists so CardCheckout has a real order_id to bind
+      return;
+    }
+
+    if (selectedMethod === "credit_card" || selectedMethod === "debit_card") {
+      submittingRef.current = true;
+      setSubmitting(true);
       try {
-        const persisted = await ensureOrder(methodLabels[m]);
+        const persisted = await ensureOrder(methodLabel);
         if (!persisted) return;
         goTo("payment-online-card");
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Falha ao iniciar pagamento.";
         toast.error(msg);
+      } finally {
+        submittingRef.current = false;
+        setSubmitting(false);
       }
-    } else if (m === "pix_manual") {
-      goTo("payment-pix");
-    } else if (m === "cash") {
-      goTo("payment-cash");
-    } else {
-      goTo("review");
+      return;
     }
+
+    await finalize();
   };
 
   const handleCardSubmit = async (cardInfo: {
@@ -935,7 +1089,7 @@ export function CartDrawer({
     installments: number;
     cardToken: string;
   }) => {
-    const persisted = await ensureOrder(paymentMethod);
+    const persisted = await ensureOrder(selectedMethod ? getMethodLabel(selectedMethod, mode) : paymentMethod);
     if (!persisted) throw new Error("Pagamento online indisponível para este plano.");
     const { id: orderId } = persisted;
     const res = await createCardPayment({
@@ -985,12 +1139,14 @@ export function CartDrawer({
       }
       if (approvedOverride) finalPaymentStatus = "approved";
 
+      const resolvedMethodLabel = selectedMethod ? getMethodLabel(selectedMethod, mode) : paymentMethod;
+
       // Ensure order persisted (for offline methods that skipped the online flow).
       // Use the returned values directly — dbOrderNumber state is not yet updated.
       let orderId: string;
       let orderNumber: number;
       try {
-        const persisted = await ensureOrder(paymentMethod);
+        const persisted = await ensureOrder(resolvedMethodLabel);
         if (!persisted) return;
         orderId = persisted.id;
         orderNumber = persisted.number;
@@ -1008,7 +1164,7 @@ export function CartDrawer({
         email,
         doc,
         mode: mode!,
-        payment: `${paymentWhenLabel} · ${paymentMethod}`,
+        payment: `${paymentWhenLabel} · ${resolvedMethodLabel}`,
         paymentMethod: selectedMethod,
         paymentStatus: finalPaymentStatus,
         orderStatus: (finalPaymentStatus as string) === "approved" ? "new" : "pending_payment",
@@ -1059,9 +1215,8 @@ export function CartDrawer({
       onOpenChange(false);
       resetAll();
       navigate({
-        to: "/$slug/pedido-confirmado",
-        params: { slug: effectiveSlug },
-        search: { n: order.number } as never,
+        to: "/$slug/acompanhar/$orderId",
+        params: { slug: effectiveSlug, orderId },
       });
     } finally {
       submittingRef.current = false;
@@ -1283,7 +1438,14 @@ export function CartDrawer({
                             {!isFreeGift && (
                               <button
                                 className="text-sm font-semibold text-primary"
-                                onClick={() => onOpenChange(false)}
+                                onClick={() => {
+                                  if (onEditItem) {
+                                    remove(i.uid);
+                                    onEditItem(i);
+                                  } else {
+                                    onOpenChange(false);
+                                  }
+                                }}
                               >
                                 Alterar
                               </button>
@@ -1410,10 +1572,10 @@ export function CartDrawer({
                   <div className="border-t bg-amber-50 px-4 py-2 text-xs text-amber-900">
                     Esta loja finaliza pedidos pelo WhatsApp. Continue para montar a mensagem completa.
                   </div>
-                  <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />
+                  <StickySubtotal cta="Continuar" onCta={handleContinueFromCart} />
                 </>
               ) : (
-                <StickySubtotal cta="Continuar" onCta={() => goTo("mode")} />
+                <StickySubtotal cta="Continuar" onCta={handleContinueFromCart} />
               )
             )}
           </>
@@ -1461,6 +1623,18 @@ export function CartDrawer({
           <>
             <Header title="Endereço de entrega" right={<ClearBtn />} />
             <div className="flex-1 overflow-y-auto p-4">
+              {(acceptsTakeout || acceptsDinein) && (
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">Modalidade: <strong className="text-foreground">Entrega</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => goTo("mode")}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Trocar para Retirada / Local
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label>CEP</Label>
@@ -1576,6 +1750,32 @@ export function CartDrawer({
                 </div>
               </div>
 
+              {schedulingEnabled && (
+                <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Quando receber
+                    </p>
+                    <p className="truncate font-semibold text-foreground">
+                      {scheduledFor
+                        ? `Agendado: ${formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}`
+                        : storeOpen
+                          ? `Agora${storefrontTenant?.deliveryTime ? ` (${storefrontTenant.deliveryTime})` : ""}`
+                          : "Loja fechada — agendar horário"}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 text-xs font-semibold"
+                    onClick={() => goTo("when")}
+                  >
+                    {scheduledFor ? "Alterar" : "Agendar"}
+                  </Button>
+                </div>
+              )}
+
               {/* Delivery fee feedback */}
               <div className="mt-4 rounded-lg border bg-card p-3 text-sm">
                 {feeLoading ? (
@@ -1618,7 +1818,7 @@ export function CartDrawer({
             <StickySubtotal
               cta="Confirmar endereço"
               onCta={confirmAddress}
-              disabled={!deliveryAvailable}
+              disabled={!deliveryAvailable || feeLoading}
             />
           </>
         )}
@@ -1640,53 +1840,17 @@ export function CartDrawer({
           </>
         )}
 
-        {/* PAYMENT - WHEN */}
-        {step === "payment-when" && (
-          <>
-            <Header title="Opções de pagamento" />
-            <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {hasOnlinePayment && (
-                <OptionRow
-                  icon={<Smartphone className="h-5 w-5" />}
-                  title="Pagar agora"
-                  subtitle="Pague agora pelo aplicativo"
-                  onClick={() => selectPaymentWhen("agora")}
-                />
-              )}
-              {hasManualPayment && (
-                <OptionRow
-                  icon={<DollarSign className="h-5 w-5" />}
-                  title={mode === "entrega" ? "Pagar na entrega" : "Pagar na retirada"}
-                  subtitle={
-                    mode === "entrega"
-                      ? "Pague no momento da entrega"
-                      : "Pague no momento da retirada"
-                  }
-                  onClick={() => selectPaymentWhen("na_retirada")}
-                />
-              )}
-              {!hasOnlinePayment && !hasManualPayment && (
-                <div className="rounded-2xl border border-dashed p-6 text-center text-muted-foreground bg-muted/10 space-y-1">
-                  <p className="font-semibold text-sm">Nenhuma forma de pagamento disponível</p>
-                  <p className="text-xs">Consulte o estabelecimento para acertar a forma de pagamento.</p>
-                </div>
-              )}
-            </div>
-            <StickySubtotal />
-          </>
-        )}
-
-        {/* PAYMENT - METHOD */}
+        {/* PAYMENT - METHOD (UNIFICADO) */}
         {step === "payment-method" && (
           <>
-            <Header title="Método de pagamento" />
+            <Header title="Forma de pagamento" />
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
               {pixRefused && (
                 <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
                   <p className="text-sm font-semibold text-destructive">Pix recusado pelo Mercado Pago</p>
                   <p className="text-xs text-muted-foreground">{pixRefused}</p>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => { setPixRefused(null); void handleSelectMethod("pix_online"); }}>
+                    <Button size="sm" onClick={() => { setPixRefused(null); handleSelectMethod("pix_online"); }}>
                       Tentar novamente
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => { setPixRefused(null); setSelectedMethod(null); }}>
@@ -1697,15 +1861,10 @@ export function CartDrawer({
               )}
               <PaymentMethodSelector
                 settings={settings}
-                paymentWhen={paymentWhen || "na_retirada"}
+                paymentWhen="all"
+                mode={mode ?? "entrega"}
                 selectedMethod={selectedMethod}
-                onSelectMethod={(m) => {
-                  if (methodBusyRef.current) return;
-                  methodBusyRef.current = true;
-                  void handleSelectMethod(m).finally(() => {
-                    methodBusyRef.current = false;
-                  });
-                }}
+                onSelectMethod={handleSelectMethod}
               />
             </div>
             <StickySubtotal />
@@ -1791,7 +1950,7 @@ export function CartDrawer({
                       onClick={async () => {
                         try {
                           await navigator.clipboard.writeText(pixKey);
-                          // toast.success("Chave PIX copiada");
+                          toast.success("Chave PIX copiada!");
                         } catch {
                           toast.error("Não foi possível copiar");
                         }
@@ -1809,7 +1968,13 @@ export function CartDrawer({
                 );
               })()}
             </div>
-            <StickySubtotal cta="Continuar" onCta={() => goTo("review")} />
+            <StickySubtotal
+              cta="Continuar"
+              onCta={() => {
+                setReturnToReview(false);
+                goTo("review");
+              }}
+            />
           </>
         )}
 
@@ -1829,7 +1994,10 @@ export function CartDrawer({
             <StickySubtotal
               cta="Continuar"
               disabled={!!cashChangeError(total, cashChange, { accepts100: settings?.cash_accepts_100 ?? true, accepts200: settings?.cash_accepts_200 ?? true })}
-              onCta={() => goTo("review")}
+              onCta={() => {
+                setReturnToReview(false);
+                goTo("review");
+              }}
             />
           </>
         )}
@@ -1891,10 +2059,8 @@ export function CartDrawer({
                   className="mt-1.5"
                 />
               </div>
-              <Button className="h-12 w-full text-base font-semibold" onClick={confirmCustomer}>
-                Confirmar
-              </Button>
             </div>
+            <StickySubtotal cta="Confirmar" onCta={confirmCustomer} />
           </>
         )}
 
@@ -1978,7 +2144,10 @@ export function CartDrawer({
                     </div>
                   </div>
                   <button
-                    onClick={() => setStep("cart")}
+                    onClick={() => {
+                      setReturnToReview(false);
+                      setStep("cart");
+                    }}
                     className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
                   >
                     Alterar itens
@@ -2053,24 +2222,39 @@ export function CartDrawer({
                     </div>
                   </div>
                   <button
-                    onClick={() => setStep("mode")}
+                    onClick={() => {
+                      setReturnToReview(true);
+                      goTo("mode");
+                    }}
                     className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
                   >
                     Alterar
                   </button>
                 </div>
 
-                {scheduledFor && (
-                  <div className="mt-3 flex items-center justify-between rounded-xl bg-primary/10 border border-primary/20 px-3 py-2 text-xs font-semibold text-primary">
-                    <div className="flex items-center gap-2">
+                {(schedulingEnabled || scheduledFor) && (
+                  <div className="mt-3 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary">
+                    <div className="flex min-w-0 items-center gap-2">
                       <Clock className="h-4 w-4 shrink-0" />
-                      <span>Agendado: {formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}</span>
+                      <span className="truncate">
+                        {scheduledFor
+                          ? `Agendado: ${formatScheduledLong(scheduledFor, storefrontTenant?.schedulingSlotMinutes ?? 10)}`
+                          : `Agora${
+                              (mode === "entrega" ? storefrontTenant?.deliveryTime : storefrontTenant?.takeoutTime) || storefrontTenant?.prepTime
+                                ? ` (${(mode === "entrega" ? storefrontTenant?.deliveryTime : storefrontTenant?.takeoutTime) ?? storefrontTenant?.prepTime})`
+                                : ""
+                            }`}
+                      </span>
                     </div>
                     <button
-                      onClick={() => setStep("when")}
-                      className="text-[11px] underline underline-offset-2 hover:opacity-80"
+                      type="button"
+                      onClick={() => {
+                        setReturnToReview(true);
+                        goTo("when");
+                      }}
+                      className="shrink-0 text-[11px] underline underline-offset-2 hover:opacity-80"
                     >
-                      Alterar
+                      {scheduledFor ? "Alterar" : "Agendar"}
                     </button>
                   </div>
                 )}
@@ -2146,7 +2330,7 @@ export function CartDrawer({
                 )}
               </div>
 
-              {/* Customer */}
+              {/* Customer + Observação inline */}
               <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
                 <div className="flex items-center justify-between pb-3 border-b border-border/40">
                   <div className="flex items-center gap-2.5">
@@ -2156,7 +2340,10 @@ export function CartDrawer({
                     <span className="text-sm font-bold text-foreground">Identificação do cliente</span>
                   </div>
                   <button
-                    onClick={() => setStep("customer")}
+                    onClick={() => {
+                      setReturnToReview(true);
+                      goTo("customer");
+                    }}
                     className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
                   >
                     Alterar
@@ -2176,22 +2363,18 @@ export function CartDrawer({
                     )}
                   </div>
 
-                  {generalNote ? (
-                    <div className="mt-2.5 rounded-xl border border-primary/20 bg-primary/5 p-2.5 text-xs">
-                      <p className="flex items-center gap-1.5 font-semibold text-primary">
-                        <FileText className="h-3.5 w-3.5" /> Observação para o pedido:
-                      </p>
-                      <p className="mt-1 text-foreground/90 whitespace-pre-wrap">{generalNote}</p>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setStep("customer")}
-                      className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Adicionar observação ao pedido
-                    </button>
-                  )}
+                  <div className="mt-2.5 border-t border-border/40 pt-2.5">
+                    <Label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                      <FileText className="h-3.5 w-3.5 text-primary" /> Observação geral (opcional)
+                    </Label>
+                    <Textarea
+                      value={generalNote}
+                      onChange={(e) => setGeneralNote(e.target.value)}
+                      placeholder="Ex.: sem campainha, retirar cebola, ponto de atenção..."
+                      rows={2}
+                      className="mt-1.5 min-h-[58px] resize-none text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2216,13 +2399,22 @@ export function CartDrawer({
                   </div>
                   {!isPresencaOnly && (
                     <button
-                      onClick={() => setStep(hasOnlinePayment && hasManualPayment ? "payment-when" : "payment-method")}
+                      onClick={() => {
+                        setReturnToReview(true);
+                        goTo("payment-method");
+                      }}
                       className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1 px-2.5 rounded-lg hover:bg-primary/5 active:scale-95"
                     >
                       Alterar
                     </button>
                   )}
                 </div>
+
+                {pixRefused && (
+                  <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+                    {pixRefused}
+                  </div>
+                )}
 
                 {isPresencaOnly ? (
                   <div className="mt-3 text-sm space-y-1">
@@ -2234,7 +2426,9 @@ export function CartDrawer({
                 ) : (
                   <div className="mt-3 text-sm space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-foreground">{paymentMethod}</p>
+                      <p className="font-semibold text-foreground">
+                        {selectedMethod ? getMethodLabel(selectedMethod, mode) : paymentMethod}
+                      </p>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {paymentWhen === "agora"
@@ -2262,57 +2456,18 @@ export function CartDrawer({
                   </div>
                 )}
               </div>
-
-              {/* Resumo de valores */}
-              <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-xs">
-                <div className="flex items-center gap-2.5 pb-3 border-b border-border/40">
-                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary">
-                    <Receipt className="h-4 w-4" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">Resumo de valores</span>
-                </div>
-
-                <div className="mt-3 space-y-2 text-sm">
-                  <div className="flex justify-between gap-2 text-muted-foreground">
-                    <span>Subtotal dos itens</span>
-                    <span className="tabular-nums font-medium text-foreground">{brl(subtotal)}</span>
-                  </div>
-                  {discount > 0 && appliedCoupon && (
-                    <div className="flex justify-between gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
-                      <span className="min-w-0 flex-1">Desconto ({appliedCoupon.code})</span>
-                      <span className="tabular-nums whitespace-nowrap">− {brl(discount)}</span>
-                    </div>
-                  )}
-                  {deliveryFee > 0 ? (
-                    <div className="flex justify-between gap-2 text-muted-foreground">
-                      <span className="min-w-0 flex-1">
-                        Taxa de entrega{neighborhood ? ` (${neighborhood})` : ""}
-                      </span>
-                      <span className="tabular-nums font-medium text-foreground">{brl(deliveryFee)}</span>
-                    </div>
-                  ) : mode === "entrega" ? (
-                    <div className="flex justify-between gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
-                      <span>Taxa de entrega</span>
-                      <span className="font-semibold">Grátis</span>
-                    </div>
-                  ) : null}
-                  <div className="flex items-baseline justify-between gap-2 border-t border-border/80 pt-2.5">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        Total
-                      </p>
-                    </div>
-                    <span className="text-2xl font-extrabold text-primary tabular-nums tracking-tight">
-                      {brl(total)}
-                    </span>
-                  </div>
-                </div>
-              </div>
             </div>
             <StickySubtotal
-              compact
-              cta={isPresencaOnly ? "Enviar pelo WhatsApp" : "Fazer pedido"}
-              onCta={() => void finalize()}
+              cta={
+                selectedMethod === "pix_online"
+                  ? "Gerar Pix"
+                  : selectedMethod === "credit_card" || selectedMethod === "debit_card"
+                    ? "Pagar com Cartão"
+                    : isPresencaOnly
+                      ? "Enviar pelo WhatsApp"
+                      : "Fazer pedido"
+              }
+              onCta={() => void handleConfirmReview()}
               loading={submitting}
               disabled={submitting}
             />

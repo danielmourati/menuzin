@@ -3,13 +3,13 @@ import { useCustomerOrder } from "@/hooks/useCustomerOrder";
 import { useQuery } from "@tanstack/react-query";
 import { getTenantBySlug } from "@/lib/catalog.functions";
 import { dbTenantToUi } from "@/lib/db-adapters";
-import { brl } from "@/lib/format";
+import { brl, modeLabel, formatPhoneNumber } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { MessageCircle, ArrowLeft, MapPin, Loader2, ChevronRight, Store as StoreIcon, Timer, CheckCircle2, XCircle, PhoneCall, Globe } from "lucide-react";
 import { formatScheduledFull, formatScheduledShort, formatHourSp } from "@/lib/scheduling";
-import { formatPhoneNumber } from "@/lib/format";
+import { parseAddonLabel } from "@/lib/product-selection";
 import type { Order, Tenant } from "@/lib/domain-types";
 import { Link } from "@tanstack/react-router";
 import { whatsappLink } from "@/lib/whatsapp";
@@ -17,6 +17,7 @@ import { getAgentPublicInfo } from "@/lib/ai-agent.functions";
 import { AiOrderChatWindow } from "./AiOrderChat";
 import { PaymentStatusBadge } from "../orders/OrderStatusBadge";
 import { OrderRatingCard } from "./OrderRatingCard";
+import { PushPermissionBanner } from "./PushPermissionBanner";
 
 interface CustomerOrderTrackingProps {
   slug: string;
@@ -147,6 +148,10 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
 
   const history = [...order.statusHistory].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const phoneDigits = tenant.whatsapp.replace(/\D/g, "");
+  const isPixManual = /pix manual/i.test(order.payment ?? "");
+  const waMessage =
+    buildWhatsAppOrderMessage(order, tenant.name) +
+    (isPixManual ? "\n\nSegue também o meu comprovante do PIX!" : "");
 
   if (details) {
     return (
@@ -193,6 +198,12 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
           </section>
           <section className="space-y-2 border-t pt-3">
             <Row label="Subtotal" value={brl(order.subtotal)} />
+            {order.discountAmount && order.discountAmount > 0 ? (
+              <div className="flex justify-between text-sm font-medium text-success">
+                <span>Desconto {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                <span>− {brl(order.discountAmount)}</span>
+              </div>
+            ) : null}
             {order.deliveryFee > 0 && <Row label="Taxa de entrega" value={brl(order.deliveryFee)} />}
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
@@ -213,6 +224,46 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
       <h1 className="sr-only">Acompanhamento do pedido #{order.number} — {tenant.name}</h1>
       <Header title={tenant.name} backTo={slug} logo={tenant.logoUrl} />
       <div className="mx-auto max-w-lg px-4 pt-5">
+        {(order.status === "novo" || (isPixManual && order.paymentStatus !== "approved" && !isCancelled)) && (
+          <div className="mb-5 rounded-2xl border bg-card p-5 text-center shadow-[var(--shadow-soft)]">
+            {order.status === "novo" && (
+              <>
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-success/15 text-success">
+                  <CheckCircle2 className="h-7 w-7" />
+                </div>
+                <h2 className="mt-3 text-xl font-bold">Pedido recebido!</h2>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Pedido nº <span className="font-semibold text-foreground">#{order.number}</span> · Acompanhe o status ao vivo abaixo.
+                </p>
+              </>
+            )}
+
+            {order.paymentStatus === "approved" && /pix|cart/i.test(order.payment ?? "") && (
+              <div className="mt-3 rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-xs font-semibold text-success">
+                {/pix/i.test(order.payment ?? "") ? "Pagamento via Pix confirmado" : "Pagamento confirmado"}
+              </div>
+            )}
+
+            {isPixManual && (
+              <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-left">
+                <p className="text-xs font-semibold text-foreground">Envie o comprovante do PIX pelo WhatsApp abaixo</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Após efetuar o pagamento, toque no botão verde para enviar o resumo e o comprovante para a loja.
+                </p>
+              </div>
+            )}
+
+            {phoneDigits && (
+              <Button asChild className="mt-3 h-11 w-full bg-success text-success-foreground hover:bg-success/90">
+                <a href={whatsappLink(tenant.whatsapp, waMessage)} target="_blank" rel="noreferrer">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  {isPixManual ? "Enviar pedido e comprovante" : "Enviar pelo WhatsApp"}
+                </a>
+              </Button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-extrabold">Pedido #{order.number}</h2>
           <button type="button" onClick={() => setDetails(true)} className="inline-flex items-center gap-1 text-sm text-muted-foreground">
@@ -333,9 +384,65 @@ function TrackingView({ order, tenant, slug }: { order: Order; tenant: Tenant; s
             <Link to="/$slug" params={{ slug }}>Voltar</Link>
           </Button>
         </div>
+
+        {!isHidden("push") && (
+          <div className="mt-6">
+            <PushPermissionBanner tenantSlug={slug} tenantName={tenant.name} customerPhone={order.whatsapp} />
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+export function buildWhatsAppOrderMessage(order: Order, tenantName: string): string {
+  const lines: string[] = [];
+  lines.push(`Olá ${tenantName}! Segue meu pedido #${order.number}.`);
+  lines.push("");
+  lines.push(`*Cliente:* ${order.customerName}`);
+  lines.push(`*Modalidade:* ${modeLabel[order.mode]}`);
+  if (order.mode === "entrega" && order.address) {
+    const a = order.address;
+    lines.push(`*Endereço:* ${a.street ?? ""}, ${a.number ?? ""} — ${a.neighborhood ?? ""}`);
+    if (a.complement) lines.push(`Compl.: ${a.complement}`);
+    if (a.reference) lines.push(`Ref.: ${a.reference}`);
+  }
+  if (order.mode === "consumo_local" && order.table) lines.push(`*Local:* ${order.table}`);
+  lines.push("");
+  lines.push("*Itens:*");
+  for (const it of order.items) {
+    lines.push(`• ${it.qty}x ${it.name} — ${brl(it.unitPrice * it.qty)}`);
+    const sizes: string[] = [];
+    const flavors: string[] = [];
+    const groups: Record<string, string[]> = {};
+    const extras: string[] = [];
+    for (const a of it.addons ?? []) {
+      const p = parseAddonLabel(a.name);
+      const suffix = Number(a.price) > 0 ? ` (+${brl(a.price)})` : "";
+      if (p.kind === "size") sizes.push(p.label);
+      else if (p.kind === "flavor") flavors.push(p.label);
+      else if (p.kind === "group" && p.groupName) (groups[p.groupName] ||= []).push(p.label + suffix);
+      else extras.push(p.label + suffix);
+    }
+    if (sizes.length) lines.push(`   _Tamanho:_ ${sizes.join(", ")}`);
+    if (flavors.length) lines.push(`   _Sabores:_ ${flavors.join(" + ")}`);
+    for (const [g, opts] of Object.entries(groups)) lines.push(`   _${g}:_ ${opts.join(", ")}`);
+    if (extras.length) lines.push(`   _Adicionais:_ ${extras.join(", ")}`);
+    if (it.note) lines.push(`   _Obs:_ ${it.note}`);
+  }
+  lines.push("");
+  lines.push(`Subtotal: ${brl(order.subtotal)}`);
+  if (order.discountAmount && order.discountAmount > 0) {
+    lines.push(`Desconto ${order.couponCode ? `(${order.couponCode})` : ""}: - ${brl(order.discountAmount)}`);
+  }
+  if (order.deliveryFee > 0) lines.push(`Entrega: ${brl(order.deliveryFee)}`);
+  lines.push(`*Total: ${brl(order.total)}*`);
+  lines.push(`Pagamento: ${order.payment}`);
+  if (order.note) {
+    lines.push("");
+    lines.push(`Observação geral: ${order.note}`);
+  }
+  return lines.join("\n");
 }
 
 function formatForecast(d: Date) {

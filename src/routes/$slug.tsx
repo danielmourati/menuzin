@@ -1236,7 +1236,17 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
         pizzaCrusts={selectedProduct?.categoryId ? pizzaCrusts.filter((d) => d.category_id === selectedProduct.categoryId).map((d) => ({ id: d.id, name: d.name, extraPrice: Number(d.extra_price) })) : []}
         freeGiftProduct={selectedProduct?.freeGiftKind === "product" && selectedProduct.freeGiftRefId ? products.find((p) => p.id === selectedProduct.freeGiftRefId) ?? null : null}
       />
-      <CartDrawer open={cartOpen && canOrder} onOpenChange={setCartOpen} tenant={tenant} storeOpen={storeOpen} />
+      <CartDrawer
+        open={cartOpen && canOrder}
+        onOpenChange={setCartOpen}
+        tenant={tenant}
+        storeOpen={storeOpen}
+        onEditItem={(item) => {
+          setCartOpen(false);
+          const fresh = products.find((p) => p.id === item.product.id) ?? item.product;
+          openProductModal(fresh);
+        }}
+      />
       {!isHidden("aiAgent") && canOrder && storeOpen && <AiOrderChatLauncher slug={tenant.slug} />}
       <MobileBottomNav
         slug={tenant.slug}
