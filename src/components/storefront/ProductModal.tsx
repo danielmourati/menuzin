@@ -811,7 +811,7 @@ export function ProductModal({
           )}
 
           {/* quantos sabores? + lista de sabores (pizza-category estilo Aiqfome/Degust) */}
-          {isPizzaCategory && selectedPizzaSize && (pizzaMaxFlavors > 1 || !productIsListed) && availablePizzaFlavors.length > 0 && (
+          {isPizzaCategory && selectedPizzaSize && !selfFlavorOnly && (pizzaMaxFlavors > 1 || !productIsListed) && availablePizzaFlavors.length > 0 && (
             <div
               data-scroll-target="flavors"
               data-invalid={hasAttemptedSubmit && selectedPizzaFlavors.length < effectiveFlavorTarget ? "true" : undefined}
