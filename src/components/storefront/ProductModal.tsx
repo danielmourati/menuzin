@@ -246,6 +246,23 @@ export function ProductModal({
     }
   }, [open, product?.id]);
 
+  // Sabor único: se só cabe 1 sabor e o próprio produto é um sabor válido, já fica escolhido.
+  useEffect(() => {
+    if (!open || !product || !isPizzaCategory || !sizeId) return;
+    if (desiredFlavorCount !== 1) return;
+    const size = visiblePizzaSizes.find((s) => s.id === sizeId);
+    if (!size) return;
+    const self = pizzaFlavors.find((f) => f.id === product.id);
+    if (!self || positivePizzaFlavorPrice(self, size.id) <= 0) return;
+    setFlavorIds((prev) => {
+      const valid = prev.filter((id) => {
+        const f = pizzaFlavors.find((x) => x.id === id);
+        return f && positivePizzaFlavorPrice(f, size.id) > 0;
+      });
+      return valid.length === 1 ? prev : [product.id];
+    });
+  }, [open, product?.id, isPizzaCategory, sizeId, desiredFlavorCount, visiblePizzaSizes, pizzaFlavors]);
+
   if (!product) return null;
 
   const isPizza = product.type === "pizza";
