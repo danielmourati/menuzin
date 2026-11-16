@@ -347,16 +347,20 @@ export function ProductModal({
   // Legacy fallback: only show product.addons if no addonGroups defined
   const showLegacyAddons = adicionalGroups.length === 0 && (product.addons?.length ?? 0) > 0;
 
+  // Pizza não listada como sabor, com 1 sabor por tamanho (ou sem sabores para escolher)
+  // e preço próprio no tamanho: ela mesma é o sabor — nada a escolher.
+  const selfFlavorOnly = isPizzaCategory && !productIsListed && ownPizzaSizePrice > 0
+    && (pizzaMaxFlavors <= 1 || availablePizzaFlavors.length === 0);
   // Validação
   const pizzaValidations: string[] = [];
   if (isPizzaCategory) {
     if (!selectedPizzaSize) pizzaValidations.push("Escolha um tamanho");
-    else {
+    else if (!selfFlavorOnly) {
       const flavorErr = validatePizzaFlavorCount(selectedPizzaFlavors.length, effectiveFlavorTarget);
       if (flavorErr) pizzaValidations.push(flavorErr);
     }
   }
-  const missingPizzaFlavors = isPizzaCategory && selectedPizzaSize
+  const missingPizzaFlavors = isPizzaCategory && selectedPizzaSize && !selfFlavorOnly
     ? Math.max(0, effectiveFlavorTarget - selectedPizzaFlavors.length)
     : 0;
   const validations = isPizzaCategory
@@ -807,7 +811,7 @@ export function ProductModal({
           )}
 
           {/* quantos sabores? + lista de sabores (pizza-category estilo Aiqfome/Degust) */}
-          {isPizzaCategory && selectedPizzaSize && (pizzaMaxFlavors > 1 || !productIsListed) && availablePizzaFlavors.length > 0 && (
+          {isPizzaCategory && selectedPizzaSize && !selfFlavorOnly && (pizzaMaxFlavors > 1 || !productIsListed) && availablePizzaFlavors.length > 0 && (
             <div
               data-scroll-target="flavors"
               data-invalid={hasAttemptedSubmit && selectedPizzaFlavors.length < effectiveFlavorTarget ? "true" : undefined}
