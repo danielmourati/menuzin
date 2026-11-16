@@ -253,11 +253,7 @@ export async function createMissingPizzaSizes(
   const resolvedMode: PizzaCategoryFlavorMode =
     typeof flavorMode === "boolean" ? (flavorMode ? "single" : "multi") : flavorMode;
   const isSingle = resolvedMode === "single" || priceRule === "fixed";
-  const effectiveRule: PizzaPriceRule = isSingle
-    ? "fixed"
-    : priceRule === "fixed"
-      ? "sum_fractions"
-      : priceRule;
+  const effectiveRule: PizzaPriceRule = isSingle ? "fixed" : priceRule;
   const existingSet = new Set(existingNames.map(normName));
   const missing = presets.filter((p) => !existingSet.has(normName(p.name)));
   for (let i = 0; i < missing.length; i++) {
