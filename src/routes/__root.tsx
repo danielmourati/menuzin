@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -168,21 +168,41 @@ function RootShell({ children }: { children: ReactNode }) {
 function AuthStateInvalidator() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const lastUserIdRef = useRef<string | null>(null);
   useEffect(() => {
     // Falha de configuração do backend não pode derrubar toda a árvore React.
     try {
+      let active = true;
+      void supabase.auth.getSession().then(({ data }) => {
+        if (active) {
+          lastUserIdRef.current = data.session?.user?.id ?? null;
+        }
+      });
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((event) => {
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "INITIAL_SESSION") {
+          lastUserIdRef.current = session?.user?.id ?? null;
+          return;
+        }
         if (event === "SIGNED_OUT") {
+          lastUserIdRef.current = null;
           queryClient.removeQueries();
           router.invalidate();
         } else if (event === "SIGNED_IN") {
+          const nextUserId = session?.user?.id ?? null;
+          if (nextUserId && nextUserId === lastUserIdRef.current) {
+            return;
+          }
+          lastUserIdRef.current = nextUserId;
           queryClient.invalidateQueries({ queryKey: ["admin"] });
           router.invalidate();
         }
       });
-      return () => subscription.unsubscribe();
+      return () => {
+        active = false;
+        subscription.unsubscribe();
+      };
     } catch (err) {
       console.error("[auth] não foi possível assinar mudanças de sessão", err);
       return;

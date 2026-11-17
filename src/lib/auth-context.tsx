@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -43,6 +43,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AuthRole[]>([]);
+  const loadedUserIdRef = useRef<string | null>(null);
+
+  const applyUser = (nextUser: User | null) => {
+    if (!nextUser) {
+      setUser(null);
+      return;
+    }
+    setUser((prev) =>
+      prev?.id === nextUser.id && prev?.email === nextUser.email ? prev : nextUser,
+    );
+  };
+
+  const applyProfile = (nextProfile: Profile | null) => {
+    setProfile((prev) =>
+      JSON.stringify(prev) === JSON.stringify(nextProfile) ? prev : nextProfile,
+    );
+  };
+
+  const applyRoles = (nextRoles: AuthRole[]) => {
+    setRoles((prev) =>
+      JSON.stringify(prev) === JSON.stringify(nextRoles) ? prev : nextRoles,
+    );
+  };
 
   const refresh = async () => {
     const { data } = await supabase.auth.getSession();
@@ -51,53 +74,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.getUser();
       if (error && (error.status === 401 || error.status === 403 || /invalid|expired|not found/i.test(error.message))) {
         await supabase.auth.signOut({ scope: "local" });
+        loadedUserIdRef.current = null;
         setSession(null);
-        setUser(null);
-        setProfile(null);
-        setRoles([]);
+        applyUser(null);
+        applyProfile(null);
+        applyRoles([]);
         return;
       }
     }
-    setSession(data.session);
+    setSession((prev) =>
+      prev?.access_token === data.session?.access_token ? prev : data.session,
+    );
     if (data.session?.user) {
-      const { profile, roles } = await loadProfileAndRoles(data.session.user.id);
-      setUser(data.session.user);
-      setProfile(profile);
-      setRoles(roles);
+      const { profile: nextProfile, roles: nextRoles } = await loadProfileAndRoles(data.session.user.id);
+      loadedUserIdRef.current = data.session.user.id;
+      applyUser(data.session.user);
+      applyProfile(nextProfile);
+      applyRoles(nextRoles);
     } else {
-      setUser(null);
-      setProfile(null);
-      setRoles([]);
+      loadedUserIdRef.current = null;
+      applyUser(null);
+      applyProfile(null);
+      applyRoles([]);
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
       if (!mounted) return;
-      setSession(sess);
+      setSession((prev) => (prev?.access_token === sess?.access_token ? prev : sess));
       if (sess?.user) {
-        setLoading(true);
+        const isSameUser = loadedUserIdRef.current === sess.user.id;
+        if (isSameUser && event === "TOKEN_REFRESHED") {
+          applyUser(sess.user);
+          return;
+        }
+        if (!isSameUser) {
+          setLoading(true);
+        }
         // defer to avoid deadlock with onAuthStateChange
         setTimeout(() => {
           loadProfileAndRoles(sess.user.id)
-            .then(({ profile, roles }) => {
+            .then(({ profile: nextProfile, roles: nextRoles }) => {
               if (!mounted) return;
-              setUser(sess.user);
-              setProfile(profile);
-              setRoles(roles);
+              loadedUserIdRef.current = sess.user.id;
+              applyUser(sess.user);
+              applyProfile(nextProfile);
+              applyRoles(nextRoles);
               setLoading(false);
             })
             .catch(() => {
               if (!mounted) return;
-              setUser(sess.user);
+              loadedUserIdRef.current = sess.user.id;
+              applyUser(sess.user);
               setLoading(false);
             });
         }, 0);
       } else {
-        setUser(null);
-        setProfile(null);
-        setRoles([]);
+        loadedUserIdRef.current = null;
+        applyUser(null);
+        applyProfile(null);
+        applyRoles([]);
         setLoading(false);
       }
     });

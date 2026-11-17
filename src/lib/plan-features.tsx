@@ -173,8 +173,8 @@ export function useTenantPlan() {
       return getMyEffectivePlan();
     },
     enabled,
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
   // Mantém tenants.plan como fallback enquanto o efetivo carrega.
   const { data, isLoading } = useQuery({
