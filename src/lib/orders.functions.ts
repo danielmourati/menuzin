@@ -377,10 +377,40 @@ export const listOrdersForMyTenant = createServerFn({ method: "POST" })
     return { orders: full };
   });
 
+type OfflineConfirmMethod = "dinheiro" | "credito" | "debito" | "pix_manual";
+
+function buildOfflinePaymentLabel(
+  mode: string | null | undefined,
+  method: OfflineConfirmMethod,
+): string {
+  const prefix =
+    mode === "retirada"
+      ? "Pagar na retirada"
+      : mode === "consumo_local"
+        ? "Pagar no local"
+        : "Pagar na entrega";
+  switch (method) {
+    case "dinheiro":
+      return `${prefix} · Dinheiro em Espécie`;
+    case "credito":
+      return `${prefix} · Maquininha (Crédito)`;
+    case "debito":
+      return `${prefix} · Maquininha (Débito)`;
+    case "pix_manual":
+      return "Pix manual (chave da loja)";
+  }
+}
+
 const UpdateStatusInput = z.object({
   order_id: z.string().uuid(),
   new_status: z.enum(["novo","aceito","preparo","saiu_entrega","pronto_retirada","servido","finalizado","cancelado"]),
   note: z.string().max(500).optional(),
+  payment_confirmation: z
+    .object({
+      changed: z.boolean(),
+      new_method: z.enum(["dinheiro", "credito", "debito", "pix_manual"]).optional(),
+    })
+    .optional(),
 });
 
 export const updateOrderStatus = createServerFn({ method: "POST" })
@@ -388,26 +418,74 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
   .inputValidator((d) => UpdateStatusInput.parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: prev } = await supabase.from("orders").select("status, payment_label, payment_status").eq("id", data.order_id).maybeSingle();
+    const { data: prev } = await supabase
+      .from("orders")
+      .select("status, mode, total, payment_label, payment_status")
+      .eq("id", data.order_id)
+      .maybeSingle();
     const { canAdvanceOrder, paymentWaitingMessage } = await import("./order-payment-gate");
     if (prev && !canAdvanceOrder(data.new_status, prev.payment_label, prev.payment_status)) {
       throw new Error(paymentWaitingMessage(prev.payment_label));
     }
-    const patch: Record<string, string | null> = { status: data.new_status };
+    const patch: Record<string, unknown> = { status: data.new_status };
+    let newPaymentLabel: string | null = null;
+
     if (data.new_status === "aceito") patch.accepted_at = new Date().toISOString();
-    if (data.new_status === "finalizado") patch.completed_at = new Date().toISOString();
+    if (data.new_status === "finalizado") {
+      patch.completed_at = new Date().toISOString();
+      if (prev && prev.payment_status !== "approved") {
+        patch.payment_status = "approved";
+      }
+      if (prev && data.payment_confirmation?.changed && data.payment_confirmation.new_method) {
+        newPaymentLabel = buildOfflinePaymentLabel(prev.mode, data.payment_confirmation.new_method);
+        patch.payment_label = newPaymentLabel;
+        if (data.payment_confirmation.new_method === "dinheiro") {
+          patch.no_change = true;
+          patch.change_for = Number(prev.total ?? 0);
+        } else {
+          patch.no_change = false;
+          patch.change_for = null;
+        }
+      }
+    }
     if (data.new_status === "cancelado") {
       patch.cancelled_at = new Date().toISOString();
       patch.cancel_reason = data.note ?? null;
     }
+
     const { error } = await supabase.from("orders").update(patch as never).eq("id", data.order_id);
     if (error) throw new Error(error.message);
+
+    if (prev && data.new_status === "finalizado" && newPaymentLabel) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", userId)
+        .maybeSingle();
+      await supabase.from("order_status_history").insert({
+        order_id: data.order_id,
+        previous_status: prev.status,
+        new_status: prev.status,
+        changed_by: userId,
+        changed_by_name: prof?.full_name || prof?.email || null,
+        note: `Pagamento alterado de "${prev.payment_label || "—"}" para "${newPaymentLabel}"`,
+      });
+    }
+
+    let statusNote = data.note ?? null;
+    if (data.new_status === "finalizado" && !statusNote) {
+      if (data.payment_confirmation?.changed && newPaymentLabel) {
+        statusNote = `Pedido finalizado — recebido via ${newPaymentLabel}`;
+      } else if (data.payment_confirmation) {
+        statusNote = `Pedido finalizado — pagamento confirmado (${prev?.payment_label || "—"})`;
+      }
+    }
 
     await supabase.from("order_status_history").insert({
       order_id: data.order_id,
       previous_status: prev?.status ?? null,
       new_status: data.new_status,
-      note: data.note ?? null,
+      note: statusNote,
       changed_by: userId,
     });
     return { ok: true };

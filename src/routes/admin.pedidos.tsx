@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
 
-import { useOrdersRealtime } from "@/hooks/useOrdersRealtime";
+import { useOrdersRealtime, type OrderPaymentConfirmation } from "@/hooks/useOrdersRealtime";
 import { OrdersStatusGroups } from "@/components/orders/OrdersStatusGroups";
 import { OrdersMobileTabs } from "@/components/orders/OrdersMobileTabs";
 import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
 import { CancelOrderModal } from "@/components/orders/CancelOrderModal";
 import { DispatchOrderModal } from "@/components/orders/DispatchOrderModal";
+import { FinalizeOrderPaymentModal } from "@/components/orders/FinalizeOrderPaymentModal";
 import { LiveClock } from "@/components/admin/LiveClock";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -58,6 +59,8 @@ function OrdersPage() {
   const [detailedOrderId, setDetailedOrderId] = useState<string | null>(null);
   const [cancellationOrderId, setCancellationOrderId] = useState<string | null>(null);
   const [dispatchOrderId, setDispatchOrderId] = useState<string | null>(null);
+  const [finalizeOrderId, setFinalizeOrderId] = useState<string | null>(null);
+  const [finalizing, setFinalizing] = useState(false);
 
   // Encontra os dados atualizados das ordens abertas em modal/drawer
   const detailedOrder = useMemo(() => {
@@ -72,6 +75,10 @@ function OrdersPage() {
     return orders.find((o) => o.id === dispatchOrderId) || null;
   }, [orders, dispatchOrderId]);
 
+  const finalizeOrder = useMemo(() => {
+    return orders.find((o) => o.id === finalizeOrderId) || null;
+  }, [orders, finalizeOrderId]);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpdateStatus = (orderId: string, status: OrderStatus) => {
@@ -82,7 +89,34 @@ function OrdersPage() {
         return;
       }
     }
+    if (status === "finalizado") {
+      const targetOrder = orders.find((o) => o.id === orderId);
+      if (targetOrder && targetOrder.paymentStatus !== "approved") {
+        setFinalizeOrderId(orderId);
+        return;
+      }
+    }
     updateOrderStatus(orderId, status);
+  };
+
+  const handleConfirmFinalize = async (confirmation: OrderPaymentConfirmation) => {
+    if (!finalizeOrder) return;
+    setFinalizing(true);
+    try {
+      await updateOrderStatus(finalizeOrder.id, "finalizado", undefined, {
+        paymentConfirmation: confirmation,
+      });
+      toast.success(
+        confirmation.changed
+          ? `Pedido #${finalizeOrder.number} finalizado com atualização na forma de pagamento!`
+          : `Pedido #${finalizeOrder.number} finalizado e pagamento confirmado!`,
+      );
+      setFinalizeOrderId(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao finalizar pedido.");
+    } finally {
+      setFinalizing(false);
+    }
   };
 
   const queryClient = useQueryClient();
@@ -119,12 +153,14 @@ function OrdersPage() {
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
       } else if (e.key === "Escape") {
-        if (detailedOrderId) {
-          setDetailedOrderId(null);
+        if (finalizeOrderId) {
+          if (!finalizing) setFinalizeOrderId(null);
         } else if (cancellationOrderId) {
           setCancellationOrderId(null);
         } else if (dispatchOrderId) {
           setDispatchOrderId(null);
+        } else if (detailedOrderId) {
+          setDetailedOrderId(null);
         } else if (q) {
           setQ("");
         }
@@ -133,7 +169,7 @@ function OrdersPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [detailedOrderId, cancellationOrderId, dispatchOrderId, q]);
+  }, [detailedOrderId, cancellationOrderId, dispatchOrderId, finalizeOrderId, finalizing, q]);
 
   // Listener para eventos customizados de abertura (para o bell/toast)
   useEffect(() => {
@@ -311,6 +347,15 @@ function OrdersPage() {
         onConfirmDispatch={(driverId, driverName, sendWhatsapp) => {
           dispatchMutation.mutate({ driverId, driverName, sendWhatsapp });
         }}
+      />
+
+      {/* Modal de Confirmação de Pagamento ao Finalizar Pedido */}
+      <FinalizeOrderPaymentModal
+        order={finalizeOrder}
+        open={!!finalizeOrder}
+        onOpenChange={(open) => !open && setFinalizeOrderId(null)}
+        isPending={finalizing}
+        onConfirm={handleConfirmFinalize}
       />
     </AdminLayout>
   );

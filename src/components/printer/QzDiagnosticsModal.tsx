@@ -41,12 +41,11 @@ type CertInfo = {
 };
 
 const CERT_PATHS = [
-  "%PROGRAMDATA%\\qz\\data\\certificates\\allowed.pem (Windows, system-wide)",
-  "%APPDATA%\\qz\\data\\certificates\\allowed.pem (Windows, per-user)",
-  "/Library/Application Support/qz/data/certificates/allowed.pem (macOS, system-wide)",
-  "~/Library/Application Support/qz/data/certificates/allowed.pem (macOS, per-user)",
-  "/etc/qz/data/certificates/allowed.pem (Linux, system-wide)",
-  "~/.qz/data/certificates/allowed.pem (Linux, per-user)",
+  "C:\\Program Files\\QZ Tray\\override.crt (Certificado raiz override)",
+  "C:\\Program Files\\QZ Tray\\qz-tray.properties (authcert.override=C:/ProgramData/qz/cert.pem)",
+  "%PROGRAMDATA%\\qz\\cert.pem (Certificado global no Windows)",
+  "%PROGRAMDATA%\\qz\\allowed.dat (Site Manager global)",
+  "%APPDATA%\\qz\\allowed.dat (Site Manager do usuário)",
 ];
 
 export function QzDiagnosticsModal({
@@ -280,7 +279,7 @@ export function QzDiagnosticsModal({
                 <div className="font-medium">1. Aba <span className="text-emerald-700 dark:text-emerald-400">Allowed</span></div>
                 <div className="text-muted-foreground">
                   Deve listar o cert do Menuzin (mesmo CN/fingerprint mostrado acima). Se não aparecer,
-                  o cert não foi instalado nos caminhos corretos — rode o instalador v2 como admin.
+                  o cert não foi instalado nos caminhos corretos — baixe o <code>cert.pem</code> e execute o auto-configurador como administrador.
                 </div>
               </li>
               <li className="rounded border bg-muted/30 p-2">

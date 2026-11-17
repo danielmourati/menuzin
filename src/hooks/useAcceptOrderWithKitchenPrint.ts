@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { Order, OrderStatus } from "@/lib/domain-types";
+import type { OrderPaymentConfirmation } from "@/hooks/useOrdersRealtime";
 import { listMyTenantPrinters, getMyPrintRouting } from "@/lib/tenant-printers.functions";
 import { itemsForPrinter, type PrintRouting } from "@/lib/print-routing";
 import { getMyPrinterSettings } from "@/lib/printer-settings.functions";
@@ -37,7 +38,7 @@ type UpdateStatusFn = (
   orderId: string,
   status: OrderStatus,
   note?: string,
-  opts?: { keepSound?: boolean },
+  opts?: { keepSound?: boolean; paymentConfirmation?: OrderPaymentConfirmation },
 ) => Promise<unknown>;
 
 /**
@@ -212,14 +213,19 @@ export function useAcceptOrderWithKitchenPrint(orders: Order[], updateOrderStatu
   );
 
   const updateOrderStatusWithPrint = useCallback(
-    async (orderId: string, newStatus: OrderStatus) => {
+    async (
+      orderId: string,
+      newStatus: OrderStatus,
+      note?: string,
+      opts?: { keepSound?: boolean; paymentConfirmation?: OrderPaymentConfirmation },
+    ) => {
       const order = orders.find((o) => o.id === orderId);
       const wasNew = order?.status === "novo";
       if (order && !canAdvanceOrder(newStatus, order.payment, order.paymentStatus)) {
         toast.error(paymentWaitingMessage(order.payment));
         return;
       }
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, newStatus, note, opts);
       // Se aceitou (novo -> preparo), imprime a comanda
       if (order && wasNew && newStatus === "preparo") {
         await printKitchenFor(order);

@@ -242,10 +242,12 @@ function SettingsPage() {
         toast.success(`QZ Tray reconhecido e validado! ${status.printersCount} impressora(s) encontrada(s).`);
         setQzGuideOpen(false);
         setPrintersOpen(true);
-      } else if (status.ok && status.prompted) {
-        toast.error("O QZ Tray pediu confirmação manual. Execute o auto-configurador como Administrador.");
+      } else if (status.reason === "untrusted" || status.prompted) {
+        toast.error("O QZ Tray está aberto, mas o certificado cert.pem ainda não foi aplicado ou foi recusado. Baixe o cert.pem (Passo 1) e execute o auto-configurador.");
+      } else if (status.reason === "server_unconfigured") {
+        toast.error("Certificado do QZ Tray não configurado no servidor.");
       } else {
-        toast.error("QZ Tray ainda não foi detectado em execução no computador.");
+        toast.error("QZ Tray ainda não foi detectado em execução no computador. Verifique se ele está instalado e aberto.");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao conectar ao QZ Tray");

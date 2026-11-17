@@ -55,6 +55,7 @@ import {
   ensureQzConnected,
   listQzPrintersWithDefault,
   printQzTextTest,
+  QzCertificateRejectedError,
   QzNotRunningError,
   type QzPrinter,
 } from "@/lib/qz-tray";
@@ -201,6 +202,9 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
         if (err instanceof QzNotRunningError) {
           toast.error("O programa de impressão (QZ Tray) não está aberto neste computador.");
           setGuideOpen(true);
+        } else if (err instanceof QzCertificateRejectedError) {
+          toast.error(err.message);
+          setGuideOpen(true);
         } else {
           toast.error(
             err instanceof Error
@@ -329,9 +333,11 @@ export function PrinterConfigModal({ open, onOpenChange }: PrinterConfigModalPro
       toast.error(
         err instanceof QzNotRunningError
           ? "O programa de impressão não está aberto neste computador."
-          : err instanceof Error
+          : err instanceof QzCertificateRejectedError
             ? err.message
-            : "Não foi possível imprimir.",
+            : err instanceof Error
+              ? err.message
+              : "Não foi possível imprimir.",
       );
     } finally {
       setTesting(false);

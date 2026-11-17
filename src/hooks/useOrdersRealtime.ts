@@ -19,6 +19,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export { playNotificationSound, stopNotificationSound } from "@/lib/order-alert-sound";
 
+export type OrderPaymentConfirmation = {
+  changed: boolean;
+  new_method?: "dinheiro" | "credito" | "debito" | "pix_manual";
+};
+
 const SEEN_ORDERS_STORAGE_KEY = "menuzin_seen_order_ids";
 
 function getStoredSeenOrderIds(): Set<string> {
@@ -351,7 +356,12 @@ export function useOrdersRealtime() {
   }, []);
 
   const updateOrderStatus = useCallback(
-    async (orderId: string, newStatus: OrderStatus, note?: string, opts?: { keepSound?: boolean }) => {
+    async (
+      orderId: string,
+      newStatus: OrderStatus,
+      note?: string,
+      opts?: { keepSound?: boolean; paymentConfirmation?: OrderPaymentConfirmation },
+    ) => {
       try {
         // Ao alterar o status (aceitar, enviar para preparo, cancelar, etc.),
         // marca como visto e cancela o alerta visual/sonoro ativo para ele.
@@ -364,13 +374,19 @@ export function useOrdersRealtime() {
         }
 
         await updateOrderStatusFn({
-          data: { order_id: orderId, new_status: newStatus, note },
+          data: {
+            order_id: orderId,
+            new_status: newStatus,
+            note,
+            payment_confirmation: opts?.paymentConfirmation,
+          },
         });
         await refetch();
         queryClient.invalidateQueries({ queryKey: ["dashboard"] });
         notifyListeners();
       } catch (err) {
         console.error("Falha ao atualizar status:", err);
+        if (opts?.paymentConfirmation) throw err;
       }
     },
     [refetch, queryClient]

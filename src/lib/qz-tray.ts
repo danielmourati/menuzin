@@ -53,6 +53,16 @@ export class QzNotRunningError extends Error {
   }
 }
 
+/** Erro tipado para conexão recusada/bloqueada por certificado não confiável. */
+export class QzCertificateRejectedError extends Error {
+  constructor(
+    message = "Conexão recusada pelo QZ Tray. Verifique o certificado cert.pem.",
+  ) {
+    super(message);
+    this.name = "QzCertificateRejectedError";
+  }
+}
+
 /** Timeout no envio para a impressora (ex.: impressora offline ou travada). */
 export class QzPrintTimeoutError extends Error {
   constructor(message = "Demora ao imprimir — verifique se a impressora está ligada e conectada.") {
@@ -77,8 +87,31 @@ export type QzPrinterStatus = {
   code?: string;
 };
 
+export type QzTrustStatus = {
+  ok: boolean;
+  printersCount: number;
+  prompted: boolean;
+  reason?: "offline" | "untrusted" | "server_unconfigured";
+};
+
+type QzCertResponse = {
+  cert: string;
+  configured: boolean;
+  subjectCN?: string;
+  error?: string;
+};
+
+const CERT_CACHE_TTL_MS = 60_000;
+let certCache: { at: number; value: QzCertResponse } | null = null;
 let loadingPromise: Promise<QZ> | null = null;
+let connectingPromise: Promise<QZ> | null = null;
 let securityConfigured = false;
+let lastCertProvidedAt = 0;
+let lastSignDurationMs = 0;
+
+function nowMs(): number {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
 
 function configureSecurity(qz: QZ) {
   if (securityConfigured) return;
@@ -94,6 +127,7 @@ function configureSecurity(qz: QZ) {
           reject(new Error("Certificado do QZ Tray não configurado no servidor."));
           return;
         }
+        lastCertProvidedAt = nowMs();
         resolve(cert);
       })
       .catch(reject);
@@ -112,43 +146,53 @@ function configureSecurity(qz: QZ) {
   securityConfigured = true;
 }
 
-export async function fetchQzCertificate(): Promise<{
-  cert: string;
-  configured: boolean;
-  subjectCN?: string;
-  error?: string;
-}> {
+export async function fetchQzCertificate(): Promise<QzCertResponse> {
+  if (certCache && Date.now() - certCache.at < CERT_CACHE_TTL_MS) {
+    return certCache.value;
+  }
   const response = await fetch(QZ_API, {
     method: "GET",
     headers: { Accept: "application/json" },
     cache: "no-store",
   });
-  return parseQzApiResponse(response, "Não foi possível obter o certificado do QZ Tray.");
+  const data = await parseQzApiResponse<QzCertResponse>(
+    response,
+    "Não foi possível obter o certificado do QZ Tray.",
+  );
+  if (data.configured && data.cert) {
+    certCache = { at: Date.now(), value: data };
+  }
+  return data;
 }
 
 async function signQzPayload(request: string): Promise<{ signature: string; configured: boolean }> {
   // O endpoint de assinatura exige sessão autenticada — ele assina com a
   // chave privada do servidor, então não pode ficar aberto para qualquer
   // visitante. Pegamos o access_token do Supabase e mandamos como Bearer.
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  };
+  const t0 = nowMs();
   try {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) headers.Authorization = `Bearer ${token}`;
-  } catch {
-    /* segue sem header — o servidor vai responder 401 e o QZ Tray cai no prompt manual */
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (token) headers.Authorization = `Bearer ${token}`;
+    } catch {
+      /* segue sem header — o servidor vai responder 401 e o QZ Tray cai no prompt manual */
+    }
+    const response = await fetch(QZ_API, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ request }),
+      cache: "no-store",
+    });
+    return await parseQzApiResponse(response, "Não foi possível assinar a requisição do QZ Tray.");
+  } finally {
+    lastSignDurationMs += Math.max(0, Math.round(nowMs() - t0));
   }
-  const response = await fetch(QZ_API, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ request }),
-    cache: "no-store",
-  });
-  return parseQzApiResponse(response, "Não foi possível assinar a requisição do QZ Tray.");
 }
 
 async function parseQzApiResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
@@ -205,22 +249,41 @@ export async function ensureQzConnected(): Promise<QZ> {
   const active = wsAny.isActive();
   const conn = wsAny.connection;
   const stale =
-    active && (!conn || typeof (conn as { sendData?: unknown }).sendData !== "function" || (typeof conn.readyState === "number" && conn.readyState !== 1));
-  if (stale) {
-    try {
-      await qz.websocket.disconnect();
-    } catch {
-      /* ignore */
-    }
+    active &&
+    (!conn ||
+      typeof (conn as { sendData?: unknown }).sendData !== "function" ||
+      (typeof conn.readyState === "number" && conn.readyState !== 1));
+
+  if (active && !stale) {
+    return qz;
   }
-  if (!qz.websocket.isActive() || stale) {
+  if (connectingPromise) {
+    return connectingPromise;
+  }
+
+  connectingPromise = (async () => {
+    if (stale) {
+      try {
+        await qz.websocket.disconnect();
+      } catch {
+        /* ignore */
+      }
+    }
+    lastCertProvidedAt = 0;
     try {
       await qz.websocket.connect({ retries: 1, delay: 1 });
     } catch {
+      if (lastCertProvidedAt > 0) {
+        throw new QzCertificateRejectedError();
+      }
       throw new QzNotRunningError();
     }
-  }
-  return qz;
+    return qz;
+  })().finally(() => {
+    connectingPromise = null;
+  });
+
+  return connectingPromise;
 }
 
 /** Executa uma ação QZ e, em caso de erro de socket “fantasma”, reconecta e tenta uma vez. */
@@ -289,20 +352,43 @@ export function getCutSequence(cutType?: "none" | "partial" | "full"): string {
  * Verifica de forma rápida e segura se a conexão com o QZ Tray está 100% funcional
  * e se o certificado foi instalado e validado sem exibir pop-ups manuais de segurança.
  */
-export async function checkQzStatusAndTrust(): Promise<{
-  ok: boolean;
-  printersCount: number;
-  prompted: boolean;
-}> {
+export async function checkQzStatusAndTrust(): Promise<QzTrustStatus> {
+  const certInfo = await fetchQzCertificate().catch(() => null);
+  if (!certInfo?.configured || !certInfo.cert) {
+    return { ok: false, printersCount: 0, prompted: false, reason: "server_unconfigured" };
+  }
+
   try {
-    const t0 = performance.now();
-    const qz = await ensureQzConnected();
+    if (typeof window !== "undefined" && window.qz?.websocket?.isActive()) {
+      try {
+        await window.qz.websocket.disconnect();
+      } catch {
+        /* ignore */
+      }
+    }
+    lastSignDurationMs = 0;
+    const t0 = nowMs();
+    await ensureQzConnected();
     const res = await listQzPrintersWithDefault();
-    const ms = Math.round(performance.now() - t0);
-    // Se a requisição respondeu sem erros e rapidamente, o certificado está 100% confiado
-    return { ok: true, printersCount: res.printers.length, prompted: ms > 3000 };
-  } catch {
-    return { ok: false, printersCount: 0, prompted: false };
+    const elapsed = Math.round(nowMs() - t0);
+    const localMs = Math.max(0, elapsed - lastSignDurationMs);
+    const prompted = localMs > 2500;
+    if (prompted) {
+      return { ok: true, printersCount: res.printers.length, prompted: true, reason: "untrusted" };
+    }
+    return { ok: true, printersCount: res.printers.length, prompted: false };
+  } catch (err) {
+    if (err instanceof QzNotRunningError) {
+      return { ok: false, printersCount: 0, prompted: false, reason: "offline" };
+    }
+    try {
+      if (typeof window !== "undefined" && window.qz?.websocket?.isActive()) {
+        await window.qz.websocket.disconnect();
+      }
+    } catch {
+      /* ignore */
+    }
+    return { ok: false, printersCount: 0, prompted: true, reason: "untrusted" };
   }
 }
 
@@ -504,6 +590,13 @@ export async function checkQzPrinterReady(
         code: "QZ_OFFLINE",
       };
     }
+    if (err instanceof QzCertificateRejectedError) {
+      return {
+        ok: false,
+        reason: err.message,
+        code: "QZ_UNTRUSTED",
+      };
+    }
     return {
       ok: false,
       reason: err instanceof Error ? err.message : "Não foi possível conectar ao QZ Tray.",
@@ -533,55 +626,80 @@ export function downloadQzProperties(): void {
 }
 
 /**
- * Monta um instalador .bat para Windows que grava o cert em
- * `data/certificates/allowed.pem` — caminho oficial de _persistent trust_ do
- * QZ Tray 2.2 Community (SiteManager).
+ * Monta um instalador híbrido `.bat` + `.ps1` auto-extraível para Windows.
  *
- * Estratégia (v2):
- *   - Grava system-wide em `%PROGRAMDATA%\qz\data\certificates\allowed.pem`
- *     (vale para todos os usuários da máquina).
- *   - Grava per-user em `%APPDATA%\qz\data\certificates\allowed.pem` para
- *     CADA perfil em C:\Users.
- *   - Remove o nosso cert de `blocked.pem` (caso o usuário tenha clicado em
- *     "Block" — blocked vence allowed).
- *   - Reinicia o QZ Tray ao final.
- *
- * O caminho legado `override/allowed.pem` (usado na v1) NÃO é lido pelo QZ
- * Tray Community — por isso o prompt continuava avisando mesmo executando
- * como administrador.
+ * Estratégia (v7):
+ *   - Todas as linhas respeitam limite curto (`<= 120` chars), evitando o limite
+ *     de 8.191 chars do `cmd.exe` que quebrava o antigo `-EncodedCommand`.
+ *   - Solicita elevação UAC automaticamente caso não esteja como Administrador.
+ *   - Exige estritamente o `cert.pem` baixado (pasta atual / Downloads / Desktop)
+ *     e valida o Thumbprint SHA-1 contra o certificado ativo do servidor.
+ *   - Encerra o QZ Tray (`preinstall` + `qz-tray`/`javaw.exe`) ANTES de gravar.
+ *   - Remove arquivos legados (`allowed.pem`, `override.pem`, `allowed.txt`, `blocked.pem`).
+ *   - Sobrescreve `cert.pem`, `override.crt`, `qz-tray.properties` (`authcert.override`)
+ *     e atualiza `allowed.dat` / `blocked.dat` em Program Files, ProgramData e AppData.
+ *   - Reinicia o QZ Tray na sessão do usuário e valida a porta local (8182/8181).
  */
-export const QZ_INSTALLER_VERSION = 6;
+export const QZ_INSTALLER_VERSION = 7;
+
+function formatPem64(certPem: string): string {
+  const b64 = certPem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  if (!b64) return certPem.replace(/\r\n/g, "\n").trim();
+  const chunks = b64.match(/.{1,64}/g) ?? [b64];
+  return ["-----BEGIN CERTIFICATE-----", ...chunks, "-----END CERTIFICATE-----"].join("\n");
+}
+
 export function buildQzWindowsInstaller(certPem: string): string {
-  const cleanedCert = certPem.replace(/\r\n/g, "\n").trim() + "\n";
-  const certB64 = encodeBase64Utf8(cleanedCert);
-  const psB64 = encodeBase64Utf16Le(QZ_INSTALL_PS1);
-  return [
+  const formattedPem = formatPem64(certPem);
+  const psScript = QZ_INSTALL_PS1.replace("__EXPECTED_PEM__", formattedPem).trim();
+  const batLines = [
     "@echo off",
     "setlocal EnableExtensions",
     "chcp 65001 >nul",
     `title Menuzin - Configurar QZ Tray (v${QZ_INSTALLER_VERSION})`,
-    "",
     `echo Menuzin QZ Tray Setup - versao ${QZ_INSTALLER_VERSION}`,
     "echo.",
-    "",
+    'for %%I in ("%~dp0.") do set "ORIG_DIR=%%~fI"',
+    'if not "%~1"=="" set "ORIG_DIR=%~1"',
+    'if "%ORIG_DIR:~-1%"=="\\" set "ORIG_DIR=%ORIG_DIR:~0,-1%"',
+    'set "ORIG_USER=%USERNAME%"',
+    'if not "%~2"=="" set "ORIG_USER=%~2"',
     "net session >nul 2>&1",
     "if errorlevel 1 (",
-    "  echo.",
-    "  echo Este instalador precisa ser executado como Administrador.",
-    "  echo Feche esta janela, clique com o botao direito no arquivo e escolha",
-    '  echo "Executar como administrador".',
-    "  echo.",
-    "  pause",
-    "  exit /b 1",
+    "  echo Solicitando permissao de Administrador...",
+    '  set "MZ_SELF=%~f0"',
+    "  powershell -NoProfile -ExecutionPolicy Bypass -Command ^",
+    '    "$q=[char]34;$a=($q+$env:ORIG_DIR+$q),($q+$env:ORIG_USER+$q);" ^',
+    '    "Start-Process $env:MZ_SELF -ArgumentList $a -Verb RunAs" ^',
+    "    >nul 2>&1",
+    "  if errorlevel 1 (",
+    "    echo.",
+    "    echo Este instalador precisa ser executado como Administrador.",
+    "    echo Clique com o botao direito no arquivo e escolha:",
+    '    echo "Executar como administrador".',
+    "    echo.",
+    "    pause",
+    "    exit /b 1",
+    "  )",
+    "  exit /b 0",
     ")",
-    "",
-    'set "BAT_DIR=%~dp0"',
-    `set "CERT_B64=${certB64}"`,
-    `set "INSTALLER_VERSION=${QZ_INSTALLER_VERSION}"`,
-    "",
-    `powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${psB64}`,
-    "set ERR=%ERRORLEVEL%",
-    "",
+    'set "MZ_SRC=%~f0"',
+    'set "MZ_DST=%TEMP%\\mz-qz-%RANDOM%.ps1"',
+    "powershell -NoProfile -ExecutionPolicy Bypass -Command ^",
+    '  "$s=[IO.File]::ReadAllText($env:MZ_SRC,[Text.Encoding]::UTF8);" ^',
+    `  "$m='# === MENUZIN_PS1_'+'START ===';" ^`,
+    '  "$i=$s.LastIndexOf($m);if($i -lt 0){exit 2};" ^',
+    '  "$u=New-Object Text.UTF8Encoding($false);" ^',
+    '  "[IO.File]::WriteAllText($env:MZ_DST,$s.Substring($i+$m.Length),$u)"',
+    "if errorlevel 1 (",
+    "  echo Falha ao extrair script de configuracao.",
+    "  pause",
+    "  exit /b 2",
+    ")",
+    'powershell -NoProfile -ExecutionPolicy Bypass -File "%MZ_DST%" ^',
+    '  -BatDir "%ORIG_DIR%" -OrigUser "%ORIG_USER%"',
+    'set "ERR=%ERRORLEVEL%"',
+    'del /f /q "%MZ_DST%" >nul 2>&1',
     "echo.",
     "if %ERR% NEQ 0 (",
     "  echo Houve uma falha na configuracao. Codigo: %ERR%",
@@ -595,299 +713,377 @@ export function buildQzWindowsInstaller(certPem: string): string {
     "endlocal",
     "exit /b %ERR%",
     "",
-  ].join("\r\n");
+    "# === MENUZIN_PS1_START ===",
+    ...psScript.split(/\r?\n/),
+    "",
+  ];
+  return batLines.join("\r\n");
 }
 
-/**
- * Script PowerShell (v5) que:
- *   1. Lê o cert.pem (da pasta local do .bat ou do payload base64).
- *   2. Grava `override.crt`, `allowed.pem` e `cert.pem` em TODOS os diretórios de configuração do QZ Tray (system-wide, Program Files, e todos os perfis de usuário em C:\Users).
- *   3. Popula `allowed.txt` com '*', menuzin.app, *.menuzin.app, http/https origins e localhost para preencher o "Site Manager" do QZ Tray.
- *   4. Atualiza/cria `qz-tray.properties` com `authcert.override=override.crt` e `authcert.override=allowed.pem` em todos os diretórios.
- *   5. Grava as chaves de Java Preferences no Registry do Windows.
- *   6. Limpa fingerprints do certificado Menuzin em `blocked.pem`.
- *   7. Reinicia o QZ Tray.
- */
 const QZ_INSTALL_PS1 = `
+param([string]$BatDir, [string]$OrigUser)
 $ErrorActionPreference = 'Stop'
 try {
-  Write-Host ("Menuzin QZ installer - PowerShell stage (v" + $env:INSTALLER_VERSION + ")")
-  
-  $certTrim = $null
-  $certBytes = $null
+  Write-Host "Menuzin QZ installer - PowerShell stage (v7)"
+  if ($BatDir -and $BatDir -match '^[A-Za-z]:$') { $BatDir = "$BatDir\\" }
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  $x509Cls = 'System.Security.Cryptography.X509Certificates.X509Certificate2'
+  $sCmp = [StringComparison]::OrdinalIgnoreCase
 
-  if ($env:BAT_DIR -and (Test-Path -LiteralPath (Join-Path $env:BAT_DIR 'cert.pem'))) {
+  $expectedPem = @'
+__EXPECTED_PEM__
+'@
+  $expBytes = [Text.Encoding]::UTF8.GetBytes($expectedPem.Trim())
+  $expCert = New-Object $x509Cls (,$expBytes)
+  $expectedThumb = $expCert.Thumbprint.ToLowerInvariant()
+  Write-Host ("Fingerprint esperado: " + $expectedThumb)
+
+  $searchDirs = New-Object System.Collections.Generic.List[string]
+  function Add-SearchDir([string]$d) {
+    if ($d -and (Test-Path -LiteralPath $d)) {
+      if (-not $searchDirs.Contains($d)) { [void]$searchDirs.Add($d) }
+    }
+  }
+  Add-SearchDir $BatDir
+  if ($OrigUser) {
+    $ouPath = Join-Path "$env:SystemDrive\\Users" $OrigUser
+    Add-SearchDir (Join-Path $ouPath 'Downloads')
+    Add-SearchDir (Join-Path $ouPath 'Desktop')
+  }
+  if ($env:USERPROFILE) {
+    Add-SearchDir (Join-Path $env:USERPROFILE 'Downloads')
+    Add-SearchDir (Join-Path $env:USERPROFILE 'Desktop')
+  }
+  $usersRoot = Join-Path $env:SystemDrive 'Users'
+  $sysNames = @('Public', 'Default', 'Default User', 'All Users')
+  if (Test-Path -LiteralPath $usersRoot) {
+    Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue |
+      Where-Object { $sysNames -notcontains $_.Name } |
+      ForEach-Object { Add-SearchDir (Join-Path $_.FullName 'Downloads') }
+  }
+
+  $candidates = New-Object System.Collections.Generic.List[IO.FileInfo]
+  $seenFiles = New-Object System.Collections.Generic.HashSet[string]
+  if ($BatDir) {
+    $direct = Join-Path $BatDir 'cert.pem'
+    if (Test-Path -LiteralPath $direct) {
+      $fi = Get-Item -LiteralPath $direct
+      [void]$seenFiles.Add($fi.FullName.ToLowerInvariant())
+      [void]$candidates.Add($fi)
+    }
+  }
+  foreach ($sd in $searchDirs) {
+    $hits = Get-ChildItem -LiteralPath $sd -File -ErrorAction SilentlyContinue |
+      Where-Object { $_.Name -like 'cert*.pem' -or $_.Name -like 'qz-cert*.crt' } |
+      Sort-Object LastWriteTime -Descending
+    foreach ($h in $hits) {
+      if ($seenFiles.Add($h.FullName.ToLowerInvariant())) { [void]$candidates.Add($h) }
+    }
+  }
+
+  $validCert = $null
+  $validPem = $null
+  $validPath = $null
+  $foundMismatch = $null
+  $pemRx = '(?s)-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----'
+
+  foreach ($cand in $candidates) {
     try {
-      $localCert = Get-Content -LiteralPath (Join-Path $env:BAT_DIR 'cert.pem') -Raw -ErrorAction SilentlyContinue
-      if ($localCert -and $localCert.Contains('-----BEGIN CERTIFICATE-----')) {
-        $certTrim = $localCert.Trim()
-        $certBytes = [Text.Encoding]::UTF8.GetBytes($certTrim)
-        Write-Host "Certificado cert.pem lido da pasta local do instalador."
+      $raw = [IO.File]::ReadAllText($cand.FullName)
+      $m = [regex]::Match($raw, $pemRx)
+      if (-not $m.Success) { continue }
+      $block = ($m.Value -replace "\\r\\n", "\`n").Trim() + "\`n"
+      $cBytes = [Text.Encoding]::UTF8.GetBytes($block)
+      $cObj = New-Object $x509Cls (,$cBytes)
+      $thumb = $cObj.Thumbprint.ToLowerInvariant()
+      if ($thumb -eq $expectedThumb) {
+        $validCert = $cObj
+        $validPem = $block
+        $validPath = $cand.FullName
+        break
+      } elseif (-not $foundMismatch) {
+        $foundMismatch = $cand.FullName
       }
     } catch {}
   }
-  
-  if (-not $certTrim) {
-    $certBytes = [Convert]::FromBase64String($env:CERT_B64)
-    $certText  = [Text.Encoding]::UTF8.GetString($certBytes)
-    $certTrim  = $certText.Trim()
+
+  if (-not $validCert) {
+    Write-Host ''
+    if ($foundMismatch) {
+      Write-Host ('[ERRO] O arquivo encontrado (' + $foundMismatch + ') esta desatualizado.')
+      Write-Host '1. Volte na tela do Menuzin (Passo 2).'
+      Write-Host '2. Baixe novamente o cert.pem pelo botao laranja "Baixar cert.pem".'
+      Write-Host '3. Execute este auto-configurador novamente.'
+      exit 4
+    }
+    Write-Host '[ERRO] O arquivo obrigatorio "cert.pem" nao foi encontrado na pasta atual nem em Downloads!'
+    Write-Host '1. Volte na tela do Menuzin (Passo 2).'
+    Write-Host '2. Clique no botao laranja "Baixar cert.pem".'
+    Write-Host '3. Execute este auto-configurador novamente.'
+    exit 3
   }
 
-  $certObj = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$certBytes)
-  function Get-Fingerprint([System.Security.Cryptography.X509Certificates.X509Certificate2]$c) {
-    $sha = [System.Security.Cryptography.SHA256]::Create()
-    $bytes = $sha.ComputeHash($c.RawData)
-    ($bytes | ForEach-Object { $_.ToString('x2') }) -join ''
-  }
-  $ourFp = Get-Fingerprint $certObj
-  Write-Host ("Fingerprint do cert: " + $ourFp)
-
-  function Ensure-Dir([string]$dir) {
-    try {
-      if (-not (Test-Path -LiteralPath $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-      }
-    } catch {}
-  }
-
-  function Write-CertFile([string]$filePath) {
-    try {
-      $parent = Split-Path -Parent $filePath
-      Ensure-Dir $parent
-      $write = $true
-      if (Test-Path -LiteralPath $filePath) {
-        $existing = Get-Content -LiteralPath $filePath -Raw -ErrorAction SilentlyContinue
-        if ($existing -and $existing.Contains($certTrim)) {
-          $write = $false
-        } elseif ($existing) {
-          $merged = ($existing.TrimEnd() + "\`n" + $certTrim + "\`n")
-          [IO.File]::WriteAllText($filePath, $merged)
-          Write-Host ("Confiado (append): " + $filePath)
-          $write = $false
-        }
-      }
-      if ($write) {
-        [IO.File]::WriteAllText($filePath, $certTrim + "\`n")
-        Write-Host ("Confiado: " + $filePath)
-      }
-    } catch {
-      Write-Host ("Aviso cert em " + $filePath + ": " + $_.Exception.Message)
+  Write-Host ("Certificado cert.pem validado: " + $validPath)
+  if ($BatDir -and (Test-Path -LiteralPath $BatDir)) {
+    $batCert = Join-Path $BatDir 'cert.pem'
+    if (-not $validPath.Equals($batCert, $sCmp)) {
+      [IO.File]::WriteAllText($batCert, $validPem, $utf8NoBom)
     }
   }
 
-  function Write-AllowedTxt([string]$filePath) {
-    try {
-      $parent = Split-Path -Parent $filePath
-      Ensure-Dir $parent
-      $domains = @(
-        '*',
-        'menuzin.app',
-        '*.menuzin.app',
-        'https://menuzin.app',
-        'http://menuzin.app',
-        'https://*.menuzin.app',
-        'http://*.menuzin.app',
-        'localhost',
-        '127.0.0.1',
-        'http://localhost',
-        'https://localhost',
-        'http://localhost:5173',
-        'http://127.0.0.1',
-        'http://127.0.0.1:5173'
-      )
-      $existingLines = @()
-      if (Test-Path -LiteralPath $filePath) {
-        $existingLines = Get-Content -LiteralPath $filePath -ErrorAction SilentlyContinue
-      }
-      $toAdd = @()
-      foreach ($d in $domains) {
-        if ($existingLines -notcontains $d) {
-          $toAdd += $d
-        }
-      }
-      if ($toAdd.Count -gt 0 -or -not (Test-Path -LiteralPath $filePath)) {
-        $newLines = ($existingLines + $toAdd) | Select-Object -Unique
-        [IO.File]::WriteAllText($filePath, (($newLines -join "\`n") + "\`n"))
-        Write-Host ("Allowed.txt atualizado: " + $filePath)
-      }
-    } catch {
-      Write-Host ("Aviso txt em " + $filePath + ": " + $_.Exception.Message)
-    }
-  }
-
-  function Write-QzProperties([string]$filePath) {
-    try {
-      $parent = Split-Path -Parent $filePath
-      Ensure-Dir $parent
-      $overrideLines = @('authcert.override=override.crt', 'authcert.override=allowed.pem')
-      if (Test-Path -LiteralPath $filePath) {
-        $content = Get-Content -LiteralPath $filePath -Raw -ErrorAction SilentlyContinue
-        if ($content -and -not $content.Contains('authcert.override')) {
-          $merged = ($content.TrimEnd() + "\`n" + ($overrideLines -join "\`n") + "\`n")
-          [IO.File]::WriteAllText($filePath, $merged)
-          Write-Host ("Properties atualizado: " + $filePath)
-        }
-      } else {
-        [IO.File]::WriteAllText($filePath, (($overrideLines -join "\`n") + "\`n"))
-        Write-Host ("Properties criado: " + $filePath)
-      }
-    } catch {
-      Write-Host ("Aviso properties em " + $filePath + ": " + $_.Exception.Message)
-    }
-  }
-
-  function Scrub-BlockedPem([string]$filePath) {
-    try {
-      if (-not (Test-Path -LiteralPath $filePath)) { return }
-      $content = Get-Content -LiteralPath $filePath -Raw -ErrorAction SilentlyContinue
-      if (-not $content) { return }
-      $pattern = '(?s)-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----'
-      $blocks = [System.Text.RegularExpressions.Regex]::Matches($content, $pattern)
-      if ($blocks.Count -eq 0) { return }
-      $kept = New-Object System.Collections.ArrayList
-      foreach ($m in $blocks) {
-        try {
-          $pem = $m.Value
-          $b64 = ($pem -replace '-----[^-]+-----','' -replace '\s+','')
-          $der = [Convert]::FromBase64String($b64)
-          $c   = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 (,$der)
-          $fp  = Get-Fingerprint $c
-          if ($fp -ne $ourFp) { [void]$kept.Add($pem) }
-          else { Write-Host ("Removido de blocked: " + $filePath) }
-        } catch {
-          [void]$kept.Add($m.Value)
-        }
-      }
-      if ($kept.Count -eq 0) {
-        Remove-Item -LiteralPath $filePath -Force -ErrorAction SilentlyContinue
-        Write-Host ("blocked.pem limpo e removido: " + $filePath)
-      } else {
-        [IO.File]::WriteAllText($filePath, (($kept -join "\`n") + "\`n"))
-      }
-    } catch {
-      Write-Host ("Aviso blocked em " + $filePath + ": " + $_.Exception.Message)
-    }
-  }
-
-  $dirsToConfigure = New-Object System.Collections.Generic.HashSet[string]
-
-  # 1) System-wide: %PROGRAMDATA%\\qz
-  foreach ($base in @($env:ProgramData, "$env:SystemDrive\\ProgramData")) {
-    if ($base) {
-      $b = Join-Path $base 'qz'
-      [void]$dirsToConfigure.Add($b)
-      [void]$dirsToConfigure.Add((Join-Path $b 'override'))
-      [void]$dirsToConfigure.Add((Join-Path $b 'data'))
-      [void]$dirsToConfigure.Add((Join-Path $b 'data\\certificates'))
-    }
-  }
-
-  # 2) Pastas de instalação em Program Files
-  $installCandidates = @()
-  $pfList = @(
+  $installCandidates = New-Object System.Collections.Generic.List[string]
+  $pf86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+  $pfRoots = @(
     $env:ProgramW6432,
     $env:ProgramFiles,
-    \${env:ProgramFiles(x86)},
+    $pf86,
     "$env:SystemDrive\\Program Files",
     "$env:SystemDrive\\Program Files (x86)",
-    "$env:LocalAppData\\Programs"
-  ) | Select-Object -Unique
-
-  foreach ($pf in $pfList) {
-    if ($pf) {
-      $cand = Join-Path $pf 'QZ Tray'
-      $installCandidates += $cand
-      [void]$dirsToConfigure.Add($cand)
-      [void]$dirsToConfigure.Add((Join-Path $cand 'override'))
-      [void]$dirsToConfigure.Add((Join-Path $cand 'data'))
-      [void]$dirsToConfigure.Add((Join-Path $cand 'data\\certificates'))
-    }
+    "$env:LOCALAPPDATA\\Programs"
+  )
+  foreach ($r in $pfRoots) {
+    if ($r) { [void]$installCandidates.Add((Join-Path $r 'QZ Tray')) }
   }
-
+  if ($OrigUser) {
+    [void]$installCandidates.Add("$env:SystemDrive\\Users\\$OrigUser\\AppData\\Local\\Programs\\QZ Tray")
+  }
+  if (Test-Path -LiteralPath $usersRoot) {
+    Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue |
+      Where-Object { $sysNames -notcontains $_.Name } |
+      ForEach-Object {
+        [void]$installCandidates.Add((Join-Path $_.FullName 'AppData\\Local\\Programs\\QZ Tray'))
+      }
+  }
   try {
     $regKeys = @(
       'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
-      'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+      'HKLM:\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+      'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
     )
     Get-ItemProperty $regKeys -ErrorAction SilentlyContinue |
       Where-Object { $_.DisplayName -like 'QZ Tray*' -and $_.InstallLocation } |
-      ForEach-Object {
-        $loc = $_.InstallLocation.TrimEnd('\\')
-        $installCandidates += $loc
-        [void]$dirsToConfigure.Add($loc)
-        [void]$dirsToConfigure.Add((Join-Path $loc 'override'))
-        [void]$dirsToConfigure.Add((Join-Path $loc 'data'))
-        [void]$dirsToConfigure.Add((Join-Path $loc 'data\\certificates'))
-      }
+      ForEach-Object { [void]$installCandidates.Add($_.InstallLocation.TrimEnd('\\')) }
   } catch {}
 
-  # 3) Perfis em C:\\Users
-  $usersRoot = Join-Path $env:SystemDrive 'Users'
+  $installDirs = New-Object System.Collections.Generic.List[string]
+  $seenDirs = New-Object System.Collections.Generic.HashSet[string]
+  foreach ($d in $installCandidates) {
+    if (-not $d -or -not (Test-Path -LiteralPath $d)) { continue }
+    $hasBin = (Test-Path -LiteralPath (Join-Path $d 'qz-tray.exe')) -or
+              (Test-Path -LiteralPath (Join-Path $d 'QZ Tray.exe')) -or
+              (Test-Path -LiteralPath (Join-Path $d 'qz-tray.jar'))
+    if ($hasBin -and $seenDirs.Add($d.ToLowerInvariant())) {
+      [void]$installDirs.Add($d)
+    }
+  }
+  if ($installDirs.Count -eq 0) {
+    Write-Host ''
+    Write-Host '[ERRO] QZ Tray nao encontrado neste computador.'
+    Write-Host '1. Instale o QZ Tray pelo link do Passo 1 (qz.io/download).'
+    Write-Host '2. Execute este auto-configurador novamente.'
+    exit 5
+  }
+  $installDir = $installDirs[0]
+  Write-Host ("QZ Tray encontrado em: " + $installDir)
+
+  foreach ($d in $installDirs) {
+    $j = Join-Path $d 'runtime\\bin\\java.exe'
+    $jar = Join-Path $d 'qz-tray.jar'
+    if ((Test-Path -LiteralPath $j) -and (Test-Path -LiteralPath $jar)) {
+      try { & $j -jar $jar preinstall 2>$null | Out-Null } catch {}
+    }
+  }
+  $pNames = @('qz-tray', 'QZ Tray', 'qz-tray-console')
+  Get-Process -Name $pNames -ErrorAction SilentlyContinue |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+  try {
+    $f = "Name='javaw.exe' OR Name='java.exe'"
+    $jProcs = Get-CimInstance Win32_Process -Filter $f -ErrorAction SilentlyContinue
+    if (-not $jProcs) {
+      $jProcs = Get-WmiObject Win32_Process -Filter $f -ErrorAction SilentlyContinue
+    }
+    foreach ($jp in $jProcs) {
+      $cmd = [string]$jp.CommandLine
+      $exePath = [string]$jp.ExecutablePath
+      $isQz = ($cmd -like '*qz-tray*')
+      foreach ($d in $installDirs) {
+        if ($exePath -and $exePath.StartsWith($d, $sCmp)) { $isQz = $true }
+      }
+      if ($isQz) {
+        Stop-Process -Id $jp.ProcessId -Force -ErrorAction SilentlyContinue
+      }
+    }
+  } catch {}
+  Start-Sleep -Milliseconds 1500
+
+  $pdBase = if ($env:ProgramData) { $env:ProgramData } else { "$env:SystemDrive\\ProgramData" }
+  $progDataQz = Join-Path $pdBase 'qz'
+  New-Item -ItemType Directory -Path $progDataQz -Force | Out-Null
+
+  $userQzDirs = New-Object System.Collections.Generic.List[string]
+  $seenUserQz = New-Object System.Collections.Generic.HashSet[string]
   if (Test-Path -LiteralPath $usersRoot) {
     Get-ChildItem -LiteralPath $usersRoot -Directory -ErrorAction SilentlyContinue |
-      Where-Object { $_.Name -notin @('Public','Default','Default User','All Users') } |
+      Where-Object { $sysNames -notcontains $_.Name } |
       ForEach-Object {
-        $uPath = $_.FullName
-        $appData = Join-Path $uPath 'AppData\\Roaming\\qz'
-        $dotQz   = Join-Path $uPath '.qz'
-
-        [void]$dirsToConfigure.Add($appData)
-        [void]$dirsToConfigure.Add((Join-Path $appData 'override'))
-        [void]$dirsToConfigure.Add((Join-Path $appData 'data'))
-        [void]$dirsToConfigure.Add((Join-Path $appData 'data\\certificates'))
-
-        [void]$dirsToConfigure.Add($dotQz)
-        [void]$dirsToConfigure.Add((Join-Path $dotQz 'override'))
-        [void]$dirsToConfigure.Add((Join-Path $dotQz 'data'))
-        [void]$dirsToConfigure.Add((Join-Path $dotQz 'data\\certificates'))
+        $roam = Join-Path $_.FullName 'AppData\\Roaming'
+        if (Test-Path -LiteralPath $roam) {
+          $uqz = Join-Path $roam 'qz'
+          if ($seenUserQz.Add($uqz.ToLowerInvariant())) {
+            New-Item -ItemType Directory -Path $uqz -Force | Out-Null
+            [void]$userQzDirs.Add($uqz)
+          }
+        }
       }
   }
-
-  foreach ($dir in $dirsToConfigure) {
-    Write-CertFile (Join-Path $dir 'override.crt')
-    Write-CertFile (Join-Path $dir 'allowed.pem')
-    Write-CertFile (Join-Path $dir 'cert.pem')
-    Write-CertFile (Join-Path $dir 'override.pem')
-    Write-AllowedTxt (Join-Path $dir 'allowed.txt')
-    Write-QzProperties (Join-Path $dir 'qz-tray.properties')
-    Scrub-BlockedPem (Join-Path $dir 'blocked.pem')
-  }
-
-  $regPaths = @(
-    'HKCU:\\Software\\JavaSoft\\Prefs\\qz\\io\\site-manager',
-    'HKCU:\\Software\\JavaSoft\\Prefs\\qz\\site-manager',
-    'HKLM:\\Software\\JavaSoft\\Prefs\\qz\\io\\site-manager',
-    'HKLM:\\Software\\JavaSoft\\Prefs\\qz\\site-manager'
-  )
-  foreach ($rp in $regPaths) {
-    try {
-      if (-not (Test-Path $rp)) { New-Item -Path $rp -Force | Out-Null }
-      Set-ItemProperty -Path $rp -Name 'allowed' -Value '*;menuzin.app;*.menuzin.app;https://menuzin.app;http://menuzin.app;localhost;127.0.0.1' -ErrorAction SilentlyContinue
-    } catch {}
-  }
-
-  Get-Process -Name 'QZ Tray','qz-tray' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-  Start-Sleep -Milliseconds 2000
-
-  $exe = $null
-  foreach ($dir in $installCandidates) {
-    if (-not $dir -or -not (Test-Path -LiteralPath $dir)) { continue }
-    foreach ($name in @('QZ Tray.exe','qz-tray.exe')) {
-      $p = Join-Path $dir $name
-      if ((-not $exe) -and (Test-Path -LiteralPath $p)) { $exe = $p }
+  if ($env:APPDATA) {
+    $curQz = Join-Path $env:APPDATA 'qz'
+    if ($seenUserQz.Add($curQz.ToLowerInvariant())) {
+      New-Item -ItemType Directory -Path $curQz -Force | Out-Null
+      [void]$userQzDirs.Add($curQz)
     }
   }
-  if ($exe) {
-    try {
-      Start-Process -FilePath $exe
-      Write-Host ("QZ Tray reiniciado com sucesso: " + $exe)
-    } catch {
-      Write-Host ("Aviso: inicie o QZ Tray pelo Menu Iniciar se nao abrir.")
+
+  $allTargets = New-Object System.Collections.Generic.List[string]
+  foreach ($d in $installDirs) { [void]$allTargets.Add($d) }
+  [void]$allTargets.Add($progDataQz)
+  foreach ($u in $userQzDirs) { [void]$allTargets.Add($u) }
+
+  $legacyNames = @('allowed.pem', 'override.pem', 'allowed.txt', 'blocked.pem')
+  foreach ($dir in $allTargets) {
+    foreach ($sub in @('', 'override', 'data\\certificates')) {
+      $folder = if ($sub) { Join-Path $dir $sub } else { $dir }
+      foreach ($ln in $legacyNames) {
+        $lp = Join-Path $folder $ln
+        if (Test-Path -LiteralPath $lp) {
+          Remove-Item -LiteralPath $lp -Force -ErrorAction SilentlyContinue
+        }
+      }
     }
+    [IO.File]::WriteAllText((Join-Path $dir 'cert.pem'), $validPem, $utf8NoBom)
+    [IO.File]::WriteAllText((Join-Path $dir 'override.crt'), $validPem, $utf8NoBom)
+  }
+
+  $canonCertPath = (Join-Path $progDataQz 'cert.pem').Replace('\\', '/')
+  function Update-QzProperties([string]$propPath) {
+    $parent = Split-Path -Parent $propPath
+    if (-not (Test-Path -LiteralPath $parent)) {
+      New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    $kept = New-Object System.Collections.Generic.List[string]
+    if (Test-Path -LiteralPath $propPath) {
+      foreach ($line in [IO.File]::ReadAllLines($propPath)) {
+        if ($line -match '^\\s*(authcert\\.override|trustedRootCert|tray\\.strictmode)\\s*=') {
+          continue
+        }
+        [void]$kept.Add($line)
+      }
+    }
+    [void]$kept.Add("authcert.override=$canonCertPath")
+    $outText = ($kept -join "\`n") + "\`n"
+    [IO.File]::WriteAllText($propPath, $outText, $utf8NoBom)
+  }
+  foreach ($dir in $allTargets) {
+    Update-QzProperties (Join-Path $dir 'qz-tray.properties')
+  }
+
+  $primaryJava = Join-Path $installDir 'runtime\\bin\\java.exe'
+  $primaryJar = Join-Path $installDir 'qz-tray.jar'
+  $globalCertFile = Join-Path $progDataQz 'cert.pem'
+  if ((Test-Path -LiteralPath $primaryJava) -and (Test-Path -LiteralPath $primaryJar)) {
+    try { & $primaryJava -jar $primaryJar --allow $globalCertFile 2>$null | Out-Null } catch {}
+  }
+
+  $nameType = [System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName
+  $cn = $validCert.GetNameInfo($nameType, $false)
+  if (-not $cn) { $cn = 'Menuzin' }
+  $org = $cn
+  if ($validCert.Subject -match '(?:^|,\\s*)O=([^,]+)') {
+    $org = $matches[1].Trim().Trim('"')
+  }
+  $vFrom = $validCert.NotBefore.ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss')
+  $vTo = $validCert.NotAfter.ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss')
+  $tab = [char]9
+  $datLine = @($expectedThumb, $cn, $org, $vFrom, $vTo, 'true') -join $tab
+
+  $datDirs = New-Object System.Collections.Generic.List[string]
+  [void]$datDirs.Add($progDataQz)
+  foreach ($u in $userQzDirs) { [void]$datDirs.Add($u) }
+
+  foreach ($dd in $datDirs) {
+    $aDat = Join-Path $dd 'allowed.dat'
+    $aLines = New-Object System.Collections.Generic.List[string]
+    if (Test-Path -LiteralPath $aDat) {
+      foreach ($rawL in [IO.File]::ReadAllLines($aDat)) {
+        if ([string]::IsNullOrWhiteSpace($rawL)) { continue }
+        $firstCol = ($rawL -split $tab)[0].Trim().ToLowerInvariant()
+        if ($firstCol -eq $expectedThumb) { continue }
+        [void]$aLines.Add($rawL)
+      }
+    }
+    [void]$aLines.Add($datLine)
+    $aText = ($aLines -join "\`n") + "\`n"
+    [IO.File]::WriteAllText($aDat, $aText, $utf8NoBom)
+
+    $bDat = Join-Path $dd 'blocked.dat'
+    if (Test-Path -LiteralPath $bDat) {
+      $bLines = New-Object System.Collections.Generic.List[string]
+      foreach ($rawB in [IO.File]::ReadAllLines($bDat)) {
+        if ([string]::IsNullOrWhiteSpace($rawB)) { continue }
+        $bLow = $rawB.ToLowerInvariant()
+        if ($bLow.Contains($expectedThumb) -or $rawB.Contains("$tab$cn$tab")) { continue }
+        [void]$bLines.Add($rawB)
+      }
+      $bText = if ($bLines.Count -gt 0) { ($bLines -join "\`n") + "\`n" } else { '' }
+      [IO.File]::WriteAllText($bDat, $bText, $utf8NoBom)
+    }
+  }
+
+  $qzExe = $null
+  foreach ($n in @('qz-tray.exe', 'QZ Tray.exe')) {
+    $candExe = Join-Path $installDir $n
+    if ((-not $qzExe) -and (Test-Path -LiteralPath $candExe)) { $qzExe = $candExe }
+  }
+  if ($qzExe) {
+    $argQ = [char]34 + $qzExe + [char]34
+    try { Start-Process -FilePath 'explorer.exe' -ArgumentList $argQ } catch {}
+    Start-Sleep -Milliseconds 2000
+    $running = Get-Process -Name 'qz-tray', 'QZ Tray' -ErrorAction SilentlyContinue
+    if (-not $running) {
+      if ((Test-Path -LiteralPath $primaryJava) -and (Test-Path -LiteralPath $primaryJar)) {
+        try { & $primaryJava -jar $primaryJar spawn $qzExe 2>$null | Out-Null } catch {}
+      }
+      Start-Sleep -Milliseconds 1500
+      $running = Get-Process -Name 'qz-tray', 'QZ Tray' -ErrorAction SilentlyContinue
+      if (-not $running) {
+        try { Start-Process -FilePath $qzExe -WorkingDirectory $installDir } catch {}
+      }
+    }
+  }
+
+  $listeningPort = $null
+  for ($i = 0; $i -lt 20; $i++) {
+    foreach ($p in @(8182, 8181)) {
+      $tcp = New-Object System.Net.Sockets.TcpClient
+      try {
+        $ar = $tcp.BeginConnect('127.0.0.1', $p, $null, $null)
+        if ($ar.AsyncWaitHandle.WaitOne(200, $false) -and $tcp.Connected) {
+          $tcp.EndConnect($ar)
+          $listeningPort = $p
+          break
+        }
+      } catch {} finally {
+        $tcp.Dispose()
+      }
+    }
+    if ($listeningPort) { break }
+    Start-Sleep -Milliseconds 500
+  }
+  if ($listeningPort) {
+    Write-Host ("QZ Tray ativo e ouvindo na porta " + $listeningPort)
   } else {
-    Write-Host 'Atencao: abra o QZ Tray pelo Menu Iniciar.'
+    Write-Host 'QZ Tray reiniciado. Aguarde alguns segundos e clique em Testar de novo.'
   }
-
   exit 0
 } catch {
   Write-Host ('Erro: ' + $_.Exception.Message)
@@ -895,27 +1091,7 @@ try {
 }
 `;
 
-function encodeBase64Utf8(s: string): string {
-  if (typeof btoa === "function") {
-    return btoa(unescape(encodeURIComponent(s)));
-  }
-  return Buffer.from(s, "utf-8").toString("base64");
-}
-
-function encodeBase64Utf16Le(s: string): string {
-  const bytes = new Uint8Array(s.length * 2);
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    bytes[i * 2] = c & 0xff;
-    bytes[i * 2 + 1] = (c >> 8) & 0xff;
-  }
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  if (typeof btoa === "function") return btoa(bin);
-  return Buffer.from(bin, "binary").toString("base64");
-}
-
-/** Baixa o instalador .bat (Windows) com o cert.pem embutido. */
+/** Baixa o instalador .bat (Windows) com validação de cert.pem. */
 export async function downloadQzWindowsInstaller(): Promise<void> {
   const { cert, configured } = await fetchQzCertificate();
   if (!configured || !cert) {
@@ -923,10 +1099,7 @@ export async function downloadQzWindowsInstaller(): Promise<void> {
       "O certificado do QZ Tray ainda não foi configurado no servidor. Contate o administrador.",
     );
   }
-  // PowerShell here-string '@... '@ — antes de fechar precisa estar em sua própria linha.
-  // O builder já trim() o cert, então a linha de fechamento fica isolada.
   const bat = buildQzWindowsInstaller(cert);
-  // .bat precisa de encoding ANSI/ASCII para o cmd interpretar corretamente.
   const blob = new Blob([bat], { type: "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

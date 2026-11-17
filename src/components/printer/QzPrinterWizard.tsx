@@ -47,13 +47,12 @@ import {
   type PrinterSettings,
 } from "@/lib/printer-types";
 import {
+  checkQzStatusAndTrust,
   downloadQzCertificate,
   downloadQzWindowsInstaller,
-  ensureQzConnected,
   fetchQzCertificate,
   listQzPrintersWithDefault,
   printQzTextTest,
-  QzNotRunningError,
   type QzPrinter,
 } from "@/lib/qz-tray";
 import {
@@ -170,28 +169,39 @@ export function QzPrinterWizard({ open, onOpenChange, onComplete }: Props) {
     updateStep("qz", { status: "running", detail: undefined });
     updateStep("trust", { status: "pending", detail: undefined });
     try {
-      const t0 = performance.now();
-      await ensureQzConnected();
-      const ms = Math.round(performance.now() - t0);
-      updateStep("qz", { status: "ok", detail: "Conectado" });
-
-      const prompted = ms > 2000;
-      updateStep("trust", {
-        status: prompted ? "err" : "ok",
-        detail: prompted
-          ? `${ms} ms — QZ Tray pediu confirmação manual. Rode o configurador.`
-          : `${ms} ms — sem pop-up`,
-      });
-      return !prompted;
-    } catch (e) {
-      if (e instanceof QzNotRunningError) {
+      const status = await checkQzStatusAndTrust();
+      if (status.reason === "server_unconfigured") {
+        updateStep("qz", {
+          status: "err",
+          detail: "Certificado do servidor não configurado.",
+        });
+        return false;
+      }
+      if (status.reason === "offline") {
         updateStep("qz", {
           status: "err",
           detail: "QZ Tray não está aberto. Instale ou inicie o aplicativo.",
         });
-      } else {
-        updateStep("qz", { status: "err", detail: (e as Error).message });
+        return false;
       }
+
+      updateStep("qz", { status: "ok", detail: "Conectado" });
+
+      if (status.reason === "untrusted" || status.prompted || !status.ok) {
+        updateStep("trust", {
+          status: "err",
+          detail: "QZ Tray pediu confirmação ou recusou a conexão. Baixe o cert.pem e execute o auto-configurador.",
+        });
+        return false;
+      }
+
+      updateStep("trust", {
+        status: "ok",
+        detail: "Validado sem pop-up",
+      });
+      return true;
+    } catch (e) {
+      updateStep("qz", { status: "err", detail: (e as Error).message });
       return false;
     }
   };

@@ -32,12 +32,19 @@ export function QzInstallGuide({
 }: QzInstallGuideProps) {
   const [installing, setInstalling] = useState(false);
   const [downloadingCert, setDownloadingCert] = useState(false);
+  const [certDownloaded, setCertDownloaded] = useState(false);
 
   const handleDownloadInstaller = async () => {
     setInstalling(true);
     try {
       await downloadQzWindowsInstaller();
-      toast.success("Auto-configurador baixado.");
+      if (!certDownloaded) {
+        toast.info(
+          "Auto-configurador baixado! Certifique-se de também ter baixado o cert.pem (botão 1) antes de executá-lo.",
+        );
+      } else {
+        toast.success("Auto-configurador baixado.");
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -49,6 +56,7 @@ export function QzInstallGuide({
     setDownloadingCert(true);
     try {
       await downloadQzCertificate();
+      setCertDownloaded(true);
       toast.success("cert.pem baixado.");
     } catch (e) {
       toast.error((e as Error).message);
@@ -110,7 +118,7 @@ export function QzInstallGuide({
                 Baixar Certificado e Auto-configurador
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Baixe o <code className="font-semibold text-foreground">cert.pem</code> (botão 1) e o <code className="font-semibold text-foreground">Auto-configurador .bat</code> (botão 2) na <strong>mesma pasta</strong> do seu computador.
+                O arquivo <code className="font-semibold text-foreground">cert.pem</code> (botão 1) é <strong>obrigatório</strong>. Baixe-o e depois baixe e execute o <code className="font-semibold text-foreground">Auto-configurador .bat</code> (botão 2).
               </p>
 
               <div className="flex flex-wrap items-center gap-2 pt-0.5">
@@ -147,7 +155,7 @@ export function QzInstallGuide({
               {/* Caixa de instrução Windows */}
               <div className="rounded-2xl border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5 font-sans leading-relaxed">
                 <div>
-                  • <strong>No Windows:</strong> Certifique-se de baixar ambos os arquivos na <strong>mesma pasta</strong>. Em seguida, clique com o botão direito sobre o arquivo <code className="font-semibold text-foreground">menuzin-qz-setup.bat</code> e selecione <strong>"Executar como administrador"</strong>.
+                  • <strong>No Windows:</strong> Primeiro baixe o <code className="font-semibold text-foreground">cert.pem</code>. Depois abra o arquivo <code className="font-semibold text-foreground">menuzin-qz-setup.bat</code> (ele localiza o <code className="font-semibold text-foreground">cert.pem</code> na mesma pasta ou em <strong>Downloads</strong> e solicita permissão de Administrador automaticamente — se preferir, clique com o botão direito e escolha <strong>"Executar como administrador"</strong>).
                 </div>
               </div>
             </div>
