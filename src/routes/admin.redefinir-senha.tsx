@@ -1,3 +1,4 @@
+import { translateAuthError } from "@/lib/auth-errors";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ function ResetPasswordPage() {
       await refresh();
       navigate({ to: isPlatformAdmin ? "/platform/dashboard" : "/admin/pedidos", replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao alterar senha");
+      toast.error(translateAuthError(err instanceof Error ? err.message : null, "Falha ao alterar senha"));
     } finally {
       setSubmitting(false);
     }

@@ -1,3 +1,4 @@
+import { translateAuthError } from "./auth-errors";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -194,7 +195,7 @@ export const adminCreateTenant = createServerFn({ method: "POST" })
       if (cErr || !created.user) {
         // rollback do tenant para não deixar órfão
         await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
-        throw new Error(cErr?.message || "Falha ao criar usuário do dono.");
+        throw new Error(translateAuthError(cErr?.message, "Falha ao criar usuário do dono."));
       }
       ownerId = created.user.id;
       // garante profile (o trigger handle_new_user também faz, mas idempotente)
@@ -655,7 +656,7 @@ export const adminUpdateTenantOwner = createServerFn({ method: "POST" })
         email_confirm: true,
         user_metadata: { full_name: data.full_name ?? "" },
       });
-      if (cErr || !created.user) throw new Error(cErr?.message || "Falha ao criar administrador.");
+      if (cErr || !created.user) throw new Error(translateAuthError(cErr?.message, "Falha ao criar administrador."));
       ownerId = created.user.id;
       await supabaseAdmin.from("profiles").upsert({
         id: ownerId, email: data.email, full_name: data.full_name ?? "", tenant_id: data.tenant_id,
@@ -674,7 +675,7 @@ export const adminUpdateTenantOwner = createServerFn({ method: "POST" })
         ...authPatch,
         email_confirm: !!data.email || undefined,
       } as never);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(translateAuthError(error.message));
     }
     const profPatch: { full_name?: string; email?: string } = {};
     if (data.full_name) profPatch.full_name = data.full_name;
