@@ -148,6 +148,13 @@
       "when": 1793713716214,
       "tag": "0020_cash_offshift_dismissals",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795350720067,
+      "tag": "0021_restrict_public_reads_plans_guia_sections",
+      "breakpoints": true
     }
   ]
 }
