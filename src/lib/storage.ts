@@ -5,16 +5,20 @@ const BUCKET = "tenant-assets";
 const MAX_DIMENSION = 1600;
 const WEBP_QUALITY = 0.82;
 
-let cachedTenantId: string | null = null;
+// Cache por usuário: evita usar a loja de uma conta anterior após trocar de login.
+let cachedTenant: { userId: string; tenantId: string } | null = null;
 
 async function getCurrentTenantId(): Promise<string> {
-  if (cachedTenantId) return cachedTenantId;
+  const { data: auth } = await supabase.auth.getSession();
+  const userId = auth.session?.user.id;
+  if (!userId) throw new Error("Sessão expirada. Faça login novamente.");
+  if (cachedTenant?.userId === userId) return cachedTenant.tenantId;
   const { tenant } = await getMyTenant();
   if (!tenant?.id) {
     throw new Error("Loja não encontrada para o usuário atual. Faça login novamente.");
   }
-  cachedTenantId = tenant.id as string;
-  return cachedTenantId;
+  cachedTenant = { userId, tenantId: tenant.id as string };
+  return cachedTenant.tenantId;
 }
 
 /**
@@ -128,10 +132,18 @@ export async function uploadTenantImage(file: File, folder = "uploads"): Promise
     upsert: false,
     contentType: finalType,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(friendlyUploadError(error.message));
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+
+function friendlyUploadError(msg: string): string {
+  if (/row-level security/i.test(msg)) {
+    cachedTenant = null;
+    return "Sem permissão para enviar arquivos nesta loja. Saia e entre novamente na conta da loja.";
+  }
+  return msg;
 }
 
 /**
