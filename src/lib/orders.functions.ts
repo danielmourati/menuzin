@@ -43,7 +43,7 @@ export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((d) => CreateOrderInput.parse(d))
   .handler(async ({ data }) => {
     const { data: tenant, error: tErr } = await supabaseAdmin
-      .from("tenants").select("id, plan, hours_schedule, scheduling_enabled, scheduling_slot_minutes, scheduling_days_ahead").eq("slug", data.tenant_slug).eq("active", true).maybeSingle();
+      .from("tenants").select("id, plan, open, open_mode, hours_schedule, scheduling_enabled, scheduling_slot_minutes, scheduling_days_ahead").eq("slug", data.tenant_slug).eq("active", true).maybeSingle();
     if (tErr) throw new Error(tErr.message);
     if (!tenant) throw new Error("Loja não encontrada");
 
@@ -89,6 +89,20 @@ export const createOrder = createServerFn({ method: "POST" })
         daysAhead: tenant.scheduling_days_ahead,
       }, data.scheduled_for);
       if (!ok) throw new Error("Horário de agendamento indisponível. Escolha outro horário.");
+    } else {
+      const { computeStoreOpen } = await import("@/lib/store-hours");
+      const st = computeStoreOpen({
+        openMode: (tenant as { open_mode?: "auto" | "open" | "closed" }).open_mode,
+        hoursSchedule: tenant.hours_schedule,
+        legacyOpen: (tenant as { open?: boolean }).open,
+      });
+      if (!st.open) {
+        throw new Error(
+          st.reason.startsWith("Fechou às")
+            ? `A loja ${st.reason.replace("Fechou", "fechou")}. Não estamos aceitando pedidos agora.`
+            : "A loja está fechada no momento. Não estamos aceitando pedidos agora.",
+        );
+      }
     }
 
     // unit_price já inclui tamanho, sabores e adicionais (computeUnitPrice no carrinho).

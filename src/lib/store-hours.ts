@@ -103,6 +103,19 @@ export type StoreOpenResult = {
 export function computeStoreOpen(t: StoreOpenInput, now: Date = new Date()): StoreOpenResult {
   const mode: OpenMode = t.openMode === "open" || t.openMode === "closed" ? t.openMode : "auto";
   if (mode === "open") {
+    // Abertura manual vale só até o fechamento configurado do dia.
+    const sched = normalizeSchedule(t.hoursSchedule);
+    if (sched.some((d) => d.enabled)) {
+      const { weekday, minutes } = nowInSaoPaulo(now);
+      const day = sched.find((d) => d.weekday === weekday);
+      if (day && day.close) {
+        const closeMin = toMinutes(day.close);
+        if (closeMin > 0 && minutes >= closeMin) {
+          return { open: false, mode, reason: `Fechou às ${day.close}` };
+        }
+        return { open: true, mode, reason: `Aberta manualmente até ${day.close}` };
+      }
+    }
     return { open: true, mode, reason: "Forçada aberta pelo admin" };
   }
   if (mode === "closed") {
