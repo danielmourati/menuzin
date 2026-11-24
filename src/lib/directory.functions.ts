@@ -143,7 +143,7 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
     const [{ data: tRows }, { data: rRows }] = await Promise.all([
       supabaseAdmin
         .from("tenants")
-        .select("id, business_types, open, accepts_delivery")
+        .select("id, business_types, open, open_mode, hours_schedule, accepts_delivery")
         .in("id", ids),
       supabaseAdmin
         .from("order_ratings")
@@ -151,11 +151,12 @@ export const listAllStores = createServerFn({ method: "GET" }).handler(async () 
         .in("tenant_id", ids)
         .limit(5000),
     ]);
-    for (const t of (tRows ?? []) as { id: string; business_types: string[] | null; open: boolean; accepts_delivery: boolean }[]) {
+    const { computeStoreOpen } = await import("@/lib/store-hours");
+    for (const t of (tRows ?? []) as { id: string; business_types: string[] | null; open: boolean; open_mode: "auto" | "open" | "closed" | null; hours_schedule: unknown; accepts_delivery: boolean }[]) {
       const store = map.get(t.id);
       if (store) {
         store.vertical = verticalOf(t.business_types);
-        store.open = !!t.open;
+        store.open = computeStoreOpen({ openMode: t.open_mode, hoursSchedule: t.hours_schedule, legacyOpen: t.open }).open;
         store.accepts_delivery = t.accepts_delivery !== false;
       }
     }

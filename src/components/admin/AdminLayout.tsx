@@ -587,7 +587,7 @@ function StoreOpenToggle() {
 
   // Próximo modo no ciclo: auto → open → closed → auto.
   const nextMode = mode === "auto" ? "open" : mode === "open" ? "closed" : "auto";
-  const label = mode === "auto" ? (open ? "Aberta" : "Fechada") : mode === "open" ? "Aberta" : "Fechada";
+  const label = open ? "Aberta" : "Fechada";
   const sub = mode === "auto" ? "auto" : "manual";
 
   return (
