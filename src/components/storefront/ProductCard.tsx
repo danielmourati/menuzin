@@ -88,15 +88,15 @@ export function ProductCard({
             {showFromPrefix ? (
               <div className="flex flex-wrap items-baseline gap-x-1">
                 <span className="text-xs text-muted-foreground">A partir de</span>
-                <span className="text-base font-bold sm:text-lg text-primary">{brl(displayPrice)}</span>
+                <span className="text-[15px] font-bold sm:text-[16px] text-primary">{brl(displayPrice)}</span>
               </div>
             ) : product.promoPrice ? (
               <div className="flex flex-wrap items-baseline gap-x-1.5">
-                <span className="text-base font-bold sm:text-lg text-primary">{brl(product.promoPrice)}</span>
+                <span className="text-[15px] font-bold sm:text-[16px] text-primary">{brl(product.promoPrice)}</span>
                 <span className="text-xs text-muted-foreground line-through">{brl(product.price)}</span>
               </div>
             ) : (
-              <span className="text-base font-bold sm:text-lg">{brl(product.price)}</span>
+              <span className="text-[15px] font-bold sm:text-[16px] text-primary">{brl(product.price)}</span>
             )}
           </div>
 
@@ -171,15 +171,15 @@ export function ProductCard({
           {showFromPrefix ? (
             <div className="flex flex-wrap items-baseline gap-x-1">
               <span className="text-xs text-muted-foreground">A partir de</span>
-              <span className="text-base font-bold text-primary">{brl(displayPrice)}</span>
+              <span className="text-[15px] font-bold text-primary">{brl(displayPrice)}</span>
             </div>
           ) : product.promoPrice ? (
             <div className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-base font-bold text-primary">{brl(product.promoPrice)}</span>
+              <span className="text-[15px] font-bold text-primary">{brl(product.promoPrice)}</span>
               <span className="text-xs text-muted-foreground line-through">{brl(product.price)}</span>
             </div>
           ) : (
-            <span className="text-base font-bold">{brl(product.price)}</span>
+            <span className="text-[15px] font-bold text-primary">{brl(product.price)}</span>
           )}
         </div>
 

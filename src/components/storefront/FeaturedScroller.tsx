@@ -72,7 +72,7 @@ export function FeaturedScroller({
                         <span className="text-xs text-muted-foreground line-through">{brl(p.price)}</span>
                       </div>
                     ) : (
-                      <span className="text-base font-bold">{brl(p.price)}</span>
+                      <span className="text-base font-bold text-primary">{brl(p.price)}</span>
                     )}
                   </div>
                   {!unavailable && (
