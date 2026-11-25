@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { tryResolveEffectiveTenantId } from "@/lib/active-tenant.server";
+import { stripBrazilDdi } from "@/lib/masks";
 import type { DbDriver } from "./db-types";
 
 export type DriverRow = DbDriver;
@@ -75,7 +76,10 @@ export const getLastDispatchedDriver = createServerFn({ method: "POST" })
 const DriverInput = z.object({
   id: z.string().uuid().nullable().optional(),
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  phone: z.string().min(8, "Telefone inválido"),
+  phone: z
+    .string()
+    .transform((v) => stripBrazilDdi(v))
+    .refine((v) => v.length >= 10 && v.length <= 11, "Informe o WhatsApp com DDD (10 ou 11 dígitos)"),
   vehicle: z.string().nullable().optional(),
   active: z.boolean().default(true),
 });

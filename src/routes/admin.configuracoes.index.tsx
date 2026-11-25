@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, PartyPopper, ArrowRight, Rocket, Download, Share2, AlertTriangle, LocateFixed, Search, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { formatCep, formatCnpjCpf } from "@/lib/format";
+import { maskPhone, stripBrazilDdi } from "@/lib/masks";
 import { getMyTenant, updateMyTenant } from "@/lib/tenants.functions";
 import { setStoreDeparturePoint } from "@/lib/delivery-zones.functions";
 import { getMyAdminAccount, updateMyAdminAccount } from "@/lib/account.functions";
@@ -278,7 +279,7 @@ function SettingsPage() {
     const sched = normalizeSchedule(t.hours_schedule);
     setForm({
       name: tenant.name ?? "",
-      whatsapp: tenant.whatsapp ?? "",
+      whatsapp: maskPhone(tenant.whatsapp ?? ""),
       description: tenant.description ?? "",
       address: tenant.address ?? "",
       address_number: (tenant as { address_number?: string | null }).address_number ?? "",
@@ -332,6 +333,7 @@ function SettingsPage() {
       const [tMin, tMax] = pair("Tempo de retirada", takeout_time_min, takeout_time_max);
       return updateMyTenant({ data: {
         ...rest,
+        whatsapp: stripBrazilDdi(rest.whatsapp),
         delivery_time_min: dMin, delivery_time_max: dMax,
         takeout_time_min: tMin, takeout_time_max: tMax,
       } });
@@ -445,10 +447,10 @@ function SettingsPage() {
                   <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground">+55</span>
                   <Input
                     value={form.whatsapp}
-                    onChange={(e) => set("whatsapp", e.target.value.replace(/\D/g, ""))}
-                    placeholder="DDD + número"
-                    inputMode="numeric"
-                    maxLength={11}
+                    onChange={(e) => set("whatsapp", maskPhone(e.target.value))}
+                    placeholder="(86) 99999-9999"
+                    inputMode="tel"
+                    maxLength={15}
                     className="rounded-l-none"
                   />
                 </div>

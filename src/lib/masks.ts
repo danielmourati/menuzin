@@ -25,8 +25,25 @@ export function maskCpfCnpj(value: string): string {
     .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
+/** Remove o DDI 55 inicial quando o número brasileiro tem 12 ou 13 dígitos (ex: 5586999998888 -> 86999998888). */
+export function stripBrazilDdi(value: string): string {
+  const d = value.replace(/\D/g, "");
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) {
+    return d.slice(2);
+  }
+  return d;
+}
+
+/** Normaliza número brasileiro para somente dígitos com DDI 55 (ex: (86) 99999-8888 -> 5586999998888). */
+export function normalizeBrazilWhatsApp(value: string): string {
+  const d = value.replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length === 10 || d.length === 11) return `55${d}`;
+  return d;
+}
+
 export function maskPhone(value: string): string {
-  const d = value.replace(/\D/g, "").slice(0, 11);
+  const d = stripBrazilDdi(value).slice(0, 11);
   if (d.length <= 2) return d.length ? `(${d}` : "";
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;

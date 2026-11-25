@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Truck, Loader2, Phone, User, Bike } from "lucide-react";
 import { toast } from "sonner";
+import { maskPhone, stripBrazilDdi } from "@/lib/masks";
 import { upsertDriver, type DriverRow } from "@/lib/drivers.functions";
 
 interface CreateDriverModalProps {
@@ -36,7 +37,7 @@ export function CreateDriverModal({
         data: {
           id: null,
           name,
-          phone,
+          phone: stripBrazilDdi(phone),
           vehicle: vehicle || null,
           active: true,
         },
@@ -61,8 +62,8 @@ export function CreateDriverModal({
       toast.error("Informe o nome do entregador.");
       return;
     }
-    if (!phone.trim()) {
-      toast.error("Informe o telefone/WhatsApp do entregador.");
+    if (stripBrazilDdi(phone).length < 10) {
+      toast.error("Informe o WhatsApp com DDD (10 ou 11 dígitos).");
       return;
     }
     saveMutation.mutate();
@@ -110,16 +111,23 @@ export function CreateDriverModal({
             <Label htmlFor="quick-driver-phone" className="text-xs font-semibold flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-muted-foreground" /> WhatsApp / Telefone *
             </Label>
-            <Input
-              id="quick-driver-phone"
-              placeholder="Ex: 86999887766"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="h-10 rounded-xl"
-              required
-            />
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l-xl border border-r-0 bg-muted px-3 text-sm text-muted-foreground select-none">
+                +55
+              </span>
+              <Input
+                id="quick-driver-phone"
+                placeholder="(86) 99988-7766"
+                value={phone}
+                onChange={(e) => setPhone(maskPhone(e.target.value))}
+                inputMode="tel"
+                maxLength={15}
+                className="h-10 rounded-xl rounded-l-none"
+                required
+              />
+            </div>
             <p className="text-[11px] text-muted-foreground">
-              Com DDD. Usado para notificação e envio do endereço via WhatsApp.
+              Informe apenas o DDD e o número. Usado para notificação e envio do endereço via WhatsApp.
             </p>
           </div>
 

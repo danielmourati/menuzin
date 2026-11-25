@@ -26,6 +26,7 @@ import { CashShiftBadge } from "@/components/admin/CashShiftBadge";
 import { HandoffAlert } from "@/components/admin/HandoffAlert";
 import { AiConversationsFab } from "@/components/admin/AiConversationsFab";
 import { isAdminRouteHidden, isHidden } from "@/lib/feature-flags";
+import { maskPhone, stripBrazilDdi } from "@/lib/masks";
 
 
 const sections = [
@@ -347,9 +348,14 @@ function OnboardingClaim() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanWhatsapp = stripBrazilDdi(whatsapp);
+    if (cleanWhatsapp.length < 10) {
+      toast.error("Informe o WhatsApp com DDD (10 ou 11 dígitos).");
+      return;
+    }
     setSubmitting(true);
     try {
-      await claimNewTenant({ data: { slug, name, whatsapp, city } });
+      await claimNewTenant({ data: { slug, name, whatsapp: cleanWhatsapp, city } });
       toast.success("Loja criada com sucesso!");
       await refresh();
       navigate({ to: "/admin/pedidos" });
@@ -383,8 +389,21 @@ function OnboardingClaim() {
             </div>
           </div>
           <div>
-            <Label>WhatsApp (com DDI) *</Label>
-            <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="5586999999999" required className="mt-1.5" />
+            <Label>WhatsApp *</Label>
+            <div className="mt-1.5 flex">
+              <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground select-none">
+                +55
+              </span>
+              <Input
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
+                placeholder="(86) 99999-9999"
+                inputMode="tel"
+                maxLength={15}
+                required
+                className="rounded-l-none"
+              />
+            </div>
           </div>
           <div>
             <Label>Cidade *</Label>

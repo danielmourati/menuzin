@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { maskPhone, stripBrazilDdi } from "@/lib/masks";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -233,7 +234,7 @@ function EditTenantDialog({
 }) {
   const [name, setName] = useState(store.name);
   const [slug, setSlug] = useState(store.slug);
-  const [whatsapp, setWhatsapp] = useState(store.whatsapp ?? "");
+  const [whatsapp, setWhatsapp] = useState(() => maskPhone(store.whatsapp ?? ""));
   const [city, setCity] = useState(store.city ?? "");
   const [state, setState] = useState(store.state ?? "");
   const [plan, setPlan] = useState<TenantPlan>(normalizePlan(store.plan));
@@ -250,7 +251,7 @@ function EditTenantDialog({
           id: store.id,
           name,
           slug,
-          whatsapp,
+          whatsapp: stripBrazilDdi(whatsapp),
           city,
           state,
           plan,
@@ -293,13 +294,21 @@ function EditTenantDialog({
           </div>
           <div>
             <Label>Contato / WhatsApp de cadastro (auto-cadastro)</Label>
-            <Input
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="5586999999999"
-            />
+            <div className="mt-1 flex">
+              <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground select-none">
+                +55
+              </span>
+              <Input
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(maskPhone(e.target.value))}
+                placeholder="(86) 99999-9999"
+                inputMode="tel"
+                maxLength={15}
+                className="rounded-l-none"
+              />
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Número de telefone registrado no cadastro/auto-cadastro do estabelecimento.
+              Informe apenas o DDD e o número de telefone registrado no cadastro do estabelecimento.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">

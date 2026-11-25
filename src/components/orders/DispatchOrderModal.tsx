@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Truck, MapPin, CreditCard, User, Phone, MessageSquare, ExternalLink, PackageCheck, AlertCircle, Plus, UserPlus } from "lucide-react";
-import { brl } from "@/lib/format";
+import { brl, formatPhoneNumber, whatsappLink } from "@/lib/format";
+import { normalizeBrazilWhatsApp } from "@/lib/masks";
 import { buildWhatsAppLink } from "@/lib/whatsapp-link";
 import type { Order } from "@/lib/domain-types";
 import { listMyDrivers, getLastDispatchedDriver } from "@/lib/drivers.functions";
@@ -93,7 +94,7 @@ export function DispatchOrderModal({
   // Gerador de mensagem formatada para WhatsApp do Entregador
   const generateWhatsappUrl = () => {
     if (!selectedDriver) return null;
-    const driverPhone = selectedDriver.phone.replace(/\D/g, "");
+    const driverPhone = normalizeBrazilWhatsApp(selectedDriver.phone);
     
     const itemsSummary = order.items
       .map((it) => `• ${it.qty}x ${it.name}${it.note ? ` (${it.note})` : ""}`)
@@ -182,7 +183,7 @@ export function DispatchOrderModal({
                     <SelectItem key={d.id} value={d.id} className="py-2.5">
                       <div className="flex items-center justify-between w-full gap-4">
                         <span className="font-medium text-foreground">{d.name}</span>
-                        <span className="text-xs text-muted-foreground">{d.vehicle || "Moto"} · {d.phone}</span>
+                        <span className="text-xs text-muted-foreground">{d.vehicle || "Moto"} · {formatPhoneNumber(d.phone)}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -218,12 +219,12 @@ export function DispatchOrderModal({
                   <span className="text-xs font-semibold text-muted-foreground block">Cliente</span>
                   <span className="font-semibold text-foreground">{order.customerName}</span>
                   <a
-                    href={`https://wa.me/${order.whatsapp.replace(/\D/g, "")}`}
+                    href={whatsappLink(order.whatsapp)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="ml-2 text-xs font-medium text-emerald-600 hover:underline inline-flex items-center gap-1"
                   >
-                    <Phone className="h-3 w-3" /> {order.whatsapp}
+                    <Phone className="h-3 w-3" /> {formatPhoneNumber(order.whatsapp)}
                   </a>
                 </div>
               </div>

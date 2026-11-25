@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Truck, Phone, Edit, Trash2, Loader2, UserCheck, Search, MessageSquare, AlertTriangle, Copy, Terminal } from "lucide-react";
 import { toast } from "sonner";
+import { formatPhoneNumber, whatsappLink } from "@/lib/format";
+import { maskPhone, stripBrazilDdi } from "@/lib/masks";
 import { listMyDrivers, upsertDriver, deleteDriver, toggleDriverActive, autoSetupDriversTable, type DriverRow } from "@/lib/drivers.functions";
 
 export const Route = createFileRoute("/admin/entregadores")({
@@ -70,7 +72,7 @@ function DriversPage() {
   const openEditModal = (driver: DriverRow) => {
     setEditingDriver(driver);
     setName(driver.name);
-    setPhone(driver.phone);
+    setPhone(maskPhone(driver.phone));
     setVehicle(driver.vehicle ?? "");
     setActive(driver.active);
     setModalOpen(true);
@@ -82,7 +84,7 @@ function DriversPage() {
         data: {
           id: editingDriver?.id || null,
           name,
-          phone,
+          phone: stripBrazilDdi(phone),
           vehicle: vehicle || null,
           active,
         },
@@ -120,10 +122,12 @@ function DriversPage() {
     },
   });
 
+  const searchDigits = search.replace(/\D/g, "");
   const filtered = drivers.filter(
     (d) =>
       d.name.toLowerCase().includes(search.toLowerCase()) ||
       d.phone.includes(search) ||
+      (searchDigits.length > 0 && stripBrazilDdi(d.phone).includes(searchDigits)) ||
       (d.vehicle && d.vehicle.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -223,7 +227,6 @@ function DriversPage() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((driver) => {
-                      const cleanPhone = driver.phone.replace(/\D/g, "");
                       return (
                         <TableRow key={driver.id}>
                           <TableCell className="font-semibold text-foreground">
@@ -238,13 +241,13 @@ function DriversPage() {
                           </TableCell>
                           <TableCell>
                             <a
-                              href={`https://wa.me/${cleanPhone}`}
+                              href={whatsappLink(driver.phone)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
                             >
                               <Phone className="h-3.5 w-3.5" />
-                              {driver.phone}
+                              {formatPhoneNumber(driver.phone)}
                               <MessageSquare className="h-3 w-3 opacity-70" />
                             </a>
                           </TableCell>
@@ -321,6 +324,11 @@ function DriversPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                const digits = stripBrazilDdi(phone);
+                if (digits.length < 10) {
+                  toast.error("Informe o WhatsApp com DDD (10 ou 11 dígitos).");
+                  return;
+                }
                 saveMutation.mutate();
               }}
               className="space-y-4 py-2"
@@ -338,15 +346,23 @@ function DriversPage() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="driver-phone">WhatsApp / Celular *</Label>
-                <Input
-                  id="driver-phone"
-                  placeholder="Ex: 5586999998888"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
+                <div className="flex">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm text-muted-foreground select-none">
+                    +55
+                  </span>
+                  <Input
+                    id="driver-phone"
+                    placeholder="(86) 99999-8888"
+                    value={phone}
+                    onChange={(e) => setPhone(maskPhone(e.target.value))}
+                    inputMode="tel"
+                    maxLength={15}
+                    className="rounded-l-none"
+                    required
+                  />
+                </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Com DDD (e DDI 55 se aplicável). Usado para enviar ordens via WhatsApp.
+                  Informe apenas o DDD e o número. Usado para enviar ordens via WhatsApp.
                 </p>
               </div>
 
