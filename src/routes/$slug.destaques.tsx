@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { catalogQueryOptions } from "./$slug";
+import { Route as StoreSlugRoute, catalogQueryOptions } from "./$slug";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ProductModal } from "@/components/storefront/ProductModal";
 import { ArrowLeft } from "lucide-react";
@@ -35,9 +35,18 @@ export function FeaturedList({
   const [selected, setSelected] = useState<Product | null>(null);
   const [open, setOpen] = useState(false);
 
+  const parentLoaderData = StoreSlugRoute.useLoaderData();
+  const [initialDataUpdatedAt] = useState(() => Date.now());
+  const matchingLoaderData =
+    parentLoaderData && (!parentLoaderData.tenant || parentLoaderData.tenant.slug === slug)
+      ? parentLoaderData
+      : undefined;
+
   const q = useQuery({
     ...catalogQueryOptions(slug),
     staleTime: 30_000,
+    initialData: matchingLoaderData,
+    initialDataUpdatedAt: matchingLoaderData ? initialDataUpdatedAt : undefined,
   });
 
   const items = (q.data?.products ?? []).filter(filter);

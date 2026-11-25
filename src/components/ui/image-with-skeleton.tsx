@@ -1,5 +1,20 @@
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+// Cache em memória das URLs já carregadas nesta sessão para evitar flash/shimmer ao retornar à tela
+const MAX_CACHED_IMAGE_URLS = 500;
+const loadedImageUrls = new Set<string>();
+
+function rememberLoadedImage(src?: string) {
+  if (!src || typeof window === "undefined") return;
+  if (loadedImageUrls.size >= MAX_CACHED_IMAGE_URLS) {
+    const first = loadedImageUrls.values().next().value;
+    if (first !== undefined) loadedImageUrls.delete(first);
+  }
+  loadedImageUrls.add(src);
+}
 
 interface ImageWithSkeletonProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   containerClassName?: string;
@@ -20,15 +35,24 @@ export function ImageWithSkeleton({
   onError,
   ...props
 }: ImageWithSkeletonProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const alreadyLoaded = Boolean(src && loadedImageUrls.has(src));
+  const [isLoaded, setIsLoaded] = useState(alreadyLoaded);
   const [hasError, setHasError] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // Verifica se a imagem já foi baixada/está em cache na montagem
-  useEffect(() => {
-    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+  // Verifica sincronamente antes da pintura se a imagem já está pronta no cache/SSR
+  useIsomorphicLayoutEffect(() => {
+    setHasError(false);
+    if (src && loadedImageUrls.has(src)) {
       setIsLoaded(true);
+      return;
     }
+    if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+      rememberLoadedImage(src);
+      setIsLoaded(true);
+      return;
+    }
+    setIsLoaded(false);
   }, [src]);
 
   return (
@@ -38,7 +62,7 @@ export function ImageWithSkeleton({
         containerClassName
       )}
     >
-      {/* Skeleton Shimmer de carregamento (estilo aiqfome) */}
+      {/* Skeleton Shimmer de carregamento (somente enquanto a imagem ainda não terminou de baixar) */}
       {!isLoaded && !hasError && (
         <div
           className={cn(
@@ -68,6 +92,7 @@ export function ImageWithSkeleton({
           loading={loading}
           decoding={decoding}
           onLoad={(e) => {
+            rememberLoadedImage(src);
             setIsLoaded(true);
             onLoad?.(e);
           }}
@@ -76,7 +101,8 @@ export function ImageWithSkeleton({
             onError?.(e);
           }}
           className={cn(
-            "h-full w-full transition-opacity duration-300 ease-out",
+            "h-full w-full",
+            !alreadyLoaded && "transition-opacity duration-200 ease-out",
             isLoaded ? "opacity-100" : "opacity-0",
             className
           )}
