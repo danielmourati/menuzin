@@ -283,6 +283,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [visibleCat, setVisibleCat] = useState<string>("Todos");
   const [isScrolled, setIsScrolled] = useState(false);
+  const stickySentinelRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const chipRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const { count, subtotal, activeCouponCode, setActiveCouponCode, clearActiveCoupon } = useCart();
@@ -489,17 +490,18 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     return out;
   }, [filtered, activeCat, sortedCategories]);
 
-  // Scroll spy: destaca automaticamente o chip da categoria visível e ativa o mini-cabeçalho da loja no scroll
+  // Scroll spy: destaca automaticamente o chip da categoria visível e ativa o mini-cabeçalho da loja somente quando a barra sticky fixa no topo
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const onScroll = () => {
-      const scrolled = window.scrollY > 130;
+      const sentinelTop = stickySentinelRef.current?.getBoundingClientRect().top;
+      const scrolled = sentinelTop != null ? sentinelTop <= 1 : false;
       setIsScrolled((prev) => (prev !== scrolled ? scrolled : prev));
 
       if (activeCat !== "Todos") return;
 
-      if (window.scrollY < 250) {
+      if (!scrolled) {
         setVisibleCat((prev) => (prev !== "Todos" ? "Todos" : prev));
         return;
       }
@@ -520,7 +522,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
       }
 
       // Altura do cabeçalho sticky + um pequeno respiro
-      const TRIGGER_OFFSET = scrolled ? 190 : 140;
+      const TRIGGER_OFFSET = 160;
       let foundKey: string | null = null;
 
       // Itera pelas seções para achar qual está cruzando a linha de gatilho
@@ -538,12 +540,14 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     onScroll(); // Verifica no primeiro render
 
     return () => {
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [activeCat, grouped]);
+  }, [activeCat, grouped, search]);
 
   // Rola o chip ativo para o centro
   useEffect(() => {
@@ -817,11 +821,13 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
           </div>
         )}
 
-        {/* Barra sticky: minicabeçalho da loja no scroll + categorias (só quando há produtos) */}
+        {/* Barra sticky: minicabeçalho da loja somente quando fixado no topo + categorias (só quando há produtos) */}
         {products.length > 0 && (
+          <>
+          <div ref={stickySentinelRef} aria-hidden="true" className="mt-4 h-0 w-full" />
           <div
-            className="sticky top-0 z-30 -mx-4 mt-4 border-b bg-background/95 shadow-xs backdrop-blur supports-[backdrop-filter]:bg-background/85 transition-all duration-200"
-            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+            className="sticky top-0 z-30 -mx-4 border-b bg-background/95 shadow-xs backdrop-blur supports-[backdrop-filter]:bg-background/85 transition-all duration-200"
+            style={{ paddingTop: isScrolled ? "env(safe-area-inset-top, 0px)" : undefined }}
           >
             {/* Minicabeçalho fixado com informações da loja ao scrollar */}
             {isScrolled && (
@@ -920,7 +926,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
                             const target = sectionRefs.current.get(c.key);
                             if (target) {
                               setVisibleCat(c.key);
-                              const offset = isScrolled ? 190 : 140;
+                              const offset = 150;
                               const y = target.getBoundingClientRect().top + window.scrollY - offset;
                               window.scrollTo({ top: y, behavior: "smooth" });
                               return;
@@ -951,6 +957,7 @@ function StorePage({ tenant, categories, products, pizzaSizes, pizzaDoughs, pizz
               )}
             </div>
           </div>
+          </>
         )}
 
         <div className={`mt-6 space-y-8 ${!canOrder ? "opacity-60" : ""}`}>
